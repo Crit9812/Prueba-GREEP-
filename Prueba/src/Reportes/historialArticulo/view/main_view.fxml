@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+
+<?import javafx.geometry.Insets?>
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           xmlns="http://javafx.com/javafx"
+           fx:id="root">
+
+    <BorderPane fx:id="mainLayout" >
+        <top>
+            <fx:include fx:id="paneNavbar" source="/Compartido/view/encabezado.fxml" />
+        </top>
+
+        <center>
+            <SplitPane dividerPositions="0.03">
+                <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
+                <VBox fx:id="contenedor" styleClass="contenedor">
+                    <VBox fx:id="opciones"  styleClass="opciones">
+                        <!-- Fila 1 -->
+                        <HBox fx:id="fila1" spacing="0" alignment="CENTER_LEFT">
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true" >
+                                        <image>
+                                            <Image url="@/img/quitar_columna.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblQuitar" text="Modificar columnas" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/ordenar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblOrdenar" text="Ordenar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/exportar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblExportar" text="Exportar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <Region fx:id="expansorBusqueda"/>
+                            <TextField fx:id="buscarFactura" text="" styleClass="textfield">
+                                <HBox.margin>
+                                    <Insets right="40"/>
+                                </HBox.margin>
+                            </TextField>
+                        </HBox>
+
+                        <!-- Fila 2 -->
+                        <HBox fx:id="fila2">
+                            <TextField text="Filtrar por:" styleClass="textfield">
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </TextField>
+                            <TextField text="Valor:" styleClass="textfield">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </TextField>
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/filtrar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Button>
+
+                            <Region fx:id="expansor"/>
+
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/vista_previa.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                            </Button>
+                            <Label fx:id="lblVista" text="Vista previa" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/descargar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblDescargar" text="Descargar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets  top="0" right="40" bottom="0" left="10"/>
+                                </HBox.margin>
+                            </Label>
+                        </HBox>
+                    </VBox>
+
+                    <VBox fx:id="informacion"  styleClass="informacion">
+                        <!-- Fila filtros -->
+                        <FlowPane fx:id="contenedorFiltros" hgap="10" alignment="CENTER_LEFT">
+                            <VBox.margin>
+                                <Insets top="10"/>
+                            </VBox.margin>
+                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
+                                <FlowPane.margin>
+                                    <Insets left="40" bottom="5"/>
+                                </FlowPane.margin>
+                                <Label text="Categoría: Libros"/>
+                                <Button text="✕"  styleClass="chip-close"/>
+                            </HBox>
+                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
+                                <Label text="Precio: $50"/>
+                                <Button text="✕"  styleClass="chip-close"/>
+                            </HBox>
+                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
+                                <Label text="En stock"/>
+                                <Button text="✕" styleClass="chip-close"/>
+                            </HBox>
+                        </FlowPane>
+
+                        <GridPane xmlns="http://javafx.com/javafx/17"
+                                  xmlns:fx="http://javafx.com/fxml"
+                                  fx:id="gridLabels" hgap="20" vgap="10">
+
+                            <!-- ColumnConstraints -->
+                            <columnConstraints>
+                                <ColumnConstraints percentWidth="58"/>
+                                <ColumnConstraints percentWidth="16"/>
+                                <ColumnConstraints percentWidth="26"/>
+                            </columnConstraints>
+
+                            <!-- Labels con margen izquierdo en los primeros de cada fila -->
+                            <Label fx:id="lblClave" text="Clave:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="labels">
+                                <GridPane.margin>
+                                    <Insets left="40"/>
+                                </GridPane.margin>
+                            </Label>
+                            <Label fx:id="lblPresentacion" text="Presentación:" GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="labels"/>
+                            <Label fx:id="lblFactor" text="Factor:" GridPane.rowIndex="0" GridPane.columnIndex="2" styleClass="labels"/>
+
+                            <Label fx:id="lblDescripcion" text="Descripción:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="labels">
+                                <GridPane.margin>
+                                    <Insets left="40"/>
+                                </GridPane.margin>
+                            </Label>
+                            <Label fx:id="lblExistencias" text="Existencias:" GridPane.rowIndex="1" GridPane.columnIndex="1" styleClass="labels"/>
+                            <Label fx:id="lblPeriodo" text="Periodo:" GridPane.rowIndex="1" GridPane.columnIndex="2" styleClass="labels"/>
+                        </GridPane>
+
+
+
+                    </VBox>
+
+
+
+
+
+
+                        <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
+                        <padding>
+                            <Insets left="40" right="40"/>
+                        </padding>
+                        <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
+                            <columns>
+                                <TableColumn fx:id="colFecha" text="Fecha" />
+                                <TableColumn fx:id="colHora" text="Hora" prefWidth="200" />
+                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="200"  />
+                                <TableColumn fx:id="colAntes" text="Antes" prefWidth="140" />
+                                <TableColumn fx:id="colDespues" text="Despues" prefWidth="140" />
+                                <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="170" />
+                                <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="170" />
+                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="140" />
+                                <TableColumn fx:id="colFacturaEntrada" text="Factura de entrada" prefWidth="170" />
+                                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
+                                <TableColumn fx:id="colFacturaSalida" text="Factura de salida" prefWidth="140" />
+                                <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="140" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </VBox>
+            </SplitPane>
+        </center>
+    </BorderPane>
+    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
+</StackPane>

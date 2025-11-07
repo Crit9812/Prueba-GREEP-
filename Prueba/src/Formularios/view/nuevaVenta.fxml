@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            xmlns="http://javafx.com/javafx"
+            prefWidth="500" prefHeight="700"
+            style="-fx-background-color: white; -fx-padding: 20;"
+            stylesheets="@/Formularios/style/estilos.css">
+
+    <top>
+        <Label text="Venta"
+               style="-fx-font-size: 22px; -fx-font-weight: bold;"
+               BorderPane.alignment="CENTER"/>
+    </top>
+
+    <!-- 🔹 ScrollPane para todo el contenido central -->
+    <center>
+        <ScrollPane fitToWidth="true" fitToHeight="true"
+                    style="-fx-background-color: white; -fx-border-color: transparent;">
+            <content>
+                <VBox spacing="15" alignment="TOP_LEFT"
+                      style="-fx-padding: 20; -fx-background-color: white;">
+                    <!-- Campos de producto -->
+                    <HBox>
+                        <VBox spacing="5" style="-fx-background-color: white;">
+                            <Label text="Ingresar producto por:"/>
+                            <HBox spacing="10" style="-fx-background-color: white;">
+                                <VBox spacing="5" style="-fx-background-color: white;">
+                                    <Label text="Clave producto:"/>
+                                    <TextField fx:id="txtClaveProducto" prefWidth="150" maxWidth="150"/>
+                                </VBox>
+
+                                <VBox spacing="5" style="-fx-background-color: white;">
+                                    <Label text="Clave de proveedor:"/>
+                                    <TextField fx:id="txtClaveProveedor" prefWidth="150" maxWidth="150"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="20" style="-fx-background-color: white;">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Producto:"/>
+                            <TextField fx:id="txtProducto"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="20" style="-fx-background-color: white;">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Descripción:"/>
+                            <TextField fx:id="txtDescripcion" style="-fx-min-height: 40;"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="20" style="-fx-background-color: white;">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Lote:"/>
+                            <TextField fx:id="txtLote"/>
+                        </VBox>
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Caducidad:"/>
+                            <TextField fx:id="txtCaducidad"/>
+                        </VBox>
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Cantidad:"/>
+                            <TextField fx:id="txtCantidad"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="20" style="-fx-background-color: white;">
+                        <VBox spacing="5" style="-fx-background-color: white;">
+                            <Label text="Presentación:"/>
+                            <TextField fx:id="txtPresentacion" prefWidth="110" maxWidth="110"/>
+                        </VBox>
+                        <VBox spacing="5" style="-fx-background-color: white;">
+                            <Label text="Factor:"/>
+                            <TextField fx:id="txtFactor" prefWidth="80" maxWidth="80"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- 🔹 Contenedor de ubicaciones dinámicas -->
+                    <HBox spacing="20" style="-fx-background-color: white;">
+                        <VBox fx:id="contenedorUbicaciones" spacing="10" style="-fx-background-color: white;">
+                            <HBox spacing="20" style="-fx-background-color: white;">
+                                <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                                    <Label text="Ubicación:"/>
+                                    <ComboBox fx:id="comboUbicacion"
+                                              editable="true"
+                                              promptText="Escribe o selecciona una ubicación"/>
+                                </VBox>
+
+                                <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                                    <Label text="Cantidad en ubicación:"/>
+                                    <TextField fx:id="txtCantidadUbicacion"/>
+                                </VBox>
+
+                                <VBox spacing="5" style="-fx-background-color: white;">
+                                    <Pane VBox.vgrow="ALWAYS"/>
+                                    <HBox alignment="CENTER" spacing="20" style="-fx-background-color: white;">
+                                        <Button text="+" fx:id="btnAgregarUbi"
+                                                onAction="#agregarUbicacion"
+                                                styleClass="botonAgregarUbi"/>
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+
+                    <!-- 🔹 Precios -->
+                    <HBox spacing="20" style="-fx-background-color: white;">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Precio entrada:"/>
+                            <TextField fx:id="txtPrecioEntrada"/>
+                        </VBox>
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Precio salida:"/>
+                            <TextField fx:id="txtPrecioSalida"/>
+                        </VBox>
+                        <VBox spacing="5" style="-fx-background-color: white;">
+                            <Label text="IVA:"/>
+                            <CheckBox fx:id="checkBoxIVA"/>
+                        </VBox>
+                        <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white;">
+                            <Label text="Precio con IVA:"/>
+                            <TextField fx:id="txtPrecioIVA"/>
+                        </VBox>
+                        <VBox spacing="5" style="-fx-background-color: white;">
+                            <Label text="Precio bruto:"/>
+                            <TextField fx:id="txtPrecioBruto" prefWidth="150" maxWidth="150"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="20" style="-fx-background-color: white;">
+                        <VBox spacing="5" style="-fx-background-color: white;">
+                            <Label text="Precio total:"/>
+                            <TextField fx:id="txtPrecioTotal" prefWidth="150" maxWidth="150"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER" spacing="20" style="-fx-padding: 20; -fx-background-color: white;">
+            <Button text="Guardar" fx:id="btnGuardar" styleClass="boton"/>
+        </HBox>
+    </bottom>
+</BorderPane>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+
+<?import javafx.geometry.Insets?>
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           xmlns="http://javafx.com/javafx"
+           fx:id="root">
+
+    <BorderPane fx:id="mainLayout">
+        <top>
+            <fx:include fx:id="paneNavbar" source="/Compartido/view/encabezado.fxml" />
+        </top>
+
+        <center>
+            <SplitPane dividerPositions="0.03">
+                <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
+                <VBox fx:id="contenedor" styleClass="contenedor">
+                    <VBox styleClass="opciones">
+                        <HBox  fx:id="rootHBox" spacing="0" alignment="CENTER_LEFT">
+                            <Button styleClass="botones" onMouseClicked="#formularioNuevoCliente">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/agregar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="25"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblAgregar" text="Agregar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/importar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblImportar" text="Importar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <Button styleClass="botones">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/exportar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblExportar" text="Exportar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+
+                            <Region fx:id="expansor"/>
+
+                            <TextField fx:id="buscador" promptText="" styleClass="barraBusqueda" >
+                                <HBox.margin>
+                                    <Insets right="40"/>
+                                </HBox.margin>
+                            </TextField>
+                        </HBox>
+                    </VBox>
+
+                    <!-- TABLA -->
+                    <VBox fx:id="contenedorTabla"  styleClass="tabla" alignment="CENTER">
+                        <padding>
+                            <Insets left="40" right="40"/>
+                        </padding>
+                        <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
+                            <columns>
+                                <TableColumn fx:id="colSelect" prefWidth="70" />
+                                <TableColumn fx:id="colClaveProveedor" text="Clave del proveedor" prefWidth="70" />
+                                <TableColumn fx:id="colNombre" text="Nombre" prefWidth="250" />
+                                <TableColumn fx:id="colRFC" text="RFC" prefWidth="250" />
+                                <TableColumn fx:id="colCURP" text="CURP" prefWidth="360" />
+                                <TableColumn fx:id="colRazonSocial" text="Razón social" prefWidth="70" />
+                                <TableColumn fx:id="colCorreo" text="Correo electrónico" prefWidth="70" />
+                                <TableColumn fx:id="colTelefono" text="Telefono" prefWidth="250" />
+                                <TableColumn fx:id="colCP" text="C.P" prefWidth="250" />
+                                <TableColumn fx:id="colPais" text="País" prefWidth="70" />
+                                <TableColumn fx:id="colEstado" text="Estado" prefWidth="70" />
+                                <TableColumn fx:id="colCiudad" text="Ciudad" prefWidth="360" />
+                                <TableColumn fx:id="colLocalidad" text="Localidad" prefWidth="360" />
+                                <TableColumn fx:id="colColonia" text="Colonia" prefWidth="360" />
+                                <TableColumn fx:id="colDomicilio" text="Domicilio" prefWidth="250" />
+                                <TableColumn fx:id="colNumeroExt" text="Numero ext" prefWidth="250" />
+                                <TableColumn fx:id="colNumeroInt" text="Numero int" prefWidth="250" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                    <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT" >
+                        <Button fx:id="botonConfirmar" styleClass="botonConfirmar"> Confirmar </Button>
+                    </HBox>
+                </VBox>
+            </SplitPane>
+        </center>
+    </BorderPane>
+    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
+</StackPane>
+

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           xmlns="http://javafx.com/javafx"
+           fx:id="root">
+
+    <BorderPane fx:id="mainLayout">
+        <top>
+            <fx:include fx:id="paneNavbar" source="/Compartido/view/encabezado.fxml" />
+        </top>
+
+        <center>
+            <SplitPane dividerPositions="0.03">
+                <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
+                <VBox fx:id="contenedor" styleClass="contenedor">
+                </VBox>
+            </SplitPane>
+        </center>
+    </BorderPane>
+    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
+</StackPane>
+
