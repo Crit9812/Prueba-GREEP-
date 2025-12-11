@@ -1,0 +1,83 @@
+.root {
+    -fx-background-color: #f0f0f0;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.split-pane-divider, .split-pane {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.contenedor{
+    -fx-background-color: #ebebeb;
+    -fx-border-color: white transparent transparent transparent;
+}
+
+/* Contenedor gris */
+.opciones {
+    -fx-background-color: #fff;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 15;
+    -fx-spacing: 15;     /* Separación entre elementos */
+}
+
+/* Botones de reporte */
+.botones {
+    -fx-background-color: #000000;   /* Fondo negro */
+    -fx-padding: 5 5;
+    -fx-cursor: hand;               /* Mano al pasar el mouse */
+}
+
+.botones:hover {
+    -fx-background-color: #666666;  /* Gris oscuro al pasar */
+}
+
+/* Labels de reporte */
+.labels {
+    -fx-font-size: 12pt;
+    -fx-underline: true;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+}
+
+.textfield {
+    -fx-border-color: black;       /* Contorno negro */
+    -fx-border-width: 1px;         /* Grosor del borde */
+    -fx-font-weight: bold;          /* Letra en negritas */
+    -fx-border-radius: 8px;         /* Borde redondeado */
+    -fx-background-radius: 8px;     /* Redondea el fondo */
+    -fx-font-size: 10pt;            /* Tamaño de letra (opcional) */
+    -fx-pref-width: 200px;          /* Ancho */
+    -fx-pref-height: 30px;          /* Alto */
+}
+
+.tabla {
+    -fx-background-color: #ebebeb;     /* Fondo de la tabla */
+}
+
+.contenidoTable {
+    -fx-background-color: white;
+    -fx-border-color: black;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 0 0 0 0;
+}
+
+.table-view .column-header,
+.table-view .column-header .label {
+    -fx-background-color: #333;
+    -fx-text-fill: white;          /* texto blanco en encabezado */
+    -fx-font-weight: bold;
+}
+
+/* Scrollbars automáticos */
+.table-view {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+
+
+

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+            xmlns="http://javafx.com/javafx"
+            fx:id="root">
+
+    <BorderPane fx:id="mainLayout">
+        <top>
+            <fx:include fx:id="paneNavbar" source="/Compartido/view/encabezado.fxml" />
+        </top>
+
+        <center>
+            <SplitPane dividerPositions="0.03">
+                <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
+                <VBox fx:id="contenedor" styleClass="contenedor" alignment="CENTER" fillWidth="false">
+
+                    <GridPane fx:id="buttonGrid" styleClass="contenedor-opciones">
+                        <columnConstraints>
+                            <ColumnConstraints halignment="CENTER" />
+                            <ColumnConstraints halignment="CENTER" />
+                            <ColumnConstraints halignment="CENTER" />
+                            <ColumnConstraints halignment="CENTER" />
+                        </columnConstraints>
+
+                        <!-- Fila 1 -->
+                        <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="0" text="Productos" onAction="#ventanaProductos">
+                            <graphic>
+                                <ImageView fx:id="userIcon" fitWidth="100" fitHeight="100">
+                                    <image>
+                                        <Image url="@/img/productos.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="1" text="Proveedores" onAction="#ventanaProveedores">
+                            <graphic>
+                                <ImageView fx:id="userIcon1" fitWidth="100" fitHeight="100">
+                                    <image>
+                                        <Image url="@/img/proveedores.png" />
+                                    </image>
+                                </ImageView>
+
+                            </graphic>
+                        </Button>
+
+                        <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="2" text="Clientes" onAction="#ventanaClientes">
+                            <graphic>
+                                <ImageView fx:id="userIcon2" fitWidth="100" fitHeight="100">
+                                    <image>
+                                        <Image url="@/img/clientes.png" />
+                                    </image>
+                                </ImageView>
+
+                            </graphic>
+                        </Button>
+
+                        <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3" text="Sucursales" onAction="#ventanaSucursales">
+                            <graphic>
+                                <ImageView fx:id="userIcon3" fitWidth="100" fitHeight="100">
+                                    <image>
+                                        <Image url="@/img/sucursal.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="0" text="Claves" onAction="#ventanaClave">
+                            <graphic>
+                                <ImageView fx:id="userIcon4" fitWidth="100" fitHeight="100">
+                                    <image>
+                                        <Image url="@/img/claves.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                    </GridPane>
+                </VBox>
+            </SplitPane>
+        </center>
+    </BorderPane>
+    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
+</StackPane>
