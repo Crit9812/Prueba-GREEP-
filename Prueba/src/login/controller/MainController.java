@@ -63,7 +63,7 @@ public class MainController {
             logoImage.fitWidthProperty().bind(contenedor.widthProperty().multiply(0.28));
 
             animarInicio();
-            // ---- NUEVO: presionar Enter en passwordField o passwordVisibleField ejecuta iniciarSesion ----
+            usernameField.setOnAction(event -> iniciarSesion());
             passwordField.setOnAction(event -> iniciarSesion());
             passwordVisibleField.setOnAction(event -> iniciarSesion());
 
@@ -135,17 +135,21 @@ public class MainController {
         String password = contrasenaVisible ? passwordVisibleField.getText() : passwordField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
-            alertaController.mostrarAlerta("Error", "Por favor, ingresa usuario y contraseña. \n(Campos vacíos).");
+           // alertaController.mostrarAlerta("Error", "Por favor, ingresa usuario y contraseña. \n(Campos vacíos).");
         }
         else{
             if(modelo.verificarUsuario(username, password )){
 
                 Compartido.sesion.SesionUsuario.setNombreUsuario(username);
                 Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
+                //VentanaFalsa.controller.MainController controlador = new VentanaFalsa.controller.MainController();
                 ControllerInterfaz.cambiarVista(
                         "/Operaciones/view/main_view.fxml",
                         "/Operaciones/style/estilos.css",
-                        controlador
+                        controlador/*
+                        "/VentanaFalsa/view/main_view.fxml",
+                        "/VentanaFalsa/style/estilos.css",
+                        controlador*/
                 );
             }
             else{

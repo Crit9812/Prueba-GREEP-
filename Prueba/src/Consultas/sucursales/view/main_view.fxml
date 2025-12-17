@@ -71,6 +71,24 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <Button styleClass="botones"  onMouseClicked="#exportarPlantilla">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/plantilla.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblPlantilla" text="Descargar plantilla" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+
 
                             <Region fx:id="expansor"/>
 
@@ -87,7 +105,10 @@
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
-                        <TableView fx:id="contenidoTabla" maxWidth="1250" prefHeight="540" styleClass="contenidoTabla">
+                        <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
+                            <placeholder>
+                                <Label text="No hay resultados que mostrar" styleClass="placeholder-label"/>
+                            </placeholder>
                             <columns>
                                 <TableColumn fx:id="colSelect" prefWidth="70" />
                                 <TableColumn fx:id="colId" text="id" prefWidth="70" />
@@ -95,8 +116,8 @@
                                 <TableColumn fx:id="colDomicilio" text="Domicilio" prefWidth="250" />
                                 <TableColumn fx:id="colCP" text="CP" prefWidth="70" />
                                 <TableColumn fx:id="colColonia" text="Colonia" prefWidth="250" />
-                                <TableColumn fx:id="colNumeroExt" text="Numeroext" prefWidth="70" />
-                                <TableColumn fx:id="colNumeroInt" text="Numeroint" prefWidth="70" />
+                                <TableColumn fx:id="colNumeroExt" text="Numeroext" prefWidth="100" />
+                                <TableColumn fx:id="colNumeroInt" text="Numeroint" prefWidth="100" />
                                 <TableColumn fx:id="colCiudad" text="Ciudad" prefWidth="150" />
                                 <TableColumn fx:id="colEstado" text="Estado" prefWidth="150" />
                                 <TableColumn fx:id="colLocalidad" text="Localidad" prefWidth="250" />

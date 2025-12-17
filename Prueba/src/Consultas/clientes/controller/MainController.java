@@ -2,11 +2,15 @@ package Consultas.clientes.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
 import Consultas.clientes.model.cliente;
 import Consultas.clientes.model.model;
 import Formularios.controller.controllerNuevoCliente;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -20,7 +24,6 @@ import javafx.stage.Stage;
 import Compartido.exportar.exportador;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 public class MainController {
 
@@ -53,10 +56,12 @@ public class MainController {
 
     @FXML private encabezadoController paneNavbarController;
 
+    // EXACTAMENTE IGUAL que productos: instancia única
+    private final model clienteModel = new model();
+
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
                 VBox navbarLoaded = loader.load();
@@ -75,7 +80,7 @@ public class MainController {
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
@@ -86,7 +91,7 @@ public class MainController {
 
             paneNavbarController.setTitulo("Clientes", "#ffffff");
 
-            // Cell Value Factories
+            // Cell Value Factories - EXACTO igual estructura
             colID.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().getId())));
             colNombre.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getNombre()));
             colRFC.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getRfc()));
@@ -104,52 +109,54 @@ public class MainController {
             colNumeroExt.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().getNumeroExt())));
             colNumeroInt.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().getNumeroInt())));
 
-            // Centrado
+            // Centrado - EXACTO igual
             TableColumn<cliente, String>[] columnas = new TableColumn[]{
-                    colID,colNombre,colRFC,colCURP,colRazonSocial,colCorreo,colTelefono,colCP,
+                    colSelect, colID,colNombre,colRFC,colCURP,colRazonSocial,colCorreo,colTelefono,colCP,
                     colPais,colEstado,colCiudad,colLocalidad,colColonia,colDomicilio,colNumeroExt,colNumeroInt
             };
             for (TableColumn<cliente, String> col : columnas) col.setStyle("-fx-alignment: CENTER;");
 
-            // Botón eliminar
+            // Botón eliminar - EXACTA misma estructura que productos
             colSelect.setCellFactory(col -> new TableCell<cliente, Void>() {
-                private final Button btn = new Button();
-                private final HBox contenedor = new HBox();
-
+                private final Button btn;
                 {
+                    btn = new Button();
                     ImageView img = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
                     img.setFitWidth(18);
                     img.setFitHeight(18);
                     btn.setGraphic(img);
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-                    contenedor.setAlignment(javafx.geometry.Pos.CENTER);
-                    contenedor.getChildren().add(btn);
-
                     btn.setOnAction(e -> {
                         cliente seleccionado = getTableView().getItems().get(getIndex());
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
-                        alerta.setContentText("¿Eliminar este cliente?");
-                        alerta.showAndWait().ifPresent(r -> {
-                            if (r == ButtonType.OK) {
-                                model m = new model();
-                                if (m.eliminarCliente(seleccionado.getId())) {
-                                    cargarClientesEnTabla();
+                        alerta.setTitle("Confirmar eliminación");
+                        alerta.setHeaderText(null);
+                        alerta.setContentText("¿Está seguro que desea eliminar este cliente?");
+                        alerta.showAndWait().ifPresent(response -> {
+                            if (response == ButtonType.OK) {
+                                if (clienteModel.eliminarCliente(seleccionado.getId())) {
+                                    contenidoTabla.getItems().remove(seleccionado);
+                                    new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado correctamente").showAndWait();
+                                } else {
+                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.").showAndWait();
                                 }
                             }
                         });
                     });
                 }
+
                 @Override
                 protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
-                    setGraphic(empty ? null : contenedor);
+                    setGraphic(empty ? null : btn);
                 }
             });
 
-            // Carga Inicial
-            cargarClientesEnTabla();
+            contenidoTabla.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
+                // Puedes agregar algo aquí si necesitas, como en productos con imágenes
+            });
 
-            // Doble clic → editar
+            // Doble clic → editar - EXACTO igual
             contenidoTabla.setRowFactory(tv -> {
                 TableRow<cliente> row = new TableRow<>();
                 row.setOnMouseClicked(event -> {
@@ -160,7 +167,7 @@ public class MainController {
                 return row;
             });
 
-            // ENTER sobre un registro → editar
+            // ENTER sobre un registro → editar - EXACTO igual
             contenidoTabla.setOnKeyPressed(event -> {
                 if (event.getCode().toString().equals("ENTER")) {
                     cliente c = contenidoTabla.getSelectionModel().getSelectedItem();
@@ -168,39 +175,45 @@ public class MainController {
                 }
             });
 
-            // Buscar con ENTER
-            buscador.setOnKeyPressed(event -> {
-                if (event.getCode().toString().equals("ENTER")) {
-                    buscarCliente();
-                }
+            // Configurar listener para el buscador - EXACTAMENTE IGUAL que productos
+            buscador.textProperty().addListener((observable, oldValue, newValue) -> {
+                buscarClientes(newValue);
             });
-        });
-    }
 
-    public void cargarClientesEnTabla() {
-        Platform.runLater(() -> {
-            model m = new model();
-            contenidoTabla.getItems().setAll(m.obtenerClientes());
-        });
-    }
-
-    private void buscarCliente() {
-        String texto = buscador.getText().trim();
-        model m = new model();
-
-        if (texto.isEmpty()) {
+            // Carga Inicial en background como productos
             cargarClientesEnTabla();
-            return;
-        }
+        });
+    }
 
-        var resultados = m.buscarPorNombre(texto);
+    // MÉTODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
+    private void cargarClientesEnTabla() {
+        Task<ObservableList<cliente>> task = new Task<>() {
+            @Override
+            protected ObservableList<cliente> call() {
+                // En productos es: productoModel.obtenerProductos()
+                // Aquí es exactamente igual pero con clienteModel
+                return FXCollections.observableArrayList(clienteModel.obtenerClientes());
+            }
 
-        if (resultados.isEmpty()) {
-            new Alert(Alert.AlertType.INFORMATION,
-                    "No se encontraron clientes con ese nombre.").showAndWait();
-            return;
+            @Override
+            protected void succeeded() {
+                ObservableList<cliente> clientes = getValue();
+                contenidoTabla.setItems(clientes);
+            }
+        };
+        new Thread(task).start();
+    }
+
+    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
+    private void buscarClientes(String texto) {
+        if (texto == null || texto.trim().isEmpty()) {
+            cargarClientesEnTabla();
+        } else {
+            // Si tu modelo de clientes tiene busquedaMultiple, úsalo como en productos
+            // Si no, usa buscarExacto (pero deberías agregar busquedaMultiple a clientes también)
+            ObservableList<cliente> clientes = FXCollections.observableArrayList(clienteModel.buscarExacto(texto));
+            contenidoTabla.setItems(clientes);
         }
-        contenidoTabla.getItems().setAll(resultados);
     }
 
     @FXML
@@ -225,6 +238,7 @@ public class MainController {
             stage.initOwner(root.getScene().getWindow());
 
             stage.showAndWait();
+            // Recargar como en productos
             cargarClientesEnTabla();
 
         } catch (Exception e) {
@@ -255,5 +269,11 @@ public class MainController {
 
     public void importarDatos() {
         importador.importarExcel("clientes", "id");
+        // Recargar como en productos
+        cargarClientesEnTabla();
+    }
+
+    public void exportarPlantilla() {
+        exportarPlantilla.exportarPlantilla("clientes");
     }
 }

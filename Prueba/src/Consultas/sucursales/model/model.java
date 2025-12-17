@@ -20,11 +20,11 @@ public class model {
     }
 
     public sucursal obtenerSucursalPorId(int id) {
-        return dao.buscarPorCampo("id", id);
+        return dao.buscarExacto("id", id);
     }
 
-    public ObservableList<sucursal> buscarPorNombre(String nombre) {
-        ArrayList<sucursal> lista = dao.buscar("nombre", nombre);
+    public ObservableList<sucursal> buscarExacto(String nombre) {
+        ArrayList<sucursal> lista = dao.buscarParcial("nombre", nombre);
         return FXCollections.observableArrayList(lista);
     }
 

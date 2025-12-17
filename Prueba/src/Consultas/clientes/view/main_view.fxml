@@ -71,6 +71,24 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <Button styleClass="botones"  onMouseClicked="#exportarPlantilla">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/plantilla.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblPlantilla" text="Descargar plantilla" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+
 
                             <Region fx:id="expansor"/>
 
@@ -88,6 +106,9 @@
                             <Insets left="40" right="40"/>
                         </padding>
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
+                            <placeholder>
+                                <Label text="No hay resultados que mostrar" styleClass="placeholder-label"/>
+                            </placeholder>
                             <columns>
                                 <TableColumn fx:id="colSelect" prefWidth="70" />
                                 <TableColumn fx:id="colID" text="id" prefWidth="70" />
@@ -104,8 +125,8 @@
                                 <TableColumn fx:id="colLocalidad" text="Localidad" prefWidth="250" />
                                 <TableColumn fx:id="colColonia" text="Colonia" prefWidth="250" />
                                 <TableColumn fx:id="colDomicilio" text="Domicilio" prefWidth="250" />
-                                <TableColumn fx:id="colNumeroExt" text="NumeroExt" prefWidth="70" />
-                                <TableColumn fx:id="colNumeroInt" text="NumeroInt" prefWidth="70" />
+                                <TableColumn fx:id="colNumeroExt" text="NumeroExt" prefWidth="100" />
+                                <TableColumn fx:id="colNumeroInt" text="NumeroInt" prefWidth="100" />
                             </columns>
                         </TableView>
                     </VBox>

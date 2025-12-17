@@ -8,7 +8,7 @@ import Compartido.model.DAO.PrimaryKey;
 public class claves {
 
     @PrimaryKey
-    @Column(name = "idClaveCatalogo")
+    @Column(name = "idAlterno")
     private String idClaveCatalogo;
 
     @Column(name = "claveProveedor")

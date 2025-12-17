@@ -82,12 +82,31 @@
                             <Insets left="40" right="40"/>
                         </padding>
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTable">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
                             <columns>
-                                <TableColumn fx:id="colSelect" prefWidth="70" />
-                                <TableColumn fx:id="colClaveProduct" text="Clave del producto" prefWidth="70" />
-                                <TableColumn fx:id="colProducto" text="Producto" prefWidth="250" />
-                                <TableColumn fx:id="colDescripcionProducto" text="Descripcion" prefWidth="250" />
-                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="250" />
+                                <TableColumn fx:id="colSelect"
+                                             prefWidth="70"
+                                             minWidth="70"
+                                             maxWidth="70"
+                                             resizable="false"/>
+                                <TableColumn fx:id="colClaveProduct" text="Id producto"
+                                             prefWidth="90"
+                                             minWidth="90"
+                                             maxWidth="90"
+                                             resizable="false"/>
+                                <TableColumn fx:id="colCantidad" text="Cantidad"
+                                             prefWidth="70"
+                                             minWidth="70"
+                                             maxWidth="70"
+                                             resizable="false"/>
+                                <TableColumn fx:id="colProducto" text="Producto"
+                                             prefWidth="150"
+                                             minWidth="150"
+                                             maxWidth="150"
+                                             resizable="false"/>
+                                <TableColumn fx:id="colDescripcionProducto" text="Descripcion" />
                             </columns>
                         </TableView>
                     </VBox>

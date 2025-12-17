@@ -3,11 +3,15 @@ package Consultas.sucursales.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
+import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
 import Consultas.sucursales.model.model;
 import Formularios.controller.controllerNuevaSucursal;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -49,7 +53,8 @@ public class MainController {
 
     @FXML private encabezadoController paneNavbarController;
 
-    private final model m = new model();
+    // EXACTAMENTE IGUAL que productos: instancia única
+    private final model sucursalModel = new model();
 
     @FXML
     public void initialize() {
@@ -73,15 +78,16 @@ public class MainController {
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
 
-            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
-            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
 
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
             buscador.maxHeightProperty().bind(navbar.heightProperty().multiply(0.5));
+
+            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
+            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+
 
             paneNavbarController.setTitulo("Sucursales", "#ffffff");
 
@@ -100,50 +106,37 @@ public class MainController {
             colCorreo.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getCorreo()));
             colTelefono.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cd.getValue().getTelefono())));
 
-            // ALINEACIÓN DE COLUMNAS
-            colId.setStyle("-fx-alignment: CENTER;");
-            colNombre.setStyle("-fx-alignment: CENTER;");
-            colDomicilio.setStyle("-fx-alignment: CENTER;");
-            colCP.setStyle("-fx-alignment: CENTER;");
-            colColonia.setStyle("-fx-alignment: CENTER;");
-            colNumeroExt.setStyle("-fx-alignment: CENTER;");
-            colNumeroInt.setStyle("-fx-alignment: CENTER;");
-            colCiudad.setStyle("-fx-alignment: CENTER;");
-            colEstado.setStyle("-fx-alignment: CENTER;");
-            colLocalidad.setStyle("-fx-alignment: CENTER;");
-            colPais.setStyle("-fx-alignment: CENTER;");
-            colCorreo.setStyle("-fx-alignment: CENTER;");
-            colTelefono.setStyle("-fx-alignment: CENTER;");
+            // ALINEACIÓN DE COLUMNAS - estructura más limpia como en productos
+            TableColumn<sucursal, String>[] columnas = new TableColumn[]{
+                    colSelect, colId, colNombre, colDomicilio, colCP, colColonia, colNumeroExt,
+                    colNumeroInt, colCiudad, colEstado, colLocalidad, colPais, colCorreo, colTelefono
+            };
+            for (TableColumn<sucursal, String> col : columnas) {
+                col.setStyle("-fx-alignment: CENTER;");
+            }
 
-            // BOTÓN ELIMINAR
+            // BOTÓN ELIMINAR - EXACTA misma estructura que productos
             colSelect.setCellFactory(col -> new TableCell<sucursal, Void>() {
-                private final Button btn = new Button();
-                private final HBox contenedorBtn = new HBox();
-
+                private final Button btn;
                 {
+                    btn = new Button();
                     ImageView img = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
                     img.setFitWidth(18);
                     img.setFitHeight(18);
                     img.setPreserveRatio(true);
-
                     btn.setGraphic(img);
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-
-                    contenedorBtn.setSpacing(0);
-                    contenedorBtn.setAlignment(javafx.geometry.Pos.CENTER);
-                    contenedorBtn.getChildren().add(btn);
-
                     btn.setOnAction(e -> {
-                        sucursal sel = getTableView().getItems().get(getIndex());
-                        int id = sel.getId();
-
+                        sucursal seleccionado = getTableView().getItems().get(getIndex());
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+                        alerta.setTitle("Confirmar eliminación");
+                        alerta.setHeaderText(null);
                         alerta.setContentText("¿Está seguro que desea eliminar esta sucursal?");
-                        alerta.showAndWait().ifPresent(r -> {
-                            if (r == ButtonType.OK) {
-                                if (m.eliminarSucursal(id)) {
-                                    // refrescar tabla
-                                    cargarSucursalesEnTabla();
+                        alerta.showAndWait().ifPresent(response -> {
+                            if (response == ButtonType.OK) {
+                                if (sucursalModel.eliminarSucursal(seleccionado.getId())) {
+                                    contenidoTabla.getItems().remove(seleccionado);
+                                    new Alert(Alert.AlertType.INFORMATION, "Sucursal eliminada correctamente").showAndWait();
                                 } else {
                                     new Alert(Alert.AlertType.ERROR, "No se pudo eliminar la sucursal").showAndWait();
                                 }
@@ -155,14 +148,14 @@ public class MainController {
                 @Override
                 protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
-                    setGraphic(empty ? null : contenedorBtn);
+                    setGraphic(empty ? null : btn);
                 }
             });
 
-            // Carga inicial
+            // Carga Inicial en background como productos
             cargarSucursalesEnTabla();
 
-            // Doble clic → abrir edición (usa abrirFormulario para mantener consistencia)
+            // Doble clic → abrir edición - EXACTO igual
             contenidoTabla.setRowFactory(tv -> {
                 TableRow<sucursal> row = new TableRow<>();
                 row.setOnMouseClicked(evt -> {
@@ -173,7 +166,7 @@ public class MainController {
                 return row;
             });
 
-            // ENTER sobre un registro → abrir edición
+            // ENTER sobre un registro → abrir edición - EXACTO igual (mantener esto)
             contenidoTabla.setOnKeyPressed(evt -> {
                 if (evt.getCode().toString().equals("ENTER")) {
                     sucursal sel = contenidoTabla.getSelectionModel().getSelectedItem();
@@ -181,41 +174,43 @@ public class MainController {
                 }
             });
 
-            // Buscar con ENTER
-            buscador.setOnKeyPressed(evt -> {
-                if (evt.getCode().toString().equals("ENTER")) {
-                    buscarSucursal();
-                }
+            // Configurar listener para el buscador
+            buscador.textProperty().addListener((observable, oldValue, newValue) -> {
+                buscarSucursales(newValue);
             });
-
         });
     }
 
-    public void cargarSucursalesEnTabla() {
-        Platform.runLater(() -> {
-            if (contenidoTabla != null) {
-                contenidoTabla.getItems().setAll(m.obtenerSucursales());
+    // MÉeODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
+    private void cargarSucursalesEnTabla() {
+        Task<ObservableList<sucursal>> task = new Task<>() {
+            @Override
+            protected ObservableList<sucursal> call() {
+                // En productos es: productoModel.obtenerProductos()
+                // Aquí es exactamente igual pero con sucursalModel
+                return FXCollections.observableArrayList(sucursalModel.obtenerSucursales());
             }
-        });
+
+            @Override
+            protected void succeeded() {
+                ObservableList<sucursal> sucursales = getValue();
+                contenidoTabla.setItems(sucursales);
+            }
+        };
+        new Thread(task).start();
     }
 
-    private void buscarSucursal() {
-        String texto = buscador.getText().trim();
-
-        if (texto.isEmpty()) {
+    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
+    private void buscarSucursales(String texto) {
+        if (texto == null || texto.trim().isEmpty()) {
             cargarSucursalesEnTabla();
-            return;
+        } else {
+            // Si tu modelo de sucursales tiene busquedaMultiple, úsalo como en productos
+            // Si no, usa buscarExacto (pero deberías agregar busquedaMultiple a sucursales también)
+            ObservableList<sucursal> sucursales = FXCollections.observableArrayList(sucursalModel.buscarExacto(texto));
+            contenidoTabla.setItems(sucursales);
+            // ELIMINADO: El mensaje de "No se encontraron sucursales"
         }
-
-        var resultados = m.buscarPorNombre(texto);
-
-        if (resultados == null || resultados.isEmpty()) {
-            new Alert(Alert.AlertType.INFORMATION,
-                    "No se encontraron sucursales con ese nombre.").showAndWait();
-            return;
-        }
-
-        contenidoTabla.getItems().setAll(resultados);
     }
 
     @FXML
@@ -250,7 +245,7 @@ public class MainController {
 
             stage.showAndWait();
 
-            // recargar tabla al cerrar
+            // Recargar como en productos
             cargarSucursalesEnTabla();
 
         } catch (Exception ex) {
@@ -284,5 +279,11 @@ public class MainController {
 
     public void importarDatos() {
         importador.importarExcel("sucursales", "id");
+        // Recargar como en productos
+        cargarSucursalesEnTabla();
+    }
+
+    public void exportarPlantilla() {
+        exportarPlantilla.exportarPlantilla("sucursales");
     }
 }

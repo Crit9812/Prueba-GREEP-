@@ -2,6 +2,7 @@ package Consultas.producto.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
 import Consultas.producto.model.producto;
@@ -39,6 +40,8 @@ public class MainController {
     @FXML private BorderPane paneNavbar;
     @FXML private VBox navbar;
     @FXML private VBox contenedor;
+    @FXML private Region expansor;
+    @FXML private TextField buscador;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<producto> contenidoTabla;
@@ -58,11 +61,10 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     private final model productoModel = new model();
-    private final double IMAGE_VIEW_SIZE = 180;
 
     // Mapas concurrentes para alta velocidad y cache
-    private final Map<String, String> mapEtiquetas = new ConcurrentHashMap<>();
-    private final Map<String, String> mapMarcas = new ConcurrentHashMap<>();
+    private Map<String, String> mapEtiquetas = new ConcurrentHashMap<>();
+    private Map<String, String> mapMarcas = new ConcurrentHashMap<>();
     private final Map<String, Image> cacheImagenes = new ConcurrentHashMap<>();
 
     @FXML
@@ -81,9 +83,23 @@ public class MainController {
         paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
         navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
         navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
+
+        HBox.setHgrow(expansor, Priority.ALWAYS);
+        expansor.setMinWidth(10);
+
+        buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
+        buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
+
+        /*contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.79));
+        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.79));
+        contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.95));*/
         contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
+        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.75));
         contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+
+        previewImage.fitWidthProperty().bind(root.widthProperty().multiply(0.07));
+        previewImage.fitHeightProperty().bind(root.heightProperty().multiply(0.15));
+        previewImage.setPreserveRatio(false);
 
         paneNavbarController.setTitulo("Productos", "#ffffff");
 
@@ -97,7 +113,7 @@ public class MainController {
         colInventarioMin.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getInventarioMin())));
         colImagen.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getUrlImagen()));
 
-        TableColumn[] columnas = {colIdProducto, colNombre, colCategoria, colEtiqueta, colMarca, colMaterial, colUnidadMedida, colDescripcion, colInventarioMin, colImagen};
+        TableColumn[] columnas = { colSelect, colIdProducto, colNombre, colCategoria, colEtiqueta, colMarca, colMaterial, colUnidadMedida, colDescripcion, colInventarioMin, colImagen};
         for (TableColumn col : columnas) col.setStyle("-fx-alignment: CENTER;");
 
         colSelect.setCellFactory(col -> new TableCell<>() {
@@ -132,15 +148,20 @@ public class MainController {
             return row;
         });
 
-        previewImage.setFitWidth(IMAGE_VIEW_SIZE);
-        previewImage.setFitHeight(IMAGE_VIEW_SIZE);
-        previewImage.setPreserveRatio(true);
-        previewImage.setSmooth(true);
-        Rectangle clip = new Rectangle(IMAGE_VIEW_SIZE, IMAGE_VIEW_SIZE);
-        previewImage.setClip(clip);
-        StackPane.setAlignment(previewImage, Pos.CENTER);
+        contenidoTabla.setOnKeyPressed(event -> {
+            if (event.getCode().toString().equals("ENTER")) {
+                producto seleccionado = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (seleccionado != null) {
+                    editarProducto(seleccionado);
+                }
+            }
+        });
 
-        // Carga ultra rápida de productos + mapas en paralelo
+        // Configurar listener para el buscador (búsqueda en tiempo real)
+        buscador.textProperty().addListener((observable, oldValue, newValue) -> {
+            buscarProductos(newValue);
+        });
+
         preloadDatosUltraRapido();
     }
 
@@ -148,19 +169,20 @@ public class MainController {
         Task<Void> preloadTask = new Task<>() {
             @Override
             protected Void call() {
-                cargarMapEtiquetas();
-                cargarMapMarcas();
-                ObservableList<producto> productos = FXCollections.observableArrayList(productoModel.obtenerProductos());
+                Map<String, String> etiquetasMap = productoModel.obtenerMapaEtiquetas();
+                Map<String, String> marcasMap = productoModel.obtenerMapaMarcas();
+
                 Platform.runLater(() -> {
-                    colEtiqueta.setCellValueFactory(cd -> {
-                        String id = cd.getValue().getEtiqueta();
-                        return new javafx.beans.property.SimpleStringProperty(mapEtiquetas.getOrDefault(id, ""));
-                    });
-                    colMarca.setCellValueFactory(cd -> {
-                        String id = cd.getValue().getMarca();
-                        return new javafx.beans.property.SimpleStringProperty(mapMarcas.getOrDefault(id, ""));
-                    });
-                    contenidoTabla.setItems(productos);
+                    // Actualizamos los mapas
+                    mapEtiquetas.clear();
+                    mapEtiquetas.putAll(etiquetasMap);
+
+                    mapMarcas.clear();
+                    mapMarcas.putAll(marcasMap);
+
+                    // Cargamos productos
+                    cargarProductosEnTabla();
+                    configurarColumnasConMapas();
                 });
                 return null;
             }
@@ -168,28 +190,20 @@ public class MainController {
         new Thread(preloadTask).start();
     }
 
-    private void cargarMapEtiquetas() {
-        try (Connection con = new Conexion().conectar();
-             PreparedStatement ps = con.prepareStatement("SELECT id, nombre FROM etiquetas");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                mapEtiquetas.put(rs.getString("id"), rs.getString("nombre"));
-            }
-        } catch (Exception e) {
-            System.out.println("Error al cargar etiquetas: " + e.getMessage());
-        }
+    private void cargarProductosEnTabla() {
+        ObservableList<producto> productos = productoModel.obtenerProductos();
+        contenidoTabla.setItems(productos);
     }
 
-    private void cargarMapMarcas() {
-        try (Connection con = new Conexion().conectar();
-             PreparedStatement ps = con.prepareStatement("SELECT id, nombre FROM marcas");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                mapMarcas.put(rs.getString("id"), rs.getString("nombre"));
-            }
-        } catch (Exception e) {
-            System.out.println("Error al cargar marcas: " + e.getMessage());
-        }
+    private void configurarColumnasConMapas() {
+        colEtiqueta.setCellValueFactory(cd -> {
+            String id = cd.getValue().getEtiqueta();
+            return new javafx.beans.property.SimpleStringProperty(mapEtiquetas.getOrDefault(id, ""));
+        });
+        colMarca.setCellValueFactory(cd -> {
+            String id = cd.getValue().getMarca();
+            return new javafx.beans.property.SimpleStringProperty(mapMarcas.getOrDefault(id, ""));
+        });
     }
 
     private void eliminarProducto(producto p) {
@@ -209,6 +223,7 @@ public class MainController {
         });
     }
 
+    // Mtodo para buscar un producto por su ID
     private void mostrarImagenProducto(producto p) {
         previewImage.setImage(null);
         if (p == null || p.getUrlImagen() == null || p.getUrlImagen().isEmpty()) return;
@@ -242,6 +257,7 @@ public class MainController {
             ctrl.cargarProducto(p);
             ctrl.setOnSaved(this::preloadDatosUltraRapido);
             Stage stage = new Stage();
+            stage.initOwner(contenidoTabla.getScene().getWindow());
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.setTitle("Editar producto");
             stage.setScene(new Scene(root));
@@ -259,6 +275,7 @@ public class MainController {
             controllerNuevoProducto ctrl = loader.getController();
             ctrl.setOnSaved(this::preloadDatosUltraRapido);
             Stage stage = new Stage();
+            stage.initOwner(contenidoTabla.getScene().getWindow());
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.setTitle("Nuevo producto");
             stage.setScene(new Scene(root));
@@ -291,7 +308,22 @@ public class MainController {
 
     @FXML
     private void importarDatos() {
-        importador.importarExcel("productos", "id");
+        importador.importarProductosExcel();
+        mapEtiquetas = new ConcurrentHashMap<>();
+        mapMarcas = new ConcurrentHashMap<>();
         preloadDatosUltraRapido();
+    }
+
+    private void buscarProductos(String texto) {
+        if (texto == null || texto.trim().isEmpty()) {
+            cargarProductosEnTabla();
+        } else {
+            ObservableList<producto> productos = productoModel.busquedaMultipleProductos(texto);
+            contenidoTabla.setItems(productos);
+        }
+    }
+
+    public void exportarPlantilla() {
+        exportarPlantilla.exportarPlantilla("productos");
     }
 }

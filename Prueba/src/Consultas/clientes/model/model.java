@@ -6,7 +6,7 @@ import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
 
-public class model {
+public class model { //njjgj
 
     private final GenericDAO<cliente> dao = new GenericDAO<>(cliente.class);
 
@@ -20,11 +20,11 @@ public class model {
     }
 
     public cliente obtenerClientePorId(int id) {
-        return dao.buscarPorCampo("id", id);
+        return dao.buscarExacto("id", id);
     }
 
-    public ObservableList<cliente> buscarPorNombre(String nombre) {
-        ArrayList<cliente> lista = dao.buscar("nombre", nombre);
+    public ObservableList<cliente> buscarExacto(String nombre) {
+        ArrayList<cliente> lista = dao.buscarParcial("nombre", nombre);
         return FXCollections.observableArrayList(lista);
     }
 }

@@ -1,155 +1,92 @@
 package Consultas.producto.model;
 
-import conexion.Conexion;
+import Compartido.model.DAO.GenericDAO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Map;
 
 public class model {
 
-    private Conexion c = new Conexion();
-    private Connection con;
+    private GenericDAO<producto> productoDAO;
+    private modelEtiqueta modelEtiqueta;
+    private modelMarca modelMarca;
 
+    public model() {
+        this.productoDAO = new GenericDAO<>(producto.class);
+        this.modelEtiqueta = new modelEtiqueta();
+        this.modelMarca = new modelMarca();
+    }
+
+    // Metodo para obtener todos los productos
     public ObservableList<producto> obtenerProductos() {
-        ObservableList<producto> lista = FXCollections.observableArrayList();
-
-        try {
-            con = c.conectar();
-            String sql = "SELECT * FROM productos";
-            PreparedStatement st = con.prepareStatement(sql);
-            ResultSet rs = st.executeQuery();
-
-            while (rs.next()) {
-                lista.add(new producto(
-                        rs.getString("id"),
-                        rs.getString("nombre"),
-                        rs.getString("categoria"),
-                        rs.getString("etiqueta"),
-                        rs.getString("marca"),
-                        rs.getString("material"),
-                        rs.getString("unidadMedida"),
-                        rs.getString("descripcion"),
-                        rs.getInt("inventarioMin"),
-                        rs.getString("urlImagen")
-                ));
-            }
-
-            rs.close();
-            st.close();
-        } catch (SQLException e) {
-            System.out.println("Error al obtener productos: " + e.getMessage());
-        } finally {
-            try { if (con != null) con.close(); } catch (SQLException e) {}
-        }
-        return lista;
+        ArrayList<producto> lista = productoDAO.obtenerTodos();
+        return FXCollections.observableArrayList(lista);
     }
 
+    // Metodo para eliminar un producto por ID
     public boolean eliminarProducto(String id) {
-        try {
-            con = c.conectar();
-            String sql = "DELETE FROM productos WHERE id = ?";
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, id);
-            int filas = ps.executeUpdate();
-            ps.close();
-            return filas > 0;
-        } catch (SQLException e) {
-            System.out.println("Error al eliminar producto: " + e.getMessage());
-            return false;
-        } finally {
-            try { if (con != null) con.close(); } catch (SQLException e) {}
-        }
+        return productoDAO.eliminar(id);
     }
 
-    public int guardarProducto(String nombre, String categoria, String etiqueta, String marca,
-                               String material, String unidadMedida, String descripcion,
-                               int inventarioMin, String urlImagen) {
-        try {
-            con = c.conectar();
-            String sql = "INSERT INTO productos (nombre, categoria, etiqueta,  marca, material, unidadMedida, descripcion, inventarioMin, urlImagen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement st = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-            st.setString(1, nombre);
-            st.setString(2, categoria);
-            st.setString(3, etiqueta);
-            st.setString(4, marca);
-            st.setString(5, material);
-            st.setString(6, unidadMedida);
-            st.setString(7, descripcion);
-            st.setInt(8, inventarioMin);
-            st.setString(9, urlImagen);
-
-            int filas = st.executeUpdate();
-            int idGenerado = -1;
-
-            if (filas > 0) {
-                ResultSet generatedKeys = st.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    idGenerado = generatedKeys.getInt(1);
-                }
-            }
-            st.close();
-            return idGenerado;
-        } catch (SQLException e) {
-            System.out.println("Error al guardar producto: " + e.getMessage());
-            return -1;
-        } finally {
-            try { if (con != null) con.close(); } catch (SQLException e) {}
-        }
+    // Metodo para buscar productos por un campo específico
+    public ObservableList<producto> buscarProductos(String campo, String valor) {
+        ArrayList<producto> lista = productoDAO.buscarParcial(campo, valor);
+        return FXCollections.observableArrayList(lista);
     }
 
-    public boolean modificarProducto(int id, String nombre, String categoria, String etiqueta, String marca,
-                                     String material, String unidadMedida, String descripcion,
-                                     int inventarioMin, String urlImagen) {
-        try {
-            con = c.conectar();
-            String sql = "UPDATE productos SET nombre=?, categoria=?, etiqueta=?, marca=?, material=?, unidadMedida=?, descripcion=?, inventarioMin=?, urlImagen=? WHERE id=?";
-            PreparedStatement st = con.prepareStatement(sql);
-
-            st.setString(1, nombre);
-            st.setString(2, categoria);
-            st.setString(3, etiqueta);
-            st.setString(4, marca);
-            st.setString(5, material);
-            st.setString(6, unidadMedida);
-            st.setString(7, descripcion);
-            st.setInt(8, inventarioMin);
-            st.setString(9, urlImagen);
-            st.setInt(10, id);
-
-            int filas = st.executeUpdate();
-            st.close();
-            return filas > 0;
-        } catch (SQLException e) {
-            System.out.println("Error al modificar producto: " + e.getMessage());
-            return false;
-        } finally {
-            try { if (con != null) con.close(); } catch (SQLException e) {}
-        }
+    public ObservableList<producto> busquedaMultipleProductos(String textoBusqueda) {
+        ArrayList<producto> lista = productoDAO.buscarMultiple("id", "nombre", textoBusqueda);
+        return FXCollections.observableArrayList(lista);
     }
 
-    public boolean actualizarUrlImagen(int id, String nuevaUrl) {
-        try {
-            con = c.conectar();
-            String sql = "UPDATE productos SET urlImagen=? WHERE id=?";
-            PreparedStatement st = con.prepareStatement(sql);
+    // Metodo para buscar un producto por su ID
+    public producto buscarProductoPorId(String id) {
+        return productoDAO.buscarExacto("id", id);
+    }
 
-            st.setString(1, nuevaUrl);
-            st.setInt(2, id);
-
-            int filas = st.executeUpdate();
-            st.close();
-            return filas > 0;
-        } catch (SQLException e) {
-            System.out.println("Error al actualizar URL de imagen: " + e.getMessage());
+    // Metodo para actualizar solo la URL de la imagen
+    public boolean actualizarUrlImagen(String id, String nuevaUrl) {
+        producto productoActual = buscarProductoPorId(id);
+        if (productoActual == null) {
             return false;
-        } finally {
-            try { if (con != null) con.close(); } catch (SQLException e) {}
         }
+
+        productoActual.setUrlImagen(nuevaUrl);
+        return productoDAO.actualizar(productoActual);
+    }
+
+    // ===== MÉTODOS PARA ETIQUETAS Y MARCAS =====
+
+    // Obtener mapa de etiquetas (id->nombre)
+    public Map<String, String> obtenerMapaEtiquetas() {
+        return modelEtiqueta.obtenerMapaEtiquetas();
+    }
+
+    // Obtener mapa de marcas (id->nombre)
+    public Map<String, String> obtenerMapaMarcas() {
+        return modelMarca.obtenerMapaMarcas();
+    }
+
+    // Obtener lista de etiquetas para combobox
+    public ObservableList<etiqueta> obtenerListaEtiquetas() {
+        ArrayList<etiqueta> lista = modelEtiqueta.obtenerTodas();
+        return FXCollections.observableArrayList(lista);
+    }
+
+    // Obtener lista de marcas para combobox
+    public ObservableList<marca> obtenerListaMarcas() {
+        ArrayList<marca> lista = modelMarca.obtenerTodas();
+        return FXCollections.observableArrayList(lista);
+    }
+
+    // Buscar etiqueta por ID
+    public etiqueta buscarEtiquetaPorId(String id) {
+        return modelEtiqueta.buscarPorId(id);
+    }
+
+    // Buscar marca por ID
+    public marca buscarMarcaPorId(String id) {
+        return modelMarca.buscarPorId(id);
     }
 }

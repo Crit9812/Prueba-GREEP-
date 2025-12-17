@@ -3,15 +3,19 @@ package Consultas.claves.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
+import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
 import Formularios.controller.controllerSincronizacionClaves;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -27,21 +31,25 @@ public class MainController {
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<String[]> contenidoTabla;
-    @FXML private TableColumn<String[], String> colSelect;
+
+    @FXML private TableColumn<String[], Void> colSelect;
     @FXML private TableColumn<String[], String> colClaveProducto;
     @FXML private TableColumn<String[], String> colProducto;
-    @FXML private TableColumn<String[], String> colIDProvedor; // id proveedor (nuevo)
+    @FXML private TableColumn<String[], String> colIDProvedor;
     @FXML private TableColumn<String[], String> colProveedor;
     @FXML private TableColumn<String[], String> colClaveAlterna;
     @FXML private TableColumn<String[], String> colDescripcion;
+
     @FXML private TextField buscador;
     @FXML private Region expansor;
     @FXML private encabezadoController paneNavbarController;
 
+    // Instancia única del modelo
+    private final model modeloClaves = new model();
+
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
                 VBox navbarLoaded = loader.load();
@@ -52,32 +60,22 @@ public class MainController {
                 e.printStackTrace();
             }
 
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
+            // Configuración de layout...
             paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
             paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
-
+            buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
+            buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.75));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Claves", "#ffffff");
 
-            // Mapeo columnas (el arreglo tiene este orden):
-            // 0 -> idClaveCatalogo (clave alterna)
-            // 1 -> claveGreep (clave del producto)
-            // 2 -> producto (nombre)
-            // 3 -> proveedor_id (id proveedor)
-            // 4 -> proveedor (nombre)
-            // 5 -> descripcion (concatenada)
+            // Configuración de columnas...
             colClaveAlterna.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[0]));
             colClaveProducto.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[1]));
             colProducto.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[2]));
@@ -85,80 +83,151 @@ public class MainController {
             colProveedor.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[4]));
             colDescripcion.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[5]));
 
-            // Cargar tabla al iniciar
-            cargarEnTabla();
+            TableColumn[] columnas = { colSelect, colClaveAlterna, colClaveProducto, colProducto, colIDProvedor, colProveedor, colDescripcion };
+            for (TableColumn col : columnas) col.setStyle("-fx-alignment: CENTER;");
 
-            buscador.setOnKeyPressed(event -> {
-                switch (event.getCode()) {
-                    case ENTER -> buscar();
+            // Botón eliminar...
+            colSelect.setCellFactory(col -> new TableCell<>() {
+                private final Button btn;
+                {
+                    btn = new Button();
+                    javafx.scene.image.ImageView img = new javafx.scene.image.ImageView(
+                            new javafx.scene.image.Image(getClass().getResourceAsStream("/img/eliminar.png"))
+                    );
+                    img.setFitWidth(18);
+                    img.setFitHeight(18);
+                    img.setPreserveRatio(true);
+                    btn.setGraphic(img);
+                    btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
+                    btn.setOnAction(e -> eliminarClave(getTableView().getItems().get(getIndex())));
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : btn);
                 }
             });
+
+            // Listener de búsqueda en tiempo real - OPTIMIZADO
+            buscador.textProperty().addListener((o, oldVal, newVal) -> {
+                buscarClaves(newVal);
+            });
+
+            // Doble clic para editar...
+            contenidoTabla.setRowFactory(tv -> {
+                TableRow<String[]> row = new TableRow<>();
+                row.setOnMouseClicked(event -> {
+                    if (!row.isEmpty() && event.getButton()== MouseButton.PRIMARY && event.getClickCount() == 2) {
+                        String[] fila = row.getItem();
+                        abrirFormulario(fila, true);
+                    }
+                });
+                return row;
+            });
+
+            // ENTER sobre un registro → editar
+            contenidoTabla.setOnKeyPressed(event -> {
+                if (event.getCode() == KeyCode.ENTER) {
+                    String[] filaSeleccionada = contenidoTabla.getSelectionModel().getSelectedItem();
+                    if (filaSeleccionada != null) {
+                        abrirFormulario(filaSeleccionada, true);
+                    }
+                }
+            });
+
+            // Cargar tabla inicial
+            cargarTabla();
         });
     }
 
-    public void cargarEnTabla() {
-        Platform.runLater(() -> {
-            model m = new model();
-            contenidoTabla.getItems().setAll(m.obtenerParaTabla());
-        });
-    }
-
-    private void buscar() {
-        String texto = buscador.getText().trim();
-        if (texto.isEmpty()) {
-            cargarEnTabla();
-            return;
-        }
-        model m = new model();
-        var resultados = m.obtenerParaTabla();
-        var filtrados = resultados.stream()
-                .filter(f -> {
-                    // filtramos por nombre de producto (posición 2) o por proveedor (posición 4) o clave alterna (posición 0)
-                    String prod = f[2] == null ? "" : f[2];
-                    String prov = f[4] == null ? "" : f[4];
-                    String claveAlt = f[0] == null ? "" : f[0];
-                    return prod.toLowerCase().contains(texto.toLowerCase())
-                            || prov.toLowerCase().contains(texto.toLowerCase())
-                            || claveAlt.toLowerCase().contains(texto.toLowerCase());
-                })
-                .toList();
-        contenidoTabla.getItems().setAll(filtrados);
+    private void cargarTabla() {
+        // Modelo llama al DAO que tiene el SQL
+        contenidoTabla.setItems(modeloClaves.obtenerParaTabla());
     }
 
     @FXML
     public void formularioNuevaSincronizacionClaves() {
+        abrirFormulario(null, false);
+    }
+
+    private void abrirFormulario(String[] fila, boolean esEdicion) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/sincronizarClaves.fxml"));
             Parent vista = loader.load();
 
             controllerSincronizacionClaves ctrl = loader.getController();
 
+            if (esEdicion && fila != null) {
+                ctrl.cargarParaEdicion(fila);
+            }
+            // Si no es edición, el controlador se inicializará para nuevo registro
+
             Stage stage = new Stage();
-            stage.setTitle("Sincronizar Claves");
+            // Cambiar título según si es edición o nuevo
+            stage.setTitle(esEdicion ? "Editar Clave" : "Nueva Clave");
             stage.setScene(new Scene(vista));
             stage.setResizable(false);
+
+            // Configurar como modal para bloquear la pantalla principal
             stage.initModality(Modality.WINDOW_MODAL);
             stage.initOwner(root.getScene().getWindow());
+
+            // Centrar la ventana
+            stage.centerOnScreen();
+
             stage.showAndWait();
 
-            cargarEnTabla();
+            // Recargar la tabla después de cerrar el formulario
+            cargarTabla();
         } catch (IOException e) {
             e.printStackTrace();
+            mostrarAlertaError("Error", "No se pudo abrir el formulario.");
         }
     }
 
+    private void eliminarClave(String[] fila) {
+        String idAlterno = fila[0];
+
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro que desea eliminar esta clave?");
+
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (modeloClaves.eliminar(idAlterno)) {
+                    contenidoTabla.getItems().remove(fila);
+                    mostrarAlertaInfo("Éxito", "Clave eliminada correctamente.");
+                } else {
+                    mostrarAlertaError("Error", "No se pudo eliminar la clave.");
+                }
+            }
+        });
+    }
+
+    private void buscarClaves(String textoBusqueda) {
+        String texto = textoBusqueda.trim();
+
+        if (texto.isEmpty()) {
+            cargarTabla();
+        } else {
+            // Modelo llama al DAO que tiene el SQL de búsqueda
+            contenidoTabla.setItems(modeloClaves.buscarEnTabla(texto));
+        }
+    }
 
     @FXML
     private void exportarDatos() {
-
         if (contenidoTabla.getItems().isEmpty()) {
-            new Alert(Alert.AlertType.WARNING, "No hay datos para exportar.").showAndWait();
+            mostrarAlertaWarning("Advertencia", "No hay datos para exportar.");
             return;
         }
 
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
         dialogo.setTitle("Exportar");
-        dialogo.setHeaderText("Seleccione el formato para exportar:");
+        dialogo.setHeaderText("Seleccione el formato:");
+
         ButtonType btnPDF = new ButtonType("PDF");
         ButtonType btnExcel = new ButtonType("Excel (.xlsx)");
         ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -166,15 +235,45 @@ public class MainController {
         dialogo.getButtonTypes().setAll(btnPDF, btnExcel, btnCancelar);
 
         dialogo.showAndWait().ifPresent(res -> {
-            if (res == btnPDF) {
+            if (res == btnPDF)
                 exportador.exportarTabla(contenidoTabla, "Claves", "pdf");
-            } else if (res == btnExcel) {
+            else if (res == btnExcel)
                 exportador.exportarTabla(contenidoTabla, "Claves", "excel");
-            }
         });
     }
 
-    public void importarDatos() {
-        importador.importarExcel("claves", "idClaveCatalogo");
+    @FXML
+    private void importarDatos() {
+        importador.importarClavesExcel();
+        cargarTabla();
+    }
+
+    public void exportarPlantilla() {
+        exportarPlantilla.exportarPlantilla("claves");
+    }
+
+    // Métodos auxiliares para mostrar alertas
+    private void mostrarAlertaError(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.ERROR);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
+
+    private void mostrarAlertaInfo(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
+
+    private void mostrarAlertaWarning(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.WARNING);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 }

@@ -6,12 +6,13 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             xmlns="http://javafx.com/javafx"
+            fx:controller="Formularios.controller.controllerSincronizacionClaves"
             prefWidth="600" prefHeight="360"
             style="-fx-background-color: white; -fx-padding: 18;"
             stylesheets="@/Formularios/style/estilos.css">
 
     <top>
-        <Label text="Claves alternas"
+        <Label fx:id="titulo" text="Agregar Clave "
                style="-fx-font-size: 20px; -fx-font-weight: bold;"
                BorderPane.alignment="CENTER"/>
     </top>

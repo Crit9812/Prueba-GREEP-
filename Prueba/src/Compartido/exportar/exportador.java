@@ -18,7 +18,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class exportador {
 
@@ -26,7 +29,7 @@ public class exportador {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     // -----------------------
-    // Método público para exportar según tipo seleccionado
+    // Metodo público para exportar según tipo seleccionado
     // -----------------------
     public static <T> void exportarTabla(TableView<T> tabla, String titulo, String tipo) {
         if (tabla.getItems().isEmpty()) {
@@ -46,7 +49,7 @@ public class exportador {
 
             try {
                 if (tipo.equalsIgnoreCase("pdf")) {
-                    exportarPDF(tabla, titulo, archivo);
+                        exportarPDF(tabla, titulo, archivo);
                 } else {
                     exportarExcel(tabla, titulo, archivo);
                 }
@@ -62,7 +65,11 @@ public class exportador {
     // Exportar PDF
     // -----------------------
     private static <T> void exportarPDF(TableView<T> tabla, String titulo, File archivo) throws IOException {
+
+        final int MAX_COLUMNAS_POR_SECCION = 6;
+
         try (PDDocument document = new PDDocument()) {
+
             PDType1Font fontTitleBold = new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD);
             PDType1Font fontHeaderBold = new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD);
             PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.TIMES_ROMAN);
@@ -70,67 +77,92 @@ public class exportador {
 
             float margin = 50;
             float rowHeight = 20;
-            float yStart;
-            float tableWidth;
 
             int pageNumber = 1;
-            PDPage page = new PDPage(new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth()));
-            document.addPage(page);
-            yStart = page.getMediaBox().getHeight() - margin;
-            tableWidth = page.getMediaBox().getWidth() - 2 * margin;
 
-            PDPageContentStream contentStream = new PDPageContentStream(document, page);
+            // ✅ OMITIR SIEMPRE LA PRIMERA COLUMNA
+            List<TableColumn<T, ?>> allColumns = tabla.getColumns().size() > 1
+                    ? tabla.getColumns().subList(1, tabla.getColumns().size())
+                    : List.of();
 
-            // Título
-            float yPosition = yStart;
-            contentStream.beginText();
-            contentStream.setFont(fontTitleBold, 16);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText(titulo);
-            contentStream.endText();
-            yPosition -= 30;
+            List<T> dataItems = tabla.getItems();
 
-            // Encabezados
-            List<TableColumn<T, ?>> columns = tabla.getColumns();
-            List<String> headers = columns.stream().map(TableColumn::getText).toList();
+            float pageWidth = PDRectangle.A4.getHeight();
+            float pageHeight = PDRectangle.A4.getWidth();
+            float tableWidth = pageWidth - (2 * margin);
 
-            int numColumns = headers.size();
-            float colWidth = tableWidth / numColumns;
+            // -----------------------
+            // DIVIDIR COLUMNAS EN SECCIONES
+            // -----------------------
+            List<List<TableColumn<T, ?>>> columnSections = new ArrayList<>();
 
-            contentStream.setFont(fontHeaderBold, 10);
-            float textx = margin;
-            for (String header : headers) {
-                contentStream.beginText();
-                contentStream.newLineAtOffset(textx + 2, yPosition - 15);
-                contentStream.showText(header);
-                contentStream.endText();
-                textx += colWidth;
+            for (int i = 0; i < allColumns.size(); i += MAX_COLUMNAS_POR_SECCION) {
+                columnSections.add(
+                        allColumns.subList(
+                                i,
+                                Math.min(i + MAX_COLUMNAS_POR_SECCION, allColumns.size())
+                        )
+                );
             }
 
-            yPosition -= rowHeight;
-            contentStream.moveTo(margin, yPosition);
-            contentStream.lineTo(margin + tableWidth, yPosition);
-            contentStream.stroke();
-            yPosition -= 10;
-            contentStream.setFont(fontNormal, 9);
+            // -----------------------
+            // CALCULAR FILAS POR PÁGINA
+            // -----------------------
+            float usableHeight = pageHeight - (margin * 2) - 60; // título + encabezados
+            int rowsPerPage = (int) (usableHeight / rowHeight);
 
-            for (T item : tabla.getItems()) {
-                if (yPosition <= margin + 50) {
-                    contentStream.close();
-                    agregarPieDePagina(document, page, margin, tableWidth, fontFooter, pageNumber);
-                    pageNumber++;
+            // -----------------------
+            // PAGINACIÓN: FILAS → COLUMNAS
+            // -----------------------
+            for (int rowStart = 0; rowStart < dataItems.size(); rowStart += rowsPerPage) {
 
-                    page = new PDPage(new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth()));
+                int rowEnd = Math.min(rowStart + rowsPerPage, dataItems.size());
+                List<T> rowBlock = dataItems.subList(rowStart, rowEnd);
+
+                for (int sectionIndex = 0; sectionIndex < columnSections.size(); sectionIndex++) {
+
+                    List<TableColumn<T, ?>> section = columnSections.get(sectionIndex);
+
+                    PDPage page = new PDPage(new PDRectangle(pageWidth, pageHeight));
                     document.addPage(page);
-                    contentStream = new PDPageContentStream(document, page);
-                    yPosition = yStart - 50;
 
+                    float yStart = pageHeight - margin;
+                    float yPosition = yStart;
+
+                    PDPageContentStream contentStream = new PDPageContentStream(document, page);
+
+                    // -----------------------
+                    // TÍTULO
+                    // -----------------------
+                    contentStream.beginText();
+                    contentStream.setFont(fontTitleBold, 16);
+                    contentStream.newLineAtOffset(margin, yPosition);
+                    contentStream.showText(
+                            titulo +
+                                    " | Filas " + (rowStart + 1) + "-" + rowEnd +
+                                    " | Columnas " +
+                                    (sectionIndex * MAX_COLUMNAS_POR_SECCION + 1) +
+                                    "-" +
+                                    (sectionIndex * MAX_COLUMNAS_POR_SECCION + section.size())
+                    );
+                    contentStream.endText();
+
+                    yPosition -= 40;
+
+                    float colWidth = tableWidth / section.size();
+
+                    // -----------------------
+                    // ENCABEZADOS
+                    // -----------------------
                     contentStream.setFont(fontHeaderBold, 10);
-                    textx = margin;
-                    for (String header : headers) {
+                    float textx = margin;
+
+                    for (TableColumn<T, ?> col : section) {
                         contentStream.beginText();
                         contentStream.newLineAtOffset(textx + 2, yPosition - 15);
-                        contentStream.showText(header);
+                        contentStream.showText(
+                                truncateTextToWidth(col.getText(), colWidth, fontHeaderBold, 10)
+                        );
                         contentStream.endText();
                         textx += colWidth;
                     }
@@ -139,32 +171,69 @@ public class exportador {
                     contentStream.moveTo(margin, yPosition);
                     contentStream.lineTo(margin + tableWidth, yPosition);
                     contentStream.stroke();
+
                     yPosition -= 10;
                     contentStream.setFont(fontNormal, 9);
+
+                    // -----------------------
+                    // FILAS
+                    // -----------------------
+                    for (T item : rowBlock) {
+
+                        textx = margin;
+
+                        for (TableColumn<T, ?> col : section) {
+
+                            Object value = col.getCellData(item);
+                            String text = value != null ? value.toString() : "";
+
+                            contentStream.beginText();
+                            contentStream.newLineAtOffset(textx + 2, yPosition - 15);
+                            contentStream.showText(
+                                    truncateTextToWidth(text, colWidth, fontNormal, 9)
+                            );
+                            contentStream.endText();
+
+                            textx += colWidth;
+                        }
+
+                        yPosition -= rowHeight;
+                    }
+
+                    contentStream.close();
+                    agregarPieDePagina(document, page, margin, tableWidth, fontFooter, pageNumber++);
                 }
-
-                textx = margin;
-                for (TableColumn<T, ?> col : columns) {
-                    Object value = col.getCellData(item);
-                    String text = value != null ? value.toString() : "";
-
-                    contentStream.beginText();
-                    contentStream.newLineAtOffset(textx + 2, yPosition - 15);
-                    contentStream.showText(truncateText(text, 20));
-                    contentStream.endText();
-
-                    textx += colWidth;
-                }
-
-                yPosition -= rowHeight;
             }
-
-            contentStream.close();
-            agregarPieDePagina(document, page, margin, tableWidth, fontFooter, pageNumber);
 
             document.save(archivo);
         }
     }
+
+    private static String truncateTextToWidth(
+            String text,
+            float maxWidth,
+            PDType1Font font,
+            float fontSize) throws IOException {
+
+        if (text == null || text.isEmpty()) return "";
+
+        String result = text;
+
+        while (font.getStringWidth(result) / 1000 * fontSize > maxWidth - 4) {
+            if (result.length() <= 3) {
+                return "...";
+            }
+            result = result.substring(0, result.length() - 1);
+        }
+
+        if (!result.equals(text)) {
+            result += "...";
+        }
+
+        return result;
+    }
+
+
 
     private static void agregarPieDePagina(PDDocument document, PDPage page, float margin, float tableWidth, PDType1Font fontFooter, int pageNumber) throws IOException {
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page,

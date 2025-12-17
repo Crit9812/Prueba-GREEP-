@@ -45,12 +45,7 @@
 
                             <Region fx:id="expansor"/>
 
-                            <Label fx:id="lblProveedores" text="Proveedores:" styleClass="labels"/>
-                            <TextField fx:id="buscador" styleClass="barraBusqueda" >
-                                <HBox.margin>
-                                    <Insets left="10"/>
-                                </HBox.margin>
-                            </TextField>
+
                             <Button styleClass="botones" onMouseClicked="#abrirNuevoProveedor">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -59,7 +54,20 @@
                                         </image>
                                     </ImageView>
                                 </graphic>
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
                             </Button>
+
+                            <Label fx:id="lblProveedores" text="Proveedores:" styleClass="labels"/>
+                            <ComboBox fx:id="buscador"
+                                      editable="true"
+                                      styleClass="barraBusqueda combo-sin-flecha">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </ComboBox>
+
                             <Button styleClass="botones"  onMouseClicked="#formularioNuevaCompra">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">

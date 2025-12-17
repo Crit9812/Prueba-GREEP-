@@ -1,9 +1,9 @@
 package Formularios.controller;
 
 import Formularios.model.modelSincronizacionClaves;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import java.util.*;
@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 public class controllerSincronizacionClaves {
 
+    @FXML private Label titulo;
     @FXML private ComboBox<String> cbProveedorNombre;
     @FXML private ComboBox<Integer> cbProveedorId;
     @FXML private ComboBox<String> cbProductoId;
@@ -29,18 +30,138 @@ public class controllerSincronizacionClaves {
     private final Map<String, String> productoNameToId = new HashMap<>();
     private final Map<String, Map<String, String>> productoMeta = new HashMap<>();
 
+    // Guardamos el idAlterno original cuando estamos editando para poder detectar
+    // cambios en la PK y ejecutar la lógica apropiada en el model.
+    private String originalIdAlterno = null;
+    private boolean modoEdicion = false;
+
     @FXML
     public void initialize() {
-        Platform.runLater(() -> {
-            try {
-                cargarProveedores();
-                cargarProductos();
-                configurarListeners();
-            } catch (Exception e) {
-                e.printStackTrace();
-                mostrarError("Error al cargar datos: " + e.getMessage());
+        try {
+            // IMPORTANT: cargamos sin Platform.runLater para garantizar que
+            // los datos estén disponibles inmediatamente después de loader.load()
+            cargarProveedores();
+            cargarProductos();
+            configurarListeners();
+
+            // Configurar ENTER para todos los campos de texto
+            configurarEnterAction();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("Error al cargar datos: " + e.getMessage());
+        }
+    }
+
+    private void configurarEnterAction() {
+        // Configurar ENTER en todos los campos para ejecutar guardar
+        setEnterAction(txtClaveAlterna);
+        setEnterAction(txtDescripcion);
+
+        // También configurar ENTER en los combobox editables
+        // Usar Platform.runLater para asegurar que la escena esté disponible
+        javafx.application.Platform.runLater(() -> {
+            if (btnGuardar.getScene() != null && btnGuardar.getScene().getWindow() != null) {
+                Stage stage = (Stage) btnGuardar.getScene().getWindow();
+                stage.getScene().setOnKeyPressed(e -> {
+                    if (e.getCode().toString().equals("ENTER")) {
+                        guardarClave();
+                    }
+                });
             }
         });
+    }
+
+    private void setEnterAction(TextField field) {
+        field.setOnAction(e -> guardarClave());
+    }
+
+    public void cargarParaEdicion(String[] fila) {
+        modoEdicion = true;
+
+        // Actualizar título
+        titulo.setText("Editar Clave");
+        btnGuardar.setText("Actualizar");
+
+        if (fila == null) return;
+
+        // Guardamos el id alterno original para referencias posteriores
+        originalIdAlterno = fila[0];
+
+        txtClaveAlterna.setText(fila[0] == null ? "" : fila[0]);
+
+        // Producto: preferimos el id (posición 1)
+        String productoId = fila[1] == null ? "" : fila[1];
+        if (!productoId.isBlank()) {
+            cbProductoId.getSelectionModel().select(productoId);
+            cbProductoId.getEditor().setText(productoId);
+            // buscar nombre del producto asociado (si existe)
+            String nombreProd = productoIdToName.get(productoId);
+            if (nombreProd != null) {
+                cbProductoNombre.getSelectionModel().select(nombreProd);
+                cbProductoNombre.getEditor().setText(nombreProd);
+            }
+            rellenarDescripcionProducto(productoId);
+        } else {
+            // fallback por nombre (posición 2)
+            String nombreProd = fila[2] == null ? "" : fila[2];
+            if (!nombreProd.isBlank()) {
+                cbProductoNombre.getSelectionModel().select(nombreProd);
+                cbProductoNombre.getEditor().setText(nombreProd);
+                String id = productoNameToId.get(nombreProd);
+                if (id != null) {
+                    cbProductoId.getSelectionModel().select(id);
+                    cbProductoId.getEditor().setText(id);
+                    rellenarDescripcionProducto(id);
+                }
+            }
+        }
+
+        // Proveedor: preferimos id (posición 3)
+        String provIdText = fila[3] == null ? "" : fila[3];
+        if (!provIdText.isBlank()) {
+            try {
+                Integer provId = Integer.parseInt(provIdText);
+                cbProveedorId.getSelectionModel().select(provId);
+                cbProveedorId.getEditor().setText(String.valueOf(provId));
+                String provNombre = proveedorIdToName.get(provId);
+                if (provNombre != null) {
+                    cbProveedorNombre.getSelectionModel().select(provNombre);
+                    cbProveedorNombre.getEditor().setText(provNombre);
+                }
+            } catch (NumberFormatException ex) {
+                // fallback por nombre (posición 4)
+                String provNombre = fila[4] == null ? "" : fila[4];
+                if (!provNombre.isBlank()) {
+                    cbProveedorNombre.getSelectionModel().select(provNombre);
+                    cbProveedorNombre.getEditor().setText(provNombre);
+                    Integer pid = proveedorNameToId.get(provNombre);
+                    if (pid != null) {
+                        cbProveedorId.getSelectionModel().select(pid);
+                        cbProveedorId.getEditor().setText(String.valueOf(pid));
+                    }
+                }
+            }
+        } else {
+            String provNombre = fila[4] == null ? "" : fila[4];
+            if (!provNombre.isBlank()) {
+                cbProveedorNombre.getSelectionModel().select(provNombre);
+                cbProveedorNombre.getEditor().setText(provNombre);
+                Integer pid = proveedorNameToId.get(provNombre);
+                if (pid != null) {
+                    cbProveedorId.getSelectionModel().select(pid);
+                    cbProveedorId.getEditor().setText(String.valueOf(pid));
+                }
+            }
+        }
+
+        txtDescripcion.setText(fila[5] == null ? "" : fila[5]);
+    }
+
+    public void prepararNuevoClave() {
+        modoEdicion = false;
+        titulo.setText("Nueva Clave");
+        btnGuardar.setText("Guardar");
     }
 
     private void cargarProveedores() throws Exception {
@@ -268,13 +389,17 @@ public class controllerSincronizacionClaves {
 
     @FXML
     private void onGuardar() {
+        guardarClave();
+    }
+
+    private void guardarClave() {
         try {
             String claveAltText = txtClaveAlterna.getText();
             if (claveAltText == null || claveAltText.trim().isEmpty()) {
                 mostrarAdvertencia("La clave alterna (idClaveCatalogo) es obligatoria.");
                 return;
             }
-            String idClaveCatalogo = claveAltText.trim(); // ahora es String (varchar)
+            String idClaveCatalogo = claveAltText.trim();
 
             // proveedor
             Integer proveedorId = null;
@@ -309,12 +434,20 @@ public class controllerSincronizacionClaves {
                 return;
             }
 
-            boolean ok = model.guardarClave(idClaveCatalogo, proveedorId, productoId);
+            boolean ok = model.guardarClave(originalIdAlterno, idClaveCatalogo, proveedorId, productoId);
             if (ok) {
-                mostrarInfo("Clave guardada/actualizada correctamente.");
+                String mensaje = modoEdicion ?
+                        "Clave actualizada correctamente." :
+                        "Clave guardada correctamente.";
+
+                mostrarInfo(mensaje);
                 cerrarVentana();
             } else {
-                mostrarError("No se pudo guardar la clave en la base de datos.");
+                String mensajeError = modoEdicion ?
+                        "No se pudo actualizar la clave (conflicto o error)." :
+                        "No se pudo guardar la clave (conflicto o error).";
+
+                mostrarError(mensajeError);
             }
 
         } catch (Exception e) {
@@ -329,8 +462,8 @@ public class controllerSincronizacionClaves {
     }
 
     private void cerrarVentana() {
-        Window w = btnCancelar.getScene().getWindow();
-        if (w != null) w.hide();
+        Stage stage = (Stage) btnCancelar.getScene().getWindow();
+        stage.close();
     }
 
     private void mostrarAdvertencia(String msg) {

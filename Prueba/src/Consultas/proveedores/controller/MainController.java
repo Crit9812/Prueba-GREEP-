@@ -3,11 +3,15 @@ package Consultas.proveedores.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
+import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
 import Consultas.proveedores.model.proveedores;
 import Consultas.proveedores.model.model;
 import Formularios.controller.controllerNuevoProveedor;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -53,6 +57,9 @@ public class MainController {
 
     @FXML private encabezadoController paneNavbarController;
 
+    // EXACTAMENTE IGUAL que productos: instancia única
+    private final model proveedorModel = new model();
+
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
@@ -83,12 +90,12 @@ public class MainController {
             buscador.maxHeightProperty().bind(navbar.heightProperty().multiply(0.5));
 
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Proveedores", "#ffffff");
 
+            // Cell Value Factories
             colID.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getId())));
             colNombre.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getNombre()));
             colRepresentante.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRepresentante()));
@@ -107,52 +114,38 @@ public class MainController {
             colNumeroExt.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getNumeroExt())));
             colNumeroInt.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getNumeroInt())));
 
-            colID.setStyle("-fx-alignment: CENTER;");
-            colNombre.setStyle("-fx-alignment: CENTER;");
-            colRepresentante.setStyle("-fx-alignment: CENTER;");
-            colRFC.setStyle("-fx-alignment: CENTER;");
-            colCURP.setStyle("-fx-alignment: CENTER;");
-            colRazonSocial.setStyle("-fx-alignment: CENTER;");
-            colCorreo.setStyle("-fx-alignment: CENTER;");
-            colTelefono.setStyle("-fx-alignment: CENTER;");
-            colCP.setStyle("-fx-alignment: CENTER;");
-            colPais.setStyle("-fx-alignment: CENTER;");
-            colEstado.setStyle("-fx-alignment: CENTER;");
-            colCiudad.setStyle("-fx-alignment: CENTER;");
-            colLocalidad.setStyle("-fx-alignment: CENTER;");
-            colColonia.setStyle("-fx-alignment: CENTER;");
-            colDomicilio.setStyle("-fx-alignment: CENTER;");
-            colNumeroExt.setStyle("-fx-alignment: CENTER;");
-            colNumeroInt.setStyle("-fx-alignment: CENTER;");
+            // Centrado - estructura más limpia
+            TableColumn<proveedores, String>[] columnas = new TableColumn[]{
+                    colSelect, colID, colNombre, colRepresentante, colRFC, colCURP, colRazonSocial, colCorreo,
+                    colTelefono, colCP, colPais, colEstado, colCiudad, colLocalidad, colColonia,
+                    colDomicilio, colNumeroExt, colNumeroInt
+            };
+            for (TableColumn<proveedores, String> col : columnas) {
+                col.setStyle("-fx-alignment: CENTER;");
+            }
 
+            // Botón eliminar - EXACTA misma estructura que productos
             colSelect.setCellFactory(col -> new TableCell<proveedores, Void>() {
-                private final Button btn = new Button();
-                private final HBox contenedor = new HBox();
-
+                private final Button btn;
                 {
+                    btn = new Button();
                     ImageView img = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
                     img.setFitWidth(18);
                     img.setFitHeight(18);
                     img.setPreserveRatio(true);
-
                     btn.setGraphic(img);
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-
-                    contenedor.setAlignment(javafx.geometry.Pos.CENTER);
-                    contenedor.getChildren().add(btn);
-
                     btn.setOnAction(e -> {
                         proveedores seleccionado = getTableView().getItems().get(getIndex());
-                        int id = seleccionado.getId();
-
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+                        alerta.setTitle("Confirmar eliminación");
+                        alerta.setHeaderText(null);
                         alerta.setContentText("¿Está seguro que desea eliminar este proveedor?");
-
                         alerta.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.OK) {
-                                model m = new model();
-                                if (m.eliminar(id)) {
-                                    cargarEnTabla();
+                                if (proveedorModel.eliminar(seleccionado.getId())) {
+                                    contenidoTabla.getItems().remove(seleccionado);
+                                    new Alert(Alert.AlertType.INFORMATION, "Proveedor eliminado correctamente").showAndWait();
                                 } else {
                                     new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el proveedor.").showAndWait();
                                 }
@@ -164,12 +157,14 @@ public class MainController {
                 @Override
                 protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
-                    setGraphic(empty ? null : contenedor);
+                    setGraphic(empty ? null : btn);
                 }
             });
 
-            cargarEnTabla();
+            // Carga Inicial en background como productos
+            cargarProveedoresEnTabla();
 
+            // Doble clic → editar - EXACTO igual
             contenidoTabla.setRowFactory(tv -> {
                 TableRow<proveedores> row = new TableRow<>();
                 row.setOnMouseClicked(event -> {
@@ -180,6 +175,7 @@ public class MainController {
                 return row;
             });
 
+            // ENTER sobre un registro → editar - EXACTO igual (mantener esto)
             contenidoTabla.setOnKeyPressed(event -> {
                 if (event.getCode().toString().equals("ENTER")) {
                     proveedores p = contenidoTabla.getSelectionModel().getSelectedItem();
@@ -187,40 +183,43 @@ public class MainController {
                 }
             });
 
-            buscador.setOnKeyPressed(event -> {
-                if (event.getCode().toString().equals("ENTER")) {
-                    buscar();
-                }
+            // Configurar listener para el buscador - EXACTAMENTE IGUAL que productos
+            // ELIMINAR el buscador.setOnKeyPressed que estaba aquí
+            buscador.textProperty().addListener((observable, oldValue, newValue) -> {
+                buscarProveedores(newValue);
             });
         });
     }
 
-    public void cargarEnTabla() {
-        Platform.runLater(() -> {
-            model m = new model();
-            contenidoTabla.getItems().setAll(m.obtener());
-        });
-    }
-
-    private void buscar() {
-        String texto = buscador.getText().trim();
-        model m = new model();
-
-        if (texto.isEmpty()) {
-            cargarEnTabla();
-        } else {
-            var resultados = m.buscarPorNombre(texto);
-
-            if (resultados.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Sin resultados");
-                alert.setHeaderText(null);
-                alert.setContentText("No se encontraron registros con ese nombre.");
-                alert.showAndWait();
-                return;
+    // MÉTODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
+    private void cargarProveedoresEnTabla() {
+        Task<ObservableList<proveedores>> task = new Task<>() {
+            @Override
+            protected ObservableList<proveedores> call() {
+                // En productos es: productoModel.obtenerProductos()
+                // Aquí es exactamente igual pero con proveedorModel
+                return FXCollections.observableArrayList(proveedorModel.obtener());
             }
 
-            contenidoTabla.getItems().setAll(resultados);
+            @Override
+            protected void succeeded() {
+                ObservableList<proveedores> proveedores = getValue();
+                contenidoTabla.setItems(proveedores);
+            }
+        };
+        new Thread(task).start();
+    }
+
+    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
+    private void buscarProveedores(String texto) {
+        if (texto == null || texto.trim().isEmpty()) {
+            cargarProveedoresEnTabla();
+        } else {
+            // Si tu modelo de proveedores tiene busquedaMultiple, úsalo como en productos
+            // Si no, usa buscarExacto (pero deberías agregar busquedaMultiple a proveedores también)
+            ObservableList<proveedores> proveedores = FXCollections.observableArrayList(proveedorModel.buscarExacto(texto));
+            contenidoTabla.setItems(proveedores);
+            // ELIMINADO: El mensaje de "No se encontraron registros"
         }
     }
 
@@ -231,19 +230,28 @@ public class MainController {
 
     private void abrirFormulario(proveedores editar) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoProveedor.fxml"));
+            // === CREAR CONTROLLER MANUALMENTE ===
+            Formularios.controller.controllerNuevoProveedor controlador =
+                    new Formularios.controller.controllerNuevoProveedor();
+
+            // === CREAR LOADER Y ASIGNAR CONTROLLER ===
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/Formularios/view/nuevoProveedor.fxml")
+            );
+            loader.setController(controlador);
+
             Parent vista = loader.load();
 
-            controllerNuevoProveedor ctrl = loader.getController();
+            // === USAR EL CONTROLLER YA ASIGNADO ===
             if (editar != null) {
-                ctrl.cargarProveedor(editar);
+                controlador.cargarProveedor(editar);
             } else {
-                ctrl.prepararNuevoProveedor();
+                controlador.prepararNuevoProveedor();
             }
 
+            // === STAGE ===
             Stage stage = new Stage();
             stage.setTitle(editar == null ? "Nuevo Registro" : "Editar Registro");
-
             stage.setScene(new Scene(vista));
             stage.setResizable(false);
             stage.setWidth(600);
@@ -254,12 +262,15 @@ public class MainController {
 
             stage.showAndWait();
 
-            cargarEnTabla();
+            // === RECARGAR TABLA ===
+            cargarProveedoresEnTabla();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+
 
     @FXML
     private void exportarDatos() {
@@ -289,5 +300,11 @@ public class MainController {
 
     public void importarDatos() {
         importador.importarExcel("proveedores", "id");
+        // Recargar como en productos
+        cargarProveedoresEnTabla();
+    }
+
+    public void exportarPlantilla() {
+        exportarPlantilla.exportarPlantilla("proveedores");
     }
 }

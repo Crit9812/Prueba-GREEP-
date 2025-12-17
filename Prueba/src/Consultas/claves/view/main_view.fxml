@@ -71,12 +71,29 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <Button styleClass="botones"  onMouseClicked="#exportarPlantilla">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/plantilla.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblPlantilla" text="Descargar plantilla" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
 
                             <Region fx:id="expansor"/>
 
-                            <TextField fx:id="buscador" promptText="" styleClass="barraBusqueda">
+                            <TextField fx:id="buscador" promptText="Buscar por id Greep o id alterno" styleClass="barraBusqueda">
                                 <HBox.margin>
-                                    <Insets right="40"/>
+                                    <Insets right="25"/>
                                 </HBox.margin>
                             </TextField>
                         </HBox>
@@ -87,21 +104,40 @@
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
-                        <TableView fx:id="contenidoTabla"  styleClass="contenidoTabla">
+                        <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <placeholder>
+                                <Label text="No hay resultados que mostrar" styleClass="placeholder-label"/>
+                            </placeholder>
                             <columns>
-                                <TableColumn fx:id="colSelect" prefWidth="70"/>
-                                <TableColumn fx:id="colClaveAlterna" text="Clave alterna" prefWidth="150"/>
-                                <TableColumn fx:id="colClaveProducto" text="Clave del producto" prefWidth="170"/>
-                                <TableColumn fx:id="colProducto" text="Producto" prefWidth="250"/>
-                                <TableColumn fx:id="colIDProvedor" text="id proveedor" prefWidth="250"/>
-                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="250"/>
-                                <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="360"/>
+                                <TableColumn fx:id="colSelect"
+                                             prefWidth="70"
+                                             minWidth="70"
+                                             maxWidth="70"
+                                             resizable="false" />
+                                <TableColumn fx:id="colClaveAlterna" text="idAlterno"
+                                             prefWidth="100"
+                                             minWidth="100"
+                                             maxWidth="100"
+                                             resizable="false"/>
+                                <TableColumn fx:id="colClaveProducto" text="idProducto"
+                                             prefWidth="100"
+                                             minWidth="100"
+                                             maxWidth="100"
+                                             resizable="false" />
+                                <TableColumn fx:id="colProducto" text="Producto" />
+                                <TableColumn fx:id="colIDProvedor" text="idProveedor"
+                                             prefWidth="100"
+                                             minWidth="100"
+                                             maxWidth="100"
+                                             resizable="false" />
+                                <TableColumn fx:id="colProveedor" text="Proveedor" />
+                                <TableColumn fx:id="colDescripcion" text="Descripción" />
                             </columns>
                         </TableView>
                     </VBox>
-                    <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
-                        <Button fx:id="botonConfirmar" styleClass="botonConfirmar"> Confirmar </Button>
-                    </HBox>
                 </VBox>
             </SplitPane>
         </center>

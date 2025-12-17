@@ -11,6 +11,11 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import java.io.IOException;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.control.ComboBox;
+import Operaciones.compra.model.model;
+
 
 public class MainController {
 
@@ -22,7 +27,7 @@ public class MainController {
     @FXML private Pane overlayPane;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
-    @FXML private TextField buscador;
+    @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblProveedores;
     @FXML private Region expansor;
@@ -33,6 +38,9 @@ public class MainController {
     @FXML private HBox contenedorBtnConfirmar;
 
     @FXML private encabezadoController paneNavbarController;
+    private final model model = new model();
+    private ObservableList<String> proveedoresCache;
+
 
 
     @FXML
@@ -93,9 +101,45 @@ public class MainController {
             HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Compra", "#ffffff");
+        });
+        configurarAutocompleteProveedores();
 
+    }
+
+    private void configurarAutocompleteProveedores() {
+
+        proveedoresCache = FXCollections.observableArrayList(
+                model.obtenerNombresProveedores()
+        );
+
+        buscador.setItems(proveedoresCache);
+
+        buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
+
+            if (newText == null || newText.isEmpty()) {
+                buscador.hide();
+                buscador.setItems(proveedoresCache);
+                return;
+            }
+
+            ObservableList<String> filtrados = FXCollections.observableArrayList();
+
+            for (String nombre : proveedoresCache) {
+                if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                    filtrados.add(nombre);
+                }
+            }
+
+            buscador.setItems(filtrados);
+
+            if (!filtrados.isEmpty()) {
+                buscador.show();
+            } else {
+                buscador.hide();
+            }
         });
     }
+
 
     @FXML
     public void formularioNuevaCompra() {

@@ -125,5 +125,9 @@ public class MainController {
         ControllerInterfaz.cambiarVista("/Consultas/sucursales/view/main_view.fxml", "/Consultas/sucursales/style/estilos.css", controlador);
     }
 
-
+    @FXML
+    public void ventanaEtiquetasMarcas() {
+        Consultas.clasificacion.controller.MainController controlador = new Consultas.clasificacion.controller.MainController();
+        ControllerInterfaz.cambiarVista("/Consultas/clasificacion/view/main_view.fxml", "/Consultas/clasificacion/style/estilos.css", controlador);
+    }
 }

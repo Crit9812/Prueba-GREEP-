@@ -11,7 +11,7 @@ public class modelNuevoUsuario {
      * Verifica existencia por userName (nombre de usuario)
      */
     public boolean validarUsuarioExistente(String userName) {
-        usuario u = dao.buscarPorCampo("userName", userName);
+        usuario u = dao.buscarExacto("userName", userName);
         return u != null;
     }
 

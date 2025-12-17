@@ -20,20 +20,23 @@
     <!-- Contenido principal -->
     <center>
         <VBox spacing="15" alignment="TOP_LEFT" style="-fx-padding: 20;">
-            <HBox>
-                <VBox spacing="5">
-                    <Label text="Ingresar producto por:"/>
-                    <HBox spacing="10">
-                        <VBox spacing="5">
-                            <Label text="Clave producto:"/>
-                            <TextField fx:id="txtClaveProducto" prefWidth="150" maxWidth="150"/>
-                        </VBox>
 
-                        <VBox spacing="5">
-                            <Label text="Clave alterna:"/>
-                            <TextField fx:id="txtClaveProveedor" prefWidth="150" maxWidth="150"/>
-                        </VBox>
-                    </HBox>
+            <!-- Claves del producto -->
+            <HBox spacing="20">
+                <VBox spacing="5">
+                    <Label text="Clave producto:"/>
+                    <ComboBox fx:id="cbClaveProducto"
+                              editable="true"
+                              prefWidth="150"
+                              maxWidth="150"/>
+                </VBox>
+
+                <VBox spacing="5">
+                    <Label text="Clave alterna:"/>
+                    <ComboBox fx:id="cbClaveAlterna"
+                              editable="true"
+                              prefWidth="150"
+                              maxWidth="150"/>
                 </VBox>
             </HBox>
 
@@ -41,31 +44,39 @@
             <HBox spacing="20">
                 <VBox spacing="5" HBox.hgrow="ALWAYS">
                     <Label text="Producto:"/>
-                    <TextField fx:id="txtProducto" prefWidth="300"
-                               maxWidth="300"/>
+                    <ComboBox fx:id="cbProductoNombre"
+                              editable="true"
+                              prefWidth="300"
+                              maxWidth="300"/>
                 </VBox>
 
-                <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <VBox spacing="5">
                     <Label text="Cantidad:"/>
-                    <TextField fx:id="txtCantidad" prefWidth="100"
+                    <TextField fx:id="txtCantidad"
+                               prefWidth="100"
                                maxWidth="100"/>
                 </VBox>
             </HBox>
 
-            <!-- Producto y Cantidad -->
+            <!-- Descripción -->
             <HBox spacing="20">
                 <VBox spacing="5" HBox.hgrow="ALWAYS">
                     <Label text="Descripción:"/>
-                    <TextField fx:id="txtDescripcion" style=" -fx-min-height: 40;"/>
+                    <TextField fx:id="txtDescripcion"
+                               style="-fx-min-height: 40;"/>
                 </VBox>
             </HBox>
+
         </VBox>
     </center>
 
     <!-- Botones -->
     <bottom>
         <HBox alignment="CENTER" spacing="20" style="-fx-padding: 20;">
-            <Button text="Guardar" fx:id="btnGuardar" styleClass="boton"/>
+            <Button text="Guardar"
+                    fx:id="btnGuardar"
+                    styleClass="boton"/>
         </HBox>
     </bottom>
+
 </BorderPane>
