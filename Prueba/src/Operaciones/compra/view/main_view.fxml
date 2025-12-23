@@ -110,8 +110,12 @@
                             <columns>
                                 <TableColumn fx:id="colSelect" prefWidth="70" />
                                 <TableColumn fx:id="colClaveProduct" text="Clave del producto" prefWidth="70" />
+                                <TableColumn fx:id="colClaveAlterna" text="Clave alterna" prefWidth="70" />
                                 <TableColumn fx:id="colProducto" text="Producto" prefWidth="250" />
                                 <TableColumn fx:id="colDescripcionProducto" text="Descripcion" prefWidth="250" />
+                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="90" />
+                                <TableColumn fx:id="colPresentacion" text="Presentación" prefWidth="120" />
+                                <TableColumn fx:id="colFactor" text="Factor" prefWidth="90" />
                                 <TableColumn fx:id="colLote" text="Lote" prefWidth="250" />
                                 <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="360" />
                                 <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="360" />
@@ -135,7 +139,7 @@
                             </HBox.margin>
                         </TextField>
                         <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
-                            <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar">
+                            <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar" onAction="#guardarCompras">
                                 <HBox.margin>
                                     <Insets right="40"/>
                                 </HBox.margin>
