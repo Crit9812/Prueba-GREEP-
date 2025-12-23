@@ -17,12 +17,9 @@
         <center>
             <SplitPane dividerPositions="0.03">
                 <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
-
                 <VBox fx:id="contenedor" styleClass="contenedor">
                     <VBox styleClass="opciones">
                         <HBox fx:id="rootHBox" spacing="0" alignment="CENTER_LEFT">
-
-                            <!-- AGREGAR MARCA -->
                             <Button fx:id="btnAgregarMarca" styleClass="botones" onAction="#agregarMarca">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -40,8 +37,6 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-
-                            <!-- AGREGAR ETIQUETA -->
                             <Button fx:id="btnAgregarEtiqueta" styleClass="botones" onAction="#agregarEtiqueta">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -59,7 +54,6 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-
                             <Button fx:id="btnAgregarUbicacion" styleClass="botones" onAction="#agregarUbicacion">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -77,24 +71,37 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-
                         </HBox>
                     </VBox>
-
                     <!-- TABLAS -->
-                    <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
-                        <HBox spacing="40">
+                    <VBox fx:id="contenedorTabla"
+                          styleClass="tabla"
+                          alignment="TOP_CENTER"
+                          VBox.vgrow="ALWAYS">
+                        <padding>
+                            <Insets top="10"/>
+                        </padding>
+
+                        <HBox spacing="40"
+                              alignment="TOP_CENTER"
+                              HBox.hgrow="ALWAYS">
+
                             <padding>
                                 <Insets left="40" right="40"/>
                             </padding>
 
                             <!-- ===== TABLA MARCAS ===== -->
-                            <VBox spacing="10">
+                            <VBox spacing="10"
+                                  alignment="CENTER"
+                                  maxWidth="Infinity"
+                                  HBox.hgrow="ALWAYS">
+
                                 <Label text="Marcas"
                                        style="-fx-font-size: 16px; -fx-font-weight: bold;" />
 
                                 <TableView fx:id="contenidoTablaMarcas"
-                                           styleClass="contenidoTabla">
+                                           styleClass="contenidoTabla"
+                                           maxWidth="Infinity">
                                     <columns>
                                         <TableColumn fx:id="colSelect" prefWidth="70"/>
                                         <TableColumn fx:id="colIDMarca" text="id" prefWidth="70"/>
@@ -104,12 +111,17 @@
                             </VBox>
 
                             <!-- ===== TABLA ETIQUETAS ===== -->
-                            <VBox spacing="10">
+                            <VBox spacing="10"
+                                  alignment="CENTER"
+                                  maxWidth="Infinity"
+                                  HBox.hgrow="ALWAYS">
+
                                 <Label text="Etiquetas"
                                        style="-fx-font-size: 16px; -fx-font-weight: bold;" />
 
                                 <TableView fx:id="contenidoTablaEtiquetas"
-                                           styleClass="contenidoTabla">
+                                           styleClass="contenidoTabla"
+                                           maxWidth="Infinity">
                                     <columns>
                                         <TableColumn fx:id="colSelectEtiqueta" prefWidth="70"/>
                                         <TableColumn fx:id="colIDEtiqueta" text="id" prefWidth="70"/>
@@ -118,13 +130,18 @@
                                 </TableView>
                             </VBox>
 
-                            <!-- ===== TABLA ETIQUETAS ===== -->
-                            <VBox spacing="10">
+                            <!-- ===== TABLA UBICACIONES ===== -->
+                            <VBox spacing="10"
+                                  alignment="CENTER"
+                                  maxWidth="Infinity"
+                                  HBox.hgrow="ALWAYS">
+
                                 <Label text="Ubicaciones"
                                        style="-fx-font-size: 16px; -fx-font-weight: bold;" />
 
                                 <TableView fx:id="contenidoTablaUbicaciones"
-                                           styleClass="contenidoTabla">
+                                           styleClass="contenidoTabla"
+                                           maxWidth="Infinity">
                                     <columns>
                                         <TableColumn fx:id="colSelectUbicaciones" prefWidth="70"/>
                                         <TableColumn fx:id="colIDUbicaciones" text="id" prefWidth="70"/>
@@ -132,13 +149,11 @@
                                     </columns>
                                 </TableView>
                             </VBox>
-
                         </HBox>
                     </VBox>
                 </VBox>
             </SplitPane>
         </center>
     </BorderPane>
-
     <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
 </StackPane>

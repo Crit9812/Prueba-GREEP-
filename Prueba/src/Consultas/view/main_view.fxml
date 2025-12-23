@@ -79,7 +79,7 @@
                             </graphic>
                         </Button>
 
-                        <Button styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="1" text="Etiquetas y marcas" onAction="#ventanaEtiquetasMarcas">
+                        <Button styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="1" text="Clasificación" onAction="#ventanaEtiquetasMarcas">
                             <graphic>
                                 <ImageView fx:id="userIcon4" fitWidth="100" fitHeight="100">
                                     <image>
