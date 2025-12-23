@@ -185,7 +185,7 @@ public class MainController {
         });
     }
 
-    // MÉTODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
+    // MetODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
     private void cargarClientesEnTabla() {
         Task<ObservableList<cliente>> task = new Task<>() {
             @Override

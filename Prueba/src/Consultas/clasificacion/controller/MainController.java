@@ -27,8 +27,6 @@ public class MainController {
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
-    @FXML private Region expansor;
-    @FXML private TextField buscador;
 
     @FXML private TableView<marcas> contenidoTablaMarcas;
     @FXML private TableColumn<marcas, Void> colSelect;
@@ -66,7 +64,20 @@ public class MainController {
                 e.printStackTrace();
             }
 
-            paneNavbarController.setTitulo("Marcas y Etiquetas", "#ffffff");
+            SplitPane.setResizableWithParent(navbar, false);
+            SplitPane.setResizableWithParent(contenedor, true);
+
+            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
+            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
+            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
+            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
+            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.95));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
+            contenidoTablaMarcas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+            contenidoTablaEtiquetas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+            contenidoTablaUbicaciones.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+
+            paneNavbarController.setTitulo("Clasificación", "#ffffff");
 
             configurarTablas();
             configurarDobleClick();
@@ -80,16 +91,23 @@ public class MainController {
         colNombreMarca.setCellValueFactory(c -> c.getValue().nombreProperty());
         colSelect.setCellFactory(col -> crearBotonEliminarMarca());
         colIDMarca.setStyle("-fx-alignment: CENTER;");
+        colNombreMarca.setStyle("-fx-alignment: CENTER;");
+        colSelect.setStyle("-fx-alignment: CENTER;");
 
         colIDEtiqueta.setCellValueFactory(c -> c.getValue().idProperty().asObject());
         colNombreEtiqueta.setCellValueFactory(c -> c.getValue().nombreProperty());
         colSelectEtiqueta.setCellFactory(col -> crearBotonEliminarEtiqueta());
         colIDEtiqueta.setStyle("-fx-alignment: CENTER;");
+        colNombreEtiqueta.setStyle("-fx-alignment: CENTER;");
+        colSelectEtiqueta.setStyle("-fx-alignment: CENTER;");
 
         colIDUbicaciones.setCellValueFactory(c -> c.getValue().idProperty().asObject());
         colNombreUbicaciones.setCellValueFactory(c -> c.getValue().nombreProperty());
         colSelectUbicaciones.setCellFactory(col -> crearBotonEliminarUbicacion());
         colIDUbicaciones.setStyle("-fx-alignment: CENTER;");
+        colNombreUbicaciones.setStyle("-fx-alignment: CENTER;");
+        colIDUbicaciones.setStyle("-fx-alignment: CENTER;");
+
 
     }
 
