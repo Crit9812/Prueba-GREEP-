@@ -1,0 +1,265 @@
+package Operaciones.registrarUsuario.controller;
+
+import Compartido.controller.encabezadoController;
+import Compartido.controller.navbarController;
+import Operaciones.registrarUsuario.model.usuario;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.application.Platform;
+import Operaciones.registrarUsuario.model.model;
+import javafx.scene.Scene;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+public class MainController {
+
+    @FXML private StackPane root;
+    @FXML private BorderPane paneNavbar;
+    @FXML private VBox navbar;
+    @FXML private VBox contenedor;
+    @FXML private Pane overlayPane;
+    @FXML private VBox contenedorTabla;
+
+    @FXML private TableColumn<usuario, Void> colSelect;
+    @FXML private TableColumn<usuario, String> colClaveUsuario;
+    @FXML private TableColumn<usuario, String> colNombre;
+    @FXML private TableColumn<usuario, String> colApellidoP;
+    @FXML private TableColumn<usuario, String> colApellidoM;
+    @FXML private TableColumn<usuario, String> colNombreUsuario;
+    @FXML private TableColumn<usuario, String> colRol;
+    @FXML private TableView<usuario> contenidoTabla;
+
+    @FXML private encabezadoController paneNavbarController;
+
+    @FXML
+    public void initialize() {
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
+                VBox navbarLoaded = loader.load();
+
+                navbarController navbarCtrl = loader.getController();
+                navbarCtrl.setOverlayPane(overlayPane);
+                navbar.getChildren().setAll(navbarLoaded);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            SplitPane.setResizableWithParent(navbar, false);
+            SplitPane.setResizableWithParent(contenedor, true);
+
+            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
+            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
+            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
+            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
+            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
+            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+
+            paneNavbarController.setTitulo("Registrar Usuario", "#ffffff");
+
+            colClaveUsuario.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(cellData.getValue().getIdUsuario()));
+            colNombre.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(cellData.getValue().getNombreUsuario()));
+            colApellidoP.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(cellData.getValue().getApellidoPUsuario()));
+            colApellidoM.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(cellData.getValue().getApellidoMUsuario()));
+            colNombreUsuario.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(cellData.getValue().getUserName()));
+            colRol.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRolUsuario()));
+
+            colClaveUsuario.setStyle("-fx-alignment: CENTER;");
+            colNombre.setStyle("-fx-alignment: CENTER;");
+            colApellidoP.setStyle("-fx-alignment: CENTER;");
+            colApellidoM.setStyle("-fx-alignment: CENTER;");
+            colNombreUsuario.setStyle("-fx-alignment: CENTER;");
+            colRol.setStyle("-fx-alignment: CENTER;");
+
+            colSelect.setCellFactory(col -> new TableCell<usuario, Void>() {
+                private final Button btn = new Button();
+                private final HBox contenedor = new HBox();
+
+                {
+                    ImageView img = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
+                    img.setFitWidth(18);
+                    img.setFitHeight(18);
+                    btn.setGraphic(img);
+                    btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
+                    contenedor.setAlignment(javafx.geometry.Pos.CENTER);
+                    contenedor.getChildren().add(btn);
+
+                    btn.setOnAction(e -> {
+                        usuario usuarioSeleccionado = getTableView().getItems().get(getIndex());
+                        String idUsuario = usuarioSeleccionado.getIdUsuario();
+
+                        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+                        alerta.setContentText("¿Está seguro que desea eliminar este usuario?");
+                        alerta.showAndWait().ifPresent(response -> {
+                            if (response == ButtonType.OK) {
+                                model m = new model();
+                                if (m.eliminarUsuario(idUsuario)) {
+                                    getTableView().getItems().remove(usuarioSeleccionado);
+                                } else {
+                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el usuario.").showAndWait();
+                                }
+                            }
+                        });
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : contenedor);
+                }
+            });
+
+            cargarUsuariosEnTabla();
+
+            contenidoTabla.setRowFactory(tv -> {
+                TableRow<usuario> row = new TableRow<>();
+                row.setOnMouseClicked(event -> {
+                    if (event.getClickCount() == 2 && !row.isEmpty()) {
+                        intentarEditarUsuario(row.getItem());
+                    }
+                });
+                return row;
+            });
+
+            contenidoTabla.setOnKeyPressed(event -> {
+                if (event.getCode().toString().equals("ENTER")) {
+                    usuario u = contenidoTabla.getSelectionModel().getSelectedItem();
+                    if (u != null) intentarEditarUsuario(u);
+                }
+            });
+        });
+    }
+
+    private boolean solicitarContrasena(usuario user) {
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Verificación de identidad");
+        dialog.setHeaderText("Ingrese la contraseña del usuario seleccionado");
+
+        ButtonType botonConfirmar = new ButtonType("Confirmar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(botonConfirmar, ButtonType.CANCEL);
+
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Contraseña");
+        passwordField.setPrefWidth(250);  // Ancho moderado
+        passwordField.setMaxWidth(250);
+
+        VBox contenedor = new VBox(passwordField);
+        contenedor.setSpacing(10);
+        contenedor.setAlignment(javafx.geometry.Pos.CENTER); // Centrado en la ventana
+        contenedor.setStyle("-fx-padding: 15;"); // Márgenes internos
+
+        dialog.getDialogPane().setContent(contenedor);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == botonConfirmar) {
+                return passwordField.getText();
+            }
+            return null;
+        });
+
+        var resultado = dialog.showAndWait();
+        return resultado.isPresent() && resultado.get().equals(user.getContrasenaUsuario());
+    }
+
+
+    private void intentarEditarUsuario(usuario u) {
+        if (solicitarContrasena(u)) {
+            abrirNuevoUsuarioConDatos(u);
+        } else {
+            new Alert(Alert.AlertType.ERROR,
+                    "Contraseña incorrecta. No tiene autorización para editar este usuario.")
+                    .showAndWait();
+        }
+    }
+
+    @FXML
+    public void abrirNuevoUsuario() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoUsuario.fxml"));
+            Parent vista = loader.load();
+            Formularios.controller.controllerNuevoUsuario controller = loader.getController();
+            controller.setMainController(this);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(vista));
+            stage.setTitle("Nuevo Usuario");
+
+            // Ajustes de ventana
+            stage.setResizable(false);
+            stage.setWidth(450);
+            stage.setHeight(580);
+            stage.centerOnScreen();
+
+            // Modal bloquea la principal
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(root.getScene().getWindow());
+
+            stage.showAndWait();
+            cargarUsuariosEnTabla(); // También al cerrar normalmente
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, "Error al abrir el formulario").showAndWait();
+        }
+    }
+
+    public void abrirNuevoUsuarioConDatos(usuario usuarioSeleccionado) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoUsuario.fxml"));
+            Parent vista = loader.load();
+            Formularios.controller.controllerNuevoUsuario controller = loader.getController();
+            controller.setMainController(this);
+            controller.cargarUsuario(usuarioSeleccionado);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(vista));
+            stage.setTitle("Editar Usuario");
+
+            // Ajustes de ventana
+            stage.setResizable(false);
+            stage.setWidth(450);
+            stage.setHeight(580);
+            stage.centerOnScreen();
+
+            // Modal bloquea la principal
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(root.getScene().getWindow());
+
+
+            stage.showAndWait();
+            cargarUsuariosEnTabla(); // También al cerrar normalmente
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, "Error al abrir el formulario").showAndWait();
+        }
+    }
+
+
+    public void cargarUsuariosEnTabla() {
+        Platform.runLater(() -> {
+            if (contenidoTabla != null) {
+                model model = new model();
+                ArrayList<usuario> lista = model.obtenerUsuarios();
+                contenidoTabla.getItems().setAll(lista);
+            }
+        });
+    }
+}

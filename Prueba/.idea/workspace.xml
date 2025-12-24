@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="subida de todos los archivos a una rama" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="CSS File" />
+        <option value="FxmlFile" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <excluded-from-favorite>
+      <branch-storage>
+        <map>
+          <entry type="LOCAL">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$/.." source="master" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </excluded-from-favorite>
+    <favorite-branches>
+      <branch-storage>
+        <map>
+          <entry type="LOCAL">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$/.." source="codex/update-purchase-form-with-combo-boxes" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </favorite-branches>
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="detached" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;history&quot;: [
+    {
+      &quot;state&quot;: &quot;MERGED&quot;,
+      &quot;assignee&quot;: &quot;Crit9812&quot;
+    }
+  ],
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Crit9812&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Crit9812/Prueba-GREEP-.git&quot;,
+    &quot;accountId&quot;: &quot;de0777f7-16ae-4c36-8d84-1a5d62226427&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/Formularios/view/nuevaSucursal.fxml" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="31w7g6bRaTJcX1PnBX5NiAIi49X" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Main.executor": "Run",
+    "Application.Prueba.executor": "Run",
+    "Application.main.Main.executor": "Run",
+    "Application.main.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
+    "database.data.extractors.current.id": "Comma-separated (CSV)_id",
+    "git-widget-placeholder": "Pruebas",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/criti/OneDrive/Escritorio/Prueba/Prueba",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "C:/Users/criti/OneDrive/Escritorio/Prueba/Prueba/src/Main.java",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.keymap",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "PLAIN_TEXT"
+    ]
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\greep\Desktop\Crisito\Prueba3\Prueba\src\Consultas\sucursales" />
+      <recent name="C:\Users\greep\Desktop\Crisito\Prueba3\Prueba\src\Consultas\salidas" />
+      <recent name="C:\Users\greep\Desktop\Crisito\Prueba3\Prueba\src\Consultas\proveedores" />
+      <recent name="C:\Users\greep\Desktop\Crisito\Prueba3\Prueba\src\Consultas\entradas" />
+      <recent name="C:\Users\greep\Desktop\Crisito\Prueba3\Prueba\src\Consultas\clientes" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="main" type="Application" factoryName="Application">
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../../../../../Program Files/Java/jdk-17" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="MAIN_CLASS_NAME" value="main.Main" />
+      <option name="VM_PARAMETERS" value="--module-path &quot;C:\Users\criti\OneDrive\Escritorio\Prueba\Prueba\src\librerias\openjfx-17.0.17_windows-x64_bin-sdk\javafx-sdk-17.0.17\lib&quot; --add-modules javafx.controls,javafx.fxml " />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.main" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.28238.7" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="" />
+      <created>1756423393379</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1756423393379</updated>
+      <workItem from="1756423412230" duration="2982000" />
+      <workItem from="1756491240212" duration="3143000" />
+      <workItem from="1756749142206" duration="18212000" />
+      <workItem from="1756835934031" duration="12642000" />
+      <workItem from="1756855745345" duration="3505000" />
+      <workItem from="1756922353195" duration="18001000" />
+      <workItem from="1762385226618" duration="1297000" />
+      <workItem from="1762452231766" duration="3934000" />
+      <workItem from="1762457872503" duration="345000" />
+      <workItem from="1762458265895" duration="942000" />
+      <workItem from="1762465514240" duration="2987000" />
+      <workItem from="1762472584196" duration="2142000" />
+      <workItem from="1762538435162" duration="8765000" />
+      <workItem from="1762556943076" duration="906000" />
+      <workItem from="1762877637364" duration="45000" />
+      <workItem from="1762892026048" duration="2215000" />
+      <workItem from="1762972476616" duration="629000" />
+      <workItem from="1762985611780" duration="8050000" />
+      <workItem from="1763040449650" duration="10000" />
+      <workItem from="1763040705981" duration="33000" />
+      <workItem from="1763056986426" duration="2317000" />
+      <workItem from="1763070352059" duration="7230000" />
+      <workItem from="1763092132307" duration="298000" />
+      <workItem from="1763144250478" duration="15066000" />
+      <workItem from="1763476934488" duration="94000" />
+      <workItem from="1764183146543" duration="4192000" />
+      <workItem from="1764192851928" duration="10052000" />
+      <workItem from="1764266302833" duration="11421000" />
+      <workItem from="1764353117471" duration="8096000" />
+      <workItem from="1764623009110" duration="2593000" />
+      <workItem from="1764626010818" duration="6161000" />
+      <workItem from="1764706734347" duration="5633000" />
+      <workItem from="1764721244275" duration="510000" />
+      <workItem from="1764785745800" duration="2279000" />
+      <workItem from="1764788795062" duration="26586000" />
+      <workItem from="1764958792387" duration="11261000" />
+      <workItem from="1765202120769" duration="36000" />
+      <workItem from="1765202169057" duration="7000" />
+    </task>
+    <task id="LOCAL-00001" summary="Software subido">
+      <option name="closed" value="true" />
+      <created>1762553892667</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1762553892667</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Sucursal,Cliente y proveedores listos (CRUD)">
+      <option name="closed" value="true" />
+      <created>1764358109666</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1764358109666</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Sucursal,Cliente y proveedores listos (CRUD)">
+      <option name="closed" value="true" />
+      <created>1764358252331</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764358252331</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Sucursal,Cliente y proveedores listos (CRUD)">
+      <option name="closed" value="true" />
+      <created>1764633119998</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764633119998</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Sucursal,Cliente y proveedores listos (CRUD)">
+      <option name="closed" value="true" />
+      <created>1765411304279</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1765411304279</updated>
+    </task>
+    <task id="LOCAL-00006" summary="casi consultas">
+      <option name="closed" value="true" />
+      <created>1765982483870</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1765982483870</updated>
+    </task>
+    <task id="LOCAL-00007" summary="pedidos">
+      <option name="closed" value="true" />
+      <created>1766515364977</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1766515364977</updated>
+    </task>
+    <task id="LOCAL-00008" summary="pedidos">
+      <option name="closed" value="true" />
+      <created>1766515384047</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1766515384047</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Merge remote-tracking branch 'origin/detached' into detached">
+      <option name="closed" value="true" />
+      <created>1766517583553</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1766517583553</updated>
+    </task>
+    <task id="LOCAL-00010" summary="subida de todos los archivos a una rama">
+      <option name="closed" value="true" />
+      <created>1766538282154</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1766538282154</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="detached" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/prueba" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="date">
+                    <value>
+                      <list>
+                        <option value="1764634912370" />
+                        <option value="" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Software subido" />
+    <MESSAGE value="Sucursal,Cliente y proveedores listos (CRUD)" />
+    <MESSAGE value="casi consultas" />
+    <MESSAGE value="pedidos" />
+    <MESSAGE value="subido en rama pruebas" />
+    <MESSAGE value="Merge remote-tracking branch 'origin/detached' into detached" />
+    <MESSAGE value="subida de todos los archivos a una rama" />
+    <option name="LAST_COMMIT_MESSAGE" value="subida de todos los archivos a una rama" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>
