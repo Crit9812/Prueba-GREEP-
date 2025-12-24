@@ -135,7 +135,7 @@
                             </HBox.margin>
                         </TextField>
                         <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
-                            <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar">
+                            <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar" onAction="#guardarCompras">
                                 <HBox.margin>
                                     <Insets right="40"/>
                                 </HBox.margin>

@@ -42,6 +42,7 @@ public class productoCboxController {
 
     // Mapa para almacenar las descripciones de las claves alternas
     private final Map<String, String> mapaDescripcionesClaves = new HashMap<>();
+    private String idProveedorFiltro;
 
     public productoCboxController() {
         this.modelProductoCbox = new modelProductoCbox();
@@ -52,6 +53,17 @@ public class productoCboxController {
      * Inicializa el controlador con los ComboBox
      */
     public void inicializar(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna) {
+        this.idProveedorFiltro = null;
+        inicializarBase(cbId, cbNombre, cbClaveAlterna);
+    }
+
+    public void inicializarConProveedor(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna,
+                                        String idProveedor) {
+        this.idProveedorFiltro = idProveedor;
+        inicializarBase(cbId, cbNombre, cbClaveAlterna);
+    }
+
+    private void inicializarBase(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna) {
         this.cbProductoId = cbId;
         this.cbProductoNombre = cbNombre;
         this.cbClaveAlterna = cbClaveAlterna;
@@ -168,6 +180,9 @@ public class productoCboxController {
         Task<List<Map<String, String>>> taskProductos = new Task<>() {
             @Override
             protected List<Map<String, String>> call() throws Exception {
+                if (idProveedorFiltro != null && !idProveedorFiltro.isBlank()) {
+                    return modelProductoCbox.obtenerProductosPorProveedor(idProveedorFiltro);
+                }
                 return modelProductoCbox.obtenerTodosProductos();
             }
 
@@ -188,6 +203,9 @@ public class productoCboxController {
         Task<List<Map<String, String>>> taskClaves = new Task<>() {
             @Override
             protected List<Map<String, String>> call() throws Exception {
+                if (idProveedorFiltro != null && !idProveedorFiltro.isBlank()) {
+                    return modelProductoCbox.obtenerClavesAlternasPorProveedor(idProveedorFiltro);
+                }
                 return modelProductoCbox.obtenerTodasClavesAlternas();
             }
 
@@ -343,18 +361,32 @@ public class productoCboxController {
         actualizandoDesdeClaveAlterna = true;
         try {
             try {
-                modelProductoCbox.buscarPorClaveAlterna(idAlterno).ifPresent(producto -> {
-                    cbProductoId.setValue(producto.get("id"));
-                    cbProductoNombre.setValue(producto.get("nombre"));
-                    ultimoIdSeleccionado = producto.get("id");
-                    ultimoNombreSeleccionado = producto.get("nombre");
-                    ultimaClaveAlternaSeleccionada = idAlterno;
+                if (idProveedorFiltro != null && !idProveedorFiltro.isBlank()) {
+                    modelProductoCbox.buscarPorClaveAlterna(idAlterno, idProveedorFiltro).ifPresent(producto -> {
+                        cbProductoId.setValue(producto.get("id"));
+                        cbProductoNombre.setValue(producto.get("nombre"));
+                        ultimoIdSeleccionado = producto.get("id");
+                        ultimoNombreSeleccionado = producto.get("nombre");
+                        ultimaClaveAlternaSeleccionada = idAlterno;
 
-                    // Solo recargar claves si el producto ha cambiado
-                    if (ultimoIdSeleccionado == null || !producto.get("id").equals(ultimoIdSeleccionado)) {
-                        mostrarClavesAlternasParaProducto(producto.get("id"));
-                    }
-                });
+                        if (ultimoIdSeleccionado == null || !producto.get("id").equals(ultimoIdSeleccionado)) {
+                            mostrarClavesAlternasParaProducto(producto.get("id"));
+                        }
+                    });
+                } else {
+                    modelProductoCbox.buscarPorClaveAlterna(idAlterno).ifPresent(producto -> {
+                        cbProductoId.setValue(producto.get("id"));
+                        cbProductoNombre.setValue(producto.get("nombre"));
+                        ultimoIdSeleccionado = producto.get("id");
+                        ultimoNombreSeleccionado = producto.get("nombre");
+                        ultimaClaveAlternaSeleccionada = idAlterno;
+
+                        // Solo recargar claves si el producto ha cambiado
+                        if (ultimoIdSeleccionado == null || !producto.get("id").equals(ultimoIdSeleccionado)) {
+                            mostrarClavesAlternasParaProducto(producto.get("id"));
+                        }
+                    });
+                }
             } catch (SQLException e) {
                 mostrarAlerta("Error", "No se pudo obtener información de la clave alterna: " + e.getMessage());
             }
@@ -374,6 +406,9 @@ public class productoCboxController {
         Task<List<Map<String, String>>> task = new Task<>() {
             @Override
             protected List<Map<String, String>> call() throws Exception {
+                if (idProveedorFiltro != null && !idProveedorFiltro.isBlank()) {
+                    return modelProductoCbox.obtenerClavesAlternasPorProducto(idProducto, idProveedorFiltro);
+                }
                 return modelProductoCbox.obtenerClavesAlternasPorProducto(idProducto);
             }
 
@@ -602,6 +637,11 @@ public class productoCboxController {
 
     public List<Map<String, String>> getTodosProductos() {
         return productos != null ? new ArrayList<>(productos) : new ArrayList<>();
+    }
+
+    public void recargarConProveedor(String idProveedor) {
+        this.idProveedorFiltro = idProveedor;
+        cargarDatosEnSegundoPlano();
     }
 
     /**

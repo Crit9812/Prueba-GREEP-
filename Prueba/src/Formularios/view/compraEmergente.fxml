@@ -34,12 +34,12 @@
                             <HBox spacing="10">
                                 <VBox spacing="5">
                                     <Label text="Clave producto:"/>
-                                    <TextField fx:id="txtClaveProducto" prefWidth="150" maxWidth="150"/>
+                                    <ComboBox fx:id="cbClaveProducto" prefWidth="150" maxWidth="150"/>
                                 </VBox>
 
                                 <VBox spacing="5">
                                     <Label text="Clave alterna:"/>
-                                    <TextField fx:id="txtClaveAlterna" prefWidth="150" maxWidth="150"/>
+                                    <ComboBox fx:id="cbClaveAlterna" prefWidth="150" maxWidth="150"/>
                                 </VBox>
                             </HBox>
                         </VBox>
@@ -49,7 +49,7 @@
                     <HBox spacing="20">
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
                             <Label text="Producto:"/>
-                            <TextField fx:id="txtProducto"/>
+                            <ComboBox fx:id="cbProductoNombre"/>
                         </VBox>
                     </HBox>
 
@@ -81,7 +81,7 @@
                     <HBox alignment="CENTER_RIGHT" spacing="20">
                         <VBox spacing="5">
                             <Label text="Presentación:"/>
-                            <TextField fx:id="txtPresentacion" prefWidth="110" maxWidth="110"/>
+                            <ComboBox fx:id="cbPresentacion" prefWidth="110" maxWidth="110"/>
                         </VBox>
                         <VBox spacing="5">
                             <Label text="Factor:"/>
