@@ -290,6 +290,9 @@ public class productoCboxController {
         // Inicializar el ComboBox de claves alternas vacío
         cbClaveAlterna.getItems().clear();
         cbClaveAlterna.setValue("");
+        if (clavesAlternas != null && !clavesAlternas.isEmpty()) {
+            cargarClavesAlternasIniciales();
+        }
     }
 
     /**
