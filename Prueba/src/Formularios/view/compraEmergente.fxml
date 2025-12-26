@@ -69,7 +69,7 @@
                         </VBox>
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
                             <Label text="Caducidad:"/>
-                            <TextField fx:id="txtCaducidad"/>
+                            <DatePicker fx:id="dpCaducidad" promptText="Selecciona fecha"/>
                         </VBox>
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
                             <Label text="Cantidad:"/>

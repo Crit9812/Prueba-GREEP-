@@ -67,6 +67,7 @@ public class MainController {
     private ObservableList<String> proveedoresCache;
     private final ObservableList<compra> itemsCompra = FXCollections.observableArrayList();
     private String proveedorSeleccionadoId;
+    private boolean actualizandoSeleccionTodo = false;
 
 
 
@@ -210,14 +211,38 @@ public class MainController {
                 colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
         };
         for (TableColumn<compra, ?> col : columnas) col.setStyle("-fx-alignment: CENTER;");
+
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<compra> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirFormularioCompra(row.getItem());
+                }
+            });
+            return row;
+        });
     }
 
     private void configurarSeleccionTodo() {
         if (miCheckBox == null) return;
         miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccionTodo) {
+                return;
+            }
             for (compra item : itemsCompra) {
                 item.setSeleccionado(newVal);
             }
+        });
+
+        itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (compra item : change.getAddedSubList()) {
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
+                    }
+                }
+            }
+            actualizarSeleccionTodo();
         });
     }
 
@@ -231,6 +256,10 @@ public class MainController {
 
     @FXML
     public void formularioNuevaCompra() {
+        abrirFormularioCompra(null);
+    }
+
+    private void abrirFormularioCompra(compra itemParaEditar) {
         String proveedorNombre = obtenerProveedorSeleccionado();
 
         if (proveedorNombre == null || proveedorNombre.isBlank()) {
@@ -251,6 +280,9 @@ public class MainController {
             controlador.setItemsCompra(itemsCompra);
             controlador.setMainController(this);
             controlador.setProveedorSeleccionado(idProveedor, proveedorNombre);
+            if (itemParaEditar != null) {
+                controlador.setItemParaEditar(itemParaEditar);
+            }
             loader.setController(controlador);
 
             Pane formulario = loader.load();
@@ -314,6 +346,24 @@ public class MainController {
         }
     }
 
+    @FXML
+    public void eliminarSeleccionados() {
+        if (itemsCompra.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+
+        boolean algunSeleccionado = itemsCompra.stream().anyMatch(compra::isSeleccionado);
+        if (!algunSeleccionado) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
+
+        itemsCompra.removeIf(compra::isSeleccionado);
+        actualizarSeleccionTodo();
+        refrescarTabla();
+    }
+
     public void refrescarTabla() {
         contenidoTabla.refresh();
     }
@@ -332,5 +382,15 @@ public class MainController {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+    private void actualizarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        actualizandoSeleccionTodo = true;
+        boolean seleccionado = !itemsCompra.isEmpty() && itemsCompra.stream().allMatch(compra::isSeleccionado);
+        miCheckBox.setSelected(seleccionado);
+        actualizandoSeleccionTodo = false;
     }
 }

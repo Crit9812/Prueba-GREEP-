@@ -2,7 +2,11 @@ package Operaciones.compra.model;
 
 import conexion.Conexion;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,15 +61,40 @@ public class model {
             Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
             Map<String, Object> valoresEntrada = new LinkedHashMap<>();
 
-            String colProveedor = resolverColumna(columnasEntradas, "idProveedor", "id_proveedor", "proveedor", "proveedor_id");
-            String colFactura = resolverColumna(columnasEntradas, "factura", "noFactura", "numeroFactura", "numero_factura");
-            String colComentario = resolverColumna(columnasEntradas, "comentario", "observaciones", "nota");
-            String colFecha = resolverColumna(columnasEntradas, "fecha", "fechaEntrada", "fecha_entrada", "created_at");
+            String colProveedor = resolverColumna(columnasEntradas, "idRemitente", "idProveedor", "id_proveedor", "proveedor", "proveedor_id");
+            String colFactura = resolverColumna(columnasEntradas, "noFactura", "factura", "numeroFactura", "numero_factura");
+            String colComentario = resolverColumna(columnasEntradas, "nota", "comentario", "observaciones");
+            String colFecha = resolverColumna(columnasEntradas, "fechaEntrada", "fecha", "fecha_entrada", "created_at");
+            String colHora = resolverColumna(columnasEntradas, "horaEntrada", "hora", "hora_entrada");
+            String colTipo = resolverColumna(columnasEntradas, "tipoEntrada", "tipo", "tipo_entrada");
+            String colPrecioNeto = resolverColumna(columnasEntradas, "precioNetoEntrada", "precioNeto", "precio_neto");
+            String colPrecioTotal = resolverColumna(columnasEntradas, "precioTotalEntrada", "precioTotal", "precio_total");
 
             if (colProveedor != null) valoresEntrada.put(colProveedor, idProveedor);
             if (colFactura != null) valoresEntrada.put(colFactura, factura);
             if (colComentario != null) valoresEntrada.put(colComentario, comentario);
-            if (colFecha != null) valoresEntrada.put(colFecha, new Timestamp(System.currentTimeMillis()));
+            if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
+            if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
+            if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
+
+            BigDecimal totalNeto = BigDecimal.ZERO;
+            BigDecimal totalGeneral = BigDecimal.ZERO;
+            for (compra item : items) {
+                BigDecimal cantidad = BigDecimal.valueOf(item.getCantidad());
+                BigDecimal precioUnitario = parseDecimal(item.getPrecioEntrada());
+                BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
+                BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
+
+                totalNeto = totalNeto.add(precioUnitario.multiply(cantidad));
+                if (precioTotal.compareTo(BigDecimal.ZERO) > 0) {
+                    totalGeneral = totalGeneral.add(precioTotal);
+                } else {
+                    totalGeneral = totalGeneral.add(precioBruto.multiply(cantidad));
+                }
+            }
+
+            if (colPrecioNeto != null) valoresEntrada.put(colPrecioNeto, totalNeto.setScale(2, RoundingMode.HALF_UP));
+            if (colPrecioTotal != null) valoresEntrada.put(colPrecioTotal, totalGeneral.setScale(2, RoundingMode.HALF_UP));
 
             long idEntrada = insertarRegistro(conn, "entradas", columnasEntradas, valoresEntrada);
 
@@ -75,31 +104,21 @@ public class model {
             for (compra item : items) {
                 Map<String, Object> valoresDetalle = new LinkedHashMap<>();
 
-                String colEntrada = resolverColumna(columnasDetalle, "idEntrada", "id_entrada", "entrada_id");
-                String colProducto = resolverColumna(columnasDetalle, "idProducto", "id_producto", "producto_id");
+                String colEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+                String colProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto", "producto_id");
                 String colCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
-                String colPrecioEntrada = resolverColumna(columnasDetalle, "precioEntrada", "precio_entrada", "costoEntrada");
-                String colPrecioIva = resolverColumna(columnasDetalle, "precioIva", "precio_iva");
-                String colPrecioBruto = resolverColumna(columnasDetalle, "precioBruto", "precio_bruto");
+                String colPrecioEntrada = resolverColumna(columnasDetalle, "precioUnitario", "precioEntrada", "precio_entrada", "costoEntrada");
+                String colPrecioIva = resolverColumna(columnasDetalle, "precioIVA", "precioIva", "precio_iva");
+                String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto", "precio_bruto");
                 String colPrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
-                String colClaveAlterna = resolverColumna(columnasDetalle, "idAlterno", "claveAlterna", "clave_alterna");
-                String colPresentacion = resolverColumna(columnasDetalle, "presentacion");
-                String colFactor = resolverColumna(columnasDetalle, "factor");
-                String colLote = resolverColumna(columnasDetalle, "lote");
-                String colCaducidad = resolverColumna(columnasDetalle, "caducidad");
 
                 if (colEntrada != null) valoresDetalle.put(colEntrada, idEntrada);
                 if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
                 if (colCantidad != null) valoresDetalle.put(colCantidad, item.getCantidad());
-                if (colPrecioEntrada != null) valoresDetalle.put(colPrecioEntrada, item.getPrecioEntrada());
-                if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, item.getPrecioIva());
-                if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, item.getPrecioBruto());
-                if (colPrecioTotal != null) valoresDetalle.put(colPrecioTotal, item.getPrecioTotal());
-                if (colClaveAlterna != null) valoresDetalle.put(colClaveAlterna, item.getClaveAlterna());
-                if (colPresentacion != null) valoresDetalle.put(colPresentacion, item.getPresentacion());
-                if (colFactor != null) valoresDetalle.put(colFactor, item.getFactor());
-                if (colLote != null) valoresDetalle.put(colLote, item.getLote());
-                if (colCaducidad != null) valoresDetalle.put(colCaducidad, item.getCaducidad());
+                if (colPrecioEntrada != null) valoresDetalle.put(colPrecioEntrada, parseDecimal(item.getPrecioEntrada()));
+                if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
+                if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
+                if (colPrecioTotal != null) valoresDetalle.put(colPrecioTotal, parseDecimal(item.getPrecioTotal()));
 
                 insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 
@@ -109,21 +128,17 @@ public class model {
                     String colArticuloLote = resolverColumna(columnasArticulo, "lote");
                     String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
                     String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
-                    String colArticuloCantidad = resolverColumna(columnasArticulo, "cantidad", "existencia");
                     String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
                     String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
-                    String colArticuloPrecio = resolverColumna(columnasArticulo, "precioEntrada", "precio_entrada", "costoEntrada");
-                    String colArticuloClaveAlterna = resolverColumna(columnasArticulo, "idAlterno", "claveAlterna", "clave_alterna");
+                    String colArticuloSegmentado = resolverColumna(columnasArticulo, "segmentado");
 
                     if (colArticuloProducto != null) valoresArticulo.put(colArticuloProducto, item.getClaveProducto());
                     if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
-                    if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, item.getCaducidad());
-                    if (colArticuloUbicacion != null) valoresArticulo.put(colArticuloUbicacion, ubicacion.getUbicacion());
-                    if (colArticuloCantidad != null) valoresArticulo.put(colArticuloCantidad, ubicacion.getCantidad());
+                    if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
+                    if (colArticuloUbicacion != null) valoresArticulo.put(colArticuloUbicacion, resolverUbicacionId(conn, ubicacion.getUbicacion()));
                     if (colArticuloPresentacion != null) valoresArticulo.put(colArticuloPresentacion, item.getPresentacion());
-                    if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, item.getFactor());
-                    if (colArticuloPrecio != null) valoresArticulo.put(colArticuloPrecio, item.getPrecioEntrada());
-                    if (colArticuloClaveAlterna != null) valoresArticulo.put(colArticuloClaveAlterna, item.getClaveAlterna());
+                    if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, parseInteger(item.getFactor()));
+                    if (colArticuloSegmentado != null) valoresArticulo.put(colArticuloSegmentado, esSegmentado(item.getPresentacion()));
 
                     insertarRegistro(conn, "articulo", columnasArticulo, valoresArticulo);
                 }
@@ -206,5 +221,67 @@ public class model {
         }
 
         return 0;
+    }
+
+    private BigDecimal parseDecimal(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(valor);
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private Integer parseInteger(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(valor);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Date parseDate(String fecha) {
+        if (fecha == null || fecha.isBlank()) {
+            return null;
+        }
+        try {
+            return Date.valueOf(fecha);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Integer resolverUbicacionId(Connection conn, String ubicacion) throws SQLException {
+        if (ubicacion == null || ubicacion.isBlank()) {
+            return null;
+        }
+        String texto = ubicacion.trim();
+        try {
+            return Integer.valueOf(texto);
+        } catch (NumberFormatException ignored) {
+        }
+
+        String sql = "SELECT id FROM ubicaciones WHERE nombre = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, texto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        }
+        return null;
+    }
+
+    private int esSegmentado(String presentacion) {
+        if (presentacion == null) {
+            return 0;
+        }
+        return "pz".equalsIgnoreCase(presentacion.trim()) ? 1 : 0;
     }
 }
