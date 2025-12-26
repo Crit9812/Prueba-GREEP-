@@ -139,11 +139,30 @@ public class MainController {
 
     private void configurarAutocompleteProveedores() {
 
-        proveedoresCache = FXCollections.observableArrayList(
-                model.obtenerNombresProveedores()
-        );
-
+        proveedoresCache = FXCollections.observableArrayList();
         buscador.setItems(proveedoresCache);
+
+        javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected java.util.List<String> call() {
+                return model.obtenerNombresProveedores();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.List<String> resultado = getValue();
+                proveedoresCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+            }
+
+            @Override
+            protected void failed() {
+                proveedoresCache.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
 

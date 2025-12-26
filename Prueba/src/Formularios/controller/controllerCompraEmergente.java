@@ -623,15 +623,16 @@ public class controllerCompraEmergente {
         int cantidad = parseEntero(txtCantidad.getText());
         BigDecimal precioEntrada = parseDecimal(txtPrecioEntrada.getText());
 
-        BigDecimal precioIva = BigDecimal.ZERO;
+        BigDecimal precioConIva = precioEntrada;
         if (checkBoxIVA != null && checkBoxIVA.isSelected()) {
-            precioIva = precioEntrada.multiply(IVA_TASA);
+            BigDecimal iva = precioEntrada.multiply(IVA_TASA);
+            precioConIva = precioEntrada.add(iva);
         }
 
-        BigDecimal precioBruto = precioEntrada.add(precioIva);
-        BigDecimal precioTotal = precioBruto.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioBruto = precioEntrada.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioTotal = precioConIva.multiply(BigDecimal.valueOf(cantidad));
 
-        txtPrecioIVA.setText(formatearDecimal(precioIva));
+        txtPrecioIVA.setText(formatearDecimal(precioConIva));
         txtPrecioBruto.setText(formatearDecimal(precioBruto));
         txtPrecioTotal.setText(formatearDecimal(precioTotal));
     }

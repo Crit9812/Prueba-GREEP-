@@ -123,7 +123,6 @@ public class model {
                 insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 
                 for (UbicacionCompra ubicacion : item.getUbicaciones()) {
-                    Map<String, Object> valoresArticulo = new LinkedHashMap<>();
                     String colArticuloProducto = resolverColumna(columnasArticulo, "idProducto", "id_producto", "producto_id");
                     String colArticuloLote = resolverColumna(columnasArticulo, "lote");
                     String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
@@ -131,16 +130,22 @@ public class model {
                     String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
                     String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
                     String colArticuloSegmentado = resolverColumna(columnasArticulo, "segmentado");
+                    Integer ubicacionId = resolverUbicacionId(conn, ubicacion.getUbicacion());
+                    int cantidadUbicacion = Math.max(0, ubicacion.getCantidad());
 
-                    if (colArticuloProducto != null) valoresArticulo.put(colArticuloProducto, item.getClaveProducto());
-                    if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
-                    if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
-                    if (colArticuloUbicacion != null) valoresArticulo.put(colArticuloUbicacion, resolverUbicacionId(conn, ubicacion.getUbicacion()));
-                    if (colArticuloPresentacion != null) valoresArticulo.put(colArticuloPresentacion, item.getPresentacion());
-                    if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, parseInteger(item.getFactor()));
-                    if (colArticuloSegmentado != null) valoresArticulo.put(colArticuloSegmentado, esSegmentado(item.getPresentacion()));
+                    for (int i = 0; i < cantidadUbicacion; i++) {
+                        Map<String, Object> valoresArticulo = new LinkedHashMap<>();
 
-                    insertarRegistro(conn, "articulo", columnasArticulo, valoresArticulo);
+                        if (colArticuloProducto != null) valoresArticulo.put(colArticuloProducto, item.getClaveProducto());
+                        if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
+                        if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
+                        if (colArticuloUbicacion != null) valoresArticulo.put(colArticuloUbicacion, ubicacionId);
+                        if (colArticuloPresentacion != null) valoresArticulo.put(colArticuloPresentacion, item.getPresentacion());
+                        if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, parseInteger(item.getFactor()));
+                        if (colArticuloSegmentado != null) valoresArticulo.put(colArticuloSegmentado, esSegmentado(item.getPresentacion()));
+
+                        insertarRegistro(conn, "articulo", columnasArticulo, valoresArticulo);
+                    }
                 }
             }
 
