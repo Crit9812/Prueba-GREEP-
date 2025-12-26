@@ -656,6 +656,22 @@ public class controllerCompraEmergente {
             }
         });
 
+        comboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
+            if (actualizando[0]) {
+                return;
+            }
+            if (newValue == null || newValue.isBlank()) {
+                return;
+            }
+            actualizando[0] = true;
+            try {
+                comboBox.setValue(newValue);
+                comboBox.getEditor().setText(newValue);
+            } finally {
+                actualizando[0] = false;
+            }
+        });
+
         comboBox.setOnAction(event -> {
             commitirSeleccionCombo(comboBox, actualizando);
         });
@@ -663,6 +679,14 @@ public class controllerCompraEmergente {
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 commitirSeleccionCombo(comboBox, actualizando);
+                if (!actualizando[0] && comboBox.getValue() != null) {
+                    actualizando[0] = true;
+                    try {
+                        comboBox.getEditor().setText(comboBox.getValue());
+                    } finally {
+                        actualizando[0] = false;
+                    }
+                }
                 Platform.runLater(() -> filtrados.setPredicate(item -> true));
             }
         });
