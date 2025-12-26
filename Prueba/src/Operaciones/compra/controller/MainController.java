@@ -175,7 +175,6 @@ public class MainController {
             actualizandoProveedor = true;
             try {
                 if (newText == null || newText.isBlank()) {
-                    proveedoresFiltrados.setAll(proveedoresCache);
                     proveedorSeleccionadoId = null;
                     buscador.setValue(null);
                     return;
@@ -188,16 +187,21 @@ public class MainController {
                     }
                 }
 
-                proveedoresFiltrados.setAll(filtrados);
-                if (!filtrados.isEmpty()) {
-                    buscador.show();
-                } else {
-                    buscador.hide();
-                }
+                java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
+                javafx.application.Platform.runLater(() -> {
+                    proveedoresFiltrados.setAll(nuevos);
+                    if (!nuevos.isEmpty()) {
+                        buscador.show();
+                    } else {
+                        buscador.hide();
+                    }
+                });
             } finally {
                 actualizandoProveedor = false;
             }
         });
+
+        buscador.setOnShowing(event -> proveedoresFiltrados.setAll(proveedoresCache));
 
         buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {
