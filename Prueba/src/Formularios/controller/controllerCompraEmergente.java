@@ -482,7 +482,7 @@ public class controllerCompraEmergente {
             contenedorUbicaciones.getChildren().remove(1);
         }
         contadorFilas = 1;
-        comboUbicacion.setValue(null);
+        limpiarComboUbicacion(comboUbicacion);
 
         cbClaveProducto.requestFocus();
     }
@@ -648,13 +648,29 @@ public class controllerCompraEmergente {
             switch (event.getCode()) {
                 case TAB:
                 case ENTER:
-                    if (!comboBox.getItems().isEmpty()) {
-                        comboBox.setValue(comboBox.getEditor().getText());
-                        comboBox.hide();
+                    String seleccion = comboBox.getSelectionModel().getSelectedItem();
+                    String texto = comboBox.getEditor().getText();
+                    if (seleccion != null && !seleccion.isBlank()) {
+                        comboBox.setValue(seleccion);
+                    } else if (texto != null && !texto.isBlank()) {
+                        comboBox.setValue(texto);
+                    } else {
+                        comboBox.setValue(null);
                     }
+                    comboBox.hide();
                     break;
             }
         });
+    }
+
+    private void limpiarComboUbicacion(ComboBox<String> comboBox) {
+        if (comboBox == null) {
+            return;
+        }
+        comboBox.setValue(null);
+        if (comboBox.getEditor() != null) {
+            comboBox.getEditor().clear();
+        }
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {
