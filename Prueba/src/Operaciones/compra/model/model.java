@@ -1,5 +1,6 @@
 package Operaciones.compra.model;
 
+import Compartido.sesion.SesionUsuario;
 import conexion.Conexion;
 
 import java.math.BigDecimal;
@@ -87,6 +88,7 @@ public class model {
             String colTipo = resolverColumna(columnasEntradas, "tipoEntrada", "tipo", "tipo_entrada");
             String colPrecioNeto = resolverColumna(columnasEntradas, "precioNetoEntrada", "precioNeto", "precio_neto");
             String colPrecioTotal = resolverColumna(columnasEntradas, "precioTotalEntrada", "precioTotal", "precio_total");
+            String colUsuarioEntrada = resolverColumna(columnasEntradas, "claveUsuarioEntrada", "idUsuarioEntrada", "id_usuario_entrada", "usuarioEntrada", "usuario_entrada");
 
             if (colProveedor != null) valoresEntrada.put(colProveedor, idProveedor);
             if (colFactura != null) valoresEntrada.put(colFactura, factura);
@@ -94,6 +96,10 @@ public class model {
             if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
             if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
+            Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
+            if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
+                valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
+            }
 
             BigDecimal totalNeto = BigDecimal.ZERO;
             BigDecimal totalGeneral = BigDecimal.ZERO;
