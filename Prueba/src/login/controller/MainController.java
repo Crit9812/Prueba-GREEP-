@@ -132,29 +132,43 @@ public class MainController {
     public void iniciarSesion() {
         Model modelo = new Model();
         String username = usernameField.getText();
-        String password = contrasenaVisible ? passwordVisibleField.getText() : passwordField.getText();
+        String password = contrasenaVisible
+                ? passwordVisibleField.getText()
+                : passwordField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
-            alertaController.mostrarAlerta("Error", "Por favor, ingresa usuario y contraseña. \n(Campos vacíos).");
-        }
-        else{
-            if(modelo.verificarUsuario(username, password )){
+            alertaController.mostrarAlerta(
+                    "Error",
+                    "Por favor, ingresa usuario y contraseña.\n(Campos vacíos)."
+            );
+        } else {
+            if (modelo.verificarUsuario(username, password)) {
 
+                // Guardar usuario en sesión
                 Compartido.sesion.SesionUsuario.setNombreUsuario(username);
-                Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
-                //VentanaFalsa.controller.MainController controlador = new VentanaFalsa.controller.MainController();
+
+                // Obtener y guardar ID
+                Integer idUsuario = modelo.obtenerIdUsuario(username);
+                Compartido.sesion.SesionUsuario.setIdUsuario(idUsuario);
+
+                //System.out.println("usuario: "+idUsuario);
+
+                Operaciones.controller.MainController controlador =
+                        new Operaciones.controller.MainController();
+
                 ControllerInterfaz.cambiarVista(
                         "/Operaciones/view/main_view.fxml",
                         "/Operaciones/style/estilos.css",
-                        controlador/*
-                        "/VentanaFalsa/view/main_view.fxml",
-                        "/VentanaFalsa/style/estilos.css",
-                        controlador*/
+                        controlador
                 );
-            }
-            else{
-                alertaController.mostrarAlerta("Error", "Usuario o contraseña incorrectos");
+
+            } else {
+                alertaController.mostrarAlerta(
+                        "Error",
+                        "Usuario o contraseña incorrectos"
+                );
             }
         }
     }
+
 }

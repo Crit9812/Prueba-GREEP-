@@ -58,4 +58,27 @@ public class Model {
         alerta.setContentText(mensaje);
         alerta.showAndWait();
     }
+
+    public Integer obtenerIdUsuario(String username) {
+
+        setConexion(conexion = c.conectar());
+
+        String sql = "SELECT idUsuario FROM usuarios WHERE userName = ?";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("idUsuario");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
 }
