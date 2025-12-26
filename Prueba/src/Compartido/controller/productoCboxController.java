@@ -635,6 +635,10 @@ public class productoCboxController {
 
             mapaDescripcionesClaves.clear();
 
+            if (cbClaveAlterna != null && clavesAlternas != null && !clavesAlternas.isEmpty()) {
+                cargarClavesAlternasIniciales();
+            }
+
             ultimoIdSeleccionado = null;
             ultimoNombreSeleccionado = null;
             ultimaClaveAlternaSeleccionada = null;
