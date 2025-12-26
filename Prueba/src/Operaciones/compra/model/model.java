@@ -140,7 +140,19 @@ public class model {
 
                 insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 
+                Map<String, Integer> cantidadesPorUbicacion = new LinkedHashMap<>();
                 for (UbicacionCompra ubicacion : item.getUbicaciones()) {
+                    if (ubicacion == null || ubicacion.getUbicacion() == null) {
+                        continue;
+                    }
+                    int cantidadUbicacion = Math.max(0, ubicacion.getCantidad());
+                    if (cantidadUbicacion == 0) {
+                        continue;
+                    }
+                    cantidadesPorUbicacion.merge(ubicacion.getUbicacion().trim(), cantidadUbicacion, Integer::sum);
+                }
+
+                for (Map.Entry<String, Integer> entry : cantidadesPorUbicacion.entrySet()) {
                     String colArticuloProducto = resolverColumna(columnasArticulo, "idProducto", "id_producto", "producto_id");
                     String colArticuloLote = resolverColumna(columnasArticulo, "lote");
                     String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
@@ -148,8 +160,9 @@ public class model {
                     String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
                     String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
                     String colArticuloSegmentado = resolverColumna(columnasArticulo, "segmentado");
-                    Integer ubicacionId = resolverUbicacionId(conn, ubicacion.getUbicacion());
-                    int cantidadUbicacion = Math.max(0, ubicacion.getCantidad());
+
+                    Integer ubicacionId = resolverUbicacionId(conn, entry.getKey());
+                    int cantidadUbicacion = entry.getValue();
 
                     for (int i = 0; i < cantidadUbicacion; i++) {
                         Map<String, Object> valoresArticulo = new LinkedHashMap<>();
