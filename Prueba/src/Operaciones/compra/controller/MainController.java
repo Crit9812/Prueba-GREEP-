@@ -174,9 +174,12 @@ public class MainController {
             }
             actualizandoProveedor = true;
             try {
+                String seleccionado = buscador.getValue();
+                if (seleccionado != null && seleccionado.equals(newText)) {
+                    return;
+                }
                 if (newText == null || newText.isBlank()) {
-                    proveedorSeleccionadoId = null;
-                    buscador.setValue(null);
+                    proveedoresFiltrados.setAll(proveedoresCache);
                     return;
                 }
 
@@ -190,10 +193,8 @@ public class MainController {
                 java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
                 javafx.application.Platform.runLater(() -> {
                     proveedoresFiltrados.setAll(nuevos);
-                    if (!nuevos.isEmpty()) {
+                    if (!nuevos.isEmpty() && buscador.isFocused()) {
                         buscador.show();
-                    } else {
-                        buscador.hide();
                     }
                 });
             } finally {
