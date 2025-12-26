@@ -32,6 +32,24 @@ public class model {
         return lista;
     }
 
+    public List<String> obtenerNombresUbicaciones() {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                lista.add(rs.getString("nombre"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return lista;
+    }
+
     public String obtenerIdProveedorPorNombre(String nombreProveedor) {
         String sql = "SELECT id FROM proveedores WHERE nombre = ? LIMIT 1";
 
@@ -280,13 +298,21 @@ public class model {
                 }
             }
         }
+        String insertar = "INSERT INTO ubicaciones (nombre) VALUES (?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertar, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, texto);
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
+                }
+            }
+        }
+
         return null;
     }
 
     private int esSegmentado(String presentacion) {
-        if (presentacion == null) {
-            return 0;
-        }
-        return "pz".equalsIgnoreCase(presentacion.trim()) ? 1 : 0;
+        return 0;
     }
 }

@@ -4,6 +4,7 @@ import Compartido.controller.productoCboxController;
 import Operaciones.compra.controller.MainController;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.compra.model.compra;
+import Operaciones.compra.model.model;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -50,10 +51,8 @@ public class controllerCompraEmergente {
     private int contadorFilas = 1;
     private static final int MAX_FILAS = 10;
 
-    // Lista base de ubicaciones (ejemplo)
-    private final ObservableList<String> ubicaciones = FXCollections.observableArrayList(
-            "Almacén Principal", "Estante A1", "Estante A2", "Refrigerador", "Mostrador", "Depósito", "Sucursal Norte"
-    );
+    private final ObservableList<String> ubicaciones = FXCollections.observableArrayList();
+    private final model modeloCompras = new model();
 
     private final ObservableList<String> presentaciones = FXCollections.observableArrayList(
             "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
@@ -85,6 +84,7 @@ public class controllerCompraEmergente {
         configurarValidaciones();
         configurarCalculoPrecios();
         configurarCamposLectura();
+        cargarUbicacionesDesdeBD();
         configurarManejoEnter();
 
         inicializado = true;
@@ -123,6 +123,30 @@ public class controllerCompraEmergente {
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
         cbPresentacion.setValue("pz");
+    }
+
+    private void cargarUbicacionesDesdeBD() {
+        javafx.concurrent.Task<List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<String> call() {
+                return modeloCompras.obtenerNombresUbicaciones();
+            }
+
+            @Override
+            protected void succeeded() {
+                List<String> resultados = getValue();
+                ubicaciones.setAll(resultados != null ? resultados : List.of());
+            }
+
+            @Override
+            protected void failed() {
+                ubicaciones.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void configurarEventos() {
