@@ -625,8 +625,12 @@ public class controllerCompraEmergente {
     private void configurarAutocompletado(ComboBox<String> comboBox) {
         FilteredList<String> filtrados = new FilteredList<>(ubicaciones, item -> true);
         comboBox.setItems(filtrados);
+        final boolean[] actualizando = {false};
 
         comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
+            if (actualizando[0]) {
+                return;
+            }
             if (!comboBox.isShowing()) {
                 comboBox.show();
             }
@@ -650,12 +654,17 @@ public class controllerCompraEmergente {
                 case ENTER:
                     String seleccion = comboBox.getSelectionModel().getSelectedItem();
                     String texto = comboBox.getEditor().getText();
-                    if (seleccion != null && !seleccion.isBlank()) {
-                        comboBox.setValue(seleccion);
-                    } else if (texto != null && !texto.isBlank()) {
-                        comboBox.setValue(texto);
-                    } else {
-                        comboBox.setValue(null);
+                    actualizando[0] = true;
+                    try {
+                        if (seleccion != null && !seleccion.isBlank()) {
+                            comboBox.setValue(seleccion);
+                        } else if (texto != null && !texto.isBlank()) {
+                            comboBox.setValue(texto);
+                        } else {
+                            comboBox.setValue(null);
+                        }
+                    } finally {
+                        actualizando[0] = false;
                     }
                     comboBox.hide();
                     break;
