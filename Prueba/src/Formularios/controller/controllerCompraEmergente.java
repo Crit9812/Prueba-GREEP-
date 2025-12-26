@@ -631,8 +631,8 @@ public class controllerCompraEmergente {
             if (actualizando[0]) {
                 return;
             }
-            if (!comboBox.isShowing()) {
-                comboBox.show();
+            if (!comboBox.isFocused()) {
+                return;
             }
             if (newValue == null || newValue.isBlank()) {
                 filtrados.setPredicate(item -> true);
@@ -640,6 +640,21 @@ public class controllerCompraEmergente {
             }
             String texto = newValue.toLowerCase();
             filtrados.setPredicate(item -> item != null && item.toLowerCase().contains(texto));
+        });
+
+        comboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
+            if (actualizando[0]) {
+                return;
+            }
+            actualizando[0] = true;
+            try {
+                if (newValue != null) {
+                    comboBox.getEditor().setText(newValue);
+                }
+                filtrados.setPredicate(item -> true);
+            } finally {
+                actualizando[0] = false;
+            }
         });
 
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
