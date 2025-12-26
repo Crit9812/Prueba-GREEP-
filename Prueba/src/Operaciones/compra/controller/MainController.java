@@ -65,9 +65,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> proveedoresCache;
+    private final ObservableList<String> proveedoresFiltrados = FXCollections.observableArrayList();
     private final ObservableList<compra> itemsCompra = FXCollections.observableArrayList();
     private String proveedorSeleccionadoId;
     private boolean actualizandoSeleccionTodo = false;
+    private boolean actualizandoProveedor = false;
 
 
 
@@ -140,7 +142,7 @@ public class MainController {
     private void configurarAutocompleteProveedores() {
 
         proveedoresCache = FXCollections.observableArrayList();
-        buscador.setItems(proveedoresCache);
+        buscador.setItems(proveedoresFiltrados);
 
         javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
             @Override
@@ -152,11 +154,13 @@ public class MainController {
             protected void succeeded() {
                 java.util.List<String> resultado = getValue();
                 proveedoresCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                proveedoresFiltrados.setAll(proveedoresCache);
             }
 
             @Override
             protected void failed() {
                 proveedoresCache.clear();
+                proveedoresFiltrados.clear();
             }
         };
 
@@ -165,27 +169,33 @@ public class MainController {
         hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-
-            if (newText == null || newText.isEmpty()) {
-                buscador.hide();
-                buscador.setItems(proveedoresCache);
+            if (actualizandoProveedor) {
                 return;
             }
-
-            ObservableList<String> filtrados = FXCollections.observableArrayList();
-
-            for (String nombre : proveedoresCache) {
-                if (nombre.toLowerCase().contains(newText.toLowerCase())) {
-                    filtrados.add(nombre);
+            actualizandoProveedor = true;
+            try {
+                if (newText == null || newText.isBlank()) {
+                    proveedoresFiltrados.setAll(proveedoresCache);
+                    proveedorSeleccionadoId = null;
+                    buscador.setValue(null);
+                    return;
                 }
-            }
 
-            buscador.setItems(filtrados);
+                ObservableList<String> filtrados = FXCollections.observableArrayList();
+                for (String nombre : proveedoresCache) {
+                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                        filtrados.add(nombre);
+                    }
+                }
 
-            if (!filtrados.isEmpty()) {
-                buscador.show();
-            } else {
-                buscador.hide();
+                proveedoresFiltrados.setAll(filtrados);
+                if (!filtrados.isEmpty()) {
+                    buscador.show();
+                } else {
+                    buscador.hide();
+                }
+            } finally {
+                actualizandoProveedor = false;
             }
         });
 
