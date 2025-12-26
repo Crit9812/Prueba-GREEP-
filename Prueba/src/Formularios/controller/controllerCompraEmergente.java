@@ -315,6 +315,13 @@ public class controllerCompraEmergente {
             mostrarAlerta("Advertencia", "Debe capturar al menos una ubicación con cantidad.");
             return;
         }
+        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
+                .mapToInt(UbicacionCompra::getCantidad)
+                .sum();
+        if (sumaUbicaciones != cantidad) {
+            mostrarAlerta("Advertencia", "La suma de cantidades por ubicación debe ser igual a la cantidad total.");
+            return;
+        }
 
         if (presentacion == null || presentacion.isBlank()) {
             presentacion = "pz";
