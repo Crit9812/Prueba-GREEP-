@@ -659,6 +659,20 @@ public class controllerCompraEmergente {
 
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
+                if (!actualizando[0]) {
+                    actualizando[0] = true;
+                    try {
+                        String seleccion = comboBox.getSelectionModel().getSelectedItem();
+                        String texto = comboBox.getEditor().getText();
+                        if (seleccion != null && !seleccion.isBlank()) {
+                            comboBox.setValue(seleccion);
+                        } else if (texto != null && !texto.isBlank()) {
+                            comboBox.setValue(texto);
+                        }
+                    } finally {
+                        actualizando[0] = false;
+                    }
+                }
                 filtrados.setPredicate(item -> true);
             }
         });
