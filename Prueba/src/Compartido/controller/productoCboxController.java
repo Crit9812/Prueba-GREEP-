@@ -212,6 +212,7 @@ public class productoCboxController {
             @Override
             protected void succeeded() {
                 clavesAlternas = getValue();
+                Platform.runLater(() -> cargarClavesAlternasIniciales());
             }
 
             @Override
@@ -224,6 +225,41 @@ public class productoCboxController {
         executorService.submit(taskClaves);
     }
 
+    private void cargarClavesAlternasIniciales() {
+        if (cbClaveAlterna == null) {
+            return;
+        }
+
+        cbClaveAlterna.getItems().clear();
+        mapaDescripcionesClaves.clear();
+        cbClaveAlterna.getItems().add("");
+
+        if (clavesAlternas == null || clavesAlternas.isEmpty()) {
+            cbClaveAlterna.setValue("");
+            ultimaClaveAlternaSeleccionada = null;
+            return;
+        }
+
+        java.util.Set<String> alternasUnicas = new java.util.LinkedHashSet<>();
+        for (Map<String, String> clave : clavesAlternas) {
+            String idAlterno = clave.get("idAlterno");
+            if (idAlterno == null || idAlterno.isBlank()) {
+                continue;
+            }
+            if (!alternasUnicas.add(idAlterno)) {
+                continue;
+            }
+            String nombreProveedor = clave.get("nombreProveedor");
+            String textoDescriptivo = nombreProveedor != null && !nombreProveedor.isEmpty()
+                    ? idAlterno + " - " + nombreProveedor
+                    : idAlterno;
+            mapaDescripcionesClaves.put(idAlterno, textoDescriptivo);
+            cbClaveAlterna.getItems().add(idAlterno);
+        }
+
+        new AutoCompleteComboBoxListener<>(cbClaveAlterna);
+    }
+
     /**
      * Carga productos en la UI
      */
@@ -231,15 +267,18 @@ public class productoCboxController {
         if (productos == null || cbProductoId == null || cbProductoNombre == null) return;
 
         List<String> ids = new ArrayList<>(productos.size());
-        List<String> nombres = new ArrayList<>(productos.size());
+        java.util.Set<String> nombresUnicos = new java.util.LinkedHashSet<>();
 
         productos.forEach(p -> {
             ids.add(p.get("id"));
-            nombres.add(p.get("nombre"));
+            String nombre = p.get("nombre");
+            if (nombre != null && !nombre.isBlank()) {
+                nombresUnicos.add(nombre);
+            }
         });
 
         cbProductoId.getItems().setAll(ids);
-        cbProductoNombre.getItems().setAll(nombres);
+        cbProductoNombre.getItems().setAll(nombresUnicos);
 
         // 🔥 AGREGAR AUTOCOMPLETADO después de cargar los datos
         new AutoCompleteComboBoxListener<>(cbProductoId);
@@ -251,6 +290,9 @@ public class productoCboxController {
         // Inicializar el ComboBox de claves alternas vacío
         cbClaveAlterna.getItems().clear();
         cbClaveAlterna.setValue("");
+        if (clavesAlternas != null && !clavesAlternas.isEmpty()) {
+            cargarClavesAlternasIniciales();
+        }
     }
 
     /**
@@ -592,6 +634,10 @@ public class productoCboxController {
             });
 
             mapaDescripcionesClaves.clear();
+
+            if (cbClaveAlterna != null && clavesAlternas != null && !clavesAlternas.isEmpty()) {
+                cargarClavesAlternasIniciales();
+            }
 
             ultimoIdSeleccionado = null;
             ultimoNombreSeleccionado = null;

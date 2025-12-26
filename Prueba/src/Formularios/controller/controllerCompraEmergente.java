@@ -4,6 +4,7 @@ import Compartido.controller.productoCboxController;
 import Operaciones.compra.controller.MainController;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.compra.model.compra;
+import Operaciones.compra.model.model;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +17,12 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyCode;
+import javafx.stage.Stage;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +36,7 @@ public class controllerCompraEmergente {
     @FXML private ComboBox<String> cbProductoNombre;
     @FXML private TextField txtDescripcion;
     @FXML private TextField txtLote;
-    @FXML private TextField txtCaducidad;
+    @FXML private DatePicker dpCaducidad;
     @FXML private TextField txtCantidad;
     @FXML private ComboBox<String> cbPresentacion;
     @FXML private TextField txtFactor;
@@ -41,14 +47,13 @@ public class controllerCompraEmergente {
     @FXML private TextField txtPrecioBruto;
     @FXML private TextField txtPrecioTotal;
     @FXML private Button btnGuardar;
+    @FXML private Button btnLimpiar;
 
     private int contadorFilas = 1;
     private static final int MAX_FILAS = 10;
 
-    // Lista base de ubicaciones (ejemplo)
-    private final ObservableList<String> ubicaciones = FXCollections.observableArrayList(
-            "Almacén Principal", "Estante A1", "Estante A2", "Refrigerador", "Mostrador", "Depósito", "Sucursal Norte"
-    );
+    private final ObservableList<String> ubicaciones = FXCollections.observableArrayList();
+    private final model modeloCompras = new model();
 
     private final ObservableList<String> presentaciones = FXCollections.observableArrayList(
             "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
@@ -60,6 +65,10 @@ public class controllerCompraEmergente {
     private String proveedorId;
     private String proveedorNombre;
     private boolean inicializado = false;
+    private compra itemParaEditar;
+
+    private static final BigDecimal IVA_TASA = new BigDecimal("0.16");
+    private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ISO_LOCAL_DATE;
 
     @FXML
     public void initialize() {
@@ -74,9 +83,17 @@ public class controllerCompraEmergente {
         configurarAutocompletado(comboUbicacion);
         configurarEventos();
         configurarValidaciones();
+        configurarCalculoPrecios();
+        configurarCamposLectura();
+        cargarUbicacionesDesdeBD();
+        configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
 
         inicializado = true;
+
+        if (itemParaEditar != null) {
+            cargarItemParaEditar();
+        }
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
     }
@@ -98,9 +115,40 @@ public class controllerCompraEmergente {
         }
     }
 
+    public void setItemParaEditar(compra item) {
+        this.itemParaEditar = item;
+        if (inicializado) {
+            cargarItemParaEditar();
+        }
+    }
+
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
         cbPresentacion.setValue("pz");
+    }
+
+    private void cargarUbicacionesDesdeBD() {
+        javafx.concurrent.Task<List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<String> call() {
+                return modeloCompras.obtenerNombresUbicaciones();
+            }
+
+            @Override
+            protected void succeeded() {
+                List<String> resultados = getValue();
+                ubicaciones.setAll(resultados != null ? resultados : List.of());
+            }
+
+            @Override
+            protected void failed() {
+                ubicaciones.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void configurarEventos() {
@@ -123,6 +171,48 @@ public class controllerCompraEmergente {
         });
 
         btnGuardar.setOnAction(e -> guardarItem());
+        if (btnLimpiar != null) {
+            btnLimpiar.setOnAction(e -> limpiarFormularioParaNuevo());
+        }
+    }
+
+    private void configurarLimpiezaPorCampoVacio() {
+        configurarLimpiezaCombo(cbClaveProducto);
+        configurarLimpiezaCombo(cbProductoNombre);
+        configurarLimpiezaCombo(cbClaveAlterna);
+    }
+
+    private void configurarLimpiezaCombo(ComboBox<String> comboBox) {
+        if (comboBox == null || comboBox.getEditor() == null) {
+            return;
+        }
+        comboBox.getEditor().focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                String texto = comboBox.getEditor().getText();
+                if (texto == null || texto.isBlank()) {
+                    limpiarSeleccionProducto();
+                }
+            }
+        });
+    }
+
+    private void limpiarSeleccionProducto() {
+        productoController.limpiarSeleccion();
+        txtDescripcion.clear();
+    }
+
+    private void configurarCalculoPrecios() {
+        txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
+        txtPrecioEntrada.textProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
+        if (checkBoxIVA != null) {
+            checkBoxIVA.selectedProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
+        }
+    }
+
+    private void configurarCamposLectura() {
+        txtPrecioIVA.setEditable(false);
+        txtPrecioBruto.setEditable(false);
+        txtPrecioTotal.setEditable(false);
     }
 
     private void configurarManejoEnter() {
@@ -216,7 +306,7 @@ public class controllerCompraEmergente {
         String claveAlterna = productoController.getClaveAlternaSeleccionada();
         String descripcion = txtDescripcion.getText();
         String lote = txtLote.getText();
-        String caducidad = txtCaducidad.getText();
+        String caducidad = obtenerCaducidadTexto();
         String cantidadTexto = txtCantidad.getText();
         String presentacion = cbPresentacion.getValue();
         String factor = txtFactor.getText();
@@ -255,39 +345,69 @@ public class controllerCompraEmergente {
             mostrarAlerta("Advertencia", "Debe capturar al menos una ubicación con cantidad.");
             return;
         }
+        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
+                .mapToInt(UbicacionCompra::getCantidad)
+                .sum();
+        if (sumaUbicaciones != cantidad) {
+            mostrarAlerta("Advertencia", "La suma de cantidades por ubicación debe ser igual a la cantidad total.");
+            return;
+        }
 
         if (presentacion == null || presentacion.isBlank()) {
             presentacion = "pz";
         }
 
-        compra item = new compra(
-                clave,
-                nombre,
-                descripcion,
-                lote,
-                caducidad,
-                cantidad,
-                claveAlterna,
-                presentacion,
-                factor,
-                ubicacionesSeleccionadas,
-                precioEntrada,
-                precioIVA,
-                precioBruto,
-                precioTotal,
-                checkBoxIVA != null && checkBoxIVA.isSelected(),
-                proveedorId,
-                proveedorNombre
-        );
+        if (itemParaEditar != null) {
+            itemParaEditar.setClaveProducto(clave);
+            itemParaEditar.setProducto(nombre);
+            itemParaEditar.setDescripcion(descripcion);
+            itemParaEditar.setLote(lote);
+            itemParaEditar.setCaducidad(caducidad);
+            itemParaEditar.setCantidad(cantidad);
+            itemParaEditar.setClaveAlterna(claveAlterna);
+            itemParaEditar.setPresentacion(presentacion);
+            itemParaEditar.setFactor(factor);
+            itemParaEditar.setUbicaciones(ubicacionesSeleccionadas);
+            itemParaEditar.setPrecioEntrada(precioEntrada);
+            itemParaEditar.setPrecioIva(precioIVA);
+            itemParaEditar.setPrecioBruto(precioBruto);
+            itemParaEditar.setPrecioTotal(precioTotal);
+            itemParaEditar.setAplicaIva(checkBoxIVA != null && checkBoxIVA.isSelected());
+        } else {
+            compra item = new compra(
+                    clave,
+                    nombre,
+                    descripcion,
+                    lote,
+                    caducidad,
+                    cantidad,
+                    claveAlterna,
+                    presentacion,
+                    factor,
+                    ubicacionesSeleccionadas,
+                    precioEntrada,
+                    precioIVA,
+                    precioBruto,
+                    precioTotal,
+                    checkBoxIVA != null && checkBoxIVA.isSelected(),
+                    proveedorId,
+                    proveedorNombre
+            );
 
-        itemsCompra.add(item);
+            itemsCompra.add(item);
+        }
 
         if (mainController != null) {
             mainController.refrescarTabla();
         }
 
-        mostrarAlertaSinEspera("Éxito", "Producto agregado a la compra");
-        limpiarFormularioParaNuevo();
+        if (itemParaEditar != null) {
+            mostrarAlertaSinEspera("Éxito", "Producto actualizado.");
+            cerrarFormulario();
+        } else {
+            mostrarAlertaSinEspera("Éxito", "Producto agregado a la compra");
+            limpiarFormularioParaNuevo();
+        }
     }
 
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
@@ -344,7 +464,7 @@ public class controllerCompraEmergente {
         productoController.limpiarSeleccion();
         txtDescripcion.clear();
         txtLote.clear();
-        txtCaducidad.clear();
+        dpCaducidad.setValue(null);
         txtCantidad.clear();
         cbPresentacion.setValue("pz");
         txtFactor.clear();
@@ -364,6 +484,87 @@ public class controllerCompraEmergente {
         comboUbicacion.setValue(null);
 
         cbClaveProducto.requestFocus();
+    }
+
+    private void cargarItemParaEditar() {
+        if (itemParaEditar == null) {
+            return;
+        }
+
+        cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
+        cbProductoNombre.setValue(itemParaEditar.getProducto());
+        cbClaveAlterna.setValue(itemParaEditar.getClaveAlterna());
+        txtDescripcion.setText(itemParaEditar.getDescripcion());
+        txtLote.setText(itemParaEditar.getLote());
+        configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
+        txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
+        cbPresentacion.setValue(itemParaEditar.getPresentacion());
+        txtFactor.setText(itemParaEditar.getFactor());
+        txtPrecioEntrada.setText(itemParaEditar.getPrecioEntrada());
+        if (checkBoxIVA != null) {
+            checkBoxIVA.setSelected(itemParaEditar.isAplicaIva());
+        }
+        cargarUbicaciones(itemParaEditar.getUbicaciones());
+        recalcularPrecios();
+    }
+
+    private void cargarUbicaciones(List<UbicacionCompra> ubicacionesExistentes) {
+        while (contenedorUbicaciones.getChildren().size() > 1) {
+            contenedorUbicaciones.getChildren().remove(1);
+        }
+        contadorFilas = 1;
+
+        if (ubicacionesExistentes == null || ubicacionesExistentes.isEmpty()) {
+            comboUbicacion.setValue(null);
+            txtCantidadUbicacion.clear();
+            return;
+        }
+
+        UbicacionCompra primera = ubicacionesExistentes.get(0);
+        comboUbicacion.setValue(primera.getUbicacion());
+        txtCantidadUbicacion.setText(String.valueOf(primera.getCantidad()));
+
+        for (int i = 1; i < ubicacionesExistentes.size(); i++) {
+            agregarUbicacion();
+            UbicacionCompra ubicacion = ubicacionesExistentes.get(i);
+            HBox fila = (HBox) contenedorUbicaciones.getChildren().get(i);
+            configurarFilaUbicacion(fila, ubicacion);
+        }
+    }
+
+    private void configurarFilaUbicacion(HBox fila, UbicacionCompra ubicacion) {
+        if (fila.getChildren().size() < 2) {
+            return;
+        }
+
+        VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
+        VBox vboxCantidad = (VBox) fila.getChildren().get(1);
+
+        ComboBox<String> combo = null;
+        TextField cantidadField = null;
+
+        for (javafx.scene.Node child : vboxUbicacion.getChildren()) {
+            if (child instanceof ComboBox) {
+                @SuppressWarnings("unchecked")
+                ComboBox<String> comboBox = (ComboBox<String>) child;
+                combo = comboBox;
+                break;
+            }
+        }
+
+        for (javafx.scene.Node child : vboxCantidad.getChildren()) {
+            if (child instanceof TextField) {
+                cantidadField = (TextField) child;
+                break;
+            }
+        }
+
+        if (combo != null) {
+            combo.setValue(ubicacion.getUbicacion());
+        }
+        if (cantidadField != null) {
+            cantidadField.setText(String.valueOf(ubicacion.getCantidad()));
+        }
     }
 
     @FXML
@@ -421,10 +622,15 @@ public class controllerCompraEmergente {
     }
 
     private void configurarAutocompletado(ComboBox<String> comboBox) {
-        comboBox.setItems(FXCollections.observableArrayList(ubicaciones));
+        comboBox.setItems(ubicaciones);
 
         comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
             if (!comboBox.isShowing()) comboBox.show();
+
+            if (newValue == null || newValue.isBlank()) {
+                comboBox.setItems(ubicaciones);
+                return;
+            }
 
             ObservableList<String> filtrados = FXCollections.observableArrayList();
             for (String item : ubicaciones) {
@@ -477,5 +683,73 @@ public class controllerCompraEmergente {
                 }
             }).start();
         });
+    }
+
+    private void recalcularPrecios() {
+        int cantidad = parseEntero(txtCantidad.getText());
+        BigDecimal precioEntrada = parseDecimal(txtPrecioEntrada.getText());
+
+        BigDecimal precioConIva = precioEntrada;
+        if (checkBoxIVA != null && checkBoxIVA.isSelected()) {
+            BigDecimal iva = precioEntrada.multiply(IVA_TASA);
+            precioConIva = precioEntrada.add(iva);
+        }
+
+        BigDecimal precioBruto = precioEntrada.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioTotal = precioConIva.multiply(BigDecimal.valueOf(cantidad));
+
+        txtPrecioIVA.setText(formatearDecimal(precioConIva));
+        txtPrecioBruto.setText(formatearDecimal(precioBruto));
+        txtPrecioTotal.setText(formatearDecimal(precioTotal));
+    }
+
+    private String obtenerCaducidadTexto() {
+        if (dpCaducidad == null || dpCaducidad.getValue() == null) {
+            return "";
+        }
+        return dpCaducidad.getValue().format(FECHA_FORMATO);
+    }
+
+    private void configurarCaducidadDesdeTexto(String caducidad) {
+        if (dpCaducidad == null || caducidad == null || caducidad.isBlank()) {
+            dpCaducidad.setValue(null);
+            return;
+        }
+        try {
+            dpCaducidad.setValue(LocalDate.parse(caducidad.trim(), FECHA_FORMATO));
+        } catch (Exception e) {
+            dpCaducidad.setValue(null);
+        }
+    }
+
+    private int parseEntero(String texto) {
+        try {
+            return Integer.parseInt(texto);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private BigDecimal parseDecimal(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(texto);
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private String formatearDecimal(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private void cerrarFormulario() {
+        if (btnGuardar == null || btnGuardar.getScene() == null) {
+            return;
+        }
+        Stage stage = (Stage) btnGuardar.getScene().getWindow();
+        stage.close();
     }
 }

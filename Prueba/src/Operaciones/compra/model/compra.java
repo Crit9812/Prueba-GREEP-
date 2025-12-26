@@ -73,12 +73,20 @@ public class compra {
         return claveProducto;
     }
 
+    public void setClaveProducto(String claveProducto) {
+        this.claveProducto.set(claveProducto);
+    }
+
     public String getProducto() {
         return producto.get();
     }
 
     public StringProperty productoProperty() {
         return producto;
+    }
+
+    public void setProducto(String producto) {
+        this.producto.set(producto);
     }
 
     public String getDescripcion() {
@@ -89,12 +97,20 @@ public class compra {
         return descripcion;
     }
 
+    public void setDescripcion(String descripcion) {
+        this.descripcion.set(descripcion);
+    }
+
     public String getLote() {
         return lote.get();
     }
 
     public StringProperty loteProperty() {
         return lote;
+    }
+
+    public void setLote(String lote) {
+        this.lote.set(lote);
     }
 
     public String getCaducidad() {
@@ -105,12 +121,20 @@ public class compra {
         return caducidad;
     }
 
+    public void setCaducidad(String caducidad) {
+        this.caducidad.set(caducidad);
+    }
+
     public int getCantidad() {
         return cantidad.get();
     }
 
     public IntegerProperty cantidadProperty() {
         return cantidad;
+    }
+
+    public void setCantidad(int cantidad) {
+        this.cantidad.set(cantidad);
     }
 
     public String getClaveAlterna() {
@@ -121,6 +145,10 @@ public class compra {
         return claveAlterna;
     }
 
+    public void setClaveAlterna(String claveAlterna) {
+        this.claveAlterna.set(claveAlterna != null ? claveAlterna : "");
+    }
+
     public String getPresentacion() {
         return presentacion.get();
     }
@@ -129,12 +157,20 @@ public class compra {
         return presentacion;
     }
 
+    public void setPresentacion(String presentacion) {
+        this.presentacion.set(presentacion != null ? presentacion : "");
+    }
+
     public String getFactor() {
         return factor.get();
     }
 
     public StringProperty factorProperty() {
         return factor;
+    }
+
+    public void setFactor(String factor) {
+        this.factor.set(factor != null ? factor : "");
     }
 
     public String getUbicacionResumen() {
@@ -153,12 +189,20 @@ public class compra {
         return precioEntrada;
     }
 
+    public void setPrecioEntrada(String precioEntrada) {
+        this.precioEntrada.set(precioEntrada != null ? precioEntrada : "");
+    }
+
     public String getPrecioIva() {
         return precioIva.get();
     }
 
     public StringProperty precioIvaProperty() {
         return precioIva;
+    }
+
+    public void setPrecioIva(String precioIva) {
+        this.precioIva.set(precioIva != null ? precioIva : "");
     }
 
     public String getPrecioBruto() {
@@ -169,12 +213,20 @@ public class compra {
         return precioBruto;
     }
 
+    public void setPrecioBruto(String precioBruto) {
+        this.precioBruto.set(precioBruto != null ? precioBruto : "");
+    }
+
     public String getPrecioTotal() {
         return precioTotal.get();
     }
 
     public StringProperty precioTotalProperty() {
         return precioTotal;
+    }
+
+    public void setPrecioTotal(String precioTotal) {
+        this.precioTotal.set(precioTotal != null ? precioTotal : "");
     }
 
     public boolean isSeleccionado() {
@@ -197,8 +249,20 @@ public class compra {
         return aplicaIva;
     }
 
+    public void setAplicaIva(boolean aplicaIva) {
+        this.aplicaIva.set(aplicaIva);
+    }
+
     public List<UbicacionCompra> getUbicaciones() {
         return new ArrayList<>(ubicaciones);
+    }
+
+    public void setUbicaciones(List<UbicacionCompra> nuevasUbicaciones) {
+        ubicaciones.clear();
+        if (nuevasUbicaciones != null) {
+            ubicaciones.addAll(nuevasUbicaciones);
+        }
+        this.ubicacionResumen.set(armarResumenUbicaciones());
     }
 
     public String getProveedorId() {

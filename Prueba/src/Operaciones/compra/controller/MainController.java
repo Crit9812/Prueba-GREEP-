@@ -65,8 +65,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> proveedoresCache;
+    private final ObservableList<String> proveedoresFiltrados = FXCollections.observableArrayList();
     private final ObservableList<compra> itemsCompra = FXCollections.observableArrayList();
     private String proveedorSeleccionadoId;
+    private boolean actualizandoSeleccionTodo = false;
+    private boolean actualizandoProveedor = false;
 
 
 
@@ -138,36 +141,68 @@ public class MainController {
 
     private void configurarAutocompleteProveedores() {
 
-        proveedoresCache = FXCollections.observableArrayList(
-                model.obtenerNombresProveedores()
-        );
+        proveedoresCache = FXCollections.observableArrayList();
+        buscador.setItems(proveedoresFiltrados);
 
-        buscador.setItems(proveedoresCache);
+        javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected java.util.List<String> call() {
+                return model.obtenerNombresProveedores();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.List<String> resultado = getValue();
+                proveedoresCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                proveedoresFiltrados.setAll(proveedoresCache);
+            }
+
+            @Override
+            protected void failed() {
+                proveedoresCache.clear();
+                proveedoresFiltrados.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-
-            if (newText == null || newText.isEmpty()) {
-                buscador.hide();
-                buscador.setItems(proveedoresCache);
+            if (actualizandoProveedor) {
                 return;
             }
-
-            ObservableList<String> filtrados = FXCollections.observableArrayList();
-
-            for (String nombre : proveedoresCache) {
-                if (nombre.toLowerCase().contains(newText.toLowerCase())) {
-                    filtrados.add(nombre);
+            actualizandoProveedor = true;
+            try {
+                String seleccionado = buscador.getValue();
+                if (seleccionado != null && seleccionado.equals(newText)) {
+                    return;
                 }
-            }
+                if (newText == null || newText.isBlank()) {
+                    proveedoresFiltrados.setAll(proveedoresCache);
+                    return;
+                }
 
-            buscador.setItems(filtrados);
+                ObservableList<String> filtrados = FXCollections.observableArrayList();
+                for (String nombre : proveedoresCache) {
+                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                        filtrados.add(nombre);
+                    }
+                }
 
-            if (!filtrados.isEmpty()) {
-                buscador.show();
-            } else {
-                buscador.hide();
+                java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
+                javafx.application.Platform.runLater(() -> {
+                    proveedoresFiltrados.setAll(nuevos);
+                    if (!nuevos.isEmpty() && buscador.isFocused()) {
+                        buscador.show();
+                    }
+                });
+            } finally {
+                actualizandoProveedor = false;
             }
         });
+
+        buscador.setOnShowing(event -> proveedoresFiltrados.setAll(proveedoresCache));
 
         buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {
@@ -210,14 +245,38 @@ public class MainController {
                 colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
         };
         for (TableColumn<compra, ?> col : columnas) col.setStyle("-fx-alignment: CENTER;");
+
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<compra> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirFormularioCompra(row.getItem());
+                }
+            });
+            return row;
+        });
     }
 
     private void configurarSeleccionTodo() {
         if (miCheckBox == null) return;
         miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccionTodo) {
+                return;
+            }
             for (compra item : itemsCompra) {
                 item.setSeleccionado(newVal);
             }
+        });
+
+        itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (compra item : change.getAddedSubList()) {
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
+                    }
+                }
+            }
+            actualizarSeleccionTodo();
         });
     }
 
@@ -231,6 +290,10 @@ public class MainController {
 
     @FXML
     public void formularioNuevaCompra() {
+        abrirFormularioCompra(null);
+    }
+
+    private void abrirFormularioCompra(compra itemParaEditar) {
         String proveedorNombre = obtenerProveedorSeleccionado();
 
         if (proveedorNombre == null || proveedorNombre.isBlank()) {
@@ -251,6 +314,9 @@ public class MainController {
             controlador.setItemsCompra(itemsCompra);
             controlador.setMainController(this);
             controlador.setProveedorSeleccionado(idProveedor, proveedorNombre);
+            if (itemParaEditar != null) {
+                controlador.setItemParaEditar(itemParaEditar);
+            }
             loader.setController(controlador);
 
             Pane formulario = loader.load();
@@ -314,6 +380,24 @@ public class MainController {
         }
     }
 
+    @FXML
+    public void eliminarSeleccionados() {
+        if (itemsCompra.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+
+        boolean algunSeleccionado = itemsCompra.stream().anyMatch(compra::isSeleccionado);
+        if (!algunSeleccionado) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
+
+        itemsCompra.removeIf(compra::isSeleccionado);
+        actualizarSeleccionTodo();
+        refrescarTabla();
+    }
+
     public void refrescarTabla() {
         contenidoTabla.refresh();
     }
@@ -332,5 +416,15 @@ public class MainController {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+    private void actualizarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        actualizandoSeleccionTodo = true;
+        boolean seleccionado = !itemsCompra.isEmpty() && itemsCompra.stream().allMatch(compra::isSeleccionado);
+        miCheckBox.setSelected(seleccionado);
+        actualizandoSeleccionTodo = false;
     }
 }
