@@ -267,15 +267,18 @@ public class productoCboxController {
         if (productos == null || cbProductoId == null || cbProductoNombre == null) return;
 
         List<String> ids = new ArrayList<>(productos.size());
-        List<String> nombres = new ArrayList<>(productos.size());
+        java.util.Set<String> nombresUnicos = new java.util.LinkedHashSet<>();
 
         productos.forEach(p -> {
             ids.add(p.get("id"));
-            nombres.add(p.get("nombre"));
+            String nombre = p.get("nombre");
+            if (nombre != null && !nombre.isBlank()) {
+                nombresUnicos.add(nombre);
+            }
         });
 
         cbProductoId.getItems().setAll(ids);
-        cbProductoNombre.getItems().setAll(nombres);
+        cbProductoNombre.getItems().setAll(nombresUnicos);
 
         // 🔥 AGREGAR AUTOCOMPLETADO después de cargar los datos
         new AutoCompleteComboBoxListener<>(cbProductoId);

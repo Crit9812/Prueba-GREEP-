@@ -47,6 +47,7 @@ public class controllerCompraEmergente {
     @FXML private TextField txtPrecioBruto;
     @FXML private TextField txtPrecioTotal;
     @FXML private Button btnGuardar;
+    @FXML private Button btnLimpiar;
 
     private int contadorFilas = 1;
     private static final int MAX_FILAS = 10;
@@ -85,6 +86,7 @@ public class controllerCompraEmergente {
         configurarCalculoPrecios();
         configurarCamposLectura();
         cargarUbicacionesDesdeBD();
+        configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
 
         inicializado = true;
@@ -169,6 +171,34 @@ public class controllerCompraEmergente {
         });
 
         btnGuardar.setOnAction(e -> guardarItem());
+        if (btnLimpiar != null) {
+            btnLimpiar.setOnAction(e -> limpiarFormularioParaNuevo());
+        }
+    }
+
+    private void configurarLimpiezaPorCampoVacio() {
+        configurarLimpiezaCombo(cbClaveProducto);
+        configurarLimpiezaCombo(cbProductoNombre);
+        configurarLimpiezaCombo(cbClaveAlterna);
+    }
+
+    private void configurarLimpiezaCombo(ComboBox<String> comboBox) {
+        if (comboBox == null || comboBox.getEditor() == null) {
+            return;
+        }
+        comboBox.getEditor().focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                String texto = comboBox.getEditor().getText();
+                if (texto == null || texto.isBlank()) {
+                    limpiarSeleccionProducto();
+                }
+            }
+        });
+    }
+
+    private void limpiarSeleccionProducto() {
+        productoController.limpiarSeleccion();
+        txtDescripcion.clear();
     }
 
     private void configurarCalculoPrecios() {
