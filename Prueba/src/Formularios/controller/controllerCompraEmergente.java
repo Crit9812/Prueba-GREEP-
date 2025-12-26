@@ -479,12 +479,14 @@ public class controllerCompraEmergente {
         VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
         VBox vboxCantidad = (VBox) fila.getChildren().get(1);
 
-        ComboBox<?> combo = null;
+        ComboBox<String> combo = null;
         TextField cantidadField = null;
 
         for (javafx.scene.Node child : vboxUbicacion.getChildren()) {
             if (child instanceof ComboBox) {
-                combo = (ComboBox<?>) child;
+                @SuppressWarnings("unchecked")
+                ComboBox<String> comboBox = (ComboBox<String>) child;
+                combo = comboBox;
                 break;
             }
         }
