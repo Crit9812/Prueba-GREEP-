@@ -585,10 +585,15 @@ public class controllerCompraEmergente {
     }
 
     private void configurarAutocompletado(ComboBox<String> comboBox) {
-        comboBox.setItems(FXCollections.observableArrayList(ubicaciones));
+        comboBox.setItems(ubicaciones);
 
         comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
             if (!comboBox.isShowing()) comboBox.show();
+
+            if (newValue == null || newValue.isBlank()) {
+                comboBox.setItems(ubicaciones);
+                return;
+            }
 
             ObservableList<String> filtrados = FXCollections.observableArrayList();
             for (String item : ubicaciones) {
