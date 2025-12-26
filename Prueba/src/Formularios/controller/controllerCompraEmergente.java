@@ -657,36 +657,19 @@ public class controllerCompraEmergente {
         });
 
         comboBox.setOnAction(event -> {
-            if (actualizando[0]) {
-                return;
-            }
-            String seleccion = comboBox.getSelectionModel().getSelectedItem();
-            if (seleccion != null && !seleccion.isBlank()) {
-                actualizando[0] = true;
-                try {
-                    comboBox.setValue(seleccion);
-                } finally {
-                    actualizando[0] = false;
-                }
-            }
+            commitirSeleccionCombo(comboBox, actualizando);
         });
 
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
-                if (!actualizando[0]) {
-                    actualizando[0] = true;
-                    try {
-                        String seleccion = comboBox.getSelectionModel().getSelectedItem();
-                        String texto = comboBox.getEditor().getText();
-                        String valor = seleccion != null && !seleccion.isBlank() ? seleccion : texto;
-                        if (valor != null && !valor.isBlank()) {
-                            comboBox.setValue(valor);
-                        }
-                    } finally {
-                        actualizando[0] = false;
-                    }
-                }
+                commitirSeleccionCombo(comboBox, actualizando);
                 Platform.runLater(() -> filtrados.setPredicate(item -> true));
+            }
+        });
+
+        comboBox.showingProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                commitirSeleccionCombo(comboBox, actualizando);
             }
         });
 
@@ -721,6 +704,24 @@ public class controllerCompraEmergente {
         comboBox.setValue(null);
         if (comboBox.getEditor() != null) {
             comboBox.getEditor().clear();
+        }
+    }
+
+    private void commitirSeleccionCombo(ComboBox<String> comboBox, boolean[] actualizando) {
+        if (comboBox == null || actualizando[0]) {
+            return;
+        }
+        String texto = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
+        String seleccion = comboBox.getSelectionModel().getSelectedItem();
+        String valor = (seleccion != null && !seleccion.isBlank()) ? seleccion : texto;
+        if (valor == null || valor.isBlank()) {
+            return;
+        }
+        actualizando[0] = true;
+        try {
+            comboBox.setValue(valor);
+        } finally {
+            actualizando[0] = false;
         }
     }
 
