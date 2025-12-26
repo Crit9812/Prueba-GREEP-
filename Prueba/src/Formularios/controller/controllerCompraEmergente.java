@@ -8,6 +8,7 @@ import Operaciones.compra.model.model;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -622,23 +623,25 @@ public class controllerCompraEmergente {
     }
 
     private void configurarAutocompletado(ComboBox<String> comboBox) {
-        comboBox.setItems(ubicaciones);
+        FilteredList<String> filtrados = new FilteredList<>(ubicaciones, item -> true);
+        comboBox.setItems(filtrados);
 
         comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
-            if (!comboBox.isShowing()) comboBox.show();
-
+            if (!comboBox.isShowing()) {
+                comboBox.show();
+            }
             if (newValue == null || newValue.isBlank()) {
-                comboBox.setItems(ubicaciones);
+                filtrados.setPredicate(item -> true);
                 return;
             }
+            String texto = newValue.toLowerCase();
+            filtrados.setPredicate(item -> item != null && item.toLowerCase().contains(texto));
+        });
 
-            ObservableList<String> filtrados = FXCollections.observableArrayList();
-            for (String item : ubicaciones) {
-                if (item.toLowerCase().contains(newValue.toLowerCase())) {
-                    filtrados.add(item);
-                }
+        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                filtrados.setPredicate(item -> true);
             }
-            comboBox.setItems(filtrados);
         });
 
         comboBox.getEditor().setOnKeyPressed(event -> {
