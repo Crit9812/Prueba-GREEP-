@@ -626,6 +626,7 @@ public class controllerCompraEmergente {
         FilteredList<String> filtrados = new FilteredList<>(ubicaciones, item -> true);
         comboBox.setItems(filtrados);
         final boolean[] actualizando = {false};
+        final String[] ultimaSeleccion = {null};
 
         comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
             if (actualizando[0]) {
@@ -650,6 +651,7 @@ public class controllerCompraEmergente {
             try {
                 if (newValue != null) {
                     comboBox.getEditor().setText(newValue);
+                    ultimaSeleccion[0] = newValue;
                 }
                 filtrados.setPredicate(item -> true);
             } finally {
@@ -668,6 +670,8 @@ public class controllerCompraEmergente {
                             comboBox.setValue(seleccion);
                         } else if (texto != null && !texto.isBlank()) {
                             comboBox.setValue(texto);
+                        } else if (ultimaSeleccion[0] != null && !ultimaSeleccion[0].isBlank()) {
+                            comboBox.setValue(ultimaSeleccion[0]);
                         }
                     } finally {
                         actualizando[0] = false;
