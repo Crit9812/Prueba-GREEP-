@@ -48,6 +48,7 @@ public class MainController {
     @FXML private TextField comentario;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private TextField factura;
+    @FXML private TextField totalCompra;
     @FXML private CheckBox miCheckBox;
 
     @FXML private TableColumn<compra, Boolean> colSelect;
@@ -136,6 +137,7 @@ public class MainController {
         configurarTabla();
         configurarSeleccionTodo();
         configurarBloqueoProveedor();
+        configurarTotalCompra();
 
     }
 
@@ -288,6 +290,26 @@ public class MainController {
         });
     }
 
+    private void configurarTotalCompra() {
+        if (totalCompra != null) {
+            totalCompra.setEditable(false);
+            totalCompra.setText("0.00");
+        }
+
+        itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (compra item : change.getAddedSubList()) {
+                        item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalCompra());
+                    }
+                }
+            }
+            actualizarTotalCompra();
+        });
+
+        actualizarTotalCompra();
+    }
+
     @FXML
     public void formularioNuevaCompra() {
         abrirFormularioCompra(null);
@@ -373,6 +395,7 @@ public class MainController {
             itemsCompra.clear();
             if (factura != null) factura.clear();
             if (comentario != null) comentario.clear();
+            actualizarTotalCompra();
             proveedorSeleccionadoId = null;
             buscador.setDisable(false);
         } else {
@@ -396,6 +419,7 @@ public class MainController {
         itemsCompra.removeIf(compra::isSeleccionado);
         actualizarSeleccionTodo();
         refrescarTabla();
+        actualizarTotalCompra();
     }
 
     public void refrescarTabla() {
@@ -426,5 +450,32 @@ public class MainController {
         boolean seleccionado = !itemsCompra.isEmpty() && itemsCompra.stream().allMatch(compra::isSeleccionado);
         miCheckBox.setSelected(seleccionado);
         actualizandoSeleccionTodo = false;
+    }
+
+    private void actualizarTotalCompra() {
+        if (totalCompra == null) {
+            return;
+        }
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (compra item : itemsCompra) {
+            total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
+        }
+        totalCompra.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private java.math.BigDecimal parseTotal(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return java.math.BigDecimal.ZERO;
+        }
+        String limpio = valor.trim().replace(",", "");
+        limpio = limpio.replaceAll("[^0-9.\\-]", "");
+        if (limpio.isBlank() || "-".equals(limpio)) {
+            return java.math.BigDecimal.ZERO;
+        }
+        try {
+            return new java.math.BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
+        }
     }
 }
