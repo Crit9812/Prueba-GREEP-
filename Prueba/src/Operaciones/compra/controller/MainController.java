@@ -11,10 +11,21 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import java.io.IOException;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
 import Operaciones.compra.model.model;
+import Operaciones.compra.model.compra;
+import javafx.scene.control.Alert;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.beans.value.ObservableValue;
+import javafx.scene.control.CheckBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.Callback;
 
 
 public class MainController {
@@ -32,14 +43,34 @@ public class MainController {
     @FXML private Label lblProveedores;
     @FXML private Region expansor;
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
+    @FXML private TableView<compra> contenidoTabla;
     @FXML private HBox contenedorComentario;
     @FXML private TextField comentario;
     @FXML private HBox contenedorBtnConfirmar;
+    @FXML private TextField factura;
+    @FXML private TextField totalCompra;
+    @FXML private CheckBox miCheckBox;
+
+    @FXML private TableColumn<compra, Boolean> colSelect;
+    @FXML private TableColumn<compra, String> colClaveProduct;
+    @FXML private TableColumn<compra, String> colProducto;
+    @FXML private TableColumn<compra, String> colDescripcionProducto;
+    @FXML private TableColumn<compra, String> colLote;
+    @FXML private TableColumn<compra, String> colCaducidad;
+    @FXML private TableColumn<compra, String> colUbicacion;
+    @FXML private TableColumn<compra, String> colPrecioUnitario;
+    @FXML private TableColumn<compra, String> colPrecioIva;
+    @FXML private TableColumn<compra, String> colPrecioBruto;
+    @FXML private TableColumn<compra, String> colPrecioTotaal;
 
     @FXML private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> proveedoresCache;
+    private final ObservableList<String> proveedoresFiltrados = FXCollections.observableArrayList();
+    private final ObservableList<compra> itemsCompra = FXCollections.observableArrayList();
+    private String proveedorSeleccionadoId;
+    private boolean actualizandoSeleccionTodo = false;
+    private boolean actualizandoProveedor = false;
 
 
 
@@ -103,53 +134,348 @@ public class MainController {
             paneNavbarController.setTitulo("Compra", "#ffffff");
         });
         configurarAutocompleteProveedores();
+        configurarTabla();
+        configurarSeleccionTodo();
+        configurarBloqueoProveedor();
+        configurarTotalCompra();
 
     }
 
     private void configurarAutocompleteProveedores() {
 
-        proveedoresCache = FXCollections.observableArrayList(
-                model.obtenerNombresProveedores()
-        );
+        proveedoresCache = FXCollections.observableArrayList();
+        buscador.setItems(proveedoresFiltrados);
 
-        buscador.setItems(proveedoresCache);
+        javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected java.util.List<String> call() {
+                return model.obtenerNombresProveedores();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.List<String> resultado = getValue();
+                proveedoresCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                proveedoresFiltrados.setAll(proveedoresCache);
+            }
+
+            @Override
+            protected void failed() {
+                proveedoresCache.clear();
+                proveedoresFiltrados.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-
-            if (newText == null || newText.isEmpty()) {
-                buscador.hide();
-                buscador.setItems(proveedoresCache);
+            if (actualizandoProveedor) {
                 return;
             }
-
-            ObservableList<String> filtrados = FXCollections.observableArrayList();
-
-            for (String nombre : proveedoresCache) {
-                if (nombre.toLowerCase().contains(newText.toLowerCase())) {
-                    filtrados.add(nombre);
+            actualizandoProveedor = true;
+            try {
+                String seleccionado = buscador.getValue();
+                if (seleccionado != null && seleccionado.equals(newText)) {
+                    return;
                 }
+                if (newText == null || newText.isBlank()) {
+                    proveedoresFiltrados.setAll(proveedoresCache);
+                    return;
+                }
+
+                ObservableList<String> filtrados = FXCollections.observableArrayList();
+                for (String nombre : proveedoresCache) {
+                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                        filtrados.add(nombre);
+                    }
+                }
+
+                java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
+                javafx.application.Platform.runLater(() -> {
+                    proveedoresFiltrados.setAll(nuevos);
+                    if (!nuevos.isEmpty() && buscador.isFocused()) {
+                        buscador.show();
+                    }
+                });
+            } finally {
+                actualizandoProveedor = false;
             }
+        });
 
-            buscador.setItems(filtrados);
+        buscador.setOnShowing(event -> proveedoresFiltrados.setAll(proveedoresCache));
 
-            if (!filtrados.isEmpty()) {
-                buscador.show();
+        buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                proveedorSeleccionadoId = model.obtenerIdProveedorPorNombre(newVal);
             } else {
-                buscador.hide();
+                proveedorSeleccionadoId = null;
             }
         });
     }
 
+    private void configurarTabla() {
+        contenidoTabla.setItems(itemsCompra);
+
+        colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<compra, Boolean>, ObservableValue<Boolean>>() {
+            @Override
+            public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<compra, Boolean> param) {
+                compra item = param.getValue();
+                if (item != null) {
+                    return item.seleccionadoProperty();
+                } else {
+                    return new SimpleBooleanProperty(false);
+                }
+            }
+        });
+
+        colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
+        colClaveProduct.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
+        colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
+        colDescripcionProducto.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
+        colLote.setCellValueFactory(new PropertyValueFactory<>("lote"));
+        colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
+        colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacionResumen"));
+        colPrecioUnitario.setCellValueFactory(new PropertyValueFactory<>("precioEntrada"));
+        colPrecioIva.setCellValueFactory(new PropertyValueFactory<>("precioIva"));
+        colPrecioBruto.setCellValueFactory(new PropertyValueFactory<>("precioBruto"));
+        colPrecioTotaal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
+
+        TableColumn<compra, ?>[] columnas = new TableColumn[]{
+                colSelect, colClaveProduct, colProducto, colDescripcionProducto, colLote,
+                colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+        };
+        for (TableColumn<compra, ?> col : columnas) col.setStyle("-fx-alignment: CENTER;");
+
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<compra> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirFormularioCompra(row.getItem());
+                }
+            });
+            return row;
+        });
+    }
+
+    private void configurarSeleccionTodo() {
+        if (miCheckBox == null) return;
+        miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccionTodo) {
+                return;
+            }
+            for (compra item : itemsCompra) {
+                item.setSeleccionado(newVal);
+            }
+        });
+
+        itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (compra item : change.getAddedSubList()) {
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
+                    }
+                }
+            }
+            actualizarSeleccionTodo();
+        });
+    }
+
+    private void configurarBloqueoProveedor() {
+        buscador.setDisable(!itemsCompra.isEmpty());
+        itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
+            boolean bloquear = !itemsCompra.isEmpty();
+            buscador.setDisable(bloquear);
+        });
+    }
+
+    private void configurarTotalCompra() {
+        if (totalCompra != null) {
+            totalCompra.setEditable(false);
+            totalCompra.setText("0.00");
+        }
+
+        itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (compra item : change.getAddedSubList()) {
+                        item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalCompra());
+                    }
+                }
+            }
+            actualizarTotalCompra();
+        });
+
+        actualizarTotalCompra();
+    }
 
     @FXML
     public void formularioNuevaCompra() {
-        Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/compraEmergente.fxml",controlador,"Compra");
+        abrirFormularioCompra(null);
+    }
+
+    private void abrirFormularioCompra(compra itemParaEditar) {
+        String proveedorNombre = obtenerProveedorSeleccionado();
+
+        if (proveedorNombre == null || proveedorNombre.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe seleccionar un proveedor antes de agregar productos.");
+            return;
+        }
+
+        String idProveedor = proveedorSeleccionadoId != null ? proveedorSeleccionadoId : model.obtenerIdProveedorPorNombre(proveedorNombre);
+
+        if (idProveedor == null || idProveedor.isBlank()) {
+            mostrarAlerta("Error", "No se encontró el proveedor seleccionado.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
+            Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
+            controlador.setItemsCompra(itemsCompra);
+            controlador.setMainController(this);
+            controlador.setProveedorSeleccionado(idProveedor, proveedorNombre);
+            if (itemParaEditar != null) {
+                controlador.setItemParaEditar(itemParaEditar);
+            }
+            loader.setController(controlador);
+
+            Pane formulario = loader.load();
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Compra");
+            stage.setScene(new javafx.scene.Scene(formulario));
+            stage.initOwner(root.getScene().getWindow());
+            stage.setResizable(false);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de compra.");
+        }
     }
 
     @FXML
     public void abrirNuevoProveedor() {
         Formularios.controller.controllerNuevoProveedor controlador = new Formularios.controller.controllerNuevoProveedor();
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoProveedor.fxml",controlador,"Proveedor");
+    }
+
+    @FXML
+    public void guardarCompras() {
+        if (itemsCompra.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay compras para registrar.");
+            return;
+        }
+
+        String proveedorNombre = obtenerProveedorSeleccionado();
+        if (proveedorNombre == null || proveedorNombre.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe seleccionar un proveedor.");
+            return;
+        }
+
+        String idProveedor = proveedorSeleccionadoId != null ? proveedorSeleccionadoId : model.obtenerIdProveedorPorNombre(proveedorNombre);
+        if (idProveedor == null || idProveedor.isBlank()) {
+            mostrarAlerta("Error", "No se encontró el proveedor seleccionado.");
+            return;
+        }
+
+        String numeroFactura = factura != null ? factura.getText().trim() : "";
+        if (numeroFactura.isEmpty()) {
+            mostrarAlerta("Advertencia", "Debe capturar el número de factura antes de confirmar.");
+            return;
+        }
+
+        String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
+
+        boolean registrado = model.registrarCompra(idProveedor, numeroFactura, comentarioTexto, itemsCompra);
+        if (registrado) {
+            mostrarAlerta("Éxito", "Compra registrada correctamente.");
+            itemsCompra.clear();
+            if (factura != null) factura.clear();
+            if (comentario != null) comentario.clear();
+            actualizarTotalCompra();
+            proveedorSeleccionadoId = null;
+            buscador.setDisable(false);
+        } else {
+            mostrarAlerta("Error", "No se pudo registrar la compra.");
+        }
+    }
+
+    @FXML
+    public void eliminarSeleccionados() {
+        if (itemsCompra.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+
+        boolean algunSeleccionado = itemsCompra.stream().anyMatch(compra::isSeleccionado);
+        if (!algunSeleccionado) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
+
+        itemsCompra.removeIf(compra::isSeleccionado);
+        actualizarSeleccionTodo();
+        refrescarTabla();
+        actualizarTotalCompra();
+    }
+
+    public void refrescarTabla() {
+        contenidoTabla.refresh();
+    }
+
+    private String obtenerProveedorSeleccionado() {
+        String valor = buscador.getValue();
+        if (valor == null || valor.isBlank()) {
+            valor = buscador.getEditor().getText();
+        }
+        return valor != null ? valor.trim() : "";
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
+    private void actualizarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        actualizandoSeleccionTodo = true;
+        boolean seleccionado = !itemsCompra.isEmpty() && itemsCompra.stream().allMatch(compra::isSeleccionado);
+        miCheckBox.setSelected(seleccionado);
+        actualizandoSeleccionTodo = false;
+    }
+
+    private void actualizarTotalCompra() {
+        if (totalCompra == null) {
+            return;
+        }
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (compra item : itemsCompra) {
+            total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
+        }
+        totalCompra.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private java.math.BigDecimal parseTotal(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return java.math.BigDecimal.ZERO;
+        }
+        String limpio = valor.trim().replace(",", "");
+        limpio = limpio.replaceAll("[^0-9.\\-]", "");
+        if (limpio.isBlank() || "-".equals(limpio)) {
+            return java.math.BigDecimal.ZERO;
+        }
+        try {
+            return new java.math.BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
+        }
     }
 }

@@ -142,7 +142,6 @@ public class MainController {
     }
 
     private void cargarTabla() {
-        // Modelo llama al DAO que tiene el SQL
         contenidoTabla.setItems(modeloClaves.obtenerParaTabla());
     }
 

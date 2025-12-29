@@ -25,7 +25,7 @@
                                     <Insets left="25"/>
                                 </HBox.margin>
                             </CheckBox>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#eliminarSeleccionados">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -37,7 +37,7 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblEliminar" text="Eliminar" styleClass="labels">
+                            <Label fx:id="lblEliminar" text="Eliminar" styleClass="labels" onMouseClicked="#eliminarSeleccionados">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
@@ -135,11 +135,18 @@
                             </HBox.margin>
                         </TextField>
                         <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
-                            <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar">
-                                <HBox.margin>
-                                    <Insets right="40"/>
-                                </HBox.margin>
-                            </Button>
+                            <VBox alignment="CENTER_RIGHT" spacing="6">
+                                <TextField fx:id="totalCompra" editable="false" styleClass="factura" promptText="Total">
+                                    <VBox.margin>
+                                        <Insets right="40"/>
+                                    </VBox.margin>
+                                </TextField>
+                                <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar" onAction="#guardarCompras">
+                                    <VBox.margin>
+                                        <Insets right="40"/>
+                                    </VBox.margin>
+                                </Button>
+                            </VBox>
                         </HBox>
                     </HBox>
                 </VBox>

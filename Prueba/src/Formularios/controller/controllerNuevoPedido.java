@@ -95,9 +95,6 @@ public class controllerNuevoPedido {
         btnCancelar.setOnAction(e -> cerrarFormulario());
     }
 
-    /**
-     * Configurar manejo de tecla Enter
-     */
     private void configurarManejoEnter() {
         // Permitir usar Enter para guardar desde el campo de factor
         txtFactor.setOnKeyPressed(event -> {
@@ -107,7 +104,6 @@ public class controllerNuevoPedido {
             }
         });
 
-        // Permitir usar Enter para navegar entre campos
         cbClaveProducto.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 cbProductoNombre.requestFocus();
@@ -282,24 +278,10 @@ public class controllerNuevoPedido {
             txtFactor.clear();
         }
 
-        // 🔥 OPCIONAL: Cambiar texto del botón para indicar modo edición
         btnGuardar.setText("Actualizar");
 
-        // 🔥 OPCIONAL: Agregar botón para eliminar en modo edición
-        agregarBotonEliminarEnEdicion();
     }
 
-    /**
-     * 🔥 NUEVO: Agregar botón para eliminar cuando se está editando
-     */
-    private void agregarBotonEliminarEnEdicion() {
-        // Puedes implementar esto según tu interfaz
-        // Por ejemplo, agregar un botón rojo "Eliminar" al lado del botón Guardar
-    }
-
-    /**
-     * Limpiar formulario para agregar otro producto
-     */
     private void limpiarFormularioParaNuevo() {
         // Resetear modo edición
         modoEdicion = false;
@@ -337,9 +319,6 @@ public class controllerNuevoPedido {
         }).start();
     }
 
-    /**
-     * Mostrar alerta sin bloquear (no modal)
-     */
     private void mostrarAlertaSinEspera(String titulo, String mensaje) {
         Platform.runLater(() -> {
             Alert alert = new Alert(AlertType.INFORMATION);
@@ -417,7 +396,7 @@ public class controllerNuevoPedido {
         }
     }
 
-    // Método para cargar un producto específico (para edición)
+    // Metodo para cargar un producto específico (para edición)
     public void cargarProducto(String id, String nombre) {
         if (productoController != null) {
             productoController.setSeleccion(id, nombre);
@@ -432,10 +411,6 @@ public class controllerNuevoPedido {
             actualizarDescripcionDesdeProducto();
         }
     }
-
-    /**
-     * Método para limpiar completamente el formulario
-     */
     public void resetearFormulario() {
         limpiarFormularioCompleto();
     }
