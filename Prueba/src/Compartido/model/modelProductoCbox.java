@@ -37,6 +37,40 @@ public class modelProductoCbox {
     }
 
     /**
+     * Obtiene todos los productos relacionados con un proveedor específico
+     */
+    public List<Map<String, String>> obtenerProductosPorProveedor(String idProveedor) throws SQLException {
+        String sql = """
+            SELECT DISTINCT
+                p.id,
+                p.nombre,
+                p.descripcion,
+                p.unidadMedida,
+                m.nombre AS marca,
+                e.nombre AS etiqueta
+            FROM productos p
+            JOIN claves c ON c.idProducto = p.id
+            LEFT JOIN marcas m ON m.id = p.marca
+            LEFT JOIN etiquetas e ON e.id = p.etiqueta
+            WHERE c.idProveedor = ?
+            ORDER BY p.nombre
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProveedor);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return procesarResultSetProductos(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo productos por proveedor: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
      * Procesa el ResultSet de productos
      */
     private List<Map<String, String>> procesarResultSetProductos(ResultSet rs) throws SQLException {
@@ -122,6 +156,36 @@ public class modelProductoCbox {
     }
 
     /**
+     * Obtiene las claves alternas para un producto y proveedor específico
+     */
+    public List<Map<String, String>> obtenerClavesAlternasPorProducto(String idProducto, String idProveedor) throws SQLException {
+        String sql = """
+            SELECT 
+                ca.idAlterno,
+                ca.idProducto,
+                ca.idProveedor,
+                pv.nombre AS nombreProveedor,
+                pr.nombre AS nombreProducto
+            FROM claves ca
+            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
+            LEFT JOIN productos pr ON pr.id = ca.idProducto
+            WHERE ca.idProducto = ? AND ca.idProveedor = ?
+            ORDER BY pv.nombre
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProducto);
+            ps.setString(2, idProveedor);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return procesarResultSetClaves(rs);
+            }
+        }
+    }
+
+    /**
      * Busca un producto por su clave alterna
      */
     public Optional<Map<String, String>> buscarPorClaveAlterna(String idAlterno) throws SQLException {
@@ -148,6 +212,45 @@ public class modelProductoCbox {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, idAlterno);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(crearMapaProductoConClave(rs));
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Busca un producto por su clave alterna y proveedor
+     */
+    public Optional<Map<String, String>> buscarPorClaveAlterna(String idAlterno, String idProveedor) throws SQLException {
+        String sql = """
+            SELECT 
+                p.id,
+                p.nombre,
+                p.descripcion,
+                p.unidadMedida,
+                m.nombre AS marca,
+                e.nombre AS etiqueta,
+                ca.idAlterno,
+                ca.idProveedor,
+                pv.nombre AS nombreProveedor
+            FROM claves ca
+            JOIN productos p ON p.id = ca.idProducto
+            LEFT JOIN marcas m ON m.id = p.marca
+            LEFT JOIN etiquetas e ON e.id = p.etiqueta
+            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
+            WHERE ca.idAlterno = ? AND ca.idProveedor = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idAlterno);
+            ps.setString(2, idProveedor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -195,6 +298,35 @@ public class modelProductoCbox {
              ResultSet rs = ps.executeQuery()) {
 
             return procesarResultSetClaves(rs);
+        }
+    }
+
+    /**
+     * Obtiene todas las claves alternas de un proveedor
+     */
+    public List<Map<String, String>> obtenerClavesAlternasPorProveedor(String idProveedor) throws SQLException {
+        String sql = """
+            SELECT 
+                ca.idAlterno,
+                ca.idProducto,
+                ca.idProveedor,
+                pv.nombre AS nombreProveedor,
+                pr.nombre AS nombreProducto
+            FROM claves ca
+            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
+            LEFT JOIN productos pr ON pr.id = ca.idProducto
+            WHERE ca.idProveedor = ?
+            ORDER BY ca.idAlterno
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProveedor);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return procesarResultSetClaves(rs);
+            }
         }
     }
 
