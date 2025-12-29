@@ -3,8 +3,8 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.*?>
-
 <?import javafx.geometry.Insets?>
+
 <StackPane xmlns:fx="http://javafx.com/fxml"
            xmlns="http://javafx.com/javafx"
            fx:id="root">
@@ -17,14 +17,18 @@
         <center>
             <SplitPane dividerPositions="0.03">
                 <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
+
                 <VBox fx:id="contenedor" styleClass="contenedor">
+
+                    <!-- BARRA DE OPCIONES -->
                     <VBox styleClass="opciones">
                         <HBox fx:id="rootHBox" spacing="0" alignment="CENTER_LEFT">
-                            <CheckBox fx:id="miCheckBox" text="Seleccionar todo" styleClass="custom-check" >
+                            <CheckBox fx:id="miCheckBox" text="Seleccionar todo" styleClass="custom-check">
                                 <HBox.margin>
                                     <Insets left="25"/>
                                 </HBox.margin>
                             </CheckBox>
+
                             <Button styleClass="botones" onMouseClicked="#eliminarSeleccionados">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -37,14 +41,15 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblEliminar" text="Eliminar" styleClass="labels" onMouseClicked="#eliminarSeleccionados">
+
+                            <Label fx:id="lblEliminar" text="Eliminar" styleClass="labels"
+                                   onMouseClicked="#eliminarSeleccionados">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
 
                             <Region fx:id="expansor"/>
-
 
                             <Button styleClass="botones" onMouseClicked="#abrirNuevoProveedor">
                                 <graphic>
@@ -60,6 +65,7 @@
                             </Button>
 
                             <Label fx:id="lblProveedores" text="Proveedores:" styleClass="labels"/>
+
                             <ComboBox fx:id="buscador"
                                       editable="true"
                                       styleClass="barraBusqueda combo-sin-flecha">
@@ -68,7 +74,7 @@
                                 </HBox.margin>
                             </ComboBox>
 
-                            <Button styleClass="botones"  onMouseClicked="#formularioNuevaCompra">
+                            <Button styleClass="botones" onMouseClicked="#formularioNuevaCompra">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -80,78 +86,101 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
+
                             <Label fx:id="lblAgregar" text="Agregar" styleClass="labels">
                                 <HBox.margin>
-                                    <Insets  top="0" right="40" bottom="0" left="10"/>
+                                    <Insets right="40" left="10"/>
                                 </HBox.margin>
                             </Label>
                         </HBox>
-                        <HBox fx:id="segundaFila" spacing="0" alignment="CENTER_RIGHT">
+
+                        <HBox fx:id="segundaFila" alignment="CENTER_RIGHT">
                             <Label fx:id="lblFactura" text="No Factura:" styleClass="labels">
                                 <HBox.margin>
                                     <Insets right="10"/>
                                 </HBox.margin>
                             </Label>
-                            <TextField fx:id="factura" styleClass="factura" >
+                            <TextField fx:id="factura" styleClass="factura">
                                 <HBox.margin>
                                     <Insets right="40"/>
                                 </HBox.margin>
                             </TextField>
                         </HBox>
-
                     </VBox>
 
-                    <!-- TABLA -->
-                    <VBox fx:id="contenedorTabla"  styleClass="tabla" alignment="CENTER">
+                    <!-- TABLA + TOTAL (PEGADOS) -->
+                    <VBox fx:id="contenedorTabla" styleClass="tabla">
                         <padding>
-                            <Insets left="40" right="40"/>
+                            <Insets left="40" right="40" top="25" bottom="0"/>
                         </padding>
+
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
                             <columns>
-                                <TableColumn fx:id="colSelect" prefWidth="70" />
-                                <TableColumn fx:id="colClaveProduct" text="Clave del producto" prefWidth="70" />
-                                <TableColumn fx:id="colProducto" text="Producto" prefWidth="250" />
-                                <TableColumn fx:id="colDescripcionProducto" text="Descripcion" prefWidth="250" />
-                                <TableColumn fx:id="colLote" text="Lote" prefWidth="250" />
-                                <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="360" />
-                                <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="360" />
-                                <TableColumn fx:id="colPrecioUnitario" text="Precio unitario" prefWidth="360" />
-                                <TableColumn fx:id="colPrecioIva" text="Precio con IVA" prefWidth="360" />
-                                <TableColumn fx:id="colPrecioBruto" text="Precio bruto" prefWidth="360" />
-                                <TableColumn fx:id="colPrecioTotaal" text="Precio total" prefWidth="360" />
+                                <TableColumn fx:id="colSelect" prefWidth="70"/>
+                                <TableColumn fx:id="colClaveProduct" text="Clave del producto" prefWidth="70"/>
+                                <TableColumn fx:id="colProducto" text="Producto" prefWidth="250"/>
+                                <TableColumn fx:id="colDescripcionProducto" text="Descripcion" prefWidth="250"/>
+                                <TableColumn fx:id="colLote" text="Lote" prefWidth="250"/>
+                                <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="360"/>
+                                <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="360"/>
+                                <TableColumn fx:id="colPrecioUnitario" text="Precio unitario" prefWidth="360"/>
+                                <TableColumn fx:id="colPrecioIva" text="Precio con IVA" prefWidth="360"/>
+                                <TableColumn fx:id="colPrecioBruto" text="Precio bruto" prefWidth="360"/>
+                                <TableColumn fx:id="colPrecioTotaal" text="Precio total" prefWidth="360"/>
                             </columns>
                         </TableView>
+
+                        <!-- TOTAL PEGADO A LA TABLA -->
+                        <HBox alignment="CENTER_RIGHT">
+                            <Label fx:id="lblTotal" text="Total:" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <TextField fx:id="totalCompra"
+                                       editable="false"
+                                       styleClass="factura"
+                                       promptText="Total">
+                            </TextField>
+                        </HBox>
                     </VBox>
-                    <HBox fx:id="contenedorComentario" spacing="8" alignment="CENTER_LEFT">
-                        <!-- margen izquierdo / derecho lo aplicas al HBox si lo quieres -->
+
+                    <!-- COMENTARIO (SEPARADO DEL TOTAL) -->
+                    <HBox fx:id="contenedorComentario"
+                          spacing="8"
+                          alignment="CENTER_LEFT">
+
+
                         <Label fx:id="lblComentario" text="Comentario:" styleClass="labels">
                             <HBox.margin>
                                 <Insets left="40"/>
                             </HBox.margin>
                         </Label>
+
                         <TextField fx:id="comentario" HBox.hgrow="ALWAYS" prefHeight="35">
                             <HBox.margin>
-                                <Insets right="25" left="8"/>
+                                <Insets right="25" left="8" top="20"/>
                             </HBox.margin>
                         </TextField>
+
                         <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
-                            <VBox alignment="CENTER_RIGHT" spacing="6">
-                                <TextField fx:id="totalCompra" editable="false" styleClass="factura" promptText="Total">
+                            <VBox alignment="CENTER_RIGHT" spacing="8">
+                                <Button fx:id="botonConfirmar"
+                                        styleClass="botonConfirmar"
+                                        text="Confirmar"
+                                        onAction="#guardarCompras">
                                     <VBox.margin>
-                                        <Insets right="40"/>
-                                    </VBox.margin>
-                                </TextField>
-                                <Button fx:id="botonConfirmar" styleClass="botonConfirmar" text="Confirmar" onAction="#guardarCompras">
-                                    <VBox.margin>
-                                        <Insets right="40"/>
+                                        <Insets right="40" top="20"/>
                                     </VBox.margin>
                                 </Button>
                             </VBox>
                         </HBox>
                     </HBox>
+
                 </VBox>
             </SplitPane>
         </center>
     </BorderPane>
+
     <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
 </StackPane>
