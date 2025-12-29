@@ -144,7 +144,7 @@ public class model {
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
                 if (colPrecioTotalDetalle != null) valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
 
-                insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
+                long idDetalleEntrada = insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 
                 Map<String, Integer> cantidadesPorUbicacion = new LinkedHashMap<>();
                 for (UbicacionCompra ubicacion : item.getUbicaciones()) {
@@ -160,6 +160,14 @@ public class model {
 
                 for (Map.Entry<String, Integer> entry : cantidadesPorUbicacion.entrySet()) {
                     String colArticuloProducto = resolverColumna(columnasArticulo, "idProducto", "id_producto", "producto_id");
+                    String colArticuloDetalleEntrada = resolverColumna(
+                            columnasArticulo,
+                            "idDetalleEntrada",
+                            "id_detalle_entrada",
+                            "detalleEntrada",
+                            "detalle_entrada",
+                            "detalle_entrada_id"
+                    );
                     String colArticuloLote = resolverColumna(columnasArticulo, "lote");
                     String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
                     String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
@@ -174,6 +182,7 @@ public class model {
                         Map<String, Object> valoresArticulo = new LinkedHashMap<>();
 
                         if (colArticuloProducto != null) valoresArticulo.put(colArticuloProducto, item.getClaveProducto());
+                        if (colArticuloDetalleEntrada != null) valoresArticulo.put(colArticuloDetalleEntrada, idDetalleEntrada);
                         if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
                         if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
                         if (colArticuloUbicacion != null) valoresArticulo.put(colArticuloUbicacion, ubicacionId);
