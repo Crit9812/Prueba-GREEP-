@@ -8,7 +8,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class model {
@@ -91,6 +93,109 @@ public class model {
         }
 
         return lista;
+    }
+
+    public boolean actualizarEstadoEntradas(List<String> clavesEntrada, String nuevoEstado, boolean eliminarArticulos) {
+        if (clavesEntrada == null || clavesEntrada.isEmpty()) {
+            return false;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            conn.setAutoCommit(false);
+
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+            String colId = resolverColumna(columnasEntradas, "id", "claveEntrada", "idEntrada", "entrada_id");
+            String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
+
+            if (colId == null || colEstado == null) {
+                conn.rollback();
+                return false;
+            }
+
+            if (eliminarArticulos) {
+                boolean eliminado = eliminarArticulosPorEntradas(conn, clavesEntrada, colId);
+                if (!eliminado) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            boolean actualizado = actualizarEstado(conn, clavesEntrada, colId, colEstado, nuevoEstado);
+            if (!actualizado) {
+                conn.rollback();
+                return false;
+            }
+
+            conn.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean actualizarEstado(Connection conn, List<String> clavesEntrada, String colId, String colEstado, String nuevoEstado) throws SQLException {
+        List<String> claves = filtrarClaves(clavesEntrada);
+        if (claves.isEmpty()) {
+            return false;
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(claves.size(), "?"));
+        String sql = "UPDATE entradas SET `" + colEstado + "` = ? WHERE `" + colId + "` IN (" + placeholders + ")";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, nuevoEstado);
+            int index = 2;
+            for (String clave : claves) {
+                ps.setString(index++, clave);
+            }
+            ps.executeUpdate();
+        }
+
+        return true;
+    }
+
+    private boolean eliminarArticulosPorEntradas(Connection conn, List<String> clavesEntrada, String colEntrada) throws SQLException {
+        List<String> claves = filtrarClaves(clavesEntrada);
+        if (claves.isEmpty()) {
+            return false;
+        }
+
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+
+        String colDetalleId = resolverColumna(columnasDetalle, "id", "idDetalleEntrada", "id_detalle_entrada", "detalle_entrada_id", "detalleEntrada");
+        String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colArticuloDetalle = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+
+        if (colDetalleId == null || colDetalleEntrada == null || colArticuloDetalle == null) {
+            return false;
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(claves.size(), "?"));
+        String sql = "DELETE a FROM articulo a " +
+                "JOIN detalle_Entrada d ON a.`" + colArticuloDetalle + "` = d.`" + colDetalleId + "` " +
+                "WHERE d.`" + colDetalleEntrada + "` IN (" + placeholders + ")";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            for (String clave : claves) {
+                ps.setString(index++, clave);
+            }
+            ps.executeUpdate();
+        }
+
+        return true;
+    }
+
+    private List<String> filtrarClaves(List<String> clavesEntrada) {
+        List<String> claves = new ArrayList<>();
+        for (String clave : clavesEntrada) {
+            if (clave != null && !clave.isBlank()) {
+                claves.add(clave.trim());
+            }
+        }
+        return claves;
     }
 
     private String formato(Object valor) {

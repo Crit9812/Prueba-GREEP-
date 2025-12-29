@@ -17,6 +17,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.util.Callback;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainController {
 
@@ -48,6 +50,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        miComboBox.setItems(FXCollections.observableArrayList("Aceptar", "Rechazar"));
         miComboBox.setValue("Opciones");
 
         Platform.runLater(() -> {
@@ -139,5 +142,68 @@ public class MainController {
 
     private void cargarTabla() {
         entradasTraspaso.setAll(modeloTraspaso.obtenerPendientes());
+    }
+
+    @FXML
+    public void aplicarAccion() {
+        String opcion = miComboBox.getValue();
+        if (opcion == null || opcion.equalsIgnoreCase("Opciones")) {
+            mostrarAlerta(Alert.AlertType.WARNING, "Selecciona una opción", "Debes seleccionar Aceptar o Rechazar.");
+            return;
+        }
+
+        List<traspasoEntrada> seleccionados = obtenerSeleccionados();
+        if (seleccionados.isEmpty()) {
+            mostrarAlerta(Alert.AlertType.WARNING, "Selección requerida", "Se debe seleccionar alguna entrada.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("¿Deseas continuar?");
+        confirmacion.setContentText("Se aplicarán cambios a las entradas seleccionadas.");
+
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                procesarSeleccion(opcion, seleccionados);
+            }
+        });
+    }
+
+    private void procesarSeleccion(String opcion, List<traspasoEntrada> seleccionados) {
+        List<String> claves = new ArrayList<>();
+        for (traspasoEntrada entrada : seleccionados) {
+            claves.add(entrada.getClaveEntrada());
+        }
+
+        boolean eliminarArticulos = opcion.equalsIgnoreCase("Rechazar");
+        String nuevoEstado = eliminarArticulos ? "Finalizado" : "Completado";
+
+        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(claves, nuevoEstado, eliminarArticulos);
+        if (actualizado) {
+            cargarTabla();
+            miCheckBox.setSelected(false);
+            mostrarAlerta(Alert.AlertType.INFORMATION, "Actualización exitosa", "Se actualizaron las entradas seleccionadas.");
+        } else {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudieron actualizar las entradas.");
+        }
+    }
+
+    private List<traspasoEntrada> obtenerSeleccionados() {
+        List<traspasoEntrada> seleccionados = new ArrayList<>();
+        for (traspasoEntrada entrada : entradasTraspaso) {
+            if (entrada.isSeleccionado()) {
+                seleccionados.add(entrada);
+            }
+        }
+        return seleccionados;
+    }
+
+    private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
+        Alert alerta = new Alert(tipo);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 }
