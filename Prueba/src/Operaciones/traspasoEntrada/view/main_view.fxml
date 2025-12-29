@@ -30,7 +30,7 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </ComboBox>
-                            <Button styleClass="botones" text="Aplicar">
+                            <Button styleClass="botones" text="Aplicar" onAction="#aplicarAccion">
                                 <HBox.margin>
                                     <Insets left="30"/>
                                 </HBox.margin>
