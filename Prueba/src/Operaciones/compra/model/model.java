@@ -212,7 +212,11 @@ public class model {
         try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
             while (rs.next()) {
                 String nombre = rs.getString("COLUMN_NAME");
-                columnas.put(nombre.toLowerCase(), nombre);
+                if (nombre == null) {
+                    continue;
+                }
+                String nombreLimpio = nombre.trim();
+                columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
             }
         }
 
@@ -220,7 +224,11 @@ public class model {
             try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla.toLowerCase(), null)) {
                 while (rs.next()) {
                     String nombre = rs.getString("COLUMN_NAME");
-                    columnas.put(nombre.toLowerCase(), nombre);
+                    if (nombre == null) {
+                        continue;
+                    }
+                    String nombreLimpio = nombre.trim();
+                    columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
                 }
             }
         }
