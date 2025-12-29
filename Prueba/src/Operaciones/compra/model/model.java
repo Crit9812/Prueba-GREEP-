@@ -161,7 +161,6 @@ public class model {
                 }
 
                 for (Map.Entry<String, Integer> entry : cantidadesPorUbicacion.entrySet()) {
-                    String colArticuloProducto = resolverColumna(columnasArticulo, "idProducto", "id_producto", "producto_id");
                     String colArticuloDetalleEntrada = resolverColumna(
                             columnasArticulo,
                             "idDetalleEntrada",
@@ -183,7 +182,6 @@ public class model {
                     for (int i = 0; i < cantidadUbicacion; i++) {
                         Map<String, Object> valoresArticulo = new LinkedHashMap<>();
 
-                        if (colArticuloProducto != null) valoresArticulo.put(colArticuloProducto, item.getClaveProducto());
                         if (colArticuloDetalleEntrada != null) valoresArticulo.put(colArticuloDetalleEntrada, idDetalleEntrada);
                         if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
                         if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
