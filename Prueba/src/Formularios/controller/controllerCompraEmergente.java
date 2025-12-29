@@ -673,7 +673,7 @@ public class controllerCompraEmergente {
         });
 
         comboBox.setOnAction(event -> {
-            commitirSeleccionCombo(comboBox, actualizando);
+            Platform.runLater(() -> commitirSeleccionCombo(comboBox, actualizando));
         });
 
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
@@ -705,7 +705,7 @@ public class controllerCompraEmergente {
 
         comboBox.showingProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
-                commitirSeleccionCombo(comboBox, actualizando);
+                Platform.runLater(() -> commitirSeleccionCombo(comboBox, actualizando));
             }
         });
 
