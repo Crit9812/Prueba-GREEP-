@@ -679,12 +679,24 @@ public class controllerCompraEmergente {
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 commitirSeleccionCombo(comboBox, actualizando);
-                if (!actualizando[0] && comboBox.getValue() != null) {
-                    actualizando[0] = true;
-                    try {
-                        comboBox.getEditor().setText(comboBox.getValue());
-                    } finally {
-                        actualizando[0] = false;
+                if (!actualizando[0]) {
+                    String texto = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
+                    if ((comboBox.getValue() == null || comboBox.getValue().isBlank())
+                            && texto != null && !texto.isBlank()) {
+                        actualizando[0] = true;
+                        try {
+                            comboBox.setValue(texto);
+                            comboBox.getEditor().setText(texto);
+                        } finally {
+                            actualizando[0] = false;
+                        }
+                    } else if (comboBox.getValue() != null) {
+                        actualizando[0] = true;
+                        try {
+                            comboBox.getEditor().setText(comboBox.getValue());
+                        } finally {
+                            actualizando[0] = false;
+                        }
                     }
                 }
                 Platform.runLater(() -> filtrados.setPredicate(item -> true));
@@ -744,6 +756,9 @@ public class controllerCompraEmergente {
         actualizando[0] = true;
         try {
             comboBox.setValue(valor);
+            if (comboBox.getEditor() != null) {
+                comboBox.getEditor().setText(valor);
+            }
         } finally {
             actualizando[0] = false;
         }
