@@ -89,13 +89,15 @@ public class model {
             String colPrecioNeto = resolverColumna(columnasEntradas, "precioNetoEntrada", "precioNeto", "precio_neto");
             String colPrecioTotal = resolverColumna(columnasEntradas, "precioTotalEntrada", "precioTotal", "precio_total");
             String colUsuarioEntrada = resolverColumna(columnasEntradas, "claveUsuarioEntrada", "idUsuarioEntrada", "id_usuario_entrada", "usuarioEntrada", "usuario_entrada");
+            String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
 
             if (colProveedor != null) valoresEntrada.put(colProveedor, idProveedor);
             if (colFactura != null) valoresEntrada.put(colFactura, factura);
             if (colComentario != null) valoresEntrada.put(colComentario, comentario);
             if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
-            if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
+            if (colTipo != null) valoresEntrada.put(colTipo, "Traspaso");
+            if (colEstado != null) valoresEntrada.put(colEstado, "Pendiente");
             Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
             if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
                 valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
@@ -210,7 +212,11 @@ public class model {
         try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
             while (rs.next()) {
                 String nombre = rs.getString("COLUMN_NAME");
-                columnas.put(nombre.toLowerCase(), nombre);
+                if (nombre == null) {
+                    continue;
+                }
+                String nombreLimpio = nombre.trim();
+                columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
             }
         }
 
@@ -218,7 +224,11 @@ public class model {
             try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla.toLowerCase(), null)) {
                 while (rs.next()) {
                     String nombre = rs.getString("COLUMN_NAME");
-                    columnas.put(nombre.toLowerCase(), nombre);
+                    if (nombre == null) {
+                        continue;
+                    }
+                    String nombreLimpio = nombre.trim();
+                    columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
                 }
             }
         }
