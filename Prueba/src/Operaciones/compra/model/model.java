@@ -89,6 +89,7 @@ public class model {
             String colPrecioNeto = resolverColumna(columnasEntradas, "precioNetoEntrada", "precioNeto", "precio_neto");
             String colPrecioTotal = resolverColumna(columnasEntradas, "precioTotalEntrada", "precioTotal", "precio_total");
             String colUsuarioEntrada = resolverColumna(columnasEntradas, "claveUsuarioEntrada", "idUsuarioEntrada", "id_usuario_entrada", "usuarioEntrada", "usuario_entrada");
+            String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
 
             if (colProveedor != null) valoresEntrada.put(colProveedor, idProveedor);
             if (colFactura != null) valoresEntrada.put(colFactura, factura);
@@ -96,6 +97,7 @@ public class model {
             if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
             if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
+            if (colEstado != null) valoresEntrada.put(colEstado, "completado");
             Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
             if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
                 valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
