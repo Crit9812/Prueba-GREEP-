@@ -235,7 +235,6 @@ public class controllerNuevoTraspasoSalida {
         txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
             validarCantidadTotalDisponible();
             validarCantidadDisponible();
-            recalcularPrecios();
             actualizarEstadoCascada();
         });
 
@@ -655,6 +654,21 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioTotal.setText(formatearDecimal(precioTotal));
     }
 
+    private void actualizarPreciosPorUbicaciones() {
+        int cantidadTotal = parseEntero(txtCantidad.getText());
+        if (cantidadTotal <= 0) {
+            return;
+        }
+        List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
+        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
+                .mapToInt(UbicacionCompra::getCantidad)
+                .sum();
+        if (sumaUbicaciones == cantidadTotal) {
+            cargarPreciosDesdeProducto();
+            recalcularPrecios();
+        }
+    }
+
     private int parseEntero(String texto) {
         try {
             return Integer.parseInt(texto);
@@ -728,6 +742,7 @@ public class controllerNuevoTraspasoSalida {
         txtCantidadUbicacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 validarCamposDesdeCantidadUbicacion();
+                actualizarPreciosPorUbicaciones();
             }
         });
 
@@ -976,7 +991,7 @@ public class controllerNuevoTraspasoSalida {
             txtCantidadUbicacion.clear();
             mostrarAlerta("Advertencia", "La cantidad supera la disponible en esa ubicación.");
         } else {
-            cargarPreciosDesdeProducto();
+            actualizarPreciosPorUbicaciones();
         }
     }
 
@@ -1026,6 +1041,7 @@ public class controllerNuevoTraspasoSalida {
             }
             validarCantidadDisponible();
             actualizarEstadoCascada();
+            actualizarPreciosPorUbicaciones();
             ultimaCantidadUbicacionValidada = cantidadActual;
         });
         cantidadUbicacionDebounce.playFromStart();
