@@ -685,29 +685,33 @@ public class controllerNuevoTraspasoSalida {
             validarUbicacion();
             actualizarEstadoCascada();
         });
+
+        txtCantidad.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarCamposPreviosHastaCantidad();
+            }
+        });
+
+        txtCantidadUbicacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarCamposPreviosHastaCantidadUbicacion();
+            }
+        });
+
+        txtFactor.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarCamposPreviosHastaFactor();
+            }
+        });
     }
 
     private void actualizarEstadoCascada() {
-        boolean descripcionLista = txtDescripcion.getText() != null && !txtDescripcion.getText().isBlank();
-        txtLote.setDisable(!descripcionLista);
-
-        boolean loteListo = descripcionLista && txtLote.getText() != null && !txtLote.getText().isBlank() && loteValidado;
-        dpCaducidad.setDisable(false);
-
-        boolean caducidadLista = loteListo && dpCaducidad.getValue() != null && caducidadValidada;
-        txtCantidad.setDisable(!caducidadLista);
-
-        boolean cantidadLista = caducidadLista && cantidadTotalValida;
-        cbPresentacion.setDisable(!cantidadLista);
-
-        boolean presentacionLista = cantidadLista && presentacionValida;
-        txtFactor.setDisable(!presentacionLista);
-
-        boolean factorLista = presentacionLista && factorValido;
-        comboUbicacion.setDisable(!factorLista);
-
-        boolean ubicacionLista = factorLista && comboUbicacion.getValue() != null && !comboUbicacion.getValue().isBlank() && ubicacionValidada;
-        txtCantidadUbicacion.setDisable(!ubicacionLista);
+        txtLote.setDisable(false);
+        txtCantidad.setDisable(false);
+        cbPresentacion.setDisable(false);
+        txtFactor.setDisable(false);
+        comboUbicacion.setDisable(false);
+        txtCantidadUbicacion.setDisable(false);
     }
 
     private void validarLoteCompleto(String lote) {
@@ -740,6 +744,31 @@ public class controllerNuevoTraspasoSalida {
         factorValido = false;
         actualizarEstadoCascada();
         limpiarPrecios();
+    }
+
+    private void validarCamposPreviosHastaCantidad() {
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        if (!lote.isBlank()) {
+            if (!validarPrefijoLote(lote)) {
+                return;
+            }
+            if (modelo.existeLoteParaProducto(lote, productoController.getIdSeleccionado())) {
+                validarLoteCompleto(lote);
+                ultimoLoteValidado = loteValidado ? lote : "";
+            }
+        }
+        validarCantidadTotalDisponible();
+    }
+
+    private void validarCamposPreviosHastaFactor() {
+        validarCamposPreviosHastaCantidad();
+        validarPresentacion();
+    }
+
+    private void validarCamposPreviosHastaCantidadUbicacion() {
+        validarCamposPreviosHastaFactor();
+        validarUbicacion();
+        validarCantidadDisponible();
     }
 
     private void validarUbicacion() {
