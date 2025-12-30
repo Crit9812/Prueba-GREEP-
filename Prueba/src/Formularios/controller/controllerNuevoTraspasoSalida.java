@@ -1130,11 +1130,29 @@ public class controllerNuevoTraspasoSalida {
 
     private void validarPresentacion() {
         String presentacion = cbPresentacion.getValue();
-        if (!cantidadTotalValida) {
+        if (!loteValidado || !caducidadValidada) {
+            presentacionValida = false;
+            if (presentacion != null && !presentacion.isBlank()) {
+                cbPresentacion.setValue(null);
+                mostrarAlertaSinEspera("Advertencia", "Debe capturar un lote válido antes de la presentación.");
+            }
+            return;
+        }
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (cantidadTexto.isBlank()) {
             presentacionValida = false;
             if (presentacion != null && !presentacion.isBlank()) {
                 cbPresentacion.setValue(null);
                 mostrarAlertaSinEspera("Advertencia", "Debe capturar la cantidad antes de la presentación.");
+            }
+            return;
+        }
+        int cantidad = parseEntero(cantidadTexto);
+        if (cantidad <= 0) {
+            presentacionValida = false;
+            if (presentacion != null && !presentacion.isBlank()) {
+                cbPresentacion.setValue(null);
+                mostrarAlertaSinEspera("Advertencia", "La cantidad debe ser mayor a 0 antes de la presentación.");
             }
             return;
         }
