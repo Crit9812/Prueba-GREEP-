@@ -1129,60 +1129,41 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void validarPresentacion() {
+        String presentacion = cbPresentacion.getValue();
         if (!cantidadTotalValida) {
             presentacionValida = false;
+            if (presentacion != null && !presentacion.isBlank()) {
+                cbPresentacion.setValue(null);
+                mostrarAlertaSinEspera("Advertencia", "Debe capturar la cantidad antes de la presentación.");
+            }
             return;
         }
-        String presentacion = cbPresentacion.getValue();
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
         if (presentacion == null || presentacion.isBlank() || idProducto == null || idProducto.isBlank()) {
             presentacionValida = false;
             return;
         }
-        String loteSnapshot = lote;
-        String idSnapshot = idProducto;
-        String presentacionSnapshot = presentacion;
-
-        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
-            @Override
-            protected Boolean call() {
-                return modelo.existePresentacionParaProductoLote(idSnapshot, loteSnapshot, presentacionSnapshot);
-            }
-
-            @Override
-            protected void succeeded() {
-                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
-                String idActual = productoController.getIdSeleccionado();
-                String presentacionActual = cbPresentacion.getValue();
-                if (!loteSnapshot.equals(loteActual)
-                        || !idSnapshot.equals(idActual)
-                        || presentacionActual == null
-                        || !presentacionSnapshot.equals(presentacionActual)) {
-                    return;
-                }
-                boolean existe = getValue();
-                if (!existe) {
-                    presentacionValida = false;
-                    cbPresentacion.setValue(null);
-                    mostrarAlertaSinEspera("Advertencia",
-                            "La presentación no existe para el lote y producto seleccionados.");
-                } else {
-                    presentacionValida = true;
-                    ultimaPresentacionValidada = presentacionSnapshot;
-                }
-            }
-        };
-
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true);
-        hilo.start();
+        boolean existe = modelo.existePresentacionParaProductoLote(idProducto, lote, presentacion);
+        if (!existe) {
+            presentacionValida = false;
+            cbPresentacion.setValue(null);
+            mostrarAlertaSinEspera("Advertencia",
+                    "La presentación no existe para el lote y producto seleccionados.");
+        } else {
+            presentacionValida = true;
+            ultimaPresentacionValidada = presentacion;
+        }
         factorValido = false;
     }
 
     private void validarFactorCompleto(String factorTexto) {
         if (!presentacionValida) {
             factorValido = false;
+            if (!factorTexto.isBlank()) {
+                txtFactor.clear();
+                mostrarAlertaSinEspera("Advertencia", "Debe capturar la presentación antes del factor.");
+            }
             return;
         }
         String presentacion = cbPresentacion.getValue();
@@ -1213,46 +1194,15 @@ public class controllerNuevoTraspasoSalida {
             factorValido = false;
             return;
         }
-        String loteSnapshot = lote;
-        String idSnapshot = idProducto;
-        String presentacionSnapshot = presentacion;
-        int factorSnapshot = factor;
-
-        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
-            @Override
-            protected Boolean call() {
-                return modelo.existeFactorParaProductoLotePresentacion(
-                        idSnapshot, loteSnapshot, presentacionSnapshot, factorSnapshot);
-            }
-
-            @Override
-            protected void succeeded() {
-                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
-                String idActual = productoController.getIdSeleccionado();
-                String presentacionActual = cbPresentacion.getValue();
-                int factorActual = parseEntero(txtFactor.getText());
-                if (!loteSnapshot.equals(loteActual)
-                        || !idSnapshot.equals(idActual)
-                        || presentacionActual == null
-                        || !presentacionSnapshot.equals(presentacionActual)
-                        || factorActual != factorSnapshot) {
-                    return;
-                }
-                boolean existe = getValue();
-                if (!existe) {
-                    factorValido = false;
-                    txtFactor.clear();
-                    mostrarAlertaSinEspera("Advertencia",
-                            "El factor no corresponde con la presentación y lote seleccionados.");
-                } else {
-                    factorValido = true;
-                }
-            }
-        };
-
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true);
-        hilo.start();
+        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factor);
+        if (!existe) {
+            factorValido = false;
+            txtFactor.clear();
+            mostrarAlertaSinEspera("Advertencia",
+                    "El factor no corresponde con la presentación y lote seleccionados.");
+        } else {
+            factorValido = true;
+        }
     }
 
     private boolean datosCompletosParaPrecio() {
