@@ -1176,7 +1176,8 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void validarFactorCompleto(String factorTexto) {
-        if (!presentacionValida) {
+        String presentacion = cbPresentacion.getValue();
+        if (presentacion == null || presentacion.isBlank()) {
             factorValido = false;
             if (!factorTexto.isBlank()) {
                 txtFactor.clear();
@@ -1184,9 +1185,14 @@ public class controllerNuevoTraspasoSalida {
             }
             return;
         }
-        String presentacion = cbPresentacion.getValue();
-        if (presentacion == null || presentacion.isBlank()) {
+        validarPresentacion();
+        if (!presentacionValida) {
             factorValido = false;
+            if (!factorTexto.isBlank()) {
+                txtFactor.clear();
+                mostrarAlertaSinEspera("Advertencia",
+                        "La presentación no es válida para el lote y la cantidad capturados.");
+            }
             return;
         }
         if (!presentacion.equals(ultimaPresentacionValidada)) {
