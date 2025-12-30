@@ -316,7 +316,7 @@ public class controllerNuevoTraspasoSalida {
     private void configurarValidaciones() {
         validarNumerosEnteros(txtCantidad);
         validarNumerosEnteros(txtCantidadUbicacion);
-        validarDecimal(txtFactor);
+        validarNumerosEnteros(txtFactor);
         validarDecimal(txtPrecioEntrada);
         validarDecimal(txtPrecioIVA);
         validarDecimal(txtPrecioBruto);
@@ -1067,6 +1067,13 @@ public class controllerNuevoTraspasoSalida {
             factorValido = false;
             return;
         }
+        int factor = parseEntero(factorTexto);
+        if (factor <= 0) {
+            factorValido = false;
+            txtFactor.clear();
+            mostrarAlerta("Advertencia", "El factor debe ser un número mayor a 0.");
+            return;
+        }
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
         String presentacion = cbPresentacion.getValue();
@@ -1074,7 +1081,7 @@ public class controllerNuevoTraspasoSalida {
             factorValido = false;
             return;
         }
-        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factorTexto);
+        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factor);
         if (!existe) {
             factorValido = false;
             txtFactor.clear();

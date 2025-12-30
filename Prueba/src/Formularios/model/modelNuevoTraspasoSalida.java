@@ -266,7 +266,7 @@ public class modelNuevoTraspasoSalida {
     }
 
     public boolean existeFactorParaProductoLotePresentacion(String idProducto, String lote,
-                                                            String presentacion, String factorTexto) {
+                                                            String presentacion, int factor) {
         String sql = """
             SELECT 1
             FROM articulo a
@@ -281,7 +281,7 @@ public class modelNuevoTraspasoSalida {
             ps.setString(1, idProducto);
             ps.setString(2, lote);
             ps.setString(3, presentacion);
-            ps.setString(4, factorTexto);
+            ps.setInt(4, factor);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
