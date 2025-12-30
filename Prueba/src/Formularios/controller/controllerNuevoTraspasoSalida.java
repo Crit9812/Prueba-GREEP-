@@ -151,13 +151,6 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
         });
 
-        txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && !newVal.isBlank()) {
-                validarFactorSilencioso();
-                actualizarEstadoCascada();
-            }
-        });
-
         txtFactor.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 validarFactor();
@@ -946,27 +939,6 @@ public class controllerNuevoTraspasoSalida {
         } else {
             factorValido = true;
         }
-    }
-
-    private void validarFactorSilencioso() {
-        if (!presentacionValida) {
-            factorValido = false;
-            return;
-        }
-        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
-        if (factorTexto.isBlank()) {
-            factorValido = false;
-            return;
-        }
-        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        String idProducto = productoController.getIdSeleccionado();
-        String presentacion = cbPresentacion.getValue();
-        if (idProducto == null || idProducto.isBlank() || presentacion == null || presentacion.isBlank()) {
-            factorValido = false;
-            return;
-        }
-        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factorTexto);
-        factorValido = existe;
     }
 
     private boolean datosCompletosParaPrecio() {
