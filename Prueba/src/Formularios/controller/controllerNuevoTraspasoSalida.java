@@ -151,6 +151,13 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
         });
 
+        txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                validarFactorSilencioso();
+                actualizarEstadoCascada();
+            }
+        });
+
         txtFactor.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 validarFactor();
@@ -172,6 +179,10 @@ public class controllerNuevoTraspasoSalida {
                 txtFactor.clear();
                 limpiarUbicacionPrimaria();
                 limpiarPrecios();
+                actualizarEstadoCascada();
+            }
+            if (newVal != null && !newVal.isBlank()) {
+                validarLoteSilencioso();
                 actualizarEstadoCascada();
             }
         });
@@ -215,7 +226,7 @@ public class controllerNuevoTraspasoSalida {
 
     private void configurarCalculoPrecios() {
         txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
-            validarCantidadTotalDisponible();
+            validarCantidadTotalDisponibleSilencioso();
             validarCantidadDisponible();
             recalcularPrecios();
             actualizarEstadoCascada();
@@ -683,6 +694,13 @@ public class controllerNuevoTraspasoSalida {
                 validarCantidadDisponible();
             }
         });
+
+        txtCantidadUbicacion.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                validarCantidadDisponible();
+                actualizarEstadoCascada();
+            }
+        });
     }
 
     private void actualizarEstadoCascada() {
@@ -830,6 +848,55 @@ public class controllerNuevoTraspasoSalida {
         }
     }
 
+    private void validarCantidadTotalDisponibleSilencioso() {
+        if (!caducidadValidada) {
+            cantidadTotalValida = false;
+            return;
+        }
+        String texto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (texto.isBlank()) {
+            cantidadTotalValida = false;
+            return;
+        }
+        int cantidad = parseEntero(texto);
+        if (cantidad <= 0) {
+            cantidadTotalValida = false;
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            cantidadTotalValida = false;
+            return;
+        }
+        int disponible = modelo.obtenerCantidadDisponibleProductoLoteCaducidad(idProducto, lote, dpCaducidad.getValue());
+        cantidadTotalValida = cantidad <= disponible;
+    }
+
+    private void validarLoteSilencioso() {
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        if (lote.isBlank()) {
+            loteValidado = false;
+            return;
+        }
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            loteValidado = false;
+            return;
+        }
+        boolean existe = modelo.existeLoteParaProducto(lote, idProducto);
+        if (!existe) {
+            loteValidado = false;
+            return;
+        }
+        loteValidado = true;
+        Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(lote, idProducto);
+        if (caducidad.isPresent()) {
+            dpCaducidad.setValue(caducidad.get());
+            caducidadValidada = true;
+        }
+    }
+
     private void validarPresentacion() {
         if (!cantidadTotalValida) {
             presentacionValida = false;
@@ -879,6 +946,27 @@ public class controllerNuevoTraspasoSalida {
         } else {
             factorValido = true;
         }
+    }
+
+    private void validarFactorSilencioso() {
+        if (!presentacionValida) {
+            factorValido = false;
+            return;
+        }
+        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+        if (factorTexto.isBlank()) {
+            factorValido = false;
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String idProducto = productoController.getIdSeleccionado();
+        String presentacion = cbPresentacion.getValue();
+        if (idProducto == null || idProducto.isBlank() || presentacion == null || presentacion.isBlank()) {
+            factorValido = false;
+            return;
+        }
+        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factorTexto);
+        factorValido = existe;
     }
 
     private boolean datosCompletosParaPrecio() {
