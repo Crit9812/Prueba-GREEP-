@@ -763,6 +763,8 @@ public class controllerNuevoTraspasoSalida {
         if (!lote.isBlank()) {
             validarLoteCompleto(lote);
             ultimoLoteValidado = loteValidado ? lote : "";
+        } else if (txtCantidad.getText() != null && !txtCantidad.getText().isBlank()) {
+            mostrarAlerta("Advertencia", "Debe capturar el lote antes de la cantidad.");
         }
         validarCantidadTotalDisponible();
         validarPresentacion();
@@ -775,6 +777,10 @@ public class controllerNuevoTraspasoSalida {
 
     private void validarCamposDesdeCantidad() {
         validarCamposDesdeLote();
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (cantidadTexto.isBlank() && txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
+            mostrarAlerta("Advertencia", "Debe capturar la cantidad antes del factor.");
+        }
     }
 
     private void validarCamposDesdeFactor() {
@@ -783,12 +789,20 @@ public class controllerNuevoTraspasoSalida {
         if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
             validarFactorCompleto(txtFactor.getText().trim());
         }
+        if ((comboUbicacion.getValue() != null && !comboUbicacion.getValue().isBlank())
+                && (txtFactor.getText() == null || txtFactor.getText().isBlank())) {
+            mostrarAlerta("Advertencia", "Debe capturar el factor antes de la ubicación.");
+        }
     }
 
     private void validarCamposDesdeCantidadUbicacion() {
         validarCamposDesdeFactor();
         validarUbicacion();
         validarCantidadDisponible();
+        if (txtCantidadUbicacion.getText() != null && !txtCantidadUbicacion.getText().isBlank()
+                && (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank())) {
+            mostrarAlerta("Advertencia", "Debe capturar la ubicación antes de la cantidad en ubicación.");
+        }
     }
 
     private void validarUbicacion() {
