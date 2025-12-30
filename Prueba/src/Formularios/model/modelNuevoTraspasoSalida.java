@@ -160,6 +160,29 @@ public class modelNuevoTraspasoSalida {
         return 0;
     }
 
+    public boolean existeLoteParaProducto(String lote, String idProducto) {
+        String sql = """
+            SELECT 1
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE a.lote = ? AND de.claveProducto = ?
+            LIMIT 1
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lote);
+            ps.setString(2, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private BigDecimal obtenerDecimal(ResultSet rs, String columna) {
         try {
             BigDecimal valor = rs.getBigDecimal(columna);

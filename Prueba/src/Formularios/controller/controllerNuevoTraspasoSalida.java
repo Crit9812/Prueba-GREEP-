@@ -824,13 +824,21 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
             return;
         }
-        boolean existe = modelo.existeLote(lote);
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            loteValidado = false;
+            txtLote.clear();
+            mostrarAlerta("Advertencia", "Seleccione un producto antes de validar el lote.");
+            actualizarEstadoCascada();
+            return;
+        }
+        boolean existe = modelo.existeLoteParaProducto(lote, idProducto);
         if (!existe) {
             loteValidado = false;
             txtLote.clear();
             dpCaducidad.setValue(null);
             limpiarUbicacionPrimaria();
-            mostrarAlerta("Advertencia", "No se encontró un artículo con ese lote. Verifique el dato.");
+            mostrarAlerta("Advertencia", "El lote no corresponde al producto seleccionado.");
         } else {
             loteValidado = true;
         }
