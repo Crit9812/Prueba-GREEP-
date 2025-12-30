@@ -74,8 +74,10 @@ public class controllerNuevoTraspasoSalida {
     private boolean cantidadTotalValida = false;
     private final PauseTransition loteDebounce = new PauseTransition(Duration.millis(200));
     private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(Duration.millis(150));
+    private final PauseTransition factorDebounce = new PauseTransition(Duration.millis(150));
     private String ultimoLoteValidado = "";
     private String ultimaCantidadUbicacionValidada = "";
+    private String ultimoFactorValidado = "";
 
     @FXML
     public void initialize() {
@@ -157,13 +159,6 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
         });
 
-        txtFactor.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                validarFactor();
-                actualizarEstadoCascada();
-            }
-        });
-
         txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
             if (oldVal != null && !oldVal.equals(newVal)) {
                 loteValidado = false;
@@ -230,6 +225,10 @@ public class controllerNuevoTraspasoSalida {
 
         txtCantidadUbicacion.textProperty().addListener((obs, oldVal, newVal) -> {
             programarValidacionCantidadUbicacion(newVal);
+        });
+
+        txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
+            programarValidacionFactor(newVal);
         });
     }
 
@@ -844,6 +843,30 @@ public class controllerNuevoTraspasoSalida {
         cantidadUbicacionDebounce.playFromStart();
     }
 
+    private void programarValidacionFactor(String nuevoValor) {
+        factorDebounce.stop();
+        if (nuevoValor == null || nuevoValor.isBlank()) {
+            ultimoFactorValidado = "";
+            return;
+        }
+        factorDebounce.setOnFinished(event -> {
+            String factorActual = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+            if (factorActual.isBlank()) {
+                ultimoFactorValidado = "";
+                return;
+            }
+            if (factorActual.equals(ultimoFactorValidado)) {
+                return;
+            }
+            validarFactor();
+            actualizarEstadoCascada();
+            if (factorValido) {
+                ultimoFactorValidado = factorActual;
+            }
+        });
+        factorDebounce.playFromStart();
+    }
+
     private void validarCantidadTotalDisponible() {
         if (!caducidadValidada) {
             cantidadTotalValida = false;
@@ -947,6 +970,7 @@ public class controllerNuevoTraspasoSalida {
         cantidadTotalValida = false;
         ultimoLoteValidado = "";
         ultimaCantidadUbicacionValidada = "";
+        ultimoFactorValidado = "";
     }
 
     private void configurarAutocompletadoUbicacion(ComboBox<String> comboBox) {
