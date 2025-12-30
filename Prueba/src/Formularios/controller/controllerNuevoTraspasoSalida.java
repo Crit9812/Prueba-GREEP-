@@ -683,21 +683,27 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
         });
 
+        txtLote.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarCamposDesdeLote();
+            }
+        });
+
         txtCantidad.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
-                validarCamposPreviosHastaCantidad();
+                validarCamposDesdeCantidad();
             }
         });
 
         txtCantidadUbicacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
-                validarCamposPreviosHastaCantidadUbicacion();
+                validarCamposDesdeCantidadUbicacion();
             }
         });
 
         txtFactor.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
-                validarCamposPreviosHastaFactor();
+                validarCamposDesdeFactor();
             }
         });
     }
@@ -752,22 +758,35 @@ public class controllerNuevoTraspasoSalida {
         limpiarPrecios();
     }
 
-    private void validarCamposPreviosHastaCantidad() {
+    private void validarCamposDesdeLote() {
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         if (!lote.isBlank()) {
             validarLoteCompleto(lote);
             ultimoLoteValidado = loteValidado ? lote : "";
         }
         validarCantidadTotalDisponible();
-    }
-
-    private void validarCamposPreviosHastaFactor() {
-        validarCamposPreviosHastaCantidad();
         validarPresentacion();
+        if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
+            validarFactorCompleto(txtFactor.getText().trim());
+        }
+        validarUbicacion();
+        validarCantidadDisponible();
     }
 
-    private void validarCamposPreviosHastaCantidadUbicacion() {
-        validarCamposPreviosHastaFactor();
+    private void validarCamposDesdeCantidad() {
+        validarCamposDesdeLote();
+    }
+
+    private void validarCamposDesdeFactor() {
+        validarCamposDesdeCantidad();
+        validarPresentacion();
+        if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
+            validarFactorCompleto(txtFactor.getText().trim());
+        }
+    }
+
+    private void validarCamposDesdeCantidadUbicacion() {
+        validarCamposDesdeFactor();
         validarUbicacion();
         validarCantidadDisponible();
     }
