@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="subida de todos los archivos a una rama">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Modificaciones de diseño en compras">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/view/main_view.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +51,7 @@
     </favorite-branches>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/set-estado-to-completado-for-new-entries" />
+        <entry key="$PROJECT_DIR$/.." value="ad73aafb6de62afe81c8f042f446944947af863f" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -105,7 +103,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "Pruebas",
+    "git-widget-placeholder": "6f09ff36",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -305,7 +303,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767028789266</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Modificaciones de diseño en compras">
+      <option name="closed" value="true" />
+      <created>1767033059342</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1767033059342</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -337,7 +343,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/prueba" />
+                        <option value="origin/codex/add-combobox-for-branches-in-transfers" />
                       </list>
                     </value>
                   </entry>
@@ -366,13 +372,12 @@
     <MESSAGE value="Merge remote-tracking branch 'origin/detached' into detached" />
     <MESSAGE value="subida de todos los archivos a una rama" />
     <MESSAGE value="comprar" />
-    <option name="LAST_COMMIT_MESSAGE" value="comprar" />
+    <MESSAGE value="Modificaciones de diseño en compras" />
+    <option name="LAST_COMMIT_MESSAGE" value="Modificaciones de diseño en compras" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
-      <configuration name="Application">
-        <watch canBePaused="false" expression="" />
-      </configuration>
+      <configuration name="Application" />
     </watches-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
