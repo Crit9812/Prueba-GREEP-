@@ -662,8 +662,9 @@ public class controllerNuevoTraspasoSalida {
 
     private void configurarCascada() {
         txtDescripcion.setEditable(false);
-        dpCaducidad.setDisable(true);
         dpCaducidad.setEditable(false);
+        dpCaducidad.setMouseTransparent(true);
+        dpCaducidad.setFocusTraversable(false);
         actualizarEstadoCascada();
 
         txtLote.focusedProperty().addListener((obs, oldVal, newVal) -> {
@@ -689,7 +690,7 @@ public class controllerNuevoTraspasoSalida {
         txtLote.setDisable(!descripcionLista);
 
         boolean loteListo = descripcionLista && txtLote.getText() != null && !txtLote.getText().isBlank() && loteValidado;
-        dpCaducidad.setDisable(true);
+        dpCaducidad.setDisable(false);
 
         boolean caducidadLista = loteListo && dpCaducidad.getValue() != null && caducidadValidada;
         txtCantidad.setDisable(!caducidadLista);
