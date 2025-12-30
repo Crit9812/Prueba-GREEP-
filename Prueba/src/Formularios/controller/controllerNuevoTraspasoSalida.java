@@ -771,44 +771,54 @@ public class controllerNuevoTraspasoSalida {
             ultimoLoteValidado = loteValidado ? lote : "";
         } else if (txtCantidad.getText() != null && !txtCantidad.getText().isBlank()) {
             txtCantidad.clear();
-            mostrarAlerta("Advertencia", "Debe capturar el lote antes de la cantidad.");
+            mostrarAlertaCascada("Debe capturar el lote antes de la cantidad.");
+            return;
+        }
+        if (!loteValidado) {
+            return;
         }
         validarCantidadTotalDisponible();
-        validarPresentacion();
-        if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
-            validarFactorCompleto(txtFactor.getText().trim());
-        }
-        validarUbicacion();
-        validarCantidadDisponible();
     }
 
     private void validarCamposDesdeCantidad() {
         validarCamposDesdeLote();
+        if (!loteValidado) {
+            return;
+        }
         if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isBlank()) {
             if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
                 txtFactor.clear();
-                mostrarAlerta("Advertencia", "Debe capturar la presentación antes del factor.");
+                mostrarAlertaCascada("Debe capturar la presentación antes del factor.");
+                return;
             }
         }
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
         if (cantidadTexto.isBlank() && txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
             txtFactor.clear();
-            mostrarAlerta("Advertencia", "Debe capturar la cantidad antes del factor.");
+            mostrarAlertaCascada("Debe capturar la cantidad antes del factor.");
+            return;
         }
     }
 
     private void validarCamposDesdePresentacion() {
         validarCamposDesdeLote();
+        if (!loteValidado) {
+            return;
+        }
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
         if (cantidadTexto.isBlank() && cbPresentacion.getValue() != null && !cbPresentacion.getValue().isBlank()) {
             cbPresentacion.setValue(null);
-            mostrarAlerta("Advertencia", "Debe capturar la cantidad antes de la presentación.");
+            mostrarAlertaCascada("Debe capturar la cantidad antes de la presentación.");
+            return;
         }
         validarPresentacion();
     }
 
     private void validarCamposDesdeFactor() {
         validarCamposDesdeCantidad();
+        if (!cantidadTotalValida) {
+            return;
+        }
         validarPresentacion();
         if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
             validarFactorCompleto(txtFactor.getText().trim());
@@ -819,19 +829,27 @@ public class controllerNuevoTraspasoSalida {
             if (comboUbicacion.getEditor() != null) {
                 comboUbicacion.getEditor().clear();
             }
-            mostrarAlerta("Advertencia", "Debe capturar el factor antes de la ubicación.");
+            mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
+            return;
         }
     }
 
     private void validarCamposDesdeCantidadUbicacion() {
         validarCamposDesdeFactor();
+        if (!factorValido) {
+            return;
+        }
         validarUbicacion();
         validarCantidadDisponible();
         if (txtCantidadUbicacion.getText() != null && !txtCantidadUbicacion.getText().isBlank()
                 && (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank())) {
             txtCantidadUbicacion.clear();
-            mostrarAlerta("Advertencia", "Debe capturar la ubicación antes de la cantidad en ubicación.");
+            mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
         }
+    }
+
+    private void mostrarAlertaCascada(String mensaje) {
+        mostrarAlertaSinEspera("Advertencia", mensaje);
     }
 
     private void validarUbicacion() {
