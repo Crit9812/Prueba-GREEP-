@@ -1040,6 +1040,5 @@ public class controllerNuevoTraspasoSalida {
             txtCantidadUbicacion.clear();
         }
         ultimaCantidadUbicacionValidada = "";
-        ultimoPrefijoCantidadInvalido = "";
     }
 }
