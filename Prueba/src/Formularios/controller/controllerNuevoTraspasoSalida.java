@@ -79,6 +79,7 @@ public class controllerNuevoTraspasoSalida {
     private String ultimoLoteValidado = "";
     private String ultimaCantidadUbicacionValidada = "";
     private String ultimoFactorValidado = "";
+    private String ultimaPresentacionValidada = "";
 
     @FXML
     public void initialize() {
@@ -161,6 +162,11 @@ public class controllerNuevoTraspasoSalida {
                     mostrarAlertaCascada("Debe capturar la cantidad antes de la presentación.");
                     return;
                 }
+            }
+            if (newVal != null && !newVal.equals(oldVal)) {
+                txtFactor.clear();
+                ultimoFactorValidado = "";
+                factorValido = false;
             }
             presentacionValida = false;
             factorValido = false;
@@ -1053,14 +1059,25 @@ public class controllerNuevoTraspasoSalida {
             mostrarAlerta("Advertencia", "La presentación no existe para el lote y producto seleccionados.");
         } else {
             presentacionValida = true;
+            ultimaPresentacionValidada = presentacion;
         }
         factorValido = false;
-        txtFactor.clear();
     }
 
     private void validarFactorCompleto(String factorTexto) {
         if (!presentacionValida) {
             factorValido = false;
+            return;
+        }
+        String presentacion = cbPresentacion.getValue();
+        if (presentacion == null || presentacion.isBlank()) {
+            factorValido = false;
+            return;
+        }
+        if (!presentacion.equals(ultimaPresentacionValidada)) {
+            factorValido = false;
+            txtFactor.clear();
+            mostrarAlerta("Advertencia", "Seleccione la presentación válida antes de capturar el factor.");
             return;
         }
         if (factorTexto.isBlank()) {
@@ -1076,7 +1093,6 @@ public class controllerNuevoTraspasoSalida {
         }
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
-        String presentacion = cbPresentacion.getValue();
         if (idProducto == null || idProducto.isBlank() || presentacion == null || presentacion.isBlank()) {
             factorValido = false;
             return;
@@ -1113,6 +1129,7 @@ public class controllerNuevoTraspasoSalida {
         ultimoLoteValidado = "";
         ultimaCantidadUbicacionValidada = "";
         ultimoFactorValidado = "";
+        ultimaPresentacionValidada = "";
     }
 
     private void configurarAutocompletadoUbicacion(ComboBox<String> comboBox) {
