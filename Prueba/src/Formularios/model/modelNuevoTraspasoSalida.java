@@ -183,6 +183,63 @@ public class modelNuevoTraspasoSalida {
         }
     }
 
+    public Optional<java.time.LocalDate> obtenerCaducidadParaLoteProducto(String lote, String idProducto) {
+        String sql = """
+            SELECT a.caducidad
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE a.lote = ? AND de.claveProducto = ?
+            ORDER BY a.caducidad DESC
+            LIMIT 1
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lote);
+            ps.setString(2, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.sql.Date caducidad = rs.getDate("caducidad");
+                    if (caducidad != null) {
+                        return Optional.of(caducidad.toLocalDate());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
+    public int obtenerCantidadDisponibleProductoLoteCaducidad(String idProducto, String lote,
+                                                              java.time.LocalDate caducidad) {
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE de.claveProducto = ? AND a.lote = ? AND a.caducidad = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProducto);
+            ps.setString(2, lote);
+            ps.setDate(3, java.sql.Date.valueOf(caducidad));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
     private BigDecimal obtenerDecimal(ResultSet rs, String columna) {
         try {
             BigDecimal valor = rs.getBigDecimal(columna);

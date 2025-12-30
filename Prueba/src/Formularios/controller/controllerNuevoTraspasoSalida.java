@@ -67,6 +67,7 @@ public class controllerNuevoTraspasoSalida {
     private boolean caducidadValidada = false;
     private boolean ubicacionValidada = false;
     private int cantidadDisponibleUbicacion = 0;
+    private boolean cantidadTotalValida = false;
 
     @FXML
     public void initialize() {
@@ -147,6 +148,7 @@ public class controllerNuevoTraspasoSalida {
                 caducidadValidada = false;
                 ubicacionValidada = false;
                 cantidadDisponibleUbicacion = 0;
+                cantidadTotalValida = false;
                 dpCaducidad.setValue(null);
                 limpiarUbicacionPrimaria();
                 limpiarPrecios();
@@ -191,6 +193,7 @@ public class controllerNuevoTraspasoSalida {
 
     private void configurarCalculoPrecios() {
         txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
+            validarCantidadTotalDisponible();
             validarCantidadDisponible();
             recalcularPrecios();
             actualizarEstadoCascada();
@@ -769,17 +772,14 @@ public class controllerNuevoTraspasoSalida {
 
     private void configurarCascada() {
         txtDescripcion.setEditable(false);
+        dpCaducidad.setDisable(true);
+        dpCaducidad.setEditable(false);
         actualizarEstadoCascada();
 
         txtLote.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 validarLote();
             }
-        });
-
-        dpCaducidad.valueProperty().addListener((obs, oldVal, newVal) -> {
-            validarCaducidad();
-            actualizarEstadoCascada();
         });
 
         comboUbicacion.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -799,12 +799,12 @@ public class controllerNuevoTraspasoSalida {
         txtLote.setDisable(!descripcionLista);
 
         boolean loteListo = descripcionLista && txtLote.getText() != null && !txtLote.getText().isBlank() && loteValidado;
-        dpCaducidad.setDisable(!loteListo);
+        dpCaducidad.setDisable(true);
 
         boolean caducidadLista = loteListo && dpCaducidad.getValue() != null && caducidadValidada;
         txtCantidad.setDisable(!caducidadLista);
 
-        boolean cantidadLista = caducidadLista && txtCantidad.getText() != null && !txtCantidad.getText().isBlank();
+        boolean cantidadLista = caducidadLista && cantidadTotalValida;
         cbPresentacion.setDisable(!cantidadLista);
 
         boolean presentacionLista = cantidadLista && cbPresentacion.getValue() != null && !cbPresentacion.getValue().isBlank();
@@ -841,9 +841,18 @@ public class controllerNuevoTraspasoSalida {
             mostrarAlerta("Advertencia", "El lote no corresponde al producto seleccionado.");
         } else {
             loteValidado = true;
+            Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(lote, idProducto);
+            if (caducidad.isPresent()) {
+                dpCaducidad.setValue(caducidad.get());
+                caducidadValidada = true;
+            } else {
+                dpCaducidad.setValue(null);
+                caducidadValidada = false;
+                mostrarAlerta("Advertencia", "No se encontró caducidad para el lote seleccionado.");
+            }
         }
-        caducidadValidada = false;
         ubicacionValidada = false;
+        cantidadTotalValida = false;
         actualizarEstadoCascada();
         limpiarPrecios();
     }
@@ -917,14 +926,44 @@ public class controllerNuevoTraspasoSalida {
         }
     }
 
+    private void validarCantidadTotalDisponible() {
+        if (!caducidadValidada) {
+            cantidadTotalValida = false;
+            return;
+        }
+        String texto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (texto.isBlank()) {
+            cantidadTotalValida = false;
+            return;
+        }
+        int cantidad = parseEntero(texto);
+        if (cantidad <= 0) {
+            cantidadTotalValida = false;
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            cantidadTotalValida = false;
+            return;
+        }
+        int disponible = modelo.obtenerCantidadDisponibleProductoLoteCaducidad(idProducto, lote, dpCaducidad.getValue());
+        if (cantidad > disponible) {
+            txtCantidad.clear();
+            cantidadTotalValida = false;
+            mostrarAlerta("Advertencia", "La cantidad supera la disponible para el lote y caducidad seleccionados.");
+        } else {
+            cantidadTotalValida = true;
+        }
+    }
+
     private boolean datosCompletosParaPrecio() {
         return productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
                 && caducidadValidada
                 && ubicacionValidada
-                && txtCantidad.getText() != null
-                && !txtCantidad.getText().isBlank()
+                && cantidadTotalValida
                 && txtCantidadUbicacion.getText() != null
                 && !txtCantidadUbicacion.getText().isBlank();
     }
@@ -934,6 +973,7 @@ public class controllerNuevoTraspasoSalida {
         caducidadValidada = false;
         ubicacionValidada = false;
         cantidadDisponibleUbicacion = 0;
+        cantidadTotalValida = false;
     }
 
     private void limpiarUbicacionPrimaria() {
