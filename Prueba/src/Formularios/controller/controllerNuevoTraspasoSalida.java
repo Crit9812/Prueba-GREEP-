@@ -101,7 +101,7 @@ public class controllerNuevoTraspasoSalida {
 
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
-        cbPresentacion.setValue("pz");
+        cbPresentacion.setValue(null);
     }
 
     private void cargarUbicacionesDesdeBD() {
@@ -170,7 +170,7 @@ public class controllerNuevoTraspasoSalida {
                 cantidadDisponibleUbicacion = 0;
                 cantidadTotalValida = false;
                 dpCaducidad.setValue(null);
-                cbPresentacion.setValue("pz");
+                cbPresentacion.setValue(null);
                 txtFactor.clear();
                 limpiarUbicacionPrimaria();
                 limpiarPrecios();
@@ -211,7 +211,7 @@ public class controllerNuevoTraspasoSalida {
         limpiarPrecios();
         limpiarValidacionesInventario();
         limpiarUbicacionPrimaria();
-        cbPresentacion.setValue("pz");
+        cbPresentacion.setValue(null);
         txtFactor.clear();
         actualizarEstadoCascada();
     }
@@ -511,7 +511,7 @@ public class controllerNuevoTraspasoSalida {
         txtLote.clear();
         dpCaducidad.setValue(null);
         txtCantidad.clear();
-        cbPresentacion.setValue("pz");
+        cbPresentacion.setValue(null);
         txtFactor.clear();
         txtCantidadUbicacion.clear();
         limpiarPrecios();
@@ -689,6 +689,12 @@ public class controllerNuevoTraspasoSalida {
             }
         });
 
+        cbPresentacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarCamposDesdePresentacion();
+            }
+        });
+
         txtCantidad.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 validarCamposDesdeCantidad();
@@ -764,6 +770,7 @@ public class controllerNuevoTraspasoSalida {
             validarLoteCompleto(lote);
             ultimoLoteValidado = loteValidado ? lote : "";
         } else if (txtCantidad.getText() != null && !txtCantidad.getText().isBlank()) {
+            txtCantidad.clear();
             mostrarAlerta("Advertencia", "Debe capturar el lote antes de la cantidad.");
         }
         validarCantidadTotalDisponible();
@@ -777,10 +784,27 @@ public class controllerNuevoTraspasoSalida {
 
     private void validarCamposDesdeCantidad() {
         validarCamposDesdeLote();
+        if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isBlank()) {
+            if (txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
+                txtFactor.clear();
+                mostrarAlerta("Advertencia", "Debe capturar la presentación antes del factor.");
+            }
+        }
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
         if (cantidadTexto.isBlank() && txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
+            txtFactor.clear();
             mostrarAlerta("Advertencia", "Debe capturar la cantidad antes del factor.");
         }
+    }
+
+    private void validarCamposDesdePresentacion() {
+        validarCamposDesdeLote();
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (cantidadTexto.isBlank() && cbPresentacion.getValue() != null && !cbPresentacion.getValue().isBlank()) {
+            cbPresentacion.setValue(null);
+            mostrarAlerta("Advertencia", "Debe capturar la cantidad antes de la presentación.");
+        }
+        validarPresentacion();
     }
 
     private void validarCamposDesdeFactor() {
@@ -791,6 +815,10 @@ public class controllerNuevoTraspasoSalida {
         }
         if ((comboUbicacion.getValue() != null && !comboUbicacion.getValue().isBlank())
                 && (txtFactor.getText() == null || txtFactor.getText().isBlank())) {
+            comboUbicacion.setValue(null);
+            if (comboUbicacion.getEditor() != null) {
+                comboUbicacion.getEditor().clear();
+            }
             mostrarAlerta("Advertencia", "Debe capturar el factor antes de la ubicación.");
         }
     }
@@ -801,6 +829,7 @@ public class controllerNuevoTraspasoSalida {
         validarCantidadDisponible();
         if (txtCantidadUbicacion.getText() != null && !txtCantidadUbicacion.getText().isBlank()
                 && (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank())) {
+            txtCantidadUbicacion.clear();
             mostrarAlerta("Advertencia", "Debe capturar la ubicación antes de la cantidad en ubicación.");
         }
     }
@@ -969,7 +998,7 @@ public class controllerNuevoTraspasoSalida {
         boolean existe = modelo.existePresentacionParaProductoLote(idProducto, lote, presentacion);
         if (!existe) {
             presentacionValida = false;
-            cbPresentacion.setValue("pz");
+            cbPresentacion.setValue(null);
             mostrarAlerta("Advertencia", "La presentación no existe para el lote y producto seleccionados.");
         } else {
             presentacionValida = true;
