@@ -12,7 +12,6 @@ import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -46,7 +45,6 @@ public class controllerNuevoTraspasoSalida {
     @FXML private TextField txtFactor;
     @FXML private TextField txtCantidadUbicacion;
     @FXML private TextField txtPrecioEntrada;
-    @FXML private CheckBox checkBoxIVA;
     @FXML private TextField txtPrecioIVA;
     @FXML private TextField txtPrecioBruto;
     @FXML private TextField txtPrecioTotal;
@@ -64,8 +62,11 @@ public class controllerNuevoTraspasoSalida {
     private final modelNuevoTraspasoSalida modelo = new modelNuevoTraspasoSalida();
     private productoCboxController productoController;
 
-    private static final BigDecimal IVA_TASA = new BigDecimal("0.16");
     private BigDecimal precioIvaBase = BigDecimal.ZERO;
+    private boolean loteValidado = false;
+    private boolean caducidadValidada = false;
+    private boolean ubicacionValidada = false;
+    private int cantidadDisponibleUbicacion = 0;
 
     @FXML
     public void initialize() {
@@ -81,6 +82,7 @@ public class controllerNuevoTraspasoSalida {
         cargarUbicacionesDesdeBD();
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
+        configurarCascada();
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
     }
@@ -119,6 +121,7 @@ public class controllerNuevoTraspasoSalida {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
+                actualizarEstadoCascada();
             }
         });
 
@@ -126,6 +129,7 @@ public class controllerNuevoTraspasoSalida {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
+                actualizarEstadoCascada();
             }
         });
 
@@ -133,6 +137,20 @@ public class controllerNuevoTraspasoSalida {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
+                actualizarEstadoCascada();
+            }
+        });
+
+        txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (oldVal != null && !oldVal.equals(newVal)) {
+                loteValidado = false;
+                caducidadValidada = false;
+                ubicacionValidada = false;
+                cantidadDisponibleUbicacion = 0;
+                dpCaducidad.setValue(null);
+                limpiarUbicacionPrimaria();
+                limpiarPrecios();
+                actualizarEstadoCascada();
             }
         });
 
@@ -166,13 +184,17 @@ public class controllerNuevoTraspasoSalida {
         productoController.limpiarSeleccion();
         txtDescripcion.clear();
         limpiarPrecios();
+        limpiarValidacionesInventario();
+        limpiarUbicacionPrimaria();
+        actualizarEstadoCascada();
     }
 
     private void configurarCalculoPrecios() {
-        txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
-        if (checkBoxIVA != null) {
-            checkBoxIVA.selectedProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
-        }
+        txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
+            validarCantidadDisponible();
+            recalcularPrecios();
+            actualizarEstadoCascada();
+        });
     }
 
     private void configurarCamposLectura() {
@@ -180,9 +202,6 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);
         txtPrecioTotal.setEditable(false);
-        if (checkBoxIVA != null) {
-            checkBoxIVA.setDisable(true);
-        }
     }
 
     private void configurarManejoEnter() {
@@ -222,6 +241,27 @@ public class controllerNuevoTraspasoSalida {
         });
 
         txtFactor.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                guardarItem();
+                event.consume();
+            }
+        });
+
+        txtLote.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                dpCaducidad.requestFocus();
+                event.consume();
+            }
+        });
+
+        dpCaducidad.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                txtCantidad.requestFocus();
+                event.consume();
+            }
+        });
+
+        txtCantidadUbicacion.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
                 guardarItem();
                 event.consume();
@@ -272,10 +312,19 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
 
+        if (!datosCompletosParaPrecio()) {
+            limpiarPrecios();
+            return;
+        }
+
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String ubicacionNombre = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
+
         javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
-                return modelo.obtenerPreciosProducto(idProducto);
+                return modelo.obtenerPreciosProducto(idProducto, lote, caducidad, ubicacionNombre);
             }
 
             @Override
@@ -309,9 +358,6 @@ public class controllerNuevoTraspasoSalida {
 
         txtPrecioEntrada.setText(formatearDecimal(precioEntrada));
         precioIvaBase = precioIva != null ? precioIva : BigDecimal.ZERO;
-        if (checkBoxIVA != null) {
-            checkBoxIVA.setSelected(precioIvaBase.compareTo(precioEntrada) > 0);
-        }
         recalcularPrecios();
     }
 
@@ -321,9 +367,6 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioBruto.clear();
         txtPrecioTotal.clear();
         precioIvaBase = BigDecimal.ZERO;
-        if (checkBoxIVA != null) {
-            checkBoxIVA.setSelected(false);
-        }
     }
 
     private void guardarItem() {
@@ -339,6 +382,11 @@ public class controllerNuevoTraspasoSalida {
         if (!productoController.validarSeleccion()) {
             mostrarAlerta("Error", "El ID y el nombre del producto no corresponden.\n" +
                     "Por favor, verifique la selección.");
+            return;
+        }
+
+        if (!loteValidado || !caducidadValidada || !ubicacionValidada) {
+            mostrarAlerta("Advertencia", "Complete el lote, caducidad y ubicación válidos antes de continuar.");
             return;
         }
 
@@ -431,6 +479,8 @@ public class controllerNuevoTraspasoSalida {
         txtFactor.clear();
         txtCantidadUbicacion.clear();
         limpiarPrecios();
+        limpiarValidacionesInventario();
+        limpiarUbicacionPrimaria();
 
         while (contenedorUbicaciones.getChildren().size() > 1) {
             contenedorUbicaciones.getChildren().remove(1);
@@ -439,6 +489,7 @@ public class controllerNuevoTraspasoSalida {
         limpiarComboUbicacion(comboUbicacion);
 
         cbClaveProducto.requestFocus();
+        actualizarEstadoCascada();
     }
 
     @FXML
@@ -673,13 +724,8 @@ public class controllerNuevoTraspasoSalida {
         BigDecimal precioEntrada = parseDecimal(txtPrecioEntrada.getText());
 
         BigDecimal precioConIva = precioEntrada;
-        if (checkBoxIVA != null && checkBoxIVA.isSelected()) {
-            if (precioIvaBase != null && precioIvaBase.compareTo(BigDecimal.ZERO) > 0) {
-                precioConIva = precioIvaBase;
-            } else {
-                BigDecimal iva = precioEntrada.multiply(IVA_TASA);
-                precioConIva = precioEntrada.add(iva);
-            }
+        if (precioIvaBase != null && precioIvaBase.compareTo(BigDecimal.ZERO) > 0) {
+            precioConIva = precioIvaBase;
         }
 
         BigDecimal precioBruto = precioEntrada.multiply(BigDecimal.valueOf(cantidad));
@@ -719,5 +765,178 @@ public class controllerNuevoTraspasoSalida {
         }
         Stage stage = (Stage) btnGuardar.getScene().getWindow();
         stage.close();
+    }
+
+    private void configurarCascada() {
+        txtDescripcion.setEditable(false);
+        actualizarEstadoCascada();
+
+        txtLote.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarLote();
+            }
+        });
+
+        dpCaducidad.valueProperty().addListener((obs, oldVal, newVal) -> {
+            validarCaducidad();
+            actualizarEstadoCascada();
+        });
+
+        comboUbicacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            validarUbicacion();
+            actualizarEstadoCascada();
+        });
+
+        txtCantidadUbicacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarCantidadDisponible();
+            }
+        });
+    }
+
+    private void actualizarEstadoCascada() {
+        boolean descripcionLista = txtDescripcion.getText() != null && !txtDescripcion.getText().isBlank();
+        txtLote.setDisable(!descripcionLista);
+
+        boolean loteListo = descripcionLista && txtLote.getText() != null && !txtLote.getText().isBlank() && loteValidado;
+        dpCaducidad.setDisable(!loteListo);
+
+        boolean caducidadLista = loteListo && dpCaducidad.getValue() != null && caducidadValidada;
+        txtCantidad.setDisable(!caducidadLista);
+
+        boolean cantidadLista = caducidadLista && txtCantidad.getText() != null && !txtCantidad.getText().isBlank();
+        cbPresentacion.setDisable(!cantidadLista);
+
+        boolean presentacionLista = cantidadLista && cbPresentacion.getValue() != null && !cbPresentacion.getValue().isBlank();
+        txtFactor.setDisable(!presentacionLista);
+
+        boolean factorLista = presentacionLista && txtFactor.getText() != null && !txtFactor.getText().isBlank();
+        comboUbicacion.setDisable(!factorLista);
+
+        boolean ubicacionLista = factorLista && comboUbicacion.getValue() != null && !comboUbicacion.getValue().isBlank() && ubicacionValidada;
+        txtCantidadUbicacion.setDisable(!ubicacionLista);
+    }
+
+    private void validarLote() {
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        if (lote.isBlank()) {
+            loteValidado = false;
+            actualizarEstadoCascada();
+            return;
+        }
+        boolean existe = modelo.existeLote(lote);
+        if (!existe) {
+            loteValidado = false;
+            txtLote.clear();
+            dpCaducidad.setValue(null);
+            limpiarUbicacionPrimaria();
+            mostrarAlerta("Advertencia", "No se encontró un artículo con ese lote. Verifique el dato.");
+        } else {
+            loteValidado = true;
+        }
+        caducidadValidada = false;
+        ubicacionValidada = false;
+        actualizarEstadoCascada();
+        limpiarPrecios();
+    }
+
+    private void validarCaducidad() {
+        if (!loteValidado || dpCaducidad.getValue() == null) {
+            caducidadValidada = false;
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        boolean existe = modelo.existeLoteConCaducidad(lote, dpCaducidad.getValue());
+        if (!existe) {
+            caducidadValidada = false;
+            dpCaducidad.setValue(null);
+            limpiarUbicacionPrimaria();
+            mostrarAlerta("Advertencia", "No hay productos con ese lote y caducidad.");
+        } else {
+            caducidadValidada = true;
+        }
+        ubicacionValidada = false;
+        actualizarEstadoCascada();
+        limpiarPrecios();
+    }
+
+    private void validarUbicacion() {
+        if (!caducidadValidada) {
+            ubicacionValidada = false;
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String ubicacion = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
+        if (ubicacion.isBlank()) {
+            ubicacionValidada = false;
+            return;
+        }
+        boolean existe = modelo.existeLoteCaducidadUbicacion(lote, caducidad, ubicacion);
+        if (!existe) {
+            ubicacionValidada = false;
+            comboUbicacion.setValue(null);
+            if (comboUbicacion.getEditor() != null) {
+                comboUbicacion.getEditor().clear();
+            }
+            txtCantidadUbicacion.clear();
+            mostrarAlerta("Advertencia", "No hay productos en esa ubicación para el lote y caducidad indicados.");
+        } else {
+            ubicacionValidada = true;
+            cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponible(lote, caducidad, ubicacion);
+        }
+        actualizarEstadoCascada();
+        limpiarPrecios();
+    }
+
+    private void validarCantidadDisponible() {
+        if (!ubicacionValidada) {
+            return;
+        }
+        String texto = txtCantidadUbicacion.getText() != null ? txtCantidadUbicacion.getText().trim() : "";
+        if (texto.isBlank()) {
+            return;
+        }
+        int cantidad = parseEntero(texto);
+        if (cantidad <= 0) {
+            return;
+        }
+        if (cantidad > cantidadDisponibleUbicacion) {
+            txtCantidadUbicacion.clear();
+            mostrarAlerta("Advertencia", "La cantidad supera la disponible en esa ubicación.");
+        } else {
+            cargarPreciosDesdeProducto();
+        }
+    }
+
+    private boolean datosCompletosParaPrecio() {
+        return productoController.getIdSeleccionado() != null
+                && !productoController.getIdSeleccionado().isBlank()
+                && loteValidado
+                && caducidadValidada
+                && ubicacionValidada
+                && txtCantidad.getText() != null
+                && !txtCantidad.getText().isBlank()
+                && txtCantidadUbicacion.getText() != null
+                && !txtCantidadUbicacion.getText().isBlank();
+    }
+
+    private void limpiarValidacionesInventario() {
+        loteValidado = false;
+        caducidadValidada = false;
+        ubicacionValidada = false;
+        cantidadDisponibleUbicacion = 0;
+    }
+
+    private void limpiarUbicacionPrimaria() {
+        if (comboUbicacion != null) {
+            comboUbicacion.setValue(null);
+            if (comboUbicacion.getEditor() != null) {
+                comboUbicacion.getEditor().clear();
+            }
+        }
+        if (txtCantidadUbicacion != null) {
+            txtCantidadUbicacion.clear();
+        }
     }
 }

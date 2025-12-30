@@ -121,10 +121,6 @@
                             <Label text="Precio entrada:"/>
                             <TextField fx:id="txtPrecioEntrada"/>
                         </VBox>
-                        <VBox spacing="5">
-                            <Label text="IVA:" prefWidth="30" minWidth="30"/>
-                            <CheckBox fx:id="checkBoxIVA"/>
-                        </VBox>
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
                             <Label text="Precio con IVA:"/>
                             <TextField fx:id="txtPrecioIVA"/>

@@ -31,11 +31,21 @@ public class modelNuevoTraspasoSalida {
     }
 
     public Optional<PreciosProducto> obtenerPreciosProducto(String idProducto) {
+        return obtenerPreciosProducto(idProducto, null, null, null);
+    }
+
+    public Optional<PreciosProducto> obtenerPreciosProducto(String idProducto, String lote,
+                                                            java.time.LocalDate caducidad, String ubicacionNombre) {
         String sql = """
-            SELECT precioUnitario, precioIVA, precioBrutoTotal, precioTotal
-            FROM detalle_Entrada
-            WHERE claveProducto = ?
-            ORDER BY idDetalleEntrada DESC
+            SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
+            FROM detalle_Entrada de
+            JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            JOIN ubicaciones u ON u.id = a.ubicacion
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND a.caducidad = ?
+              AND u.nombre = ?
+            ORDER BY de.idDetalleEntrada DESC
             LIMIT 1
         """;
 
@@ -43,6 +53,13 @@ public class modelNuevoTraspasoSalida {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, idProducto);
+            ps.setString(2, lote != null ? lote : "");
+            if (caducidad != null) {
+                ps.setDate(3, java.sql.Date.valueOf(caducidad));
+            } else {
+                ps.setDate(3, null);
+            }
+            ps.setString(4, ubicacionNombre != null ? ubicacionNombre : "");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -58,6 +75,89 @@ public class modelNuevoTraspasoSalida {
         }
 
         return Optional.empty();
+    }
+
+    public boolean existeLote(String lote) {
+        String sql = "SELECT 1 FROM articulo WHERE lote = ? LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lote);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean existeLoteConCaducidad(String lote, java.time.LocalDate caducidad) {
+        String sql = "SELECT 1 FROM articulo WHERE lote = ? AND caducidad = ? LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lote);
+            ps.setDate(2, java.sql.Date.valueOf(caducidad));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean existeLoteCaducidadUbicacion(String lote, java.time.LocalDate caducidad, String ubicacionNombre) {
+        String sql = """
+            SELECT 1
+            FROM articulo a
+            JOIN ubicaciones u ON u.id = a.ubicacion
+            WHERE a.lote = ? AND a.caducidad = ? AND u.nombre = ?
+            LIMIT 1
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lote);
+            ps.setDate(2, java.sql.Date.valueOf(caducidad));
+            ps.setString(3, ubicacionNombre);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public int obtenerCantidadDisponible(String lote, java.time.LocalDate caducidad, String ubicacionNombre) {
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM articulo a
+            JOIN ubicaciones u ON u.id = a.ubicacion
+            WHERE a.lote = ? AND a.caducidad = ? AND u.nombre = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lote);
+            ps.setDate(2, java.sql.Date.valueOf(caducidad));
+            ps.setString(3, ubicacionNombre);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 
     private BigDecimal obtenerDecimal(ResultSet rs, String columna) {
