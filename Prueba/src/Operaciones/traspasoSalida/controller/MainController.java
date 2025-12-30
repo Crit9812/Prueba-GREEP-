@@ -4,18 +4,16 @@ import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import java.io.IOException;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.control.ComboBox;
+import Operaciones.traspasoSalida.model.model;
 
 public class MainController {
 
@@ -30,12 +28,17 @@ public class MainController {
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
-    @FXML private TextField buscador;
+    @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblSucursal;
     @FXML private Region expansor;
 
     @FXML private encabezadoController paneNavbarController;
+    private final model model = new model();
+    private ObservableList<String> sucursalesCache;
+    private final ObservableList<String> sucursalesFiltradas = FXCollections.observableArrayList();
+    private String sucursalSeleccionadaId;
+    private boolean actualizandoSucursal = false;
 
     @FXML
     public void initialize() {
@@ -87,6 +90,80 @@ public class MainController {
 
             paneNavbarController.setTitulo("Traspaso de Salida", "#ffffff");
 
+        });
+        configurarAutocompleteSucursales();
+    }
+
+    private void configurarAutocompleteSucursales() {
+        sucursalesCache = FXCollections.observableArrayList();
+        buscador.setItems(sucursalesFiltradas);
+
+        javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected java.util.List<String> call() {
+                return model.obtenerNombresSucursales();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.List<String> resultado = getValue();
+                sucursalesCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                sucursalesFiltradas.setAll(sucursalesCache);
+            }
+
+            @Override
+            protected void failed() {
+                sucursalesCache.clear();
+                sucursalesFiltradas.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+
+        buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
+            if (actualizandoSucursal) {
+                return;
+            }
+            actualizandoSucursal = true;
+            try {
+                String seleccionado = buscador.getValue();
+                if (seleccionado != null && seleccionado.equals(newText)) {
+                    return;
+                }
+                if (newText == null || newText.isBlank()) {
+                    sucursalesFiltradas.setAll(sucursalesCache);
+                    return;
+                }
+
+                ObservableList<String> filtrados = FXCollections.observableArrayList();
+                for (String nombre : sucursalesCache) {
+                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                        filtrados.add(nombre);
+                    }
+                }
+
+                java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
+                javafx.application.Platform.runLater(() -> {
+                    sucursalesFiltradas.setAll(nuevos);
+                    if (!nuevos.isEmpty() && buscador.isFocused()) {
+                        buscador.show();
+                    }
+                });
+            } finally {
+                actualizandoSucursal = false;
+            }
+        });
+
+        buscador.setOnShowing(event -> sucursalesFiltradas.setAll(sucursalesCache));
+
+        buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                sucursalSeleccionadaId = model.obtenerIdSucursalPorNombre(newVal);
+            } else {
+                sucursalSeleccionadaId = null;
+            }
         });
     }
 

@@ -50,7 +50,13 @@
                                     <Insets right="10"/>
                                 </HBox.margin>
                             </Label>
-                            <TextField fx:id="buscador" prefHeight="30"/>
+                            <ComboBox fx:id="buscador"
+                                      editable="true"
+                                      styleClass="barraBusqueda combo-sin-flecha">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </ComboBox>
                             <Button styleClass="botones" onMouseClicked="#abrirTraspasoSalida">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
