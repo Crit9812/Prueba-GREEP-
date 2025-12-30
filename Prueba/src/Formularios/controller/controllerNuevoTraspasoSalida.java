@@ -3,6 +3,7 @@ package Formularios.controller;
 import Compartido.controller.productoCboxController;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -22,6 +23,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -70,6 +72,10 @@ public class controllerNuevoTraspasoSalida {
     private boolean ubicacionValidada = false;
     private int cantidadDisponibleUbicacion = 0;
     private boolean cantidadTotalValida = false;
+    private final PauseTransition loteDebounce = new PauseTransition(Duration.millis(200));
+    private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(Duration.millis(150));
+    private String ultimoLoteValidado = "";
+    private String ultimaCantidadUbicacionValidada = "";
 
     @FXML
     public void initialize() {
@@ -174,6 +180,7 @@ public class controllerNuevoTraspasoSalida {
                 limpiarPrecios();
                 actualizarEstadoCascada();
             }
+            programarValidacionLote(newVal);
         });
 
         btnGuardar.setOnAction(e -> guardarItem());
@@ -219,6 +226,10 @@ public class controllerNuevoTraspasoSalida {
             validarCantidadDisponible();
             recalcularPrecios();
             actualizarEstadoCascada();
+        });
+
+        txtCantidadUbicacion.textProperty().addListener((obs, oldVal, newVal) -> {
+            programarValidacionCantidadUbicacion(newVal);
         });
     }
 
@@ -667,21 +678,9 @@ public class controllerNuevoTraspasoSalida {
         dpCaducidad.setFocusTraversable(false);
         actualizarEstadoCascada();
 
-        txtLote.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                validarLote();
-            }
-        });
-
         comboUbicacion.valueProperty().addListener((obs, oldVal, newVal) -> {
             validarUbicacion();
             actualizarEstadoCascada();
-        });
-
-        txtCantidadUbicacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                validarCantidadDisponible();
-            }
         });
     }
 
@@ -799,6 +798,52 @@ public class controllerNuevoTraspasoSalida {
         }
     }
 
+    private void programarValidacionLote(String nuevoValor) {
+        loteDebounce.stop();
+        if (nuevoValor == null || nuevoValor.isBlank()) {
+            ultimoLoteValidado = "";
+            return;
+        }
+        loteDebounce.setOnFinished(event -> {
+            String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+            if (loteActual.isBlank()) {
+                return;
+            }
+            if (loteActual.equals(ultimoLoteValidado) && loteValidado) {
+                return;
+            }
+            validarLote();
+            if (loteValidado) {
+                ultimoLoteValidado = loteActual;
+            }
+        });
+        loteDebounce.playFromStart();
+    }
+
+    private void programarValidacionCantidadUbicacion(String nuevoValor) {
+        cantidadUbicacionDebounce.stop();
+        if (nuevoValor == null || nuevoValor.isBlank()) {
+            ultimaCantidadUbicacionValidada = "";
+            return;
+        }
+        cantidadUbicacionDebounce.setOnFinished(event -> {
+            String cantidadActual = txtCantidadUbicacion.getText() != null
+                    ? txtCantidadUbicacion.getText().trim()
+                    : "";
+            if (cantidadActual.isBlank()) {
+                ultimaCantidadUbicacionValidada = "";
+                return;
+            }
+            if (cantidadActual.equals(ultimaCantidadUbicacionValidada)) {
+                return;
+            }
+            validarCantidadDisponible();
+            actualizarEstadoCascada();
+            ultimaCantidadUbicacionValidada = cantidadActual;
+        });
+        cantidadUbicacionDebounce.playFromStart();
+    }
+
     private void validarCantidadTotalDisponible() {
         if (!caducidadValidada) {
             cantidadTotalValida = false;
@@ -900,6 +945,8 @@ public class controllerNuevoTraspasoSalida {
         ubicacionValidada = false;
         cantidadDisponibleUbicacion = 0;
         cantidadTotalValida = false;
+        ultimoLoteValidado = "";
+        ultimaCantidadUbicacionValidada = "";
     }
 
     private void configurarAutocompletadoUbicacion(ComboBox<String> comboBox) {
@@ -946,5 +993,6 @@ public class controllerNuevoTraspasoSalida {
         if (txtCantidadUbicacion != null) {
             txtCantidadUbicacion.clear();
         }
+        ultimaCantidadUbicacionValidada = "";
     }
 }
