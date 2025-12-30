@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import Compartido.helper.AutoCompleteComboBoxListener;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -72,7 +73,7 @@ public class controllerNuevoTraspasoSalida {
     private boolean ubicacionValidada = false;
     private int cantidadDisponibleUbicacion = 0;
     private boolean cantidadTotalValida = false;
-    private static final Duration DEBOUNCE_TIEMPO = Duration.seconds(4);
+    private static final Duration DEBOUNCE_TIEMPO = Duration.millis(300);
     private final PauseTransition loteDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition factorDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
@@ -756,35 +757,58 @@ public class controllerNuevoTraspasoSalida {
         if (idProducto == null || idProducto.isBlank()) {
             loteValidado = false;
             txtLote.clear();
-            mostrarAlerta("Advertencia", "Seleccione un producto antes de validar el lote.");
+            mostrarAlertaSinEspera("Advertencia", "Seleccione un producto antes de validar el lote.");
             actualizarEstadoCascada();
             return;
         }
-        boolean existe = modelo.existeLoteParaProducto(lote, idProducto);
-        if (!existe) {
-            loteValidado = false;
-            txtLote.clear();
-            dpCaducidad.setValue(null);
-            limpiarUbicacionPrimaria();
-            mostrarAlerta("Advertencia", "El lote no corresponde al producto seleccionado.");
-        } else {
-            loteValidado = true;
-            Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(lote, idProducto);
-            if (caducidad.isPresent()) {
-                dpCaducidad.setValue(caducidad.get());
-                caducidadValidada = true;
-            } else {
-                dpCaducidad.setValue(null);
-                caducidadValidada = false;
-                mostrarAlerta("Advertencia", "No se encontró caducidad para el lote seleccionado.");
+        String loteSnapshot = lote;
+        String productoSnapshot = idProducto;
+        javafx.concurrent.Task<Optional<java.time.LocalDate>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Optional<java.time.LocalDate> call() {
+                boolean existe = modelo.existeLoteParaProducto(loteSnapshot, productoSnapshot);
+                if (!existe) {
+                    return Optional.empty();
+                }
+                return modelo.obtenerCaducidadParaLoteProducto(loteSnapshot, productoSnapshot);
             }
-        }
-        ubicacionValidada = false;
-        cantidadTotalValida = false;
-        presentacionValida = false;
-        factorValido = false;
-        actualizarEstadoCascada();
-        limpiarPrecios();
+
+            @Override
+            protected void succeeded() {
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String idActual = productoController.getIdSeleccionado();
+                if (!loteSnapshot.equals(loteActual) || !productoSnapshot.equals(idActual)) {
+                    return;
+                }
+                Optional<java.time.LocalDate> caducidad = getValue();
+                if (caducidad.isEmpty()) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia", "El lote no corresponde al producto seleccionado.");
+                } else {
+                    loteValidado = true;
+                    dpCaducidad.setValue(caducidad.get());
+                    caducidadValidada = true;
+                }
+                ubicacionValidada = false;
+                cantidadTotalValida = false;
+                presentacionValida = false;
+                factorValido = false;
+                actualizarEstadoCascada();
+                limpiarPrecios();
+            }
+
+            @Override
+            protected void failed() {
+                loteValidado = false;
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void validarCamposDesdeLote() {
@@ -887,21 +911,53 @@ public class controllerNuevoTraspasoSalida {
             ubicacionValidada = false;
             return;
         }
-        boolean existe = modelo.existeLoteCaducidadUbicacion(lote, caducidad, ubicacion);
-        if (!existe) {
-            ubicacionValidada = false;
-            comboUbicacion.setValue(null);
-            if (comboUbicacion.getEditor() != null) {
-                comboUbicacion.getEditor().clear();
+        String loteSnapshot = lote;
+        java.time.LocalDate caducidadSnapshot = caducidad;
+        String ubicacionSnapshot = ubicacion;
+
+        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Boolean call() {
+                boolean existe = modelo.existeLoteCaducidadUbicacion(loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                if (existe) {
+                    cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponible(
+                            loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                }
+                return existe;
             }
-            txtCantidadUbicacion.clear();
-            mostrarAlerta("Advertencia", "No hay productos en esa ubicación para el lote y caducidad indicados.");
-        } else {
-            ubicacionValidada = true;
-            cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponible(lote, caducidad, ubicacion);
-        }
-        actualizarEstadoCascada();
-        limpiarPrecios();
+
+            @Override
+            protected void succeeded() {
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
+                String ubicacionActual = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
+                if (!loteSnapshot.equals(loteActual)
+                        || caducidadSnapshot == null
+                        || !caducidadSnapshot.equals(caducidadActual)
+                        || !ubicacionSnapshot.equals(ubicacionActual)) {
+                    return;
+                }
+                boolean existe = getValue();
+                if (!existe) {
+                    ubicacionValidada = false;
+                    comboUbicacion.setValue(null);
+                    if (comboUbicacion.getEditor() != null) {
+                        comboUbicacion.getEditor().clear();
+                    }
+                    txtCantidadUbicacion.clear();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "No hay productos en esa ubicación para el lote y caducidad indicados.");
+                } else {
+                    ubicacionValidada = true;
+                }
+                actualizarEstadoCascada();
+                limpiarPrecios();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void validarCantidadDisponible() {
@@ -1030,14 +1086,46 @@ public class controllerNuevoTraspasoSalida {
             cantidadTotalValida = false;
             return;
         }
-        int disponible = modelo.obtenerCantidadDisponibleProductoLoteCaducidad(idProducto, lote, dpCaducidad.getValue());
-        if (cantidad > disponible) {
-            txtCantidad.clear();
-            cantidadTotalValida = false;
-            mostrarAlerta("Advertencia", "La cantidad supera la disponible para el lote y caducidad seleccionados.");
-        } else {
-            cantidadTotalValida = true;
-        }
+        String loteSnapshot = lote;
+        String idSnapshot = idProducto;
+        java.time.LocalDate caducidadSnapshot = dpCaducidad.getValue();
+        int cantidadSnapshot = cantidad;
+
+        javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Integer call() {
+                return modelo.obtenerCantidadDisponibleProductoLoteCaducidad(
+                        idSnapshot, loteSnapshot, caducidadSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String idActual = productoController.getIdSeleccionado();
+                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
+                int cantidadActual = parseEntero(txtCantidad.getText());
+                if (!loteSnapshot.equals(loteActual)
+                        || !idSnapshot.equals(idActual)
+                        || caducidadSnapshot == null
+                        || !caducidadSnapshot.equals(caducidadActual)
+                        || cantidadActual != cantidadSnapshot) {
+                    return;
+                }
+                int disponible = getValue();
+                if (cantidadSnapshot > disponible) {
+                    txtCantidad.clear();
+                    cantidadTotalValida = false;
+                    mostrarAlertaSinEspera("Advertencia",
+                            "La cantidad supera la disponible para el lote y caducidad seleccionados.");
+                } else {
+                    cantidadTotalValida = true;
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void validarPresentacion() {
@@ -1052,15 +1140,43 @@ public class controllerNuevoTraspasoSalida {
             presentacionValida = false;
             return;
         }
-        boolean existe = modelo.existePresentacionParaProductoLote(idProducto, lote, presentacion);
-        if (!existe) {
-            presentacionValida = false;
-            cbPresentacion.setValue(null);
-            mostrarAlerta("Advertencia", "La presentación no existe para el lote y producto seleccionados.");
-        } else {
-            presentacionValida = true;
-            ultimaPresentacionValidada = presentacion;
-        }
+        String loteSnapshot = lote;
+        String idSnapshot = idProducto;
+        String presentacionSnapshot = presentacion;
+
+        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Boolean call() {
+                return modelo.existePresentacionParaProductoLote(idSnapshot, loteSnapshot, presentacionSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String idActual = productoController.getIdSeleccionado();
+                String presentacionActual = cbPresentacion.getValue();
+                if (!loteSnapshot.equals(loteActual)
+                        || !idSnapshot.equals(idActual)
+                        || presentacionActual == null
+                        || !presentacionSnapshot.equals(presentacionActual)) {
+                    return;
+                }
+                boolean existe = getValue();
+                if (!existe) {
+                    presentacionValida = false;
+                    cbPresentacion.setValue(null);
+                    mostrarAlertaSinEspera("Advertencia",
+                            "La presentación no existe para el lote y producto seleccionados.");
+                } else {
+                    presentacionValida = true;
+                    ultimaPresentacionValidada = presentacionSnapshot;
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
         factorValido = false;
     }
 
@@ -1097,14 +1213,46 @@ public class controllerNuevoTraspasoSalida {
             factorValido = false;
             return;
         }
-        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factor);
-        if (!existe) {
-            factorValido = false;
-            txtFactor.clear();
-            mostrarAlerta("Advertencia", "El factor no corresponde con la presentación y lote seleccionados.");
-        } else {
-            factorValido = true;
-        }
+        String loteSnapshot = lote;
+        String idSnapshot = idProducto;
+        String presentacionSnapshot = presentacion;
+        int factorSnapshot = factor;
+
+        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Boolean call() {
+                return modelo.existeFactorParaProductoLotePresentacion(
+                        idSnapshot, loteSnapshot, presentacionSnapshot, factorSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String idActual = productoController.getIdSeleccionado();
+                String presentacionActual = cbPresentacion.getValue();
+                int factorActual = parseEntero(txtFactor.getText());
+                if (!loteSnapshot.equals(loteActual)
+                        || !idSnapshot.equals(idActual)
+                        || presentacionActual == null
+                        || !presentacionSnapshot.equals(presentacionActual)
+                        || factorActual != factorSnapshot) {
+                    return;
+                }
+                boolean existe = getValue();
+                if (!existe) {
+                    factorValido = false;
+                    txtFactor.clear();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El factor no corresponde con la presentación y lote seleccionados.");
+                } else {
+                    factorValido = true;
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private boolean datosCompletosParaPrecio() {
