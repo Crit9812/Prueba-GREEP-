@@ -240,6 +240,56 @@ public class modelNuevoTraspasoSalida {
         return 0;
     }
 
+    public boolean existePresentacionParaProductoLote(String idProducto, String lote, String presentacion) {
+        String sql = """
+            SELECT 1
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ?
+            LIMIT 1
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProducto);
+            ps.setString(2, lote);
+            ps.setString(3, presentacion);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean existeFactorParaProductoLotePresentacion(String idProducto, String lote,
+                                                            String presentacion, String factorTexto) {
+        String sql = """
+            SELECT 1
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ? AND a.factor = ?
+            LIMIT 1
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProducto);
+            ps.setString(2, lote);
+            ps.setString(3, presentacion);
+            ps.setString(4, factorTexto);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private BigDecimal obtenerDecimal(ResultSet rs, String columna) {
         try {
             BigDecimal valor = rs.getBigDecimal(columna);

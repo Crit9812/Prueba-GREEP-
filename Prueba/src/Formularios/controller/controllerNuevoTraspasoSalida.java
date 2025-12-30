@@ -6,7 +6,7 @@ import Operaciones.compra.model.UbicacionCompra;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
+import Compartido.helper.AutoCompleteComboBoxListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -65,6 +65,8 @@ public class controllerNuevoTraspasoSalida {
     private BigDecimal precioIvaBase = BigDecimal.ZERO;
     private boolean loteValidado = false;
     private boolean caducidadValidada = false;
+    private boolean presentacionValida = false;
+    private boolean factorValido = false;
     private boolean ubicacionValidada = false;
     private int cantidadDisponibleUbicacion = 0;
     private boolean cantidadTotalValida = false;
@@ -75,7 +77,7 @@ public class controllerNuevoTraspasoSalida {
         productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
 
         configurarPresentaciones();
-        configurarAutocompletado(comboUbicacion);
+        configurarAutocompletadoUbicacion(comboUbicacion);
         configurarEventos();
         configurarValidaciones();
         configurarCalculoPrecios();
@@ -142,14 +144,32 @@ public class controllerNuevoTraspasoSalida {
             }
         });
 
+        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            presentacionValida = false;
+            factorValido = false;
+            validarPresentacion();
+            actualizarEstadoCascada();
+        });
+
+        txtFactor.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarFactor();
+                actualizarEstadoCascada();
+            }
+        });
+
         txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
             if (oldVal != null && !oldVal.equals(newVal)) {
                 loteValidado = false;
                 caducidadValidada = false;
+                presentacionValida = false;
+                factorValido = false;
                 ubicacionValidada = false;
                 cantidadDisponibleUbicacion = 0;
                 cantidadTotalValida = false;
                 dpCaducidad.setValue(null);
+                cbPresentacion.setValue("pz");
+                txtFactor.clear();
                 limpiarUbicacionPrimaria();
                 limpiarPrecios();
                 actualizarEstadoCascada();
@@ -188,6 +208,8 @@ public class controllerNuevoTraspasoSalida {
         limpiarPrecios();
         limpiarValidacionesInventario();
         limpiarUbicacionPrimaria();
+        cbPresentacion.setValue("pz");
+        txtFactor.clear();
         actualizarEstadoCascada();
     }
 
@@ -513,7 +535,7 @@ public class controllerNuevoTraspasoSalida {
         ComboBox<String> nuevoCombo = new ComboBox<>(ubicaciones);
         nuevoCombo.setEditable(true);
         nuevoCombo.setPromptText("Escribe o selecciona una ubicación");
-        configurarAutocompletado(nuevoCombo);
+        configurarAutocompletadoUbicacion(nuevoCombo);
         vboxUbicacion.getChildren().addAll(lblUbicacion, nuevoCombo);
         HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
 
@@ -549,117 +571,6 @@ public class controllerNuevoTraspasoSalida {
         contadorFilas--;
     }
 
-    private void configurarAutocompletado(ComboBox<String> comboBox) {
-        FilteredList<String> filtrados = new FilteredList<>(ubicaciones, item -> true);
-        comboBox.setItems(filtrados);
-        final boolean[] actualizando = {false};
-
-        comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
-            if (actualizando[0]) {
-                return;
-            }
-            if (!comboBox.isFocused()) {
-                return;
-            }
-            if (newValue == null || newValue.isBlank()) {
-                filtrados.setPredicate(item -> true);
-                return;
-            }
-            String texto = newValue.toLowerCase();
-            filtrados.setPredicate(item -> item != null && item.toLowerCase().contains(texto));
-        });
-
-        comboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
-            if (actualizando[0]) {
-                return;
-            }
-            actualizando[0] = true;
-            try {
-                if (newValue != null) {
-                    comboBox.getEditor().setText(newValue);
-                }
-            } finally {
-                actualizando[0] = false;
-            }
-        });
-
-        comboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
-            if (actualizando[0]) {
-                return;
-            }
-            if (newValue == null || newValue.isBlank()) {
-                return;
-            }
-            actualizando[0] = true;
-            try {
-                comboBox.setValue(newValue);
-                comboBox.getEditor().setText(newValue);
-            } finally {
-                actualizando[0] = false;
-            }
-        });
-
-        comboBox.setOnAction(event -> {
-            Platform.runLater(() -> commitirSeleccionCombo(comboBox, actualizando));
-        });
-
-        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                commitirSeleccionCombo(comboBox, actualizando);
-                if (!actualizando[0]) {
-                    String texto = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
-                    if ((comboBox.getValue() == null || comboBox.getValue().isBlank())
-                            && texto != null && !texto.isBlank()) {
-                        actualizando[0] = true;
-                        try {
-                            comboBox.setValue(texto);
-                            comboBox.getEditor().setText(texto);
-                        } finally {
-                            actualizando[0] = false;
-                        }
-                    } else if (comboBox.getValue() != null) {
-                        actualizando[0] = true;
-                        try {
-                            comboBox.getEditor().setText(comboBox.getValue());
-                        } finally {
-                            actualizando[0] = false;
-                        }
-                    }
-                }
-                Platform.runLater(() -> filtrados.setPredicate(item -> true));
-            }
-        });
-
-        comboBox.showingProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                Platform.runLater(() -> commitirSeleccionCombo(comboBox, actualizando));
-            }
-        });
-
-        comboBox.getEditor().setOnKeyPressed(event -> {
-            switch (event.getCode()) {
-                case TAB:
-                case ENTER:
-                    String seleccion = comboBox.getSelectionModel().getSelectedItem();
-                    String texto = comboBox.getEditor().getText();
-                    actualizando[0] = true;
-                    try {
-                        if (seleccion != null && !seleccion.isBlank()) {
-                            comboBox.setValue(seleccion);
-                        } else if (texto != null && !texto.isBlank()) {
-                            comboBox.setValue(texto);
-                        } else {
-                            comboBox.setValue(null);
-                        }
-                    } finally {
-                        actualizando[0] = false;
-                    }
-                    comboBox.hide();
-                    break;
-            }
-        });
-    }
-
     private void limpiarComboUbicacion(ComboBox<String> comboBox) {
         if (comboBox == null) {
             return;
@@ -667,27 +578,6 @@ public class controllerNuevoTraspasoSalida {
         comboBox.setValue(null);
         if (comboBox.getEditor() != null) {
             comboBox.getEditor().clear();
-        }
-    }
-
-    private void commitirSeleccionCombo(ComboBox<String> comboBox, boolean[] actualizando) {
-        if (comboBox == null || actualizando[0]) {
-            return;
-        }
-        String texto = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
-        String seleccion = comboBox.getSelectionModel().getSelectedItem();
-        String valor = (seleccion != null && !seleccion.isBlank()) ? seleccion : texto;
-        if (valor == null || valor.isBlank()) {
-            return;
-        }
-        actualizando[0] = true;
-        try {
-            comboBox.setValue(valor);
-            if (comboBox.getEditor() != null) {
-                comboBox.getEditor().setText(valor);
-            }
-        } finally {
-            actualizando[0] = false;
         }
     }
 
@@ -807,10 +697,10 @@ public class controllerNuevoTraspasoSalida {
         boolean cantidadLista = caducidadLista && cantidadTotalValida;
         cbPresentacion.setDisable(!cantidadLista);
 
-        boolean presentacionLista = cantidadLista && cbPresentacion.getValue() != null && !cbPresentacion.getValue().isBlank();
+        boolean presentacionLista = cantidadLista && presentacionValida;
         txtFactor.setDisable(!presentacionLista);
 
-        boolean factorLista = presentacionLista && txtFactor.getText() != null && !txtFactor.getText().isBlank();
+        boolean factorLista = presentacionLista && factorValido;
         comboUbicacion.setDisable(!factorLista);
 
         boolean ubicacionLista = factorLista && comboUbicacion.getValue() != null && !comboUbicacion.getValue().isBlank() && ubicacionValidada;
@@ -853,26 +743,8 @@ public class controllerNuevoTraspasoSalida {
         }
         ubicacionValidada = false;
         cantidadTotalValida = false;
-        actualizarEstadoCascada();
-        limpiarPrecios();
-    }
-
-    private void validarCaducidad() {
-        if (!loteValidado || dpCaducidad.getValue() == null) {
-            caducidadValidada = false;
-            return;
-        }
-        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        boolean existe = modelo.existeLoteConCaducidad(lote, dpCaducidad.getValue());
-        if (!existe) {
-            caducidadValidada = false;
-            dpCaducidad.setValue(null);
-            limpiarUbicacionPrimaria();
-            mostrarAlerta("Advertencia", "No hay productos con ese lote y caducidad.");
-        } else {
-            caducidadValidada = true;
-        }
-        ubicacionValidada = false;
+        presentacionValida = false;
+        factorValido = false;
         actualizarEstadoCascada();
         limpiarPrecios();
     }
@@ -957,6 +829,57 @@ public class controllerNuevoTraspasoSalida {
         }
     }
 
+    private void validarPresentacion() {
+        if (!cantidadTotalValida) {
+            presentacionValida = false;
+            return;
+        }
+        String presentacion = cbPresentacion.getValue();
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String idProducto = productoController.getIdSeleccionado();
+        if (presentacion == null || presentacion.isBlank() || idProducto == null || idProducto.isBlank()) {
+            presentacionValida = false;
+            return;
+        }
+        boolean existe = modelo.existePresentacionParaProductoLote(idProducto, lote, presentacion);
+        if (!existe) {
+            presentacionValida = false;
+            cbPresentacion.setValue("pz");
+            mostrarAlerta("Advertencia", "La presentación no existe para el lote y producto seleccionados.");
+        } else {
+            presentacionValida = true;
+        }
+        factorValido = false;
+        txtFactor.clear();
+    }
+
+    private void validarFactor() {
+        if (!presentacionValida) {
+            factorValido = false;
+            return;
+        }
+        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+        if (factorTexto.isBlank()) {
+            factorValido = false;
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String idProducto = productoController.getIdSeleccionado();
+        String presentacion = cbPresentacion.getValue();
+        if (idProducto == null || idProducto.isBlank() || presentacion == null || presentacion.isBlank()) {
+            factorValido = false;
+            return;
+        }
+        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factorTexto);
+        if (!existe) {
+            factorValido = false;
+            txtFactor.clear();
+            mostrarAlerta("Advertencia", "El factor no corresponde con la presentación y lote seleccionados.");
+        } else {
+            factorValido = true;
+        }
+    }
+
     private boolean datosCompletosParaPrecio() {
         return productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
@@ -971,11 +894,47 @@ public class controllerNuevoTraspasoSalida {
     private void limpiarValidacionesInventario() {
         loteValidado = false;
         caducidadValidada = false;
+        presentacionValida = false;
+        factorValido = false;
         ubicacionValidada = false;
         cantidadDisponibleUbicacion = 0;
         cantidadTotalValida = false;
     }
 
+    private void configurarAutocompletadoUbicacion(ComboBox<String> comboBox) {
+        if (comboBox == null) {
+            return;
+        }
+        comboBox.setItems(ubicaciones);
+        comboBox.setEditable(true);
+        new AutoCompleteComboBoxListener<>(comboBox);
+
+        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarTextoUbicacion(comboBox);
+            }
+        });
+
+        comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                comboBox.getEditor().setText(newVal);
+            }
+        });
+    }
+
+    private void validarTextoUbicacion(ComboBox<String> comboBox) {
+        String valor = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
+        if (valor == null || valor.isBlank()) {
+            return;
+        }
+        if (!ubicaciones.contains(valor)) {
+            comboBox.setValue(null);
+            if (comboBox.getEditor() != null) {
+                comboBox.getEditor().clear();
+            }
+            mostrarAlerta("Advertencia", "La ubicación no existe. Seleccione una válida.");
+        }
+    }
     private void limpiarUbicacionPrimaria() {
         if (comboUbicacion != null) {
             comboUbicacion.setValue(null);
