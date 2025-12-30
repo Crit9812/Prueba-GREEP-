@@ -154,6 +154,14 @@ public class controllerNuevoTraspasoSalida {
         });
 
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+                if (cantidadTexto.isBlank()) {
+                    cbPresentacion.setValue(null);
+                    mostrarAlertaCascada("Debe capturar la cantidad antes de la presentación.");
+                    return;
+                }
+            }
             presentacionValida = false;
             factorValido = false;
             validarPresentacion();
@@ -679,6 +687,15 @@ public class controllerNuevoTraspasoSalida {
         actualizarEstadoCascada();
 
         comboUbicacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()
+                    && (txtFactor.getText() == null || txtFactor.getText().isBlank())) {
+                comboUbicacion.setValue(null);
+                if (comboUbicacion.getEditor() != null) {
+                    comboUbicacion.getEditor().clear();
+                }
+                mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
+                return;
+            }
             validarUbicacion();
             actualizarEstadoCascada();
         });
@@ -929,6 +946,11 @@ public class controllerNuevoTraspasoSalida {
             ultimaCantidadUbicacionValidada = "";
             return;
         }
+        if (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank()) {
+            txtCantidadUbicacion.clear();
+            mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
+            return;
+        }
         cantidadUbicacionDebounce.setOnFinished(event -> {
             String cantidadActual = txtCantidadUbicacion.getText() != null
                     ? txtCantidadUbicacion.getText().trim()
@@ -951,6 +973,17 @@ public class controllerNuevoTraspasoSalida {
         factorDebounce.stop();
         if (nuevoValor == null || nuevoValor.isBlank()) {
             ultimoFactorValidado = "";
+            return;
+        }
+        if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isBlank()) {
+            txtFactor.clear();
+            mostrarAlertaCascada("Debe capturar la presentación antes del factor.");
+            return;
+        }
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (cantidadTexto.isBlank()) {
+            txtFactor.clear();
+            mostrarAlertaCascada("Debe capturar la cantidad antes del factor.");
             return;
         }
         factorDebounce.setOnFinished(event -> {
