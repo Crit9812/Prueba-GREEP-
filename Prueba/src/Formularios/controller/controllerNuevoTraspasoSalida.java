@@ -72,9 +72,10 @@ public class controllerNuevoTraspasoSalida {
     private boolean ubicacionValidada = false;
     private int cantidadDisponibleUbicacion = 0;
     private boolean cantidadTotalValida = false;
-    private final PauseTransition loteDebounce = new PauseTransition(Duration.millis(200));
-    private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(Duration.millis(150));
-    private final PauseTransition factorDebounce = new PauseTransition(Duration.millis(150));
+    private static final Duration DEBOUNCE_TIEMPO = Duration.seconds(4);
+    private final PauseTransition loteDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
+    private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
+    private final PauseTransition factorDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private String ultimoLoteValidado = "";
     private String ultimaCantidadUbicacionValidada = "";
     private String ultimoFactorValidado = "";
