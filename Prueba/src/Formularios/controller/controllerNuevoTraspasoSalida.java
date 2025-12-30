@@ -72,16 +72,13 @@ public class controllerNuevoTraspasoSalida {
     private boolean ubicacionValidada = false;
     private int cantidadDisponibleUbicacion = 0;
     private boolean cantidadTotalValida = false;
-    private static final Duration DEBOUNCE_TIEMPO = Duration.millis(200);
+    private static final Duration DEBOUNCE_TIEMPO = Duration.seconds(4);
     private final PauseTransition loteDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition factorDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private String ultimoLoteValidado = "";
     private String ultimaCantidadUbicacionValidada = "";
     private String ultimoFactorValidado = "";
-    private String ultimoPrefijoLoteInvalido = "";
-    private String ultimoPrefijoFactorInvalido = "";
-    private String ultimoPrefijoCantidadInvalido = "";
 
     @FXML
     public void initialize() {
@@ -728,15 +725,24 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
             return;
         }
-        loteValidado = true;
-        Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(lote, idProducto);
-        if (caducidad.isPresent()) {
-            dpCaducidad.setValue(caducidad.get());
-            caducidadValidada = true;
-        } else {
+        boolean existe = modelo.existeLoteParaProducto(lote, idProducto);
+        if (!existe) {
+            loteValidado = false;
+            txtLote.clear();
             dpCaducidad.setValue(null);
-            caducidadValidada = false;
-            mostrarAlerta("Advertencia", "No se encontró caducidad para el lote seleccionado.");
+            limpiarUbicacionPrimaria();
+            mostrarAlerta("Advertencia", "El lote no corresponde al producto seleccionado.");
+        } else {
+            loteValidado = true;
+            Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(lote, idProducto);
+            if (caducidad.isPresent()) {
+                dpCaducidad.setValue(caducidad.get());
+                caducidadValidada = true;
+            } else {
+                dpCaducidad.setValue(null);
+                caducidadValidada = false;
+                mostrarAlerta("Advertencia", "No se encontró caducidad para el lote seleccionado.");
+            }
         }
         ubicacionValidada = false;
         cantidadTotalValida = false;
@@ -749,13 +755,8 @@ public class controllerNuevoTraspasoSalida {
     private void validarCamposPreviosHastaCantidad() {
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         if (!lote.isBlank()) {
-            if (!validarPrefijoLote(lote)) {
-                return;
-            }
-            if (modelo.existeLoteParaProducto(lote, productoController.getIdSeleccionado())) {
-                validarLoteCompleto(lote);
-                ultimoLoteValidado = loteValidado ? lote : "";
-            }
+            validarLoteCompleto(lote);
+            ultimoLoteValidado = loteValidado ? lote : "";
         }
         validarCantidadTotalDisponible();
     }
@@ -824,7 +825,6 @@ public class controllerNuevoTraspasoSalida {
         loteDebounce.stop();
         if (nuevoValor == null || nuevoValor.isBlank()) {
             ultimoLoteValidado = "";
-            ultimoPrefijoLoteInvalido = "";
             return;
         }
         loteDebounce.setOnFinished(event -> {
@@ -835,19 +835,9 @@ public class controllerNuevoTraspasoSalida {
             if (loteActual.equals(ultimoLoteValidado) && loteValidado) {
                 return;
             }
-            if (!validarPrefijoLote(loteActual)) {
-                return;
-            }
-            if (modelo.existeLoteParaProducto(loteActual, productoController.getIdSeleccionado())) {
-                validarLoteCompleto(loteActual);
-                if (loteValidado) {
-                    ultimoLoteValidado = loteActual;
-                }
-            } else {
-                loteValidado = false;
-                caducidadValidada = false;
-                cantidadTotalValida = false;
-                actualizarEstadoCascada();
+            validarLoteCompleto(loteActual);
+            if (loteValidado) {
+                ultimoLoteValidado = loteActual;
             }
         });
         loteDebounce.playFromStart();
@@ -857,7 +847,6 @@ public class controllerNuevoTraspasoSalida {
         cantidadUbicacionDebounce.stop();
         if (nuevoValor == null || nuevoValor.isBlank()) {
             ultimaCantidadUbicacionValidada = "";
-            ultimoPrefijoCantidadInvalido = "";
             return;
         }
         cantidadUbicacionDebounce.setOnFinished(event -> {
@@ -866,13 +855,9 @@ public class controllerNuevoTraspasoSalida {
                     : "";
             if (cantidadActual.isBlank()) {
                 ultimaCantidadUbicacionValidada = "";
-                ultimoPrefijoCantidadInvalido = "";
                 return;
             }
             if (cantidadActual.equals(ultimaCantidadUbicacionValidada)) {
-                return;
-            }
-            if (!validarPrefijoCantidadUbicacion(cantidadActual)) {
                 return;
             }
             validarCantidadDisponible();
@@ -886,103 +871,23 @@ public class controllerNuevoTraspasoSalida {
         factorDebounce.stop();
         if (nuevoValor == null || nuevoValor.isBlank()) {
             ultimoFactorValidado = "";
-            ultimoPrefijoFactorInvalido = "";
             return;
         }
         factorDebounce.setOnFinished(event -> {
             String factorActual = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
             if (factorActual.isBlank()) {
                 ultimoFactorValidado = "";
-                ultimoPrefijoFactorInvalido = "";
                 return;
             }
             if (factorActual.equals(ultimoFactorValidado)) {
                 return;
             }
-            if (!validarPrefijoFactor(factorActual)) {
-                return;
-            }
-            if (modelo.existeFactorParaProductoLotePresentacion(
-                    productoController.getIdSeleccionado(),
-                    txtLote.getText() != null ? txtLote.getText().trim() : "",
-                    cbPresentacion.getValue(),
-                    factorActual)) {
-                validarFactorCompleto(factorActual);
-                if (factorValido) {
-                    ultimoFactorValidado = factorActual;
-                }
-            } else {
-                factorValido = false;
-                actualizarEstadoCascada();
+            validarFactorCompleto(factorActual);
+            if (factorValido) {
+                ultimoFactorValidado = factorActual;
             }
         });
         factorDebounce.playFromStart();
-    }
-
-    private boolean validarPrefijoLote(String loteActual) {
-        String idProducto = productoController.getIdSeleccionado();
-        if (idProducto == null || idProducto.isBlank()) {
-            return false;
-        }
-        boolean existePrefijo = modelo.existePrefijoLoteParaProducto(loteActual, idProducto);
-        if (!existePrefijo) {
-            if (!loteActual.equals(ultimoPrefijoLoteInvalido)) {
-                mostrarAlerta("Advertencia", "No existe el lote para el producto seleccionado.");
-                ultimoPrefijoLoteInvalido = loteActual;
-            }
-            loteValidado = false;
-            caducidadValidada = false;
-            cantidadTotalValida = false;
-            actualizarEstadoCascada();
-            return false;
-        }
-        ultimoPrefijoLoteInvalido = "";
-        return true;
-    }
-
-    private boolean validarPrefijoFactor(String factorActual) {
-        String idProducto = productoController.getIdSeleccionado();
-        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        String presentacion = cbPresentacion.getValue();
-        if (idProducto == null || idProducto.isBlank()
-                || lote.isBlank()
-                || presentacion == null
-                || presentacion.isBlank()) {
-            return false;
-        }
-        boolean existePrefijo = modelo.existePrefijoFactorParaProductoLotePresentacion(
-                idProducto, lote, presentacion, factorActual);
-        if (!existePrefijo) {
-            if (!factorActual.equals(ultimoPrefijoFactorInvalido)) {
-                mostrarAlerta("Advertencia", "El factor no corresponde con la presentación y lote seleccionados.");
-                ultimoPrefijoFactorInvalido = factorActual;
-            }
-            factorValido = false;
-            actualizarEstadoCascada();
-            return false;
-        }
-        ultimoPrefijoFactorInvalido = "";
-        return true;
-    }
-
-    private boolean validarPrefijoCantidadUbicacion(String cantidadActual) {
-        if (!ubicacionValidada) {
-            return false;
-        }
-        int cantidad = parseEntero(cantidadActual);
-        if (cantidad <= 0) {
-            return true;
-        }
-        if (cantidad > cantidadDisponibleUbicacion) {
-            if (!cantidadActual.equals(ultimoPrefijoCantidadInvalido)) {
-                mostrarAlerta("Advertencia", "La cantidad supera la disponible en esa ubicación.");
-                ultimoPrefijoCantidadInvalido = cantidadActual;
-            }
-            txtCantidadUbicacion.clear();
-            return false;
-        }
-        ultimoPrefijoCantidadInvalido = "";
-        return true;
     }
 
     private void validarCantidadTotalDisponible() {
@@ -1056,7 +961,14 @@ public class controllerNuevoTraspasoSalida {
             factorValido = false;
             return;
         }
-        factorValido = true;
+        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factorTexto);
+        if (!existe) {
+            factorValido = false;
+            txtFactor.clear();
+            mostrarAlerta("Advertencia", "El factor no corresponde con la presentación y lote seleccionados.");
+        } else {
+            factorValido = true;
+        }
     }
 
     private boolean datosCompletosParaPrecio() {
@@ -1081,9 +993,6 @@ public class controllerNuevoTraspasoSalida {
         ultimoLoteValidado = "";
         ultimaCantidadUbicacionValidada = "";
         ultimoFactorValidado = "";
-        ultimoPrefijoLoteInvalido = "";
-        ultimoPrefijoFactorInvalido = "";
-        ultimoPrefijoCantidadInvalido = "";
     }
 
     private void configurarAutocompletadoUbicacion(ComboBox<String> comboBox) {

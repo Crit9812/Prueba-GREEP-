@@ -183,28 +183,6 @@ public class modelNuevoTraspasoSalida {
         }
     }
 
-    public boolean existePrefijoLoteParaProducto(String prefijo, String idProducto) {
-        String sql = """
-            SELECT 1
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            WHERE de.claveProducto = ? AND a.lote LIKE ?
-            LIMIT 1
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProducto);
-            ps.setString(2, prefijo + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     public Optional<java.time.LocalDate> obtenerCaducidadParaLoteProducto(String lote, String idProducto) {
         String sql = """
@@ -313,31 +291,6 @@ public class modelNuevoTraspasoSalida {
         }
     }
 
-    public boolean existePrefijoFactorParaProductoLotePresentacion(String idProducto, String lote,
-                                                                   String presentacion, String factorTexto) {
-        String sql = """
-            SELECT 1
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ? AND a.factor LIKE ?
-            LIMIT 1
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProducto);
-            ps.setString(2, lote);
-            ps.setString(3, presentacion);
-            ps.setString(4, factorTexto + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     private BigDecimal obtenerDecimal(ResultSet rs, String columna) {
         try {
