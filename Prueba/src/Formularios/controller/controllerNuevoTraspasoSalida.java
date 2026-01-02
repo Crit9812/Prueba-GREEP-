@@ -101,6 +101,7 @@ public class controllerNuevoTraspasoSalida {
         configurarManejoEnter();
         configurarCascada();
         configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
+        configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
         ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
@@ -524,6 +525,7 @@ public class controllerNuevoTraspasoSalida {
         nuevoCombo.setEditable(false);
         nuevoCombo.setPromptText("Selecciona una ubicación");
         configurarAutocompletadoUbicacion(nuevoCombo);
+        configurarComboUbicacion(nuevoCombo, txtCantidad);
         vboxUbicacion.getChildren().addAll(lblUbicacion, nuevoCombo);
         HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
 
@@ -674,21 +676,6 @@ public class controllerNuevoTraspasoSalida {
         dpCaducidad.setMouseTransparent(true);
         dpCaducidad.setFocusTraversable(false);
         actualizarEstadoCascada();
-
-        comboUbicacion.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && !newVal.isBlank()
-                    && (txtFactor.getText() == null || txtFactor.getText().isBlank())) {
-                comboUbicacion.setValue(null);
-                if (comboUbicacion.getEditor() != null) {
-                    comboUbicacion.getEditor().clear();
-                }
-                mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
-                return;
-            }
-            limpiarCapturasCombo(comboUbicacion);
-            validarUbicacion();
-            actualizarEstadoCascada();
-        });
 
         txtLote.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
@@ -939,6 +926,78 @@ public class controllerNuevoTraspasoSalida {
         hilo.start();
     }
 
+    private void validarUbicacionParaCombo(ComboBox<String> combo, TextField campoCantidad) {
+        if (combo == null) {
+            return;
+        }
+        if (!caducidadValidada) {
+            if (combo == comboUbicacion) {
+                ubicacionValidada = false;
+            }
+            return;
+        }
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String ubicacion = combo.getValue() != null ? combo.getValue().trim() : "";
+        if (ubicacion.isBlank()) {
+            if (combo == comboUbicacion) {
+                ubicacionValidada = false;
+            }
+            return;
+        }
+        String loteSnapshot = lote;
+        java.time.LocalDate caducidadSnapshot = caducidad;
+        String ubicacionSnapshot = ubicacion;
+
+        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Boolean call() {
+                boolean existe = modelo.existeLoteCaducidadUbicacion(loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                if (existe) {
+                    cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponible(
+                            loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                }
+                return existe;
+            }
+
+            @Override
+            protected void succeeded() {
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
+                String ubicacionActual = combo.getValue() != null ? combo.getValue().trim() : "";
+                if (!loteSnapshot.equals(loteActual)
+                        || caducidadSnapshot == null
+                        || !caducidadSnapshot.equals(caducidadActual)
+                        || !ubicacionSnapshot.equals(ubicacionActual)) {
+                    return;
+                }
+                boolean existe = getValue();
+                if (!existe) {
+                    if (combo == comboUbicacion) {
+                        ubicacionValidada = false;
+                    }
+                    combo.setValue(null);
+                    if (combo.getEditor() != null) {
+                        combo.getEditor().clear();
+                    }
+                    if (campoCantidad != null) {
+                        campoCantidad.clear();
+                    }
+                    mostrarAlertaSinEspera("Advertencia",
+                            "No hay productos en esa ubicación para el lote y caducidad indicados.");
+                } else if (combo == comboUbicacion) {
+                    ubicacionValidada = true;
+                }
+                actualizarEstadoCascada();
+                limpiarPrecios();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
     private void validarCantidadDisponible(TextField campoCantidad, ComboBox<String> combo) {
         if (campoCantidad == null || combo == null) {
             return;
@@ -994,8 +1053,6 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
         registrarCantidadUbicacion(combo, cantidad);
-        mostrarAlertaSinEspera("Éxito", "Cantidad registrada correctamente.");
-        campoCantidad.clear();
         actualizarPreciosPorUbicaciones();
     }
 
@@ -1341,6 +1398,33 @@ public class controllerNuevoTraspasoSalida {
                 return;
             }
             programarValidacionCantidadUbicacion(campoCantidad, combo);
+        });
+    }
+
+    private void configurarComboUbicacion(ComboBox<String> combo, TextField campoCantidad) {
+        if (combo == null) {
+            return;
+        }
+        combo.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()
+                    && (txtFactor.getText() == null || txtFactor.getText().isBlank())) {
+                combo.setValue(null);
+                if (combo.getEditor() != null) {
+                    combo.getEditor().clear();
+                }
+                if (campoCantidad != null) {
+                    campoCantidad.clear();
+                }
+                mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
+                return;
+            }
+            limpiarCapturasCombo(combo);
+            if (combo == comboUbicacion) {
+                validarUbicacion();
+            } else {
+                validarUbicacionParaCombo(combo, campoCantidad);
+            }
+            actualizarEstadoCascada();
         });
     }
 
