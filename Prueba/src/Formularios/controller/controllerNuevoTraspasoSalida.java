@@ -239,6 +239,12 @@ public class controllerNuevoTraspasoSalida {
         });
 
         txtCantidadUbicacion.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()
+                    && (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank())) {
+                txtCantidadUbicacion.clear();
+                mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
+                return;
+            }
             programarValidacionCantidadUbicacion(newVal);
         });
 
@@ -558,8 +564,8 @@ public class controllerNuevoTraspasoSalida {
         VBox vboxUbicacion = new VBox(5);
         Label lblUbicacion = new Label("Ubicación:");
         ComboBox<String> nuevoCombo = new ComboBox<>(ubicaciones);
-        nuevoCombo.setEditable(true);
-        nuevoCombo.setPromptText("Escribe o selecciona una ubicación");
+        nuevoCombo.setEditable(false);
+        nuevoCombo.setPromptText("Selecciona una ubicación");
         configurarAutocompletadoUbicacion(nuevoCombo);
         vboxUbicacion.getChildren().addAll(lblUbicacion, nuevoCombo);
         HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
@@ -1298,8 +1304,10 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
         comboBox.setItems(ubicaciones);
-        comboBox.setEditable(true);
-        new AutoCompleteComboBoxListener<>(comboBox);
+        comboBox.setEditable(false);
+        if (comboBox.isEditable()) {
+            new AutoCompleteComboBoxListener<>(comboBox);
+        }
 
         comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {

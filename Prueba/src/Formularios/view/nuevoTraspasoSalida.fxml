@@ -97,7 +97,7 @@
                             <HBox spacing="20">
                                 <VBox spacing="5" HBox.hgrow="ALWAYS">
                                     <Label text="Ubicación:"/>
-                                    <ComboBox fx:id="comboUbicacion" editable="true" promptText="Escribe o selecciona una ubicación"/>
+                                    <ComboBox fx:id="comboUbicacion" editable="false" promptText="Selecciona una ubicación"/>
                                 </VBox>
                                 <VBox spacing="5" HBox.hgrow="ALWAYS">
                                     <Label text="Cantidad en ubicación:"/>
