@@ -326,10 +326,6 @@ public class controllerNuevoTraspasoSalida {
     private void configurarValidaciones() {
         validarNumerosEnteros(txtCantidad);
         validarNumerosEnteros(txtFactor);
-        validarDecimal(txtPrecioEntrada);
-        validarDecimal(txtPrecioIVA);
-        validarDecimal(txtPrecioBruto);
-        validarDecimal(txtPrecioTotal);
     }
 
     private void validarNumerosEnteros(TextField campo) {
@@ -340,18 +336,6 @@ public class controllerNuevoTraspasoSalida {
         });
     }
 
-    private void validarDecimal(TextField campo) {
-        campo.textProperty().addListener((obs, old, val) -> {
-            if (!val.matches("\\d*(\\.\\d*)?")) {
-                campo.setText(val.replaceAll("[^\\d.]", ""));
-                if (val.chars().filter(ch -> ch == '.').count() > 1) {
-                    int firstDot = val.indexOf('.');
-                    campo.setText(val.substring(0, firstDot + 1) +
-                            val.substring(firstDot + 1).replace(".", ""));
-                }
-            }
-        });
-    }
 
     private void actualizarDescripcionDesdeProducto() {
         String descripcion = productoController.getDescripcionSeleccionada();
@@ -635,17 +619,6 @@ public class controllerNuevoTraspasoSalida {
             return Integer.parseInt(texto);
         } catch (Exception e) {
             return 0;
-        }
-    }
-
-    private BigDecimal parseDecimal(String texto) {
-        if (texto == null || texto.isBlank()) {
-            return BigDecimal.ZERO;
-        }
-        try {
-            return new BigDecimal(texto);
-        } catch (Exception e) {
-            return BigDecimal.ZERO;
         }
     }
 
