@@ -546,10 +546,14 @@ public class controllerNuevoTraspasoSalida {
         HBox fila = (HBox) contenedorBoton.getParent();
 
         contenedorUbicaciones.getChildren().remove(fila);
-        limpiarCapturasCombo((ComboBox<String>) ((VBox) fila.getChildren().get(0)).getChildren().stream()
+        ComboBox<String> combo = (ComboBox<String>) ((VBox) fila.getChildren().get(0)).getChildren().stream()
                 .filter(node -> node instanceof ComboBox)
                 .findFirst()
                 .orElse(null));
+        limpiarCapturasCombo(combo);
+        if (combo != null) {
+            ubicacionesCapturadas.remove(combo);
+        }
         contadorFilas--;
     }
 
@@ -1381,6 +1385,18 @@ public class controllerNuevoTraspasoSalida {
                 mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
                 return;
             }
+            if (newVal != null && !newVal.isBlank() && ubicacionDuplicada(combo, newVal)) {
+                limpiarCapturasCombo(combo);
+                combo.setValue(null);
+                if (combo.getEditor() != null) {
+                    combo.getEditor().clear();
+                }
+                if (campoCantidad != null) {
+                    campoCantidad.clear();
+                }
+                mostrarAlertaCascada("No se puede seleccionar la misma ubicación más de una vez.");
+                return;
+            }
             limpiarCapturasCombo(combo);
             if (combo == comboUbicacion) {
                 validarUbicacion();
@@ -1389,6 +1405,22 @@ public class controllerNuevoTraspasoSalida {
             }
             actualizarEstadoCascada();
         });
+    }
+
+    private boolean ubicacionDuplicada(ComboBox<String> combo, String nuevaUbicacion) {
+        if (nuevaUbicacion == null || nuevaUbicacion.isBlank()) {
+            return false;
+        }
+        for (ComboBox<String> existente : ubicacionesCapturadas.keySet()) {
+            if (existente == null || existente == combo) {
+                continue;
+            }
+            String valor = existente.getValue();
+            if (valor != null && !valor.isBlank() && valor.equals(nuevaUbicacion)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void registrarCantidadUbicacion(ComboBox<String> combo, int cantidad) {
