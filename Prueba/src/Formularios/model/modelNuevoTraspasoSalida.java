@@ -77,6 +77,46 @@ public class modelNuevoTraspasoSalida {
         return Optional.empty();
     }
 
+    public Optional<PreciosProducto> obtenerPreciosProductoPorLoteCaducidad(String idProducto, String lote,
+                                                                            java.time.LocalDate caducidad) {
+        String sql = """
+            SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
+            FROM detalle_Entrada de
+            JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND a.caducidad = ?
+            ORDER BY de.idDetalleEntrada DESC
+            LIMIT 1
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProducto);
+            ps.setString(2, lote != null ? lote : "");
+            if (caducidad != null) {
+                ps.setDate(3, java.sql.Date.valueOf(caducidad));
+            } else {
+                ps.setDate(3, null);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal precioUnitario = obtenerDecimal(rs, "precioUnitario");
+                    BigDecimal precioIva = obtenerDecimal(rs, "precioIVA");
+                    BigDecimal precioBruto = obtenerDecimal(rs, "precioBrutoTotal");
+                    BigDecimal precioTotal = obtenerDecimal(rs, "precioTotal");
+                    return Optional.of(new PreciosProducto(precioUnitario, precioIva, precioBruto, precioTotal));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
     public boolean existeLote(String lote) {
         String sql = "SELECT 1 FROM articulo WHERE lote = ? LIMIT 1";
 

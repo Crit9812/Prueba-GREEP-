@@ -67,6 +67,7 @@ public class controllerNuevoTraspasoSalida {
     private final modelNuevoTraspasoSalida modelo = new modelNuevoTraspasoSalida();
     private productoCboxController productoController;
 
+    private BigDecimal precioEntradaBase = BigDecimal.ZERO;
     private BigDecimal precioIvaBase = BigDecimal.ZERO;
     private boolean loteValidado = false;
     private boolean caducidadValidada = false;
@@ -240,6 +241,8 @@ public class controllerNuevoTraspasoSalida {
     private void configurarCalculoPrecios() {
         txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
             validarCantidadTotalDisponible();
+            cargarPreciosDesdeProducto();
+            recalcularPrecios();
             actualizarEstadoCascada();
         });
 
@@ -369,12 +372,11 @@ public class controllerNuevoTraspasoSalida {
 
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
-        String ubicacionNombre = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
 
         javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
-                return modelo.obtenerPreciosProducto(idProducto, lote, caducidad, ubicacionNombre);
+                return modelo.obtenerPreciosProductoPorLoteCaducidad(idProducto, lote, caducidad);
             }
 
             @Override
@@ -403,11 +405,11 @@ public class controllerNuevoTraspasoSalida {
             limpiarPrecios();
             return;
         }
-        BigDecimal precioEntrada = precios.getPrecioUnitario();
-        BigDecimal precioIva = precios.getPrecioIva();
+        precioEntradaBase = precios.getPrecioUnitario() != null ? precios.getPrecioUnitario() : BigDecimal.ZERO;
+        precioIvaBase = precios.getPrecioIva() != null ? precios.getPrecioIva() : BigDecimal.ZERO;
 
-        txtPrecioEntrada.setText(formatearDecimal(precioEntrada));
-        precioIvaBase = precioIva != null ? precioIva : BigDecimal.ZERO;
+        txtPrecioEntrada.setText(formatearDecimal(precioEntradaBase));
+        txtPrecioIVA.setText(formatearDecimal(precioIvaBase));
         recalcularPrecios();
     }
 
@@ -416,6 +418,7 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioIVA.clear();
         txtPrecioBruto.clear();
         txtPrecioTotal.clear();
+        precioEntradaBase = BigDecimal.ZERO;
         precioIvaBase = BigDecimal.ZERO;
     }
 
@@ -609,34 +612,22 @@ public class controllerNuevoTraspasoSalida {
 
     private void recalcularPrecios() {
         int cantidad = parseEntero(txtCantidad.getText());
-        BigDecimal precioEntrada = parseDecimal(txtPrecioEntrada.getText());
-
-        BigDecimal precioConIva = precioEntrada;
-        if (precioIvaBase != null && precioIvaBase.compareTo(BigDecimal.ZERO) > 0) {
-            precioConIva = precioIvaBase;
+        if (cantidad <= 0) {
+            txtPrecioBruto.clear();
+            txtPrecioTotal.clear();
+            return;
         }
 
-        BigDecimal precioBruto = precioEntrada.multiply(BigDecimal.valueOf(cantidad));
-        BigDecimal precioTotal = precioConIva.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioBruto = precioEntradaBase.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioTotal = precioIvaBase.multiply(BigDecimal.valueOf(cantidad));
 
-        txtPrecioIVA.setText(formatearDecimal(precioConIva));
         txtPrecioBruto.setText(formatearDecimal(precioBruto));
         txtPrecioTotal.setText(formatearDecimal(precioTotal));
     }
 
     private void actualizarPreciosPorUbicaciones() {
-        int cantidadTotal = parseEntero(txtCantidad.getText());
-        if (cantidadTotal <= 0) {
-            return;
-        }
-        List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
-        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
-                .mapToInt(UbicacionCompra::getCantidad)
-                .sum();
-        if (sumaUbicaciones == cantidadTotal) {
-            cargarPreciosDesdeProducto();
-            recalcularPrecios();
-        }
+        cargarPreciosDesdeProducto();
+        recalcularPrecios();
     }
 
     private int parseEntero(String texto) {
@@ -1314,7 +1305,6 @@ public class controllerNuevoTraspasoSalida {
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
                 && caducidadValidada
-                && ubicacionValidada
                 && cantidadTotalValida;
     }
 
