@@ -983,6 +983,29 @@ public class controllerNuevoTraspasoSalida {
         if (texto.isBlank()) {
             return;
         }
+        String idProducto = productoController.getIdSeleccionado();
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String presentacion = cbPresentacion.getValue();
+        int factor = parseEntero(txtFactor.getText());
+        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String ubicacion = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
+        if (idProducto == null || idProducto.isBlank()
+                || lote.isBlank()
+                || presentacion == null
+                || presentacion.isBlank()
+                || factor <= 0
+                || caducidad == null
+                || ubicacion.isBlank()) {
+            return;
+        }
+        cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponibleDetalle(
+                idProducto, lote, caducidad, presentacion, factor, ubicacion);
+        if (cantidadDisponibleUbicacion <= 0) {
+            txtCantidadUbicacion.clear();
+            mostrarAlerta("Advertencia",
+                    "No hay existencia en esa ubicación con las características indicadas.");
+            return;
+        }
         int cantidad = parseEntero(texto);
         if (cantidad <= 0) {
             return;

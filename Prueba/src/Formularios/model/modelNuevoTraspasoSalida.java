@@ -160,6 +160,42 @@ public class modelNuevoTraspasoSalida {
         return 0;
     }
 
+    public int obtenerCantidadDisponibleDetalle(String idProducto, String lote, java.time.LocalDate caducidad,
+                                                String presentacion, int factor, String ubicacionNombre) {
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            JOIN ubicaciones u ON u.id = a.ubicacion
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND a.caducidad = ?
+              AND a.presentacion = ?
+              AND a.factor = ?
+              AND u.nombre = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProducto);
+            ps.setString(2, lote);
+            ps.setDate(3, java.sql.Date.valueOf(caducidad));
+            ps.setString(4, presentacion);
+            ps.setInt(5, factor);
+            ps.setString(6, ubicacionNombre);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
     public boolean existeLoteParaProducto(String lote, String idProducto) {
         String sql = """
             SELECT 1
