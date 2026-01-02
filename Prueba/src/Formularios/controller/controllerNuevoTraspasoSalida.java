@@ -29,7 +29,9 @@ import javafx.util.Duration;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class controllerNuevoTraspasoSalida {
@@ -75,12 +77,13 @@ public class controllerNuevoTraspasoSalida {
     private boolean cantidadTotalValida = false;
     private static final Duration DEBOUNCE_TIEMPO = Duration.millis(300);
     private final PauseTransition loteDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
-    private final PauseTransition cantidadUbicacionDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition factorDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private String ultimoLoteValidado = "";
-    private String ultimaCantidadUbicacionValidada = "";
     private String ultimoFactorValidado = "";
     private String ultimaPresentacionValidada = "";
+    private final Map<TextField, PauseTransition> debounceCantidadUbicacion = new HashMap<>();
+    private final Map<TextField, String> ultimaCantidadUbicacionValidada = new HashMap<>();
+    private final Map<ComboBox<String>, List<UbicacionCompra>> ubicacionesCapturadas = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -97,6 +100,8 @@ public class controllerNuevoTraspasoSalida {
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
         configurarCascada();
+        configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
+        ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
     }
@@ -234,18 +239,7 @@ public class controllerNuevoTraspasoSalida {
     private void configurarCalculoPrecios() {
         txtCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
             validarCantidadTotalDisponible();
-            validarCantidadDisponible();
             actualizarEstadoCascada();
-        });
-
-        txtCantidadUbicacion.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && !newVal.isBlank()
-                    && (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank())) {
-                txtCantidadUbicacion.clear();
-                mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
-                return;
-            }
-            programarValidacionCantidadUbicacion(newVal);
         });
 
         txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -327,7 +321,6 @@ public class controllerNuevoTraspasoSalida {
 
     private void configurarValidaciones() {
         validarNumerosEnteros(txtCantidad);
-        validarNumerosEnteros(txtCantidadUbicacion);
         validarNumerosEnteros(txtFactor);
         validarDecimal(txtPrecioEntrada);
         validarDecimal(txtPrecioIVA);
@@ -478,48 +471,8 @@ public class controllerNuevoTraspasoSalida {
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
         List<UbicacionCompra> resultado = new ArrayList<>();
 
-        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
-            if (!(nodo instanceof HBox)) continue;
-            HBox fila = (HBox) nodo;
-            if (fila.getChildren().size() < 2) continue;
-
-            VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
-            VBox vboxCantidad = (VBox) fila.getChildren().get(1);
-
-            ComboBox<?> combo = null;
-            TextField cantidadField = null;
-
-            for (javafx.scene.Node child : vboxUbicacion.getChildren()) {
-                if (child instanceof ComboBox) {
-                    combo = (ComboBox<?>) child;
-                    break;
-                }
-            }
-
-            for (javafx.scene.Node child : vboxCantidad.getChildren()) {
-                if (child instanceof TextField) {
-                    cantidadField = (TextField) child;
-                    break;
-                }
-            }
-
-            if (combo == null || cantidadField == null) continue;
-
-            String ubicacion = combo.getValue() != null ? combo.getValue().toString() : "";
-            String cantidadTexto = cantidadField.getText();
-
-            if (ubicacion == null || ubicacion.isBlank() || cantidadTexto == null || cantidadTexto.isBlank()) {
-                continue;
-            }
-
-            try {
-                int cantidad = Integer.parseInt(cantidadTexto);
-                if (cantidad > 0) {
-                    resultado.add(new UbicacionCompra(ubicacion, cantidad));
-                }
-            } catch (NumberFormatException ignored) {
-                // Ignorar ubicaciones con cantidad inválida
-            }
+        for (List<UbicacionCompra> lista : ubicacionesCapturadas.values()) {
+            resultado.addAll(lista);
         }
 
         return resultado;
@@ -537,6 +490,10 @@ public class controllerNuevoTraspasoSalida {
         limpiarPrecios();
         limpiarValidacionesInventario();
         limpiarUbicacionPrimaria();
+        ubicacionesCapturadas.clear();
+        debounceCantidadUbicacion.clear();
+        ultimaCantidadUbicacionValidada.clear();
+        ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
 
         while (contenedorUbicaciones.getChildren().size() > 1) {
             contenedorUbicaciones.getChildren().remove(1);
@@ -573,7 +530,7 @@ public class controllerNuevoTraspasoSalida {
         VBox vboxCantidad = new VBox(5);
         Label lblCantidad = new Label("Cantidad en ubicación:");
         TextField txtCantidad = new TextField();
-        validarNumerosEnteros(txtCantidad);
+        configurarCampoCantidadUbicacion(txtCantidad, nuevoCombo);
         vboxCantidad.getChildren().addAll(lblCantidad, txtCantidad);
         HBox.setHgrow(vboxCantidad, Priority.ALWAYS);
 
@@ -589,6 +546,7 @@ public class controllerNuevoTraspasoSalida {
 
         nuevaFila.getChildren().addAll(vboxUbicacion, vboxCantidad, vboxBoton);
         contenedorUbicaciones.getChildren().add(nuevaFila);
+        ubicacionesCapturadas.put(nuevoCombo, new ArrayList<>());
 
         contadorFilas++;
     }
@@ -599,6 +557,10 @@ public class controllerNuevoTraspasoSalida {
         HBox fila = (HBox) contenedorBoton.getParent();
 
         contenedorUbicaciones.getChildren().remove(fila);
+        limpiarCapturasCombo((ComboBox<String>) ((VBox) fila.getChildren().get(0)).getChildren().stream()
+                .filter(node -> node instanceof ComboBox)
+                .findFirst()
+                .orElse(null));
         contadorFilas--;
     }
 
@@ -723,6 +685,7 @@ public class controllerNuevoTraspasoSalida {
                 mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
                 return;
             }
+            limpiarCapturasCombo(comboUbicacion);
             validarUbicacion();
             actualizarEstadoCascada();
         });
@@ -908,12 +871,7 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
         validarUbicacion();
-        validarCantidadDisponible();
-        if (txtCantidadUbicacion.getText() != null && !txtCantidadUbicacion.getText().isBlank()
-                && (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank())) {
-            txtCantidadUbicacion.clear();
-            mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
-        }
+        validarCantidadDisponible(txtCantidadUbicacion, comboUbicacion);
     }
 
     private void mostrarAlertaCascada(String mensaje) {
@@ -981,12 +939,22 @@ public class controllerNuevoTraspasoSalida {
         hilo.start();
     }
 
-    private void validarCantidadDisponible() {
-        if (!ubicacionValidada) {
+    private void validarCantidadDisponible(TextField campoCantidad, ComboBox<String> combo) {
+        if (campoCantidad == null || combo == null) {
             return;
         }
-        String texto = txtCantidadUbicacion.getText() != null ? txtCantidadUbicacion.getText().trim() : "";
+        String texto = campoCantidad.getText() != null ? campoCantidad.getText().trim() : "";
         if (texto.isBlank()) {
+            return;
+        }
+        if (combo.getValue() == null || combo.getValue().isBlank()) {
+            campoCantidad.clear();
+            mostrarAlerta("Advertencia", "Debe capturar la ubicación antes de la cantidad en ubicación.");
+            return;
+        }
+        if (!loteValidado || !caducidadValidada) {
+            campoCantidad.clear();
+            mostrarAlerta("Advertencia", "Debe capturar un lote y caducidad válidos antes de la cantidad.");
             return;
         }
         String idProducto = productoController.getIdSeleccionado();
@@ -994,7 +962,7 @@ public class controllerNuevoTraspasoSalida {
         String presentacion = cbPresentacion.getValue();
         int factor = parseEntero(txtFactor.getText());
         java.time.LocalDate caducidad = dpCaducidad.getValue();
-        String ubicacion = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
+        String ubicacion = combo.getValue() != null ? combo.getValue().trim() : "";
         if (idProducto == null || idProducto.isBlank()
                 || lote.isBlank()
                 || presentacion == null
@@ -1002,26 +970,33 @@ public class controllerNuevoTraspasoSalida {
                 || factor <= 0
                 || caducidad == null
                 || ubicacion.isBlank()) {
+            campoCantidad.clear();
+            mostrarAlerta("Advertencia", "Debe completar las características del producto antes de la cantidad.");
             return;
         }
         cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponibleDetalle(
                 idProducto, lote, caducidad, presentacion, factor, ubicacion);
         if (cantidadDisponibleUbicacion <= 0) {
-            txtCantidadUbicacion.clear();
+            campoCantidad.clear();
             mostrarAlerta("Advertencia",
                     "No hay existencia en esa ubicación con las características indicadas.");
             return;
         }
         int cantidad = parseEntero(texto);
         if (cantidad <= 0) {
+            campoCantidad.clear();
+            mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
             return;
         }
         if (cantidad > cantidadDisponibleUbicacion) {
-            txtCantidadUbicacion.clear();
+            campoCantidad.clear();
             mostrarAlerta("Advertencia", "La cantidad supera la disponible en esa ubicación.");
-        } else {
-            actualizarPreciosPorUbicaciones();
+            return;
         }
+        registrarCantidadUbicacion(combo, cantidad);
+        mostrarAlertaSinEspera("Éxito", "Cantidad registrada correctamente.");
+        campoCantidad.clear();
+        actualizarPreciosPorUbicaciones();
     }
 
     private void programarValidacionLote(String nuevoValor) {
@@ -1046,35 +1021,37 @@ public class controllerNuevoTraspasoSalida {
         loteDebounce.playFromStart();
     }
 
-    private void programarValidacionCantidadUbicacion(String nuevoValor) {
-        cantidadUbicacionDebounce.stop();
+    private void programarValidacionCantidadUbicacion(TextField campoCantidad, ComboBox<String> combo) {
+        PauseTransition debounce = debounceCantidadUbicacion.computeIfAbsent(campoCantidad,
+                key -> new PauseTransition(DEBOUNCE_TIEMPO));
+        debounce.stop();
+        String nuevoValor = campoCantidad.getText();
         if (nuevoValor == null || nuevoValor.isBlank()) {
-            ultimaCantidadUbicacionValidada = "";
+            ultimaCantidadUbicacionValidada.remove(campoCantidad);
             actualizarPreciosPorUbicaciones();
             return;
         }
-        if (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank()) {
-            txtCantidadUbicacion.clear();
+        if (combo.getValue() == null || combo.getValue().isBlank()) {
+            campoCantidad.clear();
             mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
             return;
         }
-        cantidadUbicacionDebounce.setOnFinished(event -> {
-            String cantidadActual = txtCantidadUbicacion.getText() != null
-                    ? txtCantidadUbicacion.getText().trim()
+        debounce.setOnFinished(event -> {
+            String cantidadActual = campoCantidad.getText() != null
+                    ? campoCantidad.getText().trim()
                     : "";
             if (cantidadActual.isBlank()) {
-                ultimaCantidadUbicacionValidada = "";
+                ultimaCantidadUbicacionValidada.remove(campoCantidad);
                 return;
             }
-            if (cantidadActual.equals(ultimaCantidadUbicacionValidada)) {
+            if (cantidadActual.equals(ultimaCantidadUbicacionValidada.get(campoCantidad))) {
                 return;
             }
-            validarCantidadDisponible();
+            validarCantidadDisponible(campoCantidad, combo);
             actualizarEstadoCascada();
-            actualizarPreciosPorUbicaciones();
-            ultimaCantidadUbicacionValidada = cantidadActual;
+            ultimaCantidadUbicacionValidada.put(campoCantidad, cantidadActual);
         });
-        cantidadUbicacionDebounce.playFromStart();
+        debounce.playFromStart();
     }
 
     private void programarValidacionFactor(String nuevoValor) {
@@ -1281,9 +1258,7 @@ public class controllerNuevoTraspasoSalida {
                 && loteValidado
                 && caducidadValidada
                 && ubicacionValidada
-                && cantidadTotalValida
-                && txtCantidadUbicacion.getText() != null
-                && !txtCantidadUbicacion.getText().isBlank();
+                && cantidadTotalValida;
     }
 
     private void limpiarValidacionesInventario() {
@@ -1295,9 +1270,9 @@ public class controllerNuevoTraspasoSalida {
         cantidadDisponibleUbicacion = 0;
         cantidadTotalValida = false;
         ultimoLoteValidado = "";
-        ultimaCantidadUbicacionValidada = "";
         ultimoFactorValidado = "";
         ultimaPresentacionValidada = "";
+        ultimaCantidadUbicacionValidada.clear();
     }
 
     private void configurarAutocompletadoUbicacion(ComboBox<String> comboBox) {
@@ -1319,6 +1294,9 @@ public class controllerNuevoTraspasoSalida {
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {
                 comboBox.getEditor().setText(newVal);
+            }
+            if (oldVal != null && !oldVal.equals(newVal)) {
+                limpiarCapturasCombo(comboBox);
             }
         });
     }
@@ -1346,6 +1324,42 @@ public class controllerNuevoTraspasoSalida {
         if (txtCantidadUbicacion != null) {
             txtCantidadUbicacion.clear();
         }
-        ultimaCantidadUbicacionValidada = "";
+        ultimaCantidadUbicacionValidada.clear();
+        limpiarCapturasCombo(comboUbicacion);
+    }
+
+    private void configurarCampoCantidadUbicacion(TextField campoCantidad, ComboBox<String> combo) {
+        if (campoCantidad == null || combo == null) {
+            return;
+        }
+        validarNumerosEnteros(campoCantidad);
+        campoCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()
+                    && (combo.getValue() == null || combo.getValue().isBlank())) {
+                campoCantidad.clear();
+                mostrarAlertaCascada("Debe capturar la ubicación antes de la cantidad en ubicación.");
+                return;
+            }
+            programarValidacionCantidadUbicacion(campoCantidad, combo);
+        });
+    }
+
+    private void registrarCantidadUbicacion(ComboBox<String> combo, int cantidad) {
+        String ubicacion = combo.getValue();
+        if (ubicacion == null || ubicacion.isBlank() || cantidad <= 0) {
+            return;
+        }
+        List<UbicacionCompra> lista = ubicacionesCapturadas.computeIfAbsent(combo, key -> new ArrayList<>());
+        lista.add(new UbicacionCompra(ubicacion, cantidad));
+    }
+
+    private void limpiarCapturasCombo(ComboBox<String> combo) {
+        if (combo == null) {
+            return;
+        }
+        List<UbicacionCompra> lista = ubicacionesCapturadas.get(combo);
+        if (lista != null) {
+            lista.clear();
+        }
     }
 }
