@@ -546,10 +546,12 @@ public class controllerNuevoTraspasoSalida {
         HBox fila = (HBox) contenedorBoton.getParent();
 
         contenedorUbicaciones.getChildren().remove(fila);
-        limpiarCapturasCombo((ComboBox<String>) ((VBox) fila.getChildren().get(0)).getChildren().stream()
+        ComboBox<String> combo = (ComboBox<String>) ((VBox) fila.getChildren().get(0)).getChildren().stream()
                 .filter(node -> node instanceof ComboBox)
                 .findFirst()
                 .orElse(null));
+        limpiarCapturasCombo(combo);
+        ubicacionesCapturadas.remove(combo);
         contadorFilas--;
     }
 
@@ -1381,6 +1383,17 @@ public class controllerNuevoTraspasoSalida {
                 mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
                 return;
             }
+            if (newVal != null && !newVal.isBlank() && ubicacionDuplicada(combo, newVal)) {
+                combo.setValue(null);
+                if (combo.getEditor() != null) {
+                    combo.getEditor().clear();
+                }
+                if (campoCantidad != null) {
+                    campoCantidad.clear();
+                }
+                mostrarAlertaCascada("No se puede seleccionar la misma ubicación más de una vez.");
+                return;
+            }
             limpiarCapturasCombo(combo);
             if (combo == comboUbicacion) {
                 validarUbicacion();
@@ -1408,5 +1421,22 @@ public class controllerNuevoTraspasoSalida {
         if (lista != null) {
             lista.clear();
         }
+    }
+
+    private boolean ubicacionDuplicada(ComboBox<String> comboActual, String ubicacion) {
+        if (ubicacion == null || ubicacion.isBlank()) {
+            return false;
+        }
+        String ubicacionNormalizada = ubicacion.trim();
+        for (ComboBox<String> combo : ubicacionesCapturadas.keySet()) {
+            if (combo == null || combo == comboActual) {
+                continue;
+            }
+            String valor = combo.getValue();
+            if (valor != null && !valor.isBlank() && ubicacionNormalizada.equals(valor.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
