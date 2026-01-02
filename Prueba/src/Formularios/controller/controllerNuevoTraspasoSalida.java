@@ -488,6 +488,8 @@ public class controllerNuevoTraspasoSalida {
                 lote,
                 caducidad.toString(),
                 cantidad,
+                presentacion,
+                factor,
                 ubicacionesSeleccionadas,
                 precioEntrada,
                 precioIva,
