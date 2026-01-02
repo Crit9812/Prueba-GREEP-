@@ -5,9 +5,13 @@ import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import java.io.IOException;
@@ -23,6 +27,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MainController {
 
@@ -34,13 +40,17 @@ public class MainController {
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<traspasoSalida> contenidoTabla;
+    @FXML private HBox contenedorComentario;
+    @FXML private TextField comentario;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
+    @FXML private CheckBox miCheckBox;
     @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblSucursal;
     @FXML private Region expansor;
+    @FXML private TextField totalTraspaso;
     @FXML private TableColumn<traspasoSalida, Boolean> colSelect;
     @FXML private TableColumn<traspasoSalida, String> colClaveProduct;
     @FXML private TableColumn<traspasoSalida, String> colProducto;
@@ -60,6 +70,7 @@ public class MainController {
     private final ObservableList<traspasoSalida> itemsTraspaso = FXCollections.observableArrayList();
     private String sucursalSeleccionadaId;
     private boolean actualizandoSucursal = false;
+    private boolean actualizandoSeleccion = false;
 
     @FXML
     public void initialize() {
@@ -105,15 +116,25 @@ public class MainController {
             lblSucursal.setMinWidth(Region.USE_PREF_SIZE);
 
             // Tabla
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.7));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-            contenedorBtnConfirmar.maxWidthProperty().bind(contenedor.widthProperty().multiply(0.95));
+
+            // Comentario
+            contenedorComentario.maxWidthProperty().bind(contenedor.widthProperty());
+            HBox.setHgrow(comentario, Priority.ALWAYS);
+            comentario.setMaxWidth(Double.MAX_VALUE);
+
+            // Botón confirmar
+            contenedorBtnConfirmar.setMinWidth(Region.USE_PREF_SIZE);
+            contenedorBtnConfirmar.setMaxWidth(Region.USE_PREF_SIZE);
+            HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Traspaso de Salida", "#ffffff");
 
         });
         configurarAutocompleteSucursales();
         configurarTabla();
+        configurarTotalTraspaso();
     }
 
     private void configurarAutocompleteSucursales() {
@@ -246,6 +267,123 @@ public class MainController {
 
         for (TableColumn<traspasoSalida, ?> col : columnas) {
             col.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setEditable(true);
+        miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccion) {
+                return;
+            }
+            actualizandoSeleccion = true;
+            try {
+                for (traspasoSalida item : itemsTraspaso) {
+                    item.setSeleccionado(newVal);
+                }
+            } finally {
+                actualizandoSeleccion = false;
+            }
+        });
+
+        itemsTraspaso.addListener((javafx.collections.ListChangeListener<traspasoSalida>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (traspasoSalida item : change.getAddedSubList()) {
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+                        if (miCheckBox.isSelected() && !item.isSeleccionado()) {
+                            item.setSeleccionado(true);
+                        }
+                    }
+                }
+                if (change.wasRemoved()) {
+                    actualizarSeleccionGeneral();
+                }
+            }
+        });
+
+        for (traspasoSalida item : itemsTraspaso) {
+            item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+        }
+    }
+
+    @FXML
+    public void eliminarSeleccionados() {
+        List<traspasoSalida> seleccionados = itemsTraspaso.stream()
+                .filter(traspasoSalida::isSeleccionado)
+                .collect(Collectors.toList());
+        if (seleccionados.isEmpty()) {
+            return;
+        }
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("¿Deseas eliminar los productos seleccionados?");
+        confirmacion.setContentText("Esta acción eliminará los elementos seleccionados del traspaso.");
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                itemsTraspaso.removeAll(seleccionados);
+                actualizarSeleccionGeneral();
+                actualizarTotalTraspaso();
+            }
+        });
+    }
+
+    private void actualizarSeleccionGeneral() {
+        if (actualizandoSeleccion) {
+            return;
+        }
+        actualizandoSeleccion = true;
+        try {
+            boolean seleccionarTodo = !itemsTraspaso.isEmpty()
+                    && itemsTraspaso.stream().allMatch(traspasoSalida::isSeleccionado);
+            miCheckBox.setSelected(seleccionarTodo);
+        } finally {
+            actualizandoSeleccion = false;
+        }
+    }
+
+    private void configurarTotalTraspaso() {
+        if (totalTraspaso != null) {
+            totalTraspaso.setEditable(false);
+            totalTraspaso.setText("0.00");
+        }
+
+        itemsTraspaso.addListener((javafx.collections.ListChangeListener<traspasoSalida>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (traspasoSalida item : change.getAddedSubList()) {
+                        item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalTraspaso());
+                    }
+                }
+            }
+            actualizarTotalTraspaso();
+        });
+
+        actualizarTotalTraspaso();
+    }
+
+    private void actualizarTotalTraspaso() {
+        if (totalTraspaso == null) {
+            return;
+        }
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (traspasoSalida item : itemsTraspaso) {
+            total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
+        }
+        totalTraspaso.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private java.math.BigDecimal parseTotal(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return java.math.BigDecimal.ZERO;
+        }
+        String limpio = valor.trim().replace(",", "");
+        limpio = limpio.replaceAll("[^0-9.\\-]", "");
+        if (limpio.isBlank() || "-".equals(limpio)) {
+            return java.math.BigDecimal.ZERO;
+        }
+        try {
+            return new java.math.BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
         }
     }
 
