@@ -20,6 +20,8 @@ public class traspasoSalida {
     private final StringProperty lote = new SimpleStringProperty("");
     private final StringProperty caducidad = new SimpleStringProperty("");
     private final IntegerProperty cantidad = new SimpleIntegerProperty(0);
+    private final StringProperty presentacion = new SimpleStringProperty("");
+    private final IntegerProperty factor = new SimpleIntegerProperty(0);
     private final StringProperty ubicacionResumen = new SimpleStringProperty("");
     private final StringProperty precioEntrada = new SimpleStringProperty("");
     private final StringProperty precioIva = new SimpleStringProperty("");
@@ -30,14 +32,16 @@ public class traspasoSalida {
     private final List<UbicacionCompra> ubicaciones = new ArrayList<>();
 
     public traspasoSalida(String claveProducto, String producto, String descripcion, String lote, String caducidad,
-                          int cantidad, List<UbicacionCompra> ubicaciones, String precioEntrada, String precioIva,
-                          String precioBruto, String precioTotal) {
+                          int cantidad, String presentacion, int factor, List<UbicacionCompra> ubicaciones,
+                          String precioEntrada, String precioIva, String precioBruto, String precioTotal) {
         this.claveProducto.set(claveProducto != null ? claveProducto : "");
         this.producto.set(producto != null ? producto : "");
         this.descripcion.set(descripcion != null ? descripcion : "");
         this.lote.set(lote != null ? lote : "");
         this.caducidad.set(caducidad != null ? caducidad : "");
         this.cantidad.set(cantidad);
+        this.presentacion.set(presentacion != null ? presentacion : "");
+        this.factor.set(factor);
         if (ubicaciones != null) {
             this.ubicaciones.addAll(ubicaciones);
         }
@@ -105,6 +109,22 @@ public class traspasoSalida {
         return cantidad;
     }
 
+    public String getPresentacion() {
+        return presentacion.get();
+    }
+
+    public StringProperty presentacionProperty() {
+        return presentacion;
+    }
+
+    public int getFactor() {
+        return factor.get();
+    }
+
+    public IntegerProperty factorProperty() {
+        return factor;
+    }
+
     public String getUbicacionResumen() {
         return ubicacionResumen.get();
     }
@@ -155,5 +175,9 @@ public class traspasoSalida {
 
     public void setSeleccionado(boolean seleccionado) {
         this.seleccionado.set(seleccionado);
+    }
+
+    public List<UbicacionCompra> getUbicaciones() {
+        return new ArrayList<>(ubicaciones);
     }
 }

@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -27,6 +28,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,6 +51,7 @@ public class MainController {
     @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblSucursal;
+    @FXML private Button botonConfirmar;
     @FXML private Region expansor;
     @FXML private TextField totalTraspaso;
     @FXML private TableColumn<traspasoSalida, Boolean> colSelect;
@@ -135,6 +138,7 @@ public class MainController {
         configurarAutocompleteSucursales();
         configurarTabla();
         configurarTotalTraspaso();
+        configurarConfirmacion();
     }
 
     private void configurarAutocompleteSucursales() {
@@ -360,6 +364,44 @@ public class MainController {
         actualizarTotalTraspaso();
     }
 
+    private void configurarConfirmacion() {
+        if (botonConfirmar != null) {
+            botonConfirmar.setOnAction(event -> confirmarTraspasoSalida());
+        }
+    }
+
+    private void confirmarTraspasoSalida() {
+        if (itemsTraspaso.isEmpty()) {
+            mostrarAlerta("Advertencia", "Debe agregar al menos un producto para confirmar el traspaso.");
+            return;
+        }
+        if (sucursalSeleccionadaId == null || sucursalSeleccionadaId.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe seleccionar una sucursal de destino.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("¿Deseas confirmar el traspaso de salida?");
+        confirmacion.setContentText("Esta acción registrará el traspaso y marcará los artículos correspondientes.");
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                String nota = comentario != null ? comentario.getText() : "";
+                boolean registrado = model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, new ArrayList<>(itemsTraspaso));
+                if (registrado) {
+                    itemsTraspaso.clear();
+                    actualizarTotalTraspaso();
+                    if (comentario != null) {
+                        comentario.clear();
+                    }
+                    mostrarAlerta("Éxito", "El traspaso de salida se registró correctamente.");
+                } else {
+                    mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
+                }
+            }
+        });
+    }
+
     private void actualizarTotalTraspaso() {
         if (totalTraspaso == null) {
             return;
@@ -389,5 +431,13 @@ public class MainController {
 
     public void refrescarTabla() {
         contenidoTabla.refresh();
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 }
