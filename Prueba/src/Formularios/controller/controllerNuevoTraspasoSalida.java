@@ -468,6 +468,13 @@ public class controllerNuevoTraspasoSalida {
             mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
             return;
         }
+        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
+                .mapToInt(UbicacionCompra::getCantidad)
+                .sum();
+        if (sumaUbicaciones != cantidad) {
+            mostrarAlerta("Advertencia", "La suma de cantidades por ubicación debe ser igual a la cantidad total.");
+            return;
+        }
 
         if (itemsTraspaso == null) {
             mostrarAlerta("Error", "No se pudo registrar el traspaso en la tabla.");
