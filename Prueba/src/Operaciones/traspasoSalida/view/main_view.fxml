@@ -97,9 +97,51 @@
                                 <TableColumn fx:id="colPrecioTotaal" text="Precio total" prefWidth="360" />
                             </columns>
                         </TableView>
+
+                        <!-- TOTAL PEGADO A LA TABLA -->
+                        <HBox alignment="CENTER_RIGHT">
+                            <Label fx:id="lblTotal" text="Total:" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <TextField fx:id="totalTraspaso"
+                                       editable="false"
+                                       styleClass="factura"
+                                       promptText="Total">
+                            </TextField>
+                        </HBox>
                     </VBox>
-                    <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT" >
-                        <Button fx:id="botonConfirmar" styleClass="botonConfirmar"> Confirmar </Button>
+
+                    <!-- COMENTARIO (SEPARADO DEL TOTAL) -->
+                    <HBox fx:id="contenedorComentario"
+                          spacing="8"
+                          alignment="CENTER_LEFT">
+
+
+                        <Label fx:id="lblComentario" text="Comentario:" styleClass="labels">
+                            <HBox.margin>
+                                <Insets left="40"/>
+                            </HBox.margin>
+                        </Label>
+
+                        <TextField fx:id="comentario" HBox.hgrow="ALWAYS" prefHeight="35">
+                            <HBox.margin>
+                                <Insets right="25" left="8" top="20"/>
+                            </HBox.margin>
+                        </TextField>
+
+                        <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
+                            <VBox alignment="CENTER_RIGHT" spacing="8">
+                                <Button fx:id="botonConfirmar"
+                                        styleClass="botonConfirmar"
+                                        text="Confirmar">
+                                    <VBox.margin>
+                                        <Insets right="40" top="20"/>
+                                    </VBox.margin>
+                                </Button>
+                            </VBox>
+                        </HBox>
                     </HBox>
                 </VBox>
             </SplitPane>
