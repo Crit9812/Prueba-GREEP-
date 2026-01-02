@@ -1050,6 +1050,7 @@ public class controllerNuevoTraspasoSalida {
         cantidadUbicacionDebounce.stop();
         if (nuevoValor == null || nuevoValor.isBlank()) {
             ultimaCantidadUbicacionValidada = "";
+            actualizarPreciosPorUbicaciones();
             return;
         }
         if (comboUbicacion.getValue() == null || comboUbicacion.getValue().isBlank()) {
