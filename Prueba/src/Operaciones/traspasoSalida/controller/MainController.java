@@ -5,6 +5,7 @@ import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -23,6 +24,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MainController {
 
@@ -37,6 +40,7 @@ public class MainController {
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
+    @FXML private CheckBox miCheckBox;
     @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblSucursal;
@@ -60,6 +64,7 @@ public class MainController {
     private final ObservableList<traspasoSalida> itemsTraspaso = FXCollections.observableArrayList();
     private String sucursalSeleccionadaId;
     private boolean actualizandoSucursal = false;
+    private boolean actualizandoSeleccion = false;
 
     @FXML
     public void initialize() {
@@ -246,6 +251,67 @@ public class MainController {
 
         for (TableColumn<traspasoSalida, ?> col : columnas) {
             col.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setEditable(true);
+        miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccion) {
+                return;
+            }
+            actualizandoSeleccion = true;
+            try {
+                for (traspasoSalida item : itemsTraspaso) {
+                    item.setSeleccionado(newVal);
+                }
+            } finally {
+                actualizandoSeleccion = false;
+            }
+        });
+
+        itemsTraspaso.addListener((javafx.collections.ListChangeListener<traspasoSalida>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (traspasoSalida item : change.getAddedSubList()) {
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+                        if (miCheckBox.isSelected() && !item.isSeleccionado()) {
+                            item.setSeleccionado(true);
+                        }
+                    }
+                }
+                if (change.wasRemoved()) {
+                    actualizarSeleccionGeneral();
+                }
+            }
+        });
+
+        for (traspasoSalida item : itemsTraspaso) {
+            item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+        }
+    }
+
+    @FXML
+    public void eliminarSeleccionados() {
+        List<traspasoSalida> seleccionados = itemsTraspaso.stream()
+                .filter(traspasoSalida::isSeleccionado)
+                .collect(Collectors.toList());
+        if (seleccionados.isEmpty()) {
+            return;
+        }
+        itemsTraspaso.removeAll(seleccionados);
+        actualizarSeleccionGeneral();
+    }
+
+    private void actualizarSeleccionGeneral() {
+        if (actualizandoSeleccion) {
+            return;
+        }
+        actualizandoSeleccion = true;
+        try {
+            boolean seleccionarTodo = !itemsTraspaso.isEmpty()
+                    && itemsTraspaso.stream().allMatch(traspasoSalida::isSeleccionado);
+            miCheckBox.setSelected(seleccionarTodo);
+        } finally {
+            actualizandoSeleccion = false;
         }
     }
 
