@@ -562,10 +562,6 @@ public class controllerCompraEmergente {
                 // 5. Abrir formulario de claves con proveedor Y producto
                 abrirFormularioClavesConProducto(null, false, proveedorId, proveedorNombre,
                         productoId, productoNombre);
-            } else {
-                // Si no se creó producto, solo abrir con proveedor
-                mostrarAlertaSinEspera("Información", "Producto creado exitosamente. Ahora vincule una clave alterna.");
-                abrirFormularioClaves(null, false, proveedorId, proveedorNombre);
             }
 
         } catch (Exception e) {

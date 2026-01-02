@@ -4,15 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Modificaciones de diseño en compras">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregada parte de compra completa">
       <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/compraEmergente.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/compraEmergente.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/style/estilos.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -317,7 +310,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767033059342</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Agregada parte de compra completa">
+      <option name="closed" value="true" />
+      <created>1767381648107</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1767381648107</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -379,7 +380,8 @@
     <MESSAGE value="subida de todos los archivos a una rama" />
     <MESSAGE value="comprar" />
     <MESSAGE value="Modificaciones de diseño en compras" />
-    <option name="LAST_COMMIT_MESSAGE" value="Modificaciones de diseño en compras" />
+    <MESSAGE value="Agregada parte de compra completa" />
+    <option name="LAST_COMMIT_MESSAGE" value="Agregada parte de compra completa" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
