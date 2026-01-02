@@ -369,13 +369,13 @@ public class controllerNuevoTraspasoSalida {
                 if (resultado.isPresent()) {
                     aplicarPrecios(resultado.get());
                 } else {
-                    limpiarPrecios();
+                    //limpiarPrecios();
                 }
             }
 
             @Override
             protected void failed() {
-                limpiarPrecios();
+                //limpiarPrecios();
             }
         };
 
@@ -550,6 +550,12 @@ public class controllerNuevoTraspasoSalida {
                 .filter(node -> node instanceof ComboBox)
                 .findFirst()
                 .orElse(null));
+        ComboBox<String> combo = (ComboBox<String>) ((VBox) fila.getChildren().get(0)).getChildren().stream()
+                .filter(node -> node instanceof ComboBox)
+                .findFirst()
+                .orElse(null);
+        limpiarCapturasCombo(combo);
+        ubicacionesCapturadas.remove(combo);
         contadorFilas--;
     }
 
@@ -611,7 +617,6 @@ public class controllerNuevoTraspasoSalida {
 
     private void actualizarPreciosPorUbicaciones() {
         cargarPreciosDesdeProducto();
-        recalcularPrecios();
     }
 
     private int parseEntero(String texto) {
@@ -662,7 +667,6 @@ public class controllerNuevoTraspasoSalida {
         txtCantidadUbicacion.focusedProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal) {
                 validarCamposDesdeCantidadUbicacion();
-                actualizarPreciosPorUbicaciones();
             }
         });
 
@@ -732,7 +736,7 @@ public class controllerNuevoTraspasoSalida {
                 presentacionValida = false;
                 factorValido = false;
                 actualizarEstadoCascada();
-                limpiarPrecios();
+                //limpiarPrecios();
             }
 
             @Override
@@ -881,7 +885,7 @@ public class controllerNuevoTraspasoSalida {
                     ubicacionValidada = true;
                 }
                 actualizarEstadoCascada();
-                limpiarPrecios();
+                //limpiarPrecios();
             }
         };
 
@@ -944,16 +948,13 @@ public class controllerNuevoTraspasoSalida {
                     if (combo.getEditor() != null) {
                         combo.getEditor().clear();
                     }
-                    if (campoCantidad != null) {
-                        campoCantidad.clear();
-                    }
                     mostrarAlertaSinEspera("Advertencia",
                             "No hay productos en esa ubicación para el lote y caducidad indicados.");
                 } else if (combo == comboUbicacion) {
                     ubicacionValidada = true;
                 }
                 actualizarEstadoCascada();
-                limpiarPrecios();
+                //limpiarPrecios();
             }
         };
 
@@ -1017,7 +1018,6 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
         registrarCantidadUbicacion(combo, cantidad);
-        actualizarPreciosPorUbicaciones();
     }
 
     private void programarValidacionLote(String nuevoValor) {
@@ -1049,7 +1049,6 @@ public class controllerNuevoTraspasoSalida {
         String nuevoValor = campoCantidad.getText();
         if (nuevoValor == null || nuevoValor.isBlank()) {
             ultimaCantidadUbicacionValidada.remove(campoCantidad);
-            actualizarPreciosPorUbicaciones();
             return;
         }
         if (combo.getValue() == null || combo.getValue().isBlank()) {
@@ -1163,6 +1162,7 @@ public class controllerNuevoTraspasoSalida {
                             "La cantidad supera la disponible para el lote y caducidad seleccionados.");
                 } else {
                     cantidadTotalValida = true;
+                    actualizarPreciosPorUbicaciones();
                 }
             }
         };
@@ -1381,6 +1381,17 @@ public class controllerNuevoTraspasoSalida {
                 mostrarAlertaCascada("Debe capturar el factor antes de la ubicación.");
                 return;
             }
+            if (newVal != null && !newVal.isBlank() && ubicacionDuplicada(combo, newVal)) {
+                combo.setValue(null);
+                if (combo.getEditor() != null) {
+                    combo.getEditor().clear();
+                }
+                if (campoCantidad != null) {
+                    campoCantidad.clear();
+                }
+                mostrarAlertaCascada("No se puede seleccionar la misma ubicación más de una vez.");
+                return;
+            }
             limpiarCapturasCombo(combo);
             if (combo == comboUbicacion) {
                 validarUbicacion();
@@ -1408,5 +1419,23 @@ public class controllerNuevoTraspasoSalida {
         if (lista != null) {
             lista.clear();
         }
+    }
+
+
+    private boolean ubicacionDuplicada(ComboBox<String> comboActual, String ubicacion) {
+        if (ubicacion == null || ubicacion.isBlank()) {
+            return false;
+        }
+        String ubicacionNormalizada = ubicacion.trim();
+        for (ComboBox<String> combo : ubicacionesCapturadas.keySet()) {
+            if (combo == null || combo == comboActual) {
+                continue;
+            }
+            String valor = combo.getValue();
+            if (valor != null && !valor.isBlank() && ubicacionNormalizada.equals(valor.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
