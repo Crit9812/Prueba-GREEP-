@@ -6,14 +6,23 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import java.io.IOException;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.ComboBox;
 import Operaciones.traspasoSalida.model.model;
+import Operaciones.traspasoSalida.model.traspasoSalida;
+import javafx.beans.value.ObservableValue;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.Callback;
 
 public class MainController {
 
@@ -24,7 +33,7 @@ public class MainController {
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
+    @FXML private TableView<traspasoSalida> contenidoTabla;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
@@ -32,11 +41,23 @@ public class MainController {
     @FXML private Label lblAgregar;
     @FXML private Label lblSucursal;
     @FXML private Region expansor;
+    @FXML private TableColumn<traspasoSalida, Boolean> colSelect;
+    @FXML private TableColumn<traspasoSalida, String> colClaveProduct;
+    @FXML private TableColumn<traspasoSalida, String> colProducto;
+    @FXML private TableColumn<traspasoSalida, String> colDescripcionProducto;
+    @FXML private TableColumn<traspasoSalida, String> colLote;
+    @FXML private TableColumn<traspasoSalida, String> colCaducidad;
+    @FXML private TableColumn<traspasoSalida, String> colUbicacion;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioUnitario;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioIva;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioBruto;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioTotaal;
 
     @FXML private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> sucursalesCache;
     private final ObservableList<String> sucursalesFiltradas = FXCollections.observableArrayList();
+    private final ObservableList<traspasoSalida> itemsTraspaso = FXCollections.observableArrayList();
     private String sucursalSeleccionadaId;
     private boolean actualizandoSucursal = false;
 
@@ -92,6 +113,7 @@ public class MainController {
 
         });
         configurarAutocompleteSucursales();
+        configurarTabla();
     }
 
     private void configurarAutocompleteSucursales() {
@@ -169,7 +191,65 @@ public class MainController {
 
     @FXML
     public void abrirTraspasoSalida() {
-        Formularios.controller.controllerNuevoTraspasoSalida controlador = new Formularios.controller.controllerNuevoTraspasoSalida();
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoTraspasoSalida.fxml",controlador,"Traspaso de salida");
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoTraspasoSalida.fxml"));
+            Formularios.controller.controllerNuevoTraspasoSalida controlador =
+                    new Formularios.controller.controllerNuevoTraspasoSalida();
+            controlador.setItemsTraspaso(itemsTraspaso);
+            controlador.setMainController(this);
+            loader.setController(controlador);
+
+            Pane formulario = loader.load();
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Traspaso de salida");
+            stage.setScene(new javafx.scene.Scene(formulario));
+            stage.initOwner(root.getScene().getWindow());
+            stage.setResizable(false);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void configurarTabla() {
+        contenidoTabla.setItems(itemsTraspaso);
+
+        colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<traspasoSalida, Boolean>, ObservableValue<Boolean>>() {
+            @Override
+            public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<traspasoSalida, Boolean> param) {
+                traspasoSalida item = param.getValue();
+                if (item != null) {
+                    return item.seleccionadoProperty();
+                }
+                return new SimpleBooleanProperty(false);
+            }
+        });
+
+        colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
+        colClaveProduct.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
+        colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
+        colDescripcionProducto.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
+        colLote.setCellValueFactory(new PropertyValueFactory<>("lote"));
+        colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
+        colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacionResumen"));
+        colPrecioUnitario.setCellValueFactory(new PropertyValueFactory<>("precioEntrada"));
+        colPrecioIva.setCellValueFactory(new PropertyValueFactory<>("precioIva"));
+        colPrecioBruto.setCellValueFactory(new PropertyValueFactory<>("precioBruto"));
+        colPrecioTotaal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
+
+        TableColumn<traspasoSalida, ?>[] columnas = new TableColumn[] {
+                colSelect, colClaveProduct, colProducto, colDescripcionProducto, colLote,
+                colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+        };
+
+        for (TableColumn<traspasoSalida, ?> col : columnas) {
+            col.setStyle("-fx-alignment: CENTER;");
+        }
+    }
+
+    public void refrescarTabla() {
+        contenidoTabla.refresh();
     }
 }

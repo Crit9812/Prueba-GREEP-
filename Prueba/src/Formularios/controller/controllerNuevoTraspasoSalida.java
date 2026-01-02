@@ -3,6 +3,7 @@ package Formularios.controller;
 import Compartido.controller.productoCboxController;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
+import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -66,6 +67,8 @@ public class controllerNuevoTraspasoSalida {
 
     private final modelNuevoTraspasoSalida modelo = new modelNuevoTraspasoSalida();
     private productoCboxController productoController;
+    private ObservableList<traspasoSalida> itemsTraspaso;
+    private Operaciones.traspasoSalida.controller.MainController mainController;
 
     private BigDecimal precioEntradaBase = BigDecimal.ZERO;
     private BigDecimal precioIvaBase = BigDecimal.ZERO;
@@ -409,39 +412,60 @@ public class controllerNuevoTraspasoSalida {
     private void guardarItem() {
         String clave = productoController.getIdSeleccionado();
         String nombre = productoController.getNombreSeleccionado();
-        String cantidadTexto = txtCantidad.getText();
+        String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        String presentacion = cbPresentacion.getValue();
+        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+        String precioEntrada = txtPrecioEntrada.getText() != null ? txtPrecioEntrada.getText().trim() : "";
+        String precioIva = txtPrecioIVA.getText() != null ? txtPrecioIVA.getText().trim() : "";
+        String precioBruto = txtPrecioBruto.getText() != null ? txtPrecioBruto.getText().trim() : "";
+        String precioTotal = txtPrecioTotal.getText() != null ? txtPrecioTotal.getText().trim() : "";
 
-        if (clave == null || clave.isBlank() || nombre == null || nombre.isBlank()) {
-            mostrarAlerta("Advertencia", "Complete los campos obligatorios de producto.");
-            return;
-        }
-
-        if (!productoController.validarSeleccion()) {
-            mostrarAlerta("Error", "El ID y el nombre del producto no corresponden.\n" +
-                    "Por favor, verifique la selección.");
-            return;
-        }
-
-        if (!loteValidado || !caducidadValidada || !ubicacionValidada) {
-            mostrarAlerta("Advertencia", "Complete el lote, caducidad y ubicación válidos antes de continuar.");
+        if (clave == null || clave.isBlank()
+                || nombre == null || nombre.isBlank()
+                || descripcion.isBlank()
+                || lote.isBlank()
+                || caducidad == null
+                || cantidadTexto.isBlank()
+                || presentacion == null || presentacion.isBlank()
+                || factorTexto.isBlank()
+                || precioEntrada.isBlank()
+                || precioIva.isBlank()
+                || precioBruto.isBlank()
+                || precioTotal.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar.");
             return;
         }
 
         int cantidad;
+        int factor;
         try {
             cantidad = Integer.parseInt(cantidadTexto);
             if (cantidad <= 0) {
-                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0");
+                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
                 return;
             }
         } catch (NumberFormatException e) {
-            mostrarAlerta("Error", "La cantidad debe ser un número válido");
+            mostrarAlerta("Error", "La cantidad debe ser un número válido.");
+            return;
+        }
+
+        try {
+            factor = Integer.parseInt(factorTexto);
+            if (factor <= 0) {
+                mostrarAlerta("Advertencia", "El factor debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            mostrarAlerta("Error", "El factor debe ser un número válido.");
             return;
         }
 
         List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
         if (ubicacionesSeleccionadas.isEmpty()) {
-            mostrarAlerta("Advertencia", "Debe capturar al menos una ubicación con cantidad.");
+            mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
             return;
         }
         int sumaUbicaciones = ubicacionesSeleccionadas.stream()
@@ -452,15 +476,89 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
 
-        mostrarAlertaSinEspera("Éxito", "Traspaso de salida capturado.");
-        cerrarFormulario();
+        if (itemsTraspaso == null) {
+            mostrarAlerta("Error", "No se pudo registrar el traspaso en la tabla.");
+            return;
+        }
+
+        traspasoSalida item = new traspasoSalida(
+                clave,
+                nombre,
+                descripcion,
+                lote,
+                caducidad.toString(),
+                cantidad,
+                ubicacionesSeleccionadas,
+                precioEntrada,
+                precioIva,
+                precioBruto,
+                precioTotal
+        );
+        itemsTraspaso.add(item);
+
+        if (mainController != null) {
+            mainController.refrescarTabla();
+        }
+
+        mostrarAlertaSinEspera("Éxito", "Producto agregado al traspaso de salida.");
+        limpiarFormularioParaNuevo();
     }
 
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
         List<UbicacionCompra> resultado = new ArrayList<>();
 
-        for (List<UbicacionCompra> lista : ubicacionesCapturadas.values()) {
-            resultado.addAll(lista);
+        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
+            if (!(nodo instanceof HBox)) {
+                continue;
+            }
+            HBox fila = (HBox) nodo;
+            if (fila.getChildren().size() < 2) {
+                continue;
+            }
+
+            VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
+            VBox vboxCantidad = (VBox) fila.getChildren().get(1);
+
+            ComboBox<?> combo = null;
+            TextField cantidadField = null;
+
+            for (javafx.scene.Node child : vboxUbicacion.getChildren()) {
+                if (child instanceof ComboBox) {
+                    combo = (ComboBox<?>) child;
+                    break;
+                }
+            }
+
+            for (javafx.scene.Node child : vboxCantidad.getChildren()) {
+                if (child instanceof TextField) {
+                    cantidadField = (TextField) child;
+                    break;
+                }
+            }
+
+            if (combo == null || cantidadField == null) {
+                continue;
+            }
+
+            String ubicacion = combo.getValue() != null ? combo.getValue().toString().trim() : "";
+            String cantidadTexto = cantidadField.getText() != null ? cantidadField.getText().trim() : "";
+
+            if (ubicacion.isBlank() || cantidadTexto.isBlank()) {
+                mostrarAlerta("Advertencia", "Debe completar todas las ubicaciones y cantidades.");
+                return new ArrayList<>();
+            }
+
+            try {
+                int cantidad = Integer.parseInt(cantidadTexto);
+                if (cantidad <= 0) {
+                    mostrarAlerta("Advertencia", "La cantidad por ubicación debe ser mayor a 0.");
+                    return new ArrayList<>();
+                }
+                resultado.add(new UbicacionCompra(ubicacion, cantidad));
+            } catch (NumberFormatException e) {
+                mostrarAlerta("Error", "La cantidad por ubicación debe ser un número válido.");
+                return new ArrayList<>();
+            }
         }
 
         return resultado;
@@ -637,6 +735,14 @@ public class controllerNuevoTraspasoSalida {
         }
         Stage stage = (Stage) btnGuardar.getScene().getWindow();
         stage.close();
+    }
+
+    public void setItemsTraspaso(ObservableList<traspasoSalida> itemsTraspaso) {
+        this.itemsTraspaso = itemsTraspaso;
+    }
+
+    public void setMainController(Operaciones.traspasoSalida.controller.MainController mainController) {
+        this.mainController = mainController;
     }
 
     private void configurarCascada() {
