@@ -66,7 +66,7 @@ public class model {
         try (Connection conn = new Conexion().conectar()) {
             conn.setAutoCommit(false);
 
-            Map<String, String> columnasSalida = obtenerColumnas(conn, "salida");
+            Map<String, String> columnasSalida = obtenerColumnas(conn, "salidas");
             Map<String, Object> valoresSalida = new LinkedHashMap<>();
 
             String colDestinatario = resolverColumna(columnasSalida, "idDestinatario", "destinatario", "idSucursal",
@@ -86,7 +86,7 @@ public class model {
 
             if (colDestinatario != null) valoresSalida.put(colDestinatario, idDestinatario);
             if (colFactura != null) valoresSalida.put(colFactura, null);
-            if (colComentario != null) valoresSalida.put(colComentario, comentario);
+            if (colComentario != null) valoresSalida.put(colComentario, comentario != null ? comentario : "");
             if (colFecha != null) valoresSalida.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresSalida.put(colHora, Time.valueOf(LocalTime.now()));
             if (colTipo != null) valoresSalida.put(colTipo, "traspaso");
@@ -112,7 +112,7 @@ public class model {
                 valoresSalida.put(colPrecioTotal, totalGeneral.setScale(2, RoundingMode.HALF_UP));
             }
 
-            long idSalida = insertarRegistro(conn, "salida", columnasSalida, valoresSalida);
+            long idSalida = insertarRegistro(conn, "salidas", columnasSalida, valoresSalida);
 
             Map<String, String> columnasDetalleSalida = obtenerColumnas(conn, "detalle_Salida");
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
@@ -143,16 +143,18 @@ public class model {
 
                 String colSalida = resolverColumna(columnasDetalleSalida, "claveSalida", "idSalida", "id_salida",
                         "salida_id");
-                String colProducto = resolverColumna(columnasDetalleSalida, "claveProducto", "idProducto", "id_producto",
-                        "producto_id");
+                String colProducto = resolverColumna(columnasDetalleSalida, "claveProductoSalida", "claveProducto",
+                        "idProducto", "id_producto", "producto_id");
                 String colCantidad = resolverColumna(columnasDetalleSalida, "cantidad", "cantidadSalida",
                         "cantidad_salida");
-                String colPrecioSalida = resolverColumna(columnasDetalleSalida, "precioUnitario", "precioSalida",
-                        "precio_salida", "precioSalidaUnitario");
-                String colPrecioIva = resolverColumna(columnasDetalleSalida, "precioIVA", "precioIva", "precio_iva");
-                String colPrecioBruto = resolverColumna(columnasDetalleSalida, "precioBrutoTotal", "precioBruto",
-                        "precio_bruto");
-                String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotal", "precio_total");
+                String colPrecioSalida = resolverColumna(columnasDetalleSalida, "precioUnitarioSalida", "precioUnitario",
+                        "precioSalida", "precio_salida", "precioSalidaUnitario");
+                String colPrecioIva = resolverColumna(columnasDetalleSalida, "precioIVASalida", "precioIVA", "precioIva",
+                        "precio_iva");
+                String colPrecioBruto = resolverColumna(columnasDetalleSalida, "precioBrutoTotalSalida",
+                        "precioBrutoTotal", "precioBruto", "precio_bruto");
+                String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotalSalida", "precioTotal",
+                        "precio_total");
                 String colDetalleLote = resolverColumna(columnasDetalleSalida, "lote");
                 String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
                 String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
