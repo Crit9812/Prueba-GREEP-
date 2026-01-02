@@ -6,6 +6,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -297,8 +299,16 @@ public class MainController {
         if (seleccionados.isEmpty()) {
             return;
         }
-        itemsTraspaso.removeAll(seleccionados);
-        actualizarSeleccionGeneral();
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("¿Deseas eliminar los productos seleccionados?");
+        confirmacion.setContentText("Esta acción eliminará los elementos seleccionados del traspaso.");
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                itemsTraspaso.removeAll(seleccionados);
+                actualizarSeleccionGeneral();
+            }
+        });
     }
 
     private void actualizarSeleccionGeneral() {
