@@ -42,6 +42,9 @@ public class controllerNuevoProducto {
     private modelNuevoProducto modeloFormulario;
     private model modeloConsulta;
 
+    private String productoIdCreado = "";
+    private String productoNombreCreado = "";
+
     public void setOnSaved(Runnable r) { this.onSaved = r; }
 
     @FXML
@@ -313,7 +316,7 @@ public class controllerNuevoProducto {
                 resultado = modeloFormulario.guardarProducto(p);
             }
 
-            if (resultado) {
+            /*if (resultado) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Éxito");
                 alert.setHeaderText(null);
@@ -332,6 +335,30 @@ public class controllerNuevoProducto {
                 stage.close();
             } else {
                 mostrarError("No se pudo guardar el producto");
+            }*/
+            if (resultado) {
+                // ALMACENAR DATOS DEL PRODUCTO CREADO
+                if (!modoEdicion) {  // Solo para nuevos productos, no para ediciones
+                    productoIdCreado = p.getIdProducto();
+                    productoNombreCreado = p.getNombreProducto();
+                }
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Éxito");
+                alert.setHeaderText(null);
+                alert.setContentText(modoEdicion ? "Producto actualizado" : "Producto guardado");
+                alert.showAndWait();
+
+                // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
+                cargarMarcas();
+                cargarEtiquetas();
+
+                // Ejecutar callback para refrescar la tabla principal
+                if (onSaved != null) onSaved.run();
+
+                // Cerrar ventana
+                Stage stage = (Stage) btnGuardar.getScene().getWindow();
+                stage.close();
             }
 
         } catch (Exception e) {
@@ -351,5 +378,18 @@ public class controllerNuevoProducto {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+    public String getProductoIdCreado() {
+        return productoIdCreado;
+    }
+
+    public String getProductoNombreCreado() {
+        return productoNombreCreado;
+    }
+
+    // AÑADIR este método para verificar si se creó un producto
+    public boolean isProductoCreado() {
+        return !productoIdCreado.isEmpty() && !productoNombreCreado.isEmpty();
     }
 }

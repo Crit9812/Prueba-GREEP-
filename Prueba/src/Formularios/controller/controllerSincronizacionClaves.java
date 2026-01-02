@@ -34,6 +34,9 @@ public class controllerSincronizacionClaves {
     // cambios en la PK y ejecutar la lógica apropiada en el model.
     private String originalIdAlterno = null;
     private boolean modoEdicion = false;
+    private String claveAlternaCreada = "";
+    private controllerCompraEmergente parentController;
+
 
     @FXML
     public void initialize() {
@@ -436,13 +439,22 @@ public class controllerSincronizacionClaves {
 
             boolean ok = model.guardarClave(originalIdAlterno, idClaveCatalogo, proveedorId, productoId);
             if (ok) {
+                // ALMACENAR LA CLAVE CREADA
+                this.claveAlternaCreada = idClaveCatalogo;
+
                 String mensaje = modoEdicion ?
                         "Clave actualizada correctamente." :
                         "Clave guardada correctamente.";
 
                 mostrarInfo(mensaje);
+
+                // NOTIFICAR AL CONTROLADOR PADRE SI EXISTE
+                if (parentController != null) {
+                    parentController.actualizarClaveAlternaCreada(idClaveCatalogo);
+                }
+
                 cerrarVentana();
-            } else {
+            }else {
                 String mensajeError = modoEdicion ?
                         "No se pudo actualizar la clave (conflicto o error)." :
                         "No se pudo guardar la clave (conflicto o error).";
@@ -485,5 +497,106 @@ public class controllerSincronizacionClaves {
         a.setHeaderText(null);
         a.setContentText(msg);
         a.showAndWait();
+    }
+
+    // Metodo para establecer proveedor seleccionado desde el formulario de compra
+    public void setProveedorSeleccionado(String proveedorId, String proveedorNombre) {
+        if (proveedorId != null && proveedorNombre != null) {
+            try {
+                // Intentar convertir el proveedorId a Integer
+                Integer id = Integer.parseInt(proveedorId.trim());
+
+                // Verificar si el proveedor existe en nuestros datos
+                String nombreExistente = proveedorIdToName.get(id);
+
+                if (nombreExistente == null) {
+                    // Si no existe, agregarlo temporalmente a los combobox
+                    proveedorIdToName.put(id, proveedorNombre);
+                    proveedorNameToId.put(proveedorNombre, id);
+
+                    // Actualizar los combobox
+                    if (!cbProveedorId.getItems().contains(id)) {
+                        cbProveedorId.getItems().add(id);
+                    }
+                    if (!cbProveedorNombre.getItems().contains(proveedorNombre)) {
+                        cbProveedorNombre.getItems().add(proveedorNombre);
+                    }
+                }
+
+                // Seleccionar automáticamente el proveedor
+                cbProveedorId.getSelectionModel().select(id);
+                cbProveedorId.getEditor().setText(String.valueOf(id));
+
+                cbProveedorNombre.getSelectionModel().select(proveedorNombre);
+                cbProveedorNombre.getEditor().setText(proveedorNombre);
+
+                // Actualizar el título si es necesario
+                if (titulo != null) {
+                    String textoActual = titulo.getText();
+                    if (!textoActual.contains(proveedorNombre)) {
+                        titulo.setText(textoActual + " - " + proveedorNombre);
+                    }
+                }
+
+            } catch (NumberFormatException e) {
+                // Si el ID no es numérico, solo establecer el nombre
+                cbProveedorNombre.getSelectionModel().select(proveedorNombre);
+                cbProveedorNombre.getEditor().setText(proveedorNombre);
+
+                // Mostrar advertencia pero continuar
+                System.out.println("Advertencia: ID de proveedor no numérico: " + proveedorId);
+            }
+        }
+    }
+
+    // Método para cargar datos iniciales después de establecer el proveedor
+    public void inicializarConProveedor(String proveedorId, String proveedorNombre) {
+        setProveedorSeleccionado(proveedorId, proveedorNombre);
+    }
+
+    // Método para establecer producto seleccionado desde el formulario de compra
+    public void setProductoSeleccionado(String productoId, String productoNombre) {
+        if (productoId != null && productoNombre != null) {
+            try {
+                // Verificar si el producto existe en nuestros datos
+                String nombreExistente = productoIdToName.get(productoId);
+
+                if (nombreExistente == null) {
+                    // Si no existe, agregarlo temporalmente a los combobox
+                    productoIdToName.put(productoId, productoNombre);
+                    productoNameToId.put(productoNombre, productoId);
+
+                    // Actualizar los combobox
+                    if (!cbProductoId.getItems().contains(productoId)) {
+                        cbProductoId.getItems().add(productoId);
+                    }
+                    if (!cbProductoNombre.getItems().contains(productoNombre)) {
+                        cbProductoNombre.getItems().add(productoNombre);
+                    }
+                }
+
+                // Seleccionar automáticamente el producto
+                cbProductoId.getSelectionModel().select(productoId);
+                cbProductoId.getEditor().setText(productoId);
+
+                cbProductoNombre.getSelectionModel().select(productoNombre);
+                cbProductoNombre.getEditor().setText(productoNombre);
+
+                // Cargar descripción del producto
+                rellenarDescripcionProducto(productoId);
+
+            } catch (Exception e) {
+                System.out.println("Error al establecer producto: " + e.getMessage());
+            }
+        }
+    }
+    // Método para obtener la clave alterna creada
+    public String getClaveAlternaCreada() {
+        return claveAlternaCreada;
+    }
+
+    // Método para establecer el controlador padre
+    public void setParentController(controllerCompraEmergente parent) {
+        this.parentController = parent;
     }
 }

@@ -1492,9 +1492,6 @@ public class controllerNuevoTraspasoSalida {
                 if (combo.getEditor() != null) {
                     combo.getEditor().clear();
                 }
-                if (campoCantidad != null) {
-                    campoCantidad.clear();
-                }
                 mostrarAlertaCascada("No se puede seleccionar la misma ubicación más de una vez.");
                 return;
             }

@@ -11,15 +11,20 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyCode;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -296,6 +301,35 @@ public class controllerCompraEmergente {
         txtDescripcion.setText(descripcion);
     }
 
+    // Metodo para actualizar la clave alterna desde el formulario de claves
+    public void actualizarClaveAlternaCreada(String claveAlterna) {
+        Platform.runLater(() -> {
+            if (claveAlterna != null && !claveAlterna.isEmpty() && cbClaveAlterna != null) {
+                // Establecer directamente la clave en el ComboBox
+                cbClaveAlterna.setValue(claveAlterna);
+                cbClaveAlterna.getEditor().setText(claveAlterna);
+
+                // Forzar la actualización desde la clave alterna
+                actualizarDesdeClaveAlternaExterna(claveAlterna);
+
+                // Enfocar el siguiente campo para continuar con la compra
+                txtCantidad.requestFocus();
+
+            }
+        });
+    }
+
+    // Metodo auxiliar para actualizar desde clave alterna externa
+    private void actualizarDesdeClaveAlternaExterna(String claveAlterna) {
+        if (productoController != null) {
+            // Usar el metodo existente del productoCboxController
+            productoController.setSeleccionPorClaveAlterna(claveAlterna);
+
+            // Actualizar descripción si es necesario
+            actualizarDescripcionDesdeProducto();
+        }
+    }
+
     private void guardarItem() {
         if (itemsCompra == null) {
             mostrarAlerta("Error", "No se pudo conectar con la tabla principal");
@@ -485,6 +519,170 @@ public class controllerCompraEmergente {
         limpiarComboUbicacion(comboUbicacion);
 
         cbClaveProducto.requestFocus();
+    }
+
+    @FXML
+    private void agregarProducto() {
+        // Verificar que haya proveedor seleccionado
+        if (proveedorId == null || proveedorId.isBlank() || proveedorNombre == null) {
+            mostrarAlerta("Advertencia", "Debe seleccionar un proveedor antes de agregar un producto.");
+            return;
+        }
+
+        try {
+            // 1. Abrir formulario de nuevo producto
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoProducto.fxml"));
+            Parent root = loader.load();
+            controllerNuevoProducto ctrl = loader.getController();
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Nuevo producto");
+            stage.setScene(new Scene(root));
+            stage.initOwner(btnGuardar.getScene().getWindow());
+
+            // Mostrar y esperar
+            stage.showAndWait();
+
+            // 2. Obtener el producto creado
+            String productoId = ctrl.getProductoIdCreado();
+            String productoNombre = ctrl.getProductoNombreCreado();
+
+            if (productoId != null && !productoId.isEmpty() &&
+                    productoNombre != null && !productoNombre.isEmpty()) {
+
+                // 3. Recargar el controlador de productos para que incluya el nuevo
+                if (productoController != null) {
+                    productoController.recargarConProveedor(proveedorId);
+                }
+
+                // 4. Mostrar mensaje y abrir formulario de claves con proveedor Y producto
+                mostrarAlertaSinEspera("Éxito", "Producto creado. Ahora vincule una clave alterna.");
+
+                // 5. Abrir formulario de claves con proveedor Y producto
+                abrirFormularioClavesConProducto(null, false, proveedorId, proveedorNombre,
+                        productoId, productoNombre);
+            } else {
+                // Si no se creó producto, solo abrir con proveedor
+                mostrarAlertaSinEspera("Información", "Producto creado exitosamente. Ahora vincule una clave alterna.");
+                abrirFormularioClaves(null, false, proveedorId, proveedorNombre);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de producto.");
+        }
+    }
+
+    @FXML
+    private void vincularProducto() {
+        // Verificar que haya proveedor seleccionado
+        if (proveedorId == null || proveedorId.isBlank() || proveedorNombre == null) {
+            mostrarAlerta("Advertencia", "Debe seleccionar un proveedor antes de vincular un producto.");
+            return;
+        }
+
+        abrirFormularioClaves(null, false, proveedorId, proveedorNombre);
+    }
+
+    private void abrirFormularioClaves(String[] fila, boolean esEdicion, String proveedorId, String proveedorNombre) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/sincronizarClaves.fxml"));
+            Parent vista = loader.load();
+
+            controllerSincronizacionClaves ctrl = loader.getController();
+
+            // Pasar referencia a este controlador para comunicación
+            ctrl.setParentController(this);
+
+            // Pasar los datos del proveedor al controlador
+            if (proveedorId != null && proveedorNombre != null) {
+                ctrl.setProveedorSeleccionado(proveedorId, proveedorNombre);
+            }
+
+            if (esEdicion && fila != null) {
+                ctrl.cargarParaEdicion(fila);
+            }
+
+            // Cambiar título según si es edición o nuevo
+            String titulo = esEdicion ? "Editar Clave" : "Nueva Clave";
+
+            Stage stage = new Stage();
+            stage.setTitle(titulo);
+            stage.setScene(new Scene(vista));
+            stage.setResizable(false);
+
+            // Configurar como modal para bloquear la pantalla principal
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(btnGuardar.getScene().getWindow());
+
+            // Centrar la ventana
+            stage.centerOnScreen();
+
+            stage.showAndWait();
+
+            // Recargar productos después de cerrar el formulario
+            if (productoController != null) {
+                productoController.recargarConProveedor(this.proveedorId);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de sincronización.");
+        }
+    }
+
+    private void abrirFormularioClavesConProducto(String[] fila, boolean esEdicion,
+                                                  String proveedorId, String proveedorNombre,
+                                                  String productoId, String productoNombre) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/sincronizarClaves.fxml"));
+            Parent vista = loader.load();
+
+            controllerSincronizacionClaves ctrl = loader.getController();
+
+            // Pasar referencia a este controlador para comunicación
+            ctrl.setParentController(this);
+
+            // Pasar los datos del proveedor al controlador
+            if (proveedorId != null && proveedorNombre != null) {
+                ctrl.setProveedorSeleccionado(proveedorId, proveedorNombre);
+            }
+
+            // Pasar los datos del producto recién creado
+            if (productoId != null && productoNombre != null) {
+                ctrl.setProductoSeleccionado(productoId, productoNombre);
+            }
+
+            if (esEdicion && fila != null) {
+                ctrl.cargarParaEdicion(fila);
+            }
+
+            // Cambiar título
+            String titulo = "Vincular Clave - " + productoNombre;
+            if (proveedorNombre != null) {
+                titulo += " (" + proveedorNombre + ")";
+            }
+
+            Stage stage = new Stage();
+            stage.setTitle(titulo);
+            stage.setScene(new Scene(vista));
+            stage.setResizable(false);
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(btnGuardar.getScene().getWindow());
+            stage.centerOnScreen();
+
+            stage.showAndWait();
+
+            // Recargar productos después de cerrar el formulario
+            if (productoController != null) {
+                productoController.recargarConProveedor(this.proveedorId);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de sincronización.");
+        }
     }
 
     private void cargarItemParaEditar() {

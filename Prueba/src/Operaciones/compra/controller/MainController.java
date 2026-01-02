@@ -10,7 +10,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
+
 import java.io.IOException;
+
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -30,40 +32,72 @@ import javafx.util.Callback;
 
 public class MainController {
 
-    @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private Label labelUsuario;
-    @FXML private VBox navbar;
-    @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
-    @FXML private HBox rootHBox;
-    @FXML private Label lblEliminar;
-    @FXML private ComboBox<String> buscador;
-    @FXML private Label lblAgregar;
-    @FXML private Label lblProveedores;
-    @FXML private Region expansor;
-    @FXML private VBox contenedorTabla;
-    @FXML private TableView<compra> contenidoTabla;
-    @FXML private HBox contenedorComentario;
-    @FXML private TextField comentario;
-    @FXML private HBox contenedorBtnConfirmar;
-    @FXML private TextField factura;
-    @FXML private TextField totalCompra;
-    @FXML private CheckBox miCheckBox;
+    @FXML
+    private StackPane root;
+    @FXML
+    private BorderPane paneNavbar;
+    @FXML
+    private Label labelUsuario;
+    @FXML
+    private VBox navbar;
+    @FXML
+    private VBox contenedor;
+    @FXML
+    private Pane overlayPane;
+    @FXML
+    private HBox rootHBox;
+    @FXML
+    private Label lblEliminar;
+    @FXML
+    private ComboBox<String> buscador;
+    @FXML
+    private Label lblAgregar;
+    @FXML
+    private Label lblProveedores;
+    @FXML
+    private Region expansor;
+    @FXML
+    private VBox contenedorTabla;
+    @FXML
+    private TableView<compra> contenidoTabla;
+    @FXML
+    private HBox contenedorComentario;
+    @FXML
+    private TextField comentario;
+    @FXML
+    private HBox contenedorBtnConfirmar;
+    @FXML
+    private TextField factura;
+    @FXML
+    private TextField totalCompra;
+    @FXML
+    private CheckBox miCheckBox;
 
-    @FXML private TableColumn<compra, Boolean> colSelect;
-    @FXML private TableColumn<compra, String> colClaveProduct;
-    @FXML private TableColumn<compra, String> colProducto;
-    @FXML private TableColumn<compra, String> colDescripcionProducto;
-    @FXML private TableColumn<compra, String> colLote;
-    @FXML private TableColumn<compra, String> colCaducidad;
-    @FXML private TableColumn<compra, String> colUbicacion;
-    @FXML private TableColumn<compra, String> colPrecioUnitario;
-    @FXML private TableColumn<compra, String> colPrecioIva;
-    @FXML private TableColumn<compra, String> colPrecioBruto;
-    @FXML private TableColumn<compra, String> colPrecioTotaal;
+    @FXML
+    private TableColumn<compra, Boolean> colSelect;
+    @FXML
+    private TableColumn<compra, String> colClaveProduct;
+    @FXML
+    private TableColumn<compra, String> colProducto;
+    @FXML
+    private TableColumn<compra, String> colDescripcionProducto;
+    @FXML
+    private TableColumn<compra, String> colLote;
+    @FXML
+    private TableColumn<compra, String> colCaducidad;
+    @FXML
+    private TableColumn<compra, String> colUbicacion;
+    @FXML
+    private TableColumn<compra, String> colPrecioUnitario;
+    @FXML
+    private TableColumn<compra, String> colPrecioIva;
+    @FXML
+    private TableColumn<compra, String> colPrecioBruto;
+    @FXML
+    private TableColumn<compra, String> colPrecioTotaal;
 
-    @FXML private encabezadoController paneNavbarController;
+    @FXML
+    private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> proveedoresCache;
     private final ObservableList<String> proveedoresFiltrados = FXCollections.observableArrayList();
@@ -71,7 +105,6 @@ public class MainController {
     private String proveedorSeleccionadoId;
     private boolean actualizandoSeleccionTodo = false;
     private boolean actualizandoProveedor = false;
-
 
 
     @FXML
@@ -218,19 +251,23 @@ public class MainController {
     private void configurarTabla() {
         contenidoTabla.setItems(itemsCompra);
 
+        // Hacer que la tabla sea editable para los checkboxes
+        contenidoTabla.setEditable(true);
+
+        // CONFIGURACIÓN CORRECTA DE LA COLUMNA DE CHECKBOX
         colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<compra, Boolean>, ObservableValue<Boolean>>() {
             @Override
             public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<compra, Boolean> param) {
                 compra item = param.getValue();
-                if (item != null) {
-                    return item.seleccionadoProperty();
-                } else {
-                    return new SimpleBooleanProperty(false);
-                }
+                return item.seleccionadoProperty();
             }
         });
 
+        // Usar CheckBoxTableCell con la configuración correcta
         colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
+        colSelect.setEditable(true);
+
+        // Configurar las demás columnas
         colClaveProduct.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
         colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
         colDescripcionProducto.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
@@ -242,12 +279,16 @@ public class MainController {
         colPrecioBruto.setCellValueFactory(new PropertyValueFactory<>("precioBruto"));
         colPrecioTotaal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
 
+        // Centrar el contenido de todas las columnas
         TableColumn<compra, ?>[] columnas = new TableColumn[]{
                 colSelect, colClaveProduct, colProducto, colDescripcionProducto, colLote,
                 colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
         };
-        for (TableColumn<compra, ?> col : columnas) col.setStyle("-fx-alignment: CENTER;");
+        for (TableColumn<compra, ?> col : columnas) {
+            col.setStyle("-fx-alignment: CENTER;");
+        }
 
+        // Doble clic para editar
         contenidoTabla.setRowFactory(table -> {
             javafx.scene.control.TableRow<compra> row = new javafx.scene.control.TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -261,6 +302,7 @@ public class MainController {
 
     private void configurarSeleccionTodo() {
         if (miCheckBox == null) return;
+
         miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             if (actualizandoSeleccionTodo) {
                 return;
@@ -268,13 +310,16 @@ public class MainController {
             for (compra item : itemsCompra) {
                 item.setSeleccionado(newVal);
             }
+            // Forzar actualización de la tabla
+            contenidoTabla.refresh();
         });
 
         itemsCompra.addListener((javafx.collections.ListChangeListener<compra>) change -> {
             while (change.next()) {
                 if (change.wasAdded()) {
                     for (compra item : change.getAddedSubList()) {
-                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) ->
+                                actualizarSeleccionTodo());
                     }
                 }
             }
@@ -359,7 +404,7 @@ public class MainController {
     @FXML
     public void abrirNuevoProveedor() {
         Formularios.controller.controllerNuevoProveedor controlador = new Formularios.controller.controllerNuevoProveedor();
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoProveedor.fxml",controlador,"Proveedor");
+        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoProveedor.fxml", controlador, "Proveedor");
     }
 
     @FXML
@@ -418,7 +463,7 @@ public class MainController {
 
         itemsCompra.removeIf(compra::isSeleccionado);
         actualizarSeleccionTodo();
-        refrescarTabla();
+        refrescarTabla();  // <-- AÑADIR ESTA LÍNEA
         actualizarTotalCompra();
     }
 
@@ -446,10 +491,14 @@ public class MainController {
         if (miCheckBox == null) {
             return;
         }
-        actualizandoSeleccionTodo = true;
-        boolean seleccionado = !itemsCompra.isEmpty() && itemsCompra.stream().allMatch(compra::isSeleccionado);
-        miCheckBox.setSelected(seleccionado);
-        actualizandoSeleccionTodo = false;
+        try {
+            actualizandoSeleccionTodo = true;
+            boolean seleccionado = !itemsCompra.isEmpty() &&
+                    itemsCompra.stream().allMatch(compra::isSeleccionado);
+            miCheckBox.setSelected(seleccionado);
+        } finally {
+            actualizandoSeleccionTodo = false;
+        }
     }
 
     private void actualizarTotalCompra() {
