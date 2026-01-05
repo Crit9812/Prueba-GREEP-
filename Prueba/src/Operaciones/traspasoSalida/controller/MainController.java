@@ -119,7 +119,7 @@ public class MainController {
             lblSucursal.setMinWidth(Region.USE_PREF_SIZE);
 
             // Tabla
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.7));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.77));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             // Comentario

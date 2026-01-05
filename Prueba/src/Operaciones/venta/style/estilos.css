@@ -66,6 +66,19 @@
     -fx-cursor: hand;
 }
 
+.barraBusqueda {
+    -fx-background-color: #fff;
+    -fx-font-size: 14px;
+    -fx-pref-height: 30px;
+    -fx-pref-width: 400px;
+    -fx-background-radius: 10px 0 0 10px;
+    -fx-border-radius: 10px 0 0 10px;
+    -fx-border-color: #333;
+    -fx-border-width: 1px 0 1px 1px;
+    -fx-prompt-text-fill: gray;
+    -fx-padding: 0 0 0 8px; /* espacio para escribir */
+}
+
 .barraBusquedaCliente {
     -fx-background-color: #fff;
     -fx-font-size: 14px;
@@ -145,4 +158,13 @@
     -fx-pref-height: 30px;     /* Alto preferido */
     -fx-border-radius: 15px;
     -fx-background-radius: 15px;
+}
+
+.combo-sin-flecha .arrow-button {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.combo-sin-flecha .arrow {
+    -fx-shape: "";
 }
