@@ -16,7 +16,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class MainController {
@@ -45,7 +44,6 @@ public class MainController {
     private ObservableList<String> clientesCache;
     private final ObservableList<String> clientesFiltrados = FXCollections.observableArrayList();
     private String clienteSeleccionadoId;
-    private boolean actualizandoCliente = false;
 
 
     @FXML
@@ -143,40 +141,24 @@ public class MainController {
         hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-            if (actualizandoCliente) {
-                return;
-            }
-            actualizandoCliente = true;
-            try {
-                String seleccionado = buscador.getValue();
-                if (seleccionado != null && seleccionado.equals(newText)) {
-                    return;
-                }
-                if (newText == null || newText.isBlank()) {
-                    clientesFiltrados.setAll(clientesCache);
-                    return;
-                }
-
+            String filtro = newText == null ? "" : newText.trim().toLowerCase();
+            if (filtro.isEmpty()) {
+                clientesFiltrados.setAll(clientesCache);
+            } else {
                 ObservableList<String> filtrados = FXCollections.observableArrayList();
                 for (String nombre : clientesCache) {
-                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                    if (nombre.toLowerCase().contains(filtro)) {
                         filtrados.add(nombre);
                     }
                 }
-
-                List<String> nuevos = new ArrayList<>(filtrados);
-                Platform.runLater(() -> {
-                    clientesFiltrados.setAll(nuevos);
-                    if (!nuevos.isEmpty() && buscador.isFocused()) {
-                        buscador.show();
-                    }
-                });
-            } finally {
-                actualizandoCliente = false;
+                clientesFiltrados.setAll(filtrados);
+            }
+            if (!clientesFiltrados.isEmpty() && buscador.isFocused()) {
+                buscador.show();
+            } else {
+                buscador.hide();
             }
         });
-
-        buscador.setOnShowing(event -> clientesFiltrados.setAll(clientesCache));
 
         buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {

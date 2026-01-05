@@ -104,7 +104,6 @@ public class MainController {
     private final ObservableList<compra> itemsCompra = FXCollections.observableArrayList();
     private String proveedorSeleccionadoId;
     private boolean actualizandoSeleccionTodo = false;
-    private boolean actualizandoProveedor = false;
 
 
     @FXML
@@ -204,40 +203,24 @@ public class MainController {
         hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-            if (actualizandoProveedor) {
-                return;
-            }
-            actualizandoProveedor = true;
-            try {
-                String seleccionado = buscador.getValue();
-                if (seleccionado != null && seleccionado.equals(newText)) {
-                    return;
-                }
-                if (newText == null || newText.isBlank()) {
-                    proveedoresFiltrados.setAll(proveedoresCache);
-                    return;
-                }
-
+            String filtro = newText == null ? "" : newText.trim().toLowerCase();
+            if (filtro.isEmpty()) {
+                proveedoresFiltrados.setAll(proveedoresCache);
+            } else {
                 ObservableList<String> filtrados = FXCollections.observableArrayList();
                 for (String nombre : proveedoresCache) {
-                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                    if (nombre.toLowerCase().contains(filtro)) {
                         filtrados.add(nombre);
                     }
                 }
-
-                java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
-                javafx.application.Platform.runLater(() -> {
-                    proveedoresFiltrados.setAll(nuevos);
-                    if (!nuevos.isEmpty() && buscador.isFocused()) {
-                        buscador.show();
-                    }
-                });
-            } finally {
-                actualizandoProveedor = false;
+                proveedoresFiltrados.setAll(filtrados);
+            }
+            if (!proveedoresFiltrados.isEmpty() && buscador.isFocused()) {
+                buscador.show();
+            } else {
+                buscador.hide();
             }
         });
-
-        buscador.setOnShowing(event -> proveedoresFiltrados.setAll(proveedoresCache));
 
         buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {
