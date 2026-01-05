@@ -4,6 +4,7 @@ import conexion.Conexion;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.HashMap;
@@ -370,6 +371,188 @@ public class GenericDAO<T> {
         }
 
         return resultados;
+    }
+
+    // --------------------- Validaciones de traspaso de salida -------------------
+
+    public static boolean existeEntradaConEstadoParaLoteProducto(String lote, String idProducto, String estado) {
+        if (lote == null || lote.isBlank() || idProducto == null || idProducto.isBlank() || estado == null) {
+            return false;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo,
+                    "idDetalleEntrada", "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+
+            String colDetalleId = resolverColumna(columnasDetalle,
+                    "id", "idDetalleEntrada", "id_detalle_entrada", "detalle_entrada_id", "detalleEntrada");
+            String colDetalleProducto = resolverColumna(columnasDetalle,
+                    "claveProducto", "idProducto", "producto", "producto_id", "clave_producto");
+            String colDetalleEntrada = resolverColumna(columnasDetalle,
+                    "claveEntrada", "idEntrada", "id_entrada", "entrada_id", "entrada");
+
+            String colEntradaId = resolverColumna(columnasEntradas,
+                    "id", "claveEntrada", "idEntrada", "entrada_id");
+            String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
+
+            if (colArticuloDetalleEntrada == null || colArticuloLote == null
+                    || colDetalleId == null || colDetalleProducto == null || colDetalleEntrada == null
+                    || colEntradaId == null || colEntradaEstado == null) {
+                return false;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT 1 FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON a.`")
+                    .append(colArticuloDetalleEntrada)
+                    .append("` = de.`")
+                    .append(colDetalleId)
+                    .append("` ")
+                    .append("JOIN entradas e ON de.`")
+                    .append(colDetalleEntrada)
+                    .append("` = e.`")
+                    .append(colEntradaId)
+                    .append("` ")
+                    .append("WHERE a.`")
+                    .append(colArticuloLote)
+                    .append("` = ? ")
+                    .append("AND de.`")
+                    .append(colDetalleProducto)
+                    .append("` = ? ")
+                    .append("AND LOWER(e.`")
+                    .append(colEntradaEstado)
+                    .append("`) = ? ")
+                    .append("LIMIT 1");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, lote.trim());
+                ps.setString(2, idProducto.trim());
+                ps.setString(3, estado.trim().toLowerCase());
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en existeEntradaConEstadoParaLoteProducto: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static int contarArticulosSinSalidaParaLoteProducto(String lote, String idProducto) {
+        return contarArticulosSinSalidaParaLoteProducto(lote, idProducto, null);
+    }
+
+    public static int contarArticulosSinSalidaParaLoteProductoCaducidad(String lote, String idProducto, LocalDate caducidad) {
+        return contarArticulosSinSalidaParaLoteProducto(lote, idProducto, caducidad);
+    }
+
+    private static int contarArticulosSinSalidaParaLoteProducto(String lote, String idProducto, LocalDate caducidad) {
+        if (lote == null || lote.isBlank() || idProducto == null || idProducto.isBlank()) {
+            return 0;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo,
+                    "idDetalleEntrada", "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo,
+                    "idDetalleSalida", "id_detalle_salida", "detalleSalida", "detalle_salida",
+                    "detalle_salida_id", "idSalida", "salida", "salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad", "fechaCaducidad", "fecha_caducidad");
+
+            String colDetalleId = resolverColumna(columnasDetalle,
+                    "id", "idDetalleEntrada", "id_detalle_entrada", "detalle_entrada_id", "detalleEntrada");
+            String colDetalleProducto = resolverColumna(columnasDetalle,
+                    "claveProducto", "idProducto", "producto", "producto_id", "clave_producto");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colDetalleId == null || colDetalleProducto == null) {
+                return 0;
+            }
+            if (caducidad != null && colArticuloCaducidad == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON a.`")
+                    .append(colArticuloDetalleEntrada)
+                    .append("` = de.`")
+                    .append(colDetalleId)
+                    .append("` ")
+                    .append("WHERE a.`")
+                    .append(colArticuloLote)
+                    .append("` = ? ")
+                    .append("AND de.`")
+                    .append(colDetalleProducto)
+                    .append("` = ? ")
+                    .append("AND (a.`")
+                    .append(colArticuloDetalleSalida)
+                    .append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida)
+                    .append("` = 0 OR a.`")
+                    .append(colArticuloDetalleSalida)
+                    .append("` = '')");
+
+            if (caducidad != null) {
+                sql.append(" AND a.`").append(colArticuloCaducidad).append("` = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, lote.trim());
+                ps.setString(2, idProducto.trim());
+                if (caducidad != null) {
+                    ps.setDate(3, java.sql.Date.valueOf(caducidad));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarArticulosSinSalidaParaLoteProducto: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    private static Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
+        Map<String, String> columnas = new HashMap<>();
+        try (ResultSet rs = conn.getMetaData().getColumns(conn.getCatalog(), null, tabla, null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre == null) {
+                    continue;
+                }
+                String limpio = nombre.trim();
+                columnas.put(limpio.toLowerCase(), limpio);
+            }
+        }
+        return columnas;
+    }
+
+    private static String resolverColumna(Map<String, String> columnas, String... candidatos) {
+        if (columnas == null || candidatos == null) {
+            return null;
+        }
+        for (String candidato : candidatos) {
+            if (candidato == null) {
+                continue;
+            }
+            String col = columnas.get(candidato.toLowerCase());
+            if (col != null) {
+                return col;
+            }
+        }
+        return null;
     }
 
 }

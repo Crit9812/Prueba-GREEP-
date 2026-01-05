@@ -1,6 +1,7 @@
 package Formularios.controller;
 
 import Compartido.controller.productoCboxController;
+import Compartido.model.DAO.GenericDAO;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoSalida.model.traspasoSalida;
@@ -810,14 +811,19 @@ public class controllerNuevoTraspasoSalida {
         }
         String loteSnapshot = lote;
         String productoSnapshot = idProducto;
-        javafx.concurrent.Task<Optional<java.time.LocalDate>> task = new javafx.concurrent.Task<>() {
+        javafx.concurrent.Task<ResultadoValidacionLote> task = new javafx.concurrent.Task<>() {
             @Override
-            protected Optional<java.time.LocalDate> call() {
+            protected ResultadoValidacionLote call() {
                 boolean existe = modelo.existeLoteParaProducto(loteSnapshot, productoSnapshot);
                 if (!existe) {
-                    return Optional.empty();
+                    return ResultadoValidacionLote.vacio();
                 }
-                return modelo.obtenerCaducidadParaLoteProducto(loteSnapshot, productoSnapshot);
+                Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(loteSnapshot, productoSnapshot);
+                boolean entradaCompletada = GenericDAO.existeEntradaConEstadoParaLoteProducto(
+                        loteSnapshot, productoSnapshot, "completado");
+                int disponiblesSinSalida = GenericDAO.contarArticulosSinSalidaParaLoteProducto(
+                        loteSnapshot, productoSnapshot);
+                return new ResultadoValidacionLote(caducidad, entradaCompletada, disponiblesSinSalida);
             }
 
             @Override
@@ -827,13 +833,39 @@ public class controllerNuevoTraspasoSalida {
                 if (!loteSnapshot.equals(loteActual) || !productoSnapshot.equals(idActual)) {
                     return;
                 }
-                Optional<java.time.LocalDate> caducidad = getValue();
+                ResultadoValidacionLote resultado = getValue();
+                if (resultado == null) {
+                    return;
+                }
+                Optional<java.time.LocalDate> caducidad = resultado.getCaducidad();
                 if (caducidad.isEmpty()) {
                     loteValidado = false;
                     txtLote.clear();
                     dpCaducidad.setValue(null);
                     limpiarUbicacionPrimaria();
                     mostrarAlertaSinEspera("Advertencia", "El lote no corresponde al producto seleccionado.");
+                    actualizarEstadoCascada();
+                    return;
+                }
+                if (!resultado.isEntradaCompletada()) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto no esta en stock, posiblemente este en tus traspasos de entrada");
+                    actualizarEstadoCascada();
+                    return;
+                }
+                if (resultado.getDisponiblesSinSalida() <= 0) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto esta en proceso de salida a una sucursal");
+                    actualizarEstadoCascada();
+                    return;
                 } else {
                     loteValidado = true;
                     dpCaducidad.setValue(caducidad.get());
@@ -1245,8 +1277,8 @@ public class controllerNuevoTraspasoSalida {
         javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
             @Override
             protected Integer call() {
-                return modelo.obtenerCantidadDisponibleProductoLoteCaducidad(
-                        idSnapshot, loteSnapshot, caducidadSnapshot);
+                return GenericDAO.contarArticulosSinSalidaParaLoteProductoCaducidad(
+                        loteSnapshot, idSnapshot, caducidadSnapshot);
             }
 
             @Override
@@ -1263,7 +1295,12 @@ public class controllerNuevoTraspasoSalida {
                     return;
                 }
                 int disponible = getValue();
-                if (cantidadSnapshot > disponible) {
+                if (disponible <= 0) {
+                    txtCantidad.clear();
+                    cantidadTotalValida = false;
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto esta en proceso de salida a una sucursal");
+                } else if (cantidadSnapshot > disponible) {
                     txtCantidad.clear();
                     cantidadTotalValida = false;
                     mostrarAlertaSinEspera("Advertencia",
@@ -1542,5 +1579,35 @@ public class controllerNuevoTraspasoSalida {
             }
         }
         return false;
+    }
+
+    private static class ResultadoValidacionLote {
+        private final Optional<java.time.LocalDate> caducidad;
+        private final boolean entradaCompletada;
+        private final int disponiblesSinSalida;
+
+        private ResultadoValidacionLote(Optional<java.time.LocalDate> caducidad,
+                                        boolean entradaCompletada,
+                                        int disponiblesSinSalida) {
+            this.caducidad = caducidad != null ? caducidad : Optional.empty();
+            this.entradaCompletada = entradaCompletada;
+            this.disponiblesSinSalida = disponiblesSinSalida;
+        }
+
+        private static ResultadoValidacionLote vacio() {
+            return new ResultadoValidacionLote(Optional.empty(), false, 0);
+        }
+
+        private Optional<java.time.LocalDate> getCaducidad() {
+            return caducidad;
+        }
+
+        private boolean isEntradaCompletada() {
+            return entradaCompletada;
+        }
+
+        private int getDisponiblesSinSalida() {
+            return disponiblesSinSalida;
+        }
     }
 }
