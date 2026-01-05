@@ -207,6 +207,10 @@ public class MainController {
             if (actualizandoFiltroProveedor) {
                 return;
             }
+            String seleccionado = buscador.getValue();
+            if (seleccionado != null && seleccionado.equals(newText)) {
+                return;
+            }
             actualizandoFiltroProveedor = true;
             try {
                 String filtro = newText == null ? "" : newText.trim().toLowerCase();

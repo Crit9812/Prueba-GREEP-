@@ -145,6 +145,10 @@ public class MainController {
             if (actualizandoFiltroCliente) {
                 return;
             }
+            String seleccionado = buscador.getValue();
+            if (seleccionado != null && seleccionado.equals(newText)) {
+                return;
+            }
             actualizandoFiltroCliente = true;
             try {
                 String filtro = newText == null ? "" : newText.trim().toLowerCase();
