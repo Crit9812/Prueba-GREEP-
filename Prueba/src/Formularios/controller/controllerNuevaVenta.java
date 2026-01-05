@@ -248,7 +248,7 @@ public class controllerNuevaVenta {
             return;
         }
 
-        if (!datosCompletosParaPrecio()) {
+        if (!datosCompletosParaPrecioEntrada()) {
             limpiarPrecios();
             return;
         }
@@ -672,6 +672,7 @@ public class controllerNuevaVenta {
                     loteValidado = true;
                     dpCaducidad.setValue(resultado.caducidad);
                     caducidadValidada = true;
+                    cargarPrecioEntradaDesdeProducto();
                 }
                 ubicacionValidada = false;
                 cantidadTotalValida = false;
@@ -1245,12 +1246,11 @@ public class controllerNuevaVenta {
         }
     }
 
-    private boolean datosCompletosParaPrecio() {
+    private boolean datosCompletosParaPrecioEntrada() {
         return productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
-                && caducidadValidada
-                && cantidadTotalValida;
+                && caducidadValidada;
     }
 
     private void limpiarValidacionesInventario() {
