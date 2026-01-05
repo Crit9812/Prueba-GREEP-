@@ -46,11 +46,13 @@
                             <Region fx:id="expansor"/>
 
                             <Label fx:id="lblCliente" text="Cliente:" styleClass="labels"/>
-                            <TextField fx:id="buscador" styleClass="barraBusquedaCliente">
+                            <ComboBox fx:id="buscador"
+                                      editable="true"
+                                      styleClass="barraBusqueda combo-sin-flecha">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
-                            </TextField>
+                            </ComboBox>
                             <Button styleClass="botones" onMouseClicked="#abrirNuevoCliente">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">

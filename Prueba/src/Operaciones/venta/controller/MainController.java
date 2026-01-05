@@ -10,12 +10,16 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import java.io.IOException;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import Operaciones.venta.model.model;
 
 public class MainController {
 
@@ -30,7 +34,7 @@ public class MainController {
     @FXML private TableView contenidoTabla;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
-    @FXML private TextField buscador;
+    @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblCliente;
     @FXML private Region expansor;
@@ -39,6 +43,11 @@ public class MainController {
     @FXML private HBox contenedorBtnConfirmar;
 
     @FXML private encabezadoController paneNavbarController;
+    private final model model = new model();
+    private ObservableList<String> clientesCache;
+    private final ObservableList<String> clientesFiltrados = FXCollections.observableArrayList();
+    private String clienteSeleccionadoId;
+    private boolean actualizandoCliente = false;
 
 
     @FXML
@@ -103,6 +112,80 @@ public class MainController {
 
             paneNavbarController.setTitulo("Venta", "#ffffff");
 
+        });
+        configurarAutocompleteClientes();
+    }
+
+    private void configurarAutocompleteClientes() {
+        clientesCache = FXCollections.observableArrayList();
+        buscador.setItems(clientesFiltrados);
+
+        javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected java.util.List<String> call() {
+                return model.obtenerNombresClientes();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.List<String> resultado = getValue();
+                clientesCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                clientesFiltrados.setAll(clientesCache);
+            }
+
+            @Override
+            protected void failed() {
+                clientesCache.clear();
+                clientesFiltrados.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+
+        buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
+            if (actualizandoCliente) {
+                return;
+            }
+            actualizandoCliente = true;
+            try {
+                String seleccionado = buscador.getValue();
+                if (seleccionado != null && seleccionado.equals(newText)) {
+                    return;
+                }
+                if (newText == null || newText.isBlank()) {
+                    clientesFiltrados.setAll(clientesCache);
+                    return;
+                }
+
+                ObservableList<String> filtrados = FXCollections.observableArrayList();
+                for (String nombre : clientesCache) {
+                    if (nombre.toLowerCase().contains(newText.toLowerCase())) {
+                        filtrados.add(nombre);
+                    }
+                }
+
+                java.util.List<String> nuevos = new java.util.ArrayList<>(filtrados);
+                javafx.application.Platform.runLater(() -> {
+                    clientesFiltrados.setAll(nuevos);
+                    if (!nuevos.isEmpty() && buscador.isFocused()) {
+                        buscador.show();
+                    }
+                });
+            } finally {
+                actualizandoCliente = false;
+            }
+        });
+
+        buscador.setOnShowing(event -> clientesFiltrados.setAll(clientesCache));
+
+        buscador.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                clienteSeleccionadoId = model.obtenerIdClientePorNombre(newVal);
+            } else {
+                clienteSeleccionadoId = null;
+            }
         });
     }
 
