@@ -44,6 +44,7 @@ public class MainController {
     private ObservableList<String> clientesCache;
     private final ObservableList<String> clientesFiltrados = FXCollections.observableArrayList();
     private String clienteSeleccionadoId;
+    private boolean actualizandoFiltroCliente = false;
 
 
     @FXML
@@ -141,22 +142,30 @@ public class MainController {
         hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-            String filtro = newText == null ? "" : newText.trim().toLowerCase();
-            if (filtro.isEmpty()) {
-                clientesFiltrados.setAll(clientesCache);
-            } else {
+            if (actualizandoFiltroCliente) {
+                return;
+            }
+            actualizandoFiltroCliente = true;
+            try {
+                String filtro = newText == null ? "" : newText.trim().toLowerCase();
                 ObservableList<String> filtrados = FXCollections.observableArrayList();
-                for (String nombre : clientesCache) {
-                    if (nombre.toLowerCase().contains(filtro)) {
-                        filtrados.add(nombre);
+                if (filtro.isEmpty()) {
+                    filtrados.setAll(clientesCache);
+                } else {
+                    for (String nombre : clientesCache) {
+                        if (nombre.toLowerCase().contains(filtro)) {
+                            filtrados.add(nombre);
+                        }
                     }
                 }
-                clientesFiltrados.setAll(filtrados);
-            }
-            if (!clientesFiltrados.isEmpty() && buscador.isFocused()) {
-                buscador.show();
-            } else {
-                buscador.hide();
+                Platform.runLater(() -> {
+                    clientesFiltrados.setAll(filtrados);
+                    if (!clientesFiltrados.isEmpty() && buscador.isFocused()) {
+                        buscador.show();
+                    }
+                });
+            } finally {
+                actualizandoFiltroCliente = false;
             }
         });
 

@@ -104,6 +104,7 @@ public class MainController {
     private final ObservableList<compra> itemsCompra = FXCollections.observableArrayList();
     private String proveedorSeleccionadoId;
     private boolean actualizandoSeleccionTodo = false;
+    private boolean actualizandoFiltroProveedor = false;
 
 
     @FXML
@@ -203,22 +204,30 @@ public class MainController {
         hilo.start();
 
         buscador.getEditor().textProperty().addListener((obs, oldText, newText) -> {
-            String filtro = newText == null ? "" : newText.trim().toLowerCase();
-            if (filtro.isEmpty()) {
-                proveedoresFiltrados.setAll(proveedoresCache);
-            } else {
+            if (actualizandoFiltroProveedor) {
+                return;
+            }
+            actualizandoFiltroProveedor = true;
+            try {
+                String filtro = newText == null ? "" : newText.trim().toLowerCase();
                 ObservableList<String> filtrados = FXCollections.observableArrayList();
-                for (String nombre : proveedoresCache) {
-                    if (nombre.toLowerCase().contains(filtro)) {
-                        filtrados.add(nombre);
+                if (filtro.isEmpty()) {
+                    filtrados.setAll(proveedoresCache);
+                } else {
+                    for (String nombre : proveedoresCache) {
+                        if (nombre.toLowerCase().contains(filtro)) {
+                            filtrados.add(nombre);
+                        }
                     }
                 }
-                proveedoresFiltrados.setAll(filtrados);
-            }
-            if (!proveedoresFiltrados.isEmpty() && buscador.isFocused()) {
-                buscador.show();
-            } else {
-                buscador.hide();
+                javafx.application.Platform.runLater(() -> {
+                    proveedoresFiltrados.setAll(filtrados);
+                    if (!proveedoresFiltrados.isEmpty() && buscador.isFocused()) {
+                        buscador.show();
+                    }
+                });
+            } finally {
+                actualizandoFiltroProveedor = false;
             }
         });
 
