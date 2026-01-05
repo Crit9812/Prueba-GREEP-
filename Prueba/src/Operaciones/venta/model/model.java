@@ -132,6 +132,7 @@ public class model {
                     "entrada_id", "id_entrada");
 
             String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
             String colArticuloLote = resolverColumna(columnasArticulo, "lote");
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
             String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
@@ -203,7 +204,13 @@ public class model {
                             colArticuloLote, colArticuloCaducidad, colArticuloPresentacion, colArticuloFactor,
                             colArticuloUbicacion);
 
-                    StringBuilder sql = new StringBuilder("DELETE a FROM articulo a");
+                    if (colArticuloId == null) {
+                        conn.rollback();
+                        return false;
+                    }
+
+                    StringBuilder sql = new StringBuilder("SELECT a.").append(colArticuloId)
+                            .append(" FROM articulo a");
                     if (colArticuloDetalleEntrada != null && colDetalleEntradaId != null) {
                         sql.append(" JOIN detalle_Entrada de ON de.")
                                 .append(colDetalleEntradaId)
@@ -235,6 +242,7 @@ public class model {
                     }
                     sql.append(" LIMIT ?");
 
+                    List<Integer> articulosParaEliminar = new ArrayList<>();
                     try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                         int index = 1;
                         if (colArticuloLote != null) {
@@ -258,7 +266,26 @@ public class model {
                         }
                         ps.setInt(index, cantidad);
 
-                        int eliminadas = ps.executeUpdate();
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                articulosParaEliminar.add(rs.getInt(colArticuloId));
+                            }
+                        }
+                    }
+
+                    if (articulosParaEliminar.size() < cantidad) {
+                        conn.rollback();
+                        return false;
+                    }
+
+                    String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
+                    String sqlDelete = "DELETE FROM articulo WHERE " + colArticuloId + " IN (" + placeholders + ")";
+                    try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
+                        int index = 1;
+                        for (Integer idArticulo : articulosParaEliminar) {
+                            psDelete.setInt(index++, idArticulo);
+                        }
+                        int eliminadas = psDelete.executeUpdate();
                         if (eliminadas < cantidad) {
                             conn.rollback();
                             return false;
