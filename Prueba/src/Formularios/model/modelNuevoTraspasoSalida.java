@@ -1,5 +1,7 @@
 package Formularios.model;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import conexion.Conexion;
 
 import java.math.BigDecimal;
@@ -11,6 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class modelNuevoTraspasoSalida {
+
+    private final GenericDAO<producto> productoDAO = new GenericDAO<>(producto.class);
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
@@ -115,6 +119,10 @@ public class modelNuevoTraspasoSalida {
         }
 
         return Optional.empty();
+    }
+
+    public GenericDAO.ValidacionLoteSalida validarLoteTraspasoSalida(String lote, String idProducto) {
+        return productoDAO.validarLoteTraspasoSalida(lote, idProducto);
     }
 
     public boolean existeLote(String lote) {

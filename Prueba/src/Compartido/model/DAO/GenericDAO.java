@@ -372,4 +372,144 @@ public class GenericDAO<T> {
         return resultados;
     }
 
+    private Map<String, String> obtenerColumnasTabla(String tabla) throws SQLException {
+        Map<String, String> columnas = new HashMap<>();
+        DatabaseMetaData meta = conexion.getMetaData();
+
+        try (ResultSet rs = meta.getColumns(conexion.getCatalog(), null, tabla, null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre == null) {
+                    continue;
+                }
+                String limpio = nombre.trim();
+                columnas.put(limpio.toLowerCase(), limpio);
+            }
+        }
+
+        if (columnas.isEmpty()) {
+            try (ResultSet rs = meta.getColumns(conexion.getCatalog(), null, tabla.toLowerCase(), null)) {
+                while (rs.next()) {
+                    String nombre = rs.getString("COLUMN_NAME");
+                    if (nombre == null) {
+                        continue;
+                    }
+                    String limpio = nombre.trim();
+                    columnas.put(limpio.toLowerCase(), limpio);
+                }
+            }
+        }
+
+        return columnas;
+    }
+
+    private String resolverColumna(Map<String, String> columnas, String... candidatos) {
+        for (String candidato : candidatos) {
+            if (candidato == null) {
+                continue;
+            }
+            String match = columnas.get(candidato.toLowerCase());
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
+    }
+
+    public static class ValidacionLoteSalida {
+        private final boolean entradaCompletada;
+        private final boolean salidaEnProceso;
+
+        public ValidacionLoteSalida(boolean entradaCompletada, boolean salidaEnProceso) {
+            this.entradaCompletada = entradaCompletada;
+            this.salidaEnProceso = salidaEnProceso;
+        }
+
+        public boolean isEntradaCompletada() {
+            return entradaCompletada;
+        }
+
+        public boolean isSalidaEnProceso() {
+            return salidaEnProceso;
+        }
+    }
+
+    public ValidacionLoteSalida validarLoteTraspasoSalida(String lote, String idProducto) {
+        if (lote == null || lote.isBlank() || idProducto == null || idProducto.isBlank()) {
+            return new ValidacionLoteSalida(true, false);
+        }
+
+        try {
+            Map<String, String> columnasEntradas = obtenerColumnasTabla("entradas");
+            Map<String, String> columnasDetalle = obtenerColumnasTabla("detalle_Entrada");
+            Map<String, String> columnasArticulo = obtenerColumnasTabla("articulo");
+
+            String colEntradaId = resolverColumna(columnasEntradas, "id", "claveEntrada", "idEntrada", "entrada_id");
+            String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
+            String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id",
+                    "id_detalle_entrada", "detalle_entrada_id");
+            String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada",
+                    "id_entrada", "entrada_id");
+            String colDetalleProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida",
+                    "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+
+            if (colEntradaId == null || colEntradaEstado == null || colDetalleId == null || colDetalleEntrada == null
+                    || colDetalleProducto == null || colArticuloDetalleEntrada == null || colArticuloLote == null
+                    || colArticuloDetalleSalida == null) {
+                return new ValidacionLoteSalida(true, false);
+            }
+
+            String sqlEstado = "SELECT e.`" + colEntradaEstado + "` AS estado " +
+                    "FROM articulo a " +
+                    "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleId + "` " +
+                    "JOIN entradas e ON d.`" + colDetalleEntrada + "` = e.`" + colEntradaId + "` " +
+                    "WHERE a.`" + colArticuloLote + "` = ? AND d.`" + colDetalleProducto + "` = ? " +
+                    "LIMIT 1";
+
+            boolean entradaCompletada = true;
+            try (PreparedStatement ps = conexion.prepareStatement(sqlEstado)) {
+                ps.setString(1, lote);
+                ps.setString(2, idProducto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String estado = rs.getString("estado");
+                        if (estado != null && estado.trim().equalsIgnoreCase("pendiente")) {
+                            entradaCompletada = false;
+                        }
+                    }
+                }
+            }
+
+            if (!entradaCompletada) {
+                return new ValidacionLoteSalida(false, false);
+            }
+
+            String sqlSalida = "SELECT 1 FROM articulo a " +
+                    "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleId + "` " +
+                    "WHERE a.`" + colArticuloLote + "` = ? AND d.`" + colDetalleProducto + "` = ? " +
+                    "AND a.`" + colArticuloDetalleSalida + "` IS NOT NULL " +
+                    "AND a.`" + colArticuloDetalleSalida + "` <> 0 " +
+                    "LIMIT 1";
+
+            boolean salidaEnProceso = false;
+            try (PreparedStatement ps = conexion.prepareStatement(sqlSalida)) {
+                ps.setString(1, lote);
+                ps.setString(2, idProducto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    salidaEnProceso = rs.next();
+                }
+            }
+
+            return new ValidacionLoteSalida(true, salidaEnProceso);
+        } catch (Exception e) {
+            System.out.println("Error en validarLoteTraspasoSalida: " + e.getMessage());
+            return new ValidacionLoteSalida(true, false);
+        }
+    }
+
 }
