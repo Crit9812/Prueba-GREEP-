@@ -1,6 +1,7 @@
 package Formularios.controller;
 
 import Compartido.controller.productoCboxController;
+import Compartido.model.DAO.GenericDAO;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoSalida.model.traspasoSalida;
@@ -810,14 +811,23 @@ public class controllerNuevoTraspasoSalida {
         }
         String loteSnapshot = lote;
         String productoSnapshot = idProducto;
-        javafx.concurrent.Task<Optional<java.time.LocalDate>> task = new javafx.concurrent.Task<>() {
+        javafx.concurrent.Task<ResultadoValidacionLote> task = new javafx.concurrent.Task<>() {
             @Override
-            protected Optional<java.time.LocalDate> call() {
-                boolean existe = modelo.existeLoteParaProducto(loteSnapshot, productoSnapshot);
-                if (!existe) {
-                    return Optional.empty();
+            protected ResultadoValidacionLote call() {
+                GenericDAO.ValidacionDisponibilidadSalida validacion =
+                        modelo.validarEntradaYDisponibilidadLoteProducto(loteSnapshot, productoSnapshot);
+                if (!validacion.isEntradaCompletada()) {
+                    return ResultadoValidacionLote.entradaPendiente();
                 }
-                return modelo.obtenerCaducidadParaLoteProducto(loteSnapshot, productoSnapshot);
+                if (validacion.getDisponiblesSinSalida() <= 0) {
+                    return ResultadoValidacionLote.salidaEnProceso();
+                }
+                Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(
+                        loteSnapshot, productoSnapshot);
+                if (caducidad.isEmpty()) {
+                    return ResultadoValidacionLote.loteInvalido();
+                }
+                return ResultadoValidacionLote.ok(caducidad.get());
             }
 
             @Override
@@ -827,8 +837,22 @@ public class controllerNuevoTraspasoSalida {
                 if (!loteSnapshot.equals(loteActual) || !productoSnapshot.equals(idActual)) {
                     return;
                 }
-                Optional<java.time.LocalDate> caducidad = getValue();
-                if (caducidad.isEmpty()) {
+                ResultadoValidacionLote resultado = getValue();
+                if (resultado.estado == EstadoValidacionLote.ENTRADA_PENDIENTE) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto no esta en stock, posiblemente este en tus traspasos de entrada");
+                } else if (resultado.estado == EstadoValidacionLote.SALIDA_EN_PROCESO) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto esta en proceso de salida a una sucursal");
+                } else if (resultado.estado == EstadoValidacionLote.LOTE_INVALIDO) {
                     loteValidado = false;
                     txtLote.clear();
                     dpCaducidad.setValue(null);
@@ -836,7 +860,7 @@ public class controllerNuevoTraspasoSalida {
                     mostrarAlertaSinEspera("Advertencia", "El lote no corresponde al producto seleccionado.");
                 } else {
                     loteValidado = true;
-                    dpCaducidad.setValue(caducidad.get());
+                    dpCaducidad.setValue(resultado.caducidad);
                     caducidadValidada = true;
                 }
                 ubicacionValidada = false;
@@ -856,6 +880,39 @@ public class controllerNuevoTraspasoSalida {
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
+    }
+
+    private enum EstadoValidacionLote {
+        OK,
+        ENTRADA_PENDIENTE,
+        SALIDA_EN_PROCESO,
+        LOTE_INVALIDO
+    }
+
+    private static class ResultadoValidacionLote {
+        private final EstadoValidacionLote estado;
+        private final java.time.LocalDate caducidad;
+
+        private ResultadoValidacionLote(EstadoValidacionLote estado, java.time.LocalDate caducidad) {
+            this.estado = estado;
+            this.caducidad = caducidad;
+        }
+
+        private static ResultadoValidacionLote ok(java.time.LocalDate caducidad) {
+            return new ResultadoValidacionLote(EstadoValidacionLote.OK, caducidad);
+        }
+
+        private static ResultadoValidacionLote entradaPendiente() {
+            return new ResultadoValidacionLote(EstadoValidacionLote.ENTRADA_PENDIENTE, null);
+        }
+
+        private static ResultadoValidacionLote salidaEnProceso() {
+            return new ResultadoValidacionLote(EstadoValidacionLote.SALIDA_EN_PROCESO, null);
+        }
+
+        private static ResultadoValidacionLote loteInvalido() {
+            return new ResultadoValidacionLote(EstadoValidacionLote.LOTE_INVALIDO, null);
+        }
     }
 
     private void validarCamposDesdeLote() {

@@ -1,5 +1,6 @@
 package Formularios.model;
 
+import Compartido.model.DAO.GenericDAO;
 import conexion.Conexion;
 
 import java.math.BigDecimal;
@@ -151,23 +152,10 @@ public class modelNuevoTraspasoSalida {
     }
 
     public boolean existeLoteCaducidadUbicacion(String lote, java.time.LocalDate caducidad, String ubicacionNombre) {
-        String sql = """
-            SELECT 1
-            FROM articulo a
-            JOIN ubicaciones u ON u.id = a.ubicacion
-            WHERE a.lote = ? AND a.caducidad = ? AND u.nombre = ?
-            LIMIT 1
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, lote);
-            ps.setDate(2, java.sql.Date.valueOf(caducidad));
-            ps.setString(3, ubicacionNombre);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
+        try (Connection conn = new Conexion().conectar()) {
+            int disponibles = GenericDAO.contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(
+                    conn, lote, caducidad, ubicacionNombre);
+            return disponibles > 0;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -175,84 +163,30 @@ public class modelNuevoTraspasoSalida {
     }
 
     public int obtenerCantidadDisponible(String lote, java.time.LocalDate caducidad, String ubicacionNombre) {
-        String sql = """
-            SELECT COUNT(*) AS total
-            FROM articulo a
-            JOIN ubicaciones u ON u.id = a.ubicacion
-            WHERE a.lote = ? AND a.caducidad = ? AND u.nombre = ?
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, lote);
-            ps.setDate(2, java.sql.Date.valueOf(caducidad));
-            ps.setString(3, ubicacionNombre);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total");
-                }
-            }
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(
+                    conn, lote, caducidad, ubicacionNombre);
         } catch (Exception e) {
             e.printStackTrace();
+            return 0;
         }
-
-        return 0;
     }
 
     public int obtenerCantidadDisponibleDetalle(String idProducto, String lote, java.time.LocalDate caducidad,
                                                 String presentacion, int factor, String ubicacionNombre) {
-        String sql = """
-            SELECT COUNT(*) AS total
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            JOIN ubicaciones u ON u.id = a.ubicacion
-            WHERE de.claveProducto = ?
-              AND a.lote = ?
-              AND a.caducidad = ?
-              AND a.presentacion = ?
-              AND a.factor = ?
-              AND u.nombre = ?
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProducto);
-            ps.setString(2, lote);
-            ps.setDate(3, java.sql.Date.valueOf(caducidad));
-            ps.setString(4, presentacion);
-            ps.setInt(5, factor);
-            ps.setString(6, ubicacionNombre);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total");
-                }
-            }
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaDetalle(
+                    conn, idProducto, lote, caducidad, presentacion, factor, ubicacionNombre);
         } catch (Exception e) {
             e.printStackTrace();
+            return 0;
         }
-
-        return 0;
     }
 
     public boolean existeLoteParaProducto(String lote, String idProducto) {
-        String sql = """
-            SELECT 1
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            WHERE a.lote = ? AND de.claveProducto = ?
-            LIMIT 1
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, lote);
-            ps.setString(2, idProducto);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
+        try (Connection conn = new Conexion().conectar()) {
+            int disponibles = GenericDAO.contarDisponiblesSinSalidaPorLoteProducto(conn, lote, idProducto);
+            return disponibles > 0;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -266,6 +200,7 @@ public class modelNuevoTraspasoSalida {
             FROM articulo a
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE a.lote = ? AND de.claveProducto = ?
+              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
             ORDER BY a.caducidad DESC
             LIMIT 1
         """;
@@ -292,29 +227,22 @@ public class modelNuevoTraspasoSalida {
 
     public int obtenerCantidadDisponibleProductoLoteCaducidad(String idProducto, String lote,
                                                               java.time.LocalDate caducidad) {
-        String sql = """
-            SELECT COUNT(*) AS total
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            WHERE de.claveProducto = ? AND a.lote = ? AND a.caducidad = ?
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProducto);
-            ps.setString(2, lote);
-            ps.setDate(3, java.sql.Date.valueOf(caducidad));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total");
-                }
-            }
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorLoteProductoCaducidad(conn, lote, idProducto, caducidad);
         } catch (Exception e) {
             e.printStackTrace();
+            return 0;
         }
+    }
 
-        return 0;
+    public GenericDAO.ValidacionDisponibilidadSalida validarEntradaYDisponibilidadLoteProducto(String lote,
+                                                                                                String idProducto) {
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.validarEntradaYDisponibilidadLoteProducto(conn, lote, idProducto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new GenericDAO.ValidacionDisponibilidadSalida(false, 0);
+        }
     }
 
     public boolean existePresentacionParaProductoLote(String idProducto, String lote, String presentacion) {
