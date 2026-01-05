@@ -4,12 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregada parte de compra completa y cambio al cerrar formulario">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/style/estilos.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/view/main_view.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/view/main_view.fxml" afterDir="false" />
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregado de tabla en claves y cambioes en compras y ventas">
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/etiquetas.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/etiquetas.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/marcas.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/marcas.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/ubicaciones.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/ubicaciones.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/view/main_view.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +55,7 @@
     </favorite-branches>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/replace-client-text-field-with-combobox" />
+        <entry key="$PROJECT_DIR$/.." value="codex/replace-customer-text-field-with-combobox" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -106,7 +107,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#34 on codex/replace-customer-text-field…bobox",
+    "git-widget-placeholder": "#34 on Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -330,7 +331,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767381825938</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Agregado de tabla en claves y cambioes en compras y ventas">
+      <option name="closed" value="true" />
+      <created>1767636970964</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1767636970964</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -394,7 +403,8 @@
     <MESSAGE value="Modificaciones de diseño en compras" />
     <MESSAGE value="Agregada parte de compra completa" />
     <MESSAGE value="Agregada parte de compra completa y cambio al cerrar formulario" />
-    <option name="LAST_COMMIT_MESSAGE" value="Agregada parte de compra completa y cambio al cerrar formulario" />
+    <MESSAGE value="Agregado de tabla en claves y cambioes en compras y ventas" />
+    <option name="LAST_COMMIT_MESSAGE" value="Agregado de tabla en claves y cambioes en compras y ventas" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

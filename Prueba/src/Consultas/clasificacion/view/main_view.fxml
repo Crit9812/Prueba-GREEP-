@@ -71,6 +71,23 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <Button fx:id="btnAgregarUM" styleClass="botones" onAction="#agregarUM">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image>
+                                            <Image url="@/img/agregar.png"/>
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label text="Agregar unidad de medida" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
                         </HBox>
                     </VBox>
                     <!-- TABLAS -->
@@ -146,6 +163,26 @@
                                         <TableColumn fx:id="colSelectUbicaciones" prefWidth="70"/>
                                         <TableColumn fx:id="colIDUbicaciones" text="id" prefWidth="70"/>
                                         <TableColumn fx:id="colNombreUbicaciones" text="Nombre" prefWidth="250"/>
+                                    </columns>
+                                </TableView>
+                            </VBox>
+
+                            <!-- ===== TABLA UNIDADES DE MEDIDA ===== -->
+                            <VBox spacing="10"
+                                  alignment="CENTER"
+                                  maxWidth="Infinity"
+                                  HBox.hgrow="ALWAYS">
+
+                                <Label text="Unidades de Medida"
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+
+                                <TableView fx:id="contenidoTablaUM"
+                                           styleClass="contenidoTabla"
+                                           maxWidth="Infinity">
+                                    <columns>
+                                        <TableColumn fx:id="colSelectUM" prefWidth="70"/>
+                                        <TableColumn fx:id="colIDUM" text="id" prefWidth="70"/>
+                                        <TableColumn fx:id="colNombreUM" text="Nombre" prefWidth="250"/>
                                     </columns>
                                 </TableView>
                             </VBox>

@@ -3,13 +3,12 @@ package Consultas.clasificacion.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.helper.RefrescoHelper;
-import Consultas.clasificacion.model.marcas;
-import Consultas.clasificacion.model.etiquetas;
-import Consultas.clasificacion.model.model;
-import Consultas.clasificacion.model.ubicaciones;
+import Consultas.clasificacion.model.*;
+
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,19 +16,23 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import Compartido.helper.RefrescoHelper;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class MainController {
 
+    // ================== CONTENEDORES ==================
     @FXML private StackPane root;
     @FXML private BorderPane paneNavbar;
     @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
+    @FXML private Pane overlayPane;
 
+    // ================== TABLAS ==================
     @FXML private TableView<marcas> contenidoTablaMarcas;
     @FXML private TableColumn<marcas, Void> colSelect;
     @FXML private TableColumn<marcas, Integer> colIDMarca;
@@ -45,27 +48,32 @@ public class MainController {
     @FXML private TableColumn<ubicaciones, Integer> colIDUbicaciones;
     @FXML private TableColumn<ubicaciones, String> colNombreUbicaciones;
 
+    @FXML private TableView<unidades_Medida> contenidoTablaUM;
+    @FXML private TableColumn<unidades_Medida, Void> colSelectUM;
+    @FXML private TableColumn<unidades_Medida, Integer> colIDUM;
+    @FXML private TableColumn<unidades_Medida, String> colNombreUM;
 
+    // ================== OTROS ==================
     @FXML private encabezadoController paneNavbarController;
+    private final model model = new model();
 
-    private  model model = new model();
+    // Servicios para carga asíncrona
+    private DataLoadService dataLoadService;
 
+    // Cache de datos
+    private ObservableList<marcas> cacheMarcas = FXCollections.observableArrayList();
+    private ObservableList<etiquetas> cacheEtiquetas = FXCollections.observableArrayList();
+    private ObservableList<ubicaciones> cacheUbicaciones = FXCollections.observableArrayList();
+    private ObservableList<unidades_Medida> cacheUM = FXCollections.observableArrayList();
+
+    // ================== INIT ==================
     @FXML
     public void initialize() {
-
         Platform.runLater(() -> {
-
-            try {
-                FXMLLoader loader = new FXMLLoader(
-                        getClass().getResource("/Compartido/view/navbar.fxml")
-                );
-                VBox navbarLoaded = loader.load();
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-                navbar.getChildren().setAll(navbarLoaded);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            cargarNavbar();
+            configurarLayout();
+            configurarTablas();
+            configurarDobleClick();
 
             SplitPane.setResizableWithParent(navbar, false);
             SplitPane.setResizableWithParent(contenedor, true);
@@ -74,190 +82,414 @@ public class MainController {
             paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.95));
+            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
-            contenidoTablaMarcas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
-            contenidoTablaEtiquetas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
-            contenidoTablaUbicaciones.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
 
             paneNavbarController.setTitulo("Clasificación", "#ffffff");
 
             RefrescoHelper.setVistaActual("clasificacion");
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
 
-            configurarTablas();
-            configurarDobleClick();
+            // Inicializar servicios
+            dataLoadService = new DataLoadService();
+            configurarDataLoadService();
+
+            // Cargar datos iniciales
             cargarDatos();
         });
     }
 
-    private void configurarTablas() {
+    // ================== SERVICIO DE CARGA DE DATOS ==================
+    private class DataLoadService extends Service<Void> {
+        private ObservableList<marcas> marcasResult;
+        private ObservableList<etiquetas> etiquetasResult;
+        private ObservableList<ubicaciones> ubicacionesResult;
+        private ObservableList<unidades_Medida> umResult;
 
+        @Override
+        protected Task<Void> createTask() {
+            return new Task<Void>() {
+                @Override
+                protected Void call() throws Exception {
+                    // Crear CountDownLatch para sincronizar las tareas
+                    CountDownLatch latch = new CountDownLatch(4);
+
+                    // Variables para resultados
+                    marcasResult = FXCollections.observableArrayList();
+                    etiquetasResult = FXCollections.observableArrayList();
+                    ubicacionesResult = FXCollections.observableArrayList();
+                    umResult = FXCollections.observableArrayList();
+
+                    // Tarea para marcas
+                    Thread marcaThread = new Thread(() -> {
+                        try {
+                            marcasResult.setAll(model.obtenerMarcas());
+                        } catch (Exception e) {
+                            System.err.println("Error cargando marcas: " + e.getMessage());
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
+
+                    // Tarea para etiquetas
+                    Thread etiquetaThread = new Thread(() -> {
+                        try {
+                            etiquetasResult.setAll(model.obtenerEtiquetas());
+                        } catch (Exception e) {
+                            System.err.println("Error cargando etiquetas: " + e.getMessage());
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
+
+                    // Tarea para ubicaciones
+                    Thread ubicacionThread = new Thread(() -> {
+                        try {
+                            ubicacionesResult.setAll(model.obtenerUbicaciones());
+                        } catch (Exception e) {
+                            System.err.println("Error cargando ubicaciones: " + e.getMessage());
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
+
+                    // Tarea para unidades de medida
+                    Thread umThread = new Thread(() -> {
+                        try {
+                            umResult.setAll(model.obtenerUM());
+                        } catch (Exception e) {
+                            System.err.println("Error cargando unidades de medida: " + e.getMessage());
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
+
+                    // Iniciar todas las tareas
+                    marcaThread.start();
+                    etiquetaThread.start();
+                    ubicacionThread.start();
+                    umThread.start();
+
+                    // Esperar a que todas terminen
+                    latch.await();
+
+                    return null;
+                }
+            };
+        }
+    }
+
+    private void configurarDataLoadService() {
+        dataLoadService.setOnRunning(e -> {
+            mostrarIndicadorCarga();
+        });
+
+        dataLoadService.setOnSucceeded(e -> {
+            // Actualizar cache con los resultados
+            if (dataLoadService.marcasResult != null) {
+                cacheMarcas = dataLoadService.marcasResult;
+            }
+            if (dataLoadService.etiquetasResult != null) {
+                cacheEtiquetas = dataLoadService.etiquetasResult;
+            }
+            if (dataLoadService.ubicacionesResult != null) {
+                cacheUbicaciones = dataLoadService.ubicacionesResult;
+            }
+            if (dataLoadService.umResult != null) {
+                cacheUM = dataLoadService.umResult;
+            }
+
+            // Actualizar las tablas en el hilo de JavaFX
+            Platform.runLater(() -> {
+                contenidoTablaMarcas.setItems(cacheMarcas);
+                contenidoTablaEtiquetas.setItems(cacheEtiquetas);
+                contenidoTablaUbicaciones.setItems(cacheUbicaciones);
+                contenidoTablaUM.setItems(cacheUM);
+                ocultarIndicadorCarga();
+            });
+        });
+
+        dataLoadService.setOnFailed(e -> {
+            Platform.runLater(() -> {
+                ocultarIndicadorCarga();
+                mostrarError("Error al cargar datos: " + dataLoadService.getException().getMessage());
+                // Cargar datos vacíos para evitar excepciones
+                contenidoTablaMarcas.setItems(FXCollections.observableArrayList());
+                contenidoTablaEtiquetas.setItems(FXCollections.observableArrayList());
+                contenidoTablaUbicaciones.setItems(FXCollections.observableArrayList());
+                contenidoTablaUM.setItems(FXCollections.observableArrayList());
+            });
+        });
+    }
+
+    // ================== INDICADOR DE CARGA ==================
+    private void mostrarIndicadorCarga() {
+        Platform.runLater(() -> {
+            ProgressIndicator progress = new ProgressIndicator();
+            progress.setMaxSize(50, 50);
+
+            StackPane loadingPane = new StackPane(progress);
+            loadingPane.setStyle("-fx-background-color: rgba(255,255,255,0.7);");
+
+            overlayPane.getChildren().clear();
+            overlayPane.getChildren().add(loadingPane);
+            overlayPane.setVisible(true);
+        });
+    }
+
+    private void ocultarIndicadorCarga() {
+        Platform.runLater(() -> {
+            overlayPane.setVisible(false);
+            overlayPane.getChildren().clear();
+        });
+    }
+
+    // ================== CARGA DE DATOS ==================
+    private void cargarDatos() {
+        if (dataLoadService != null && dataLoadService.isRunning()) {
+            dataLoadService.cancel();
+        }
+        dataLoadService.restart();
+    }
+
+    // ================== NAVBAR ==================
+    private void cargarNavbar() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/Compartido/view/navbar.fxml")
+            );
+            VBox navbarLoaded = loader.load();
+            navbarController navbarCtrl = loader.getController();
+            navbarCtrl.setOverlayPane(overlayPane);
+            navbar.getChildren().setAll(navbarLoaded);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ================== LAYOUT ==================
+    private void configurarLayout() {
+        contenidoTablaMarcas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+        contenidoTablaEtiquetas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+        contenidoTablaUbicaciones.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+        contenidoTablaUM.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
+    }
+
+    // ================== TABLAS ==================
+    private void configurarTablas() {
+        // MARCAS
         colIDMarca.setCellValueFactory(c -> c.getValue().idProperty().asObject());
         colNombreMarca.setCellValueFactory(c -> c.getValue().nombreProperty());
-        colSelect.setCellFactory(col -> crearBotonEliminarMarca());
-        colIDMarca.setStyle("-fx-alignment: CENTER;");
-        colNombreMarca.setStyle("-fx-alignment: CENTER;");
-        colSelect.setStyle("-fx-alignment: CENTER;");
+        colSelect.setCellFactory(c -> crearBotonEliminarMarca());
 
+        // ETIQUETAS
         colIDEtiqueta.setCellValueFactory(c -> c.getValue().idProperty().asObject());
         colNombreEtiqueta.setCellValueFactory(c -> c.getValue().nombreProperty());
-        colSelectEtiqueta.setCellFactory(col -> crearBotonEliminarEtiqueta());
-        colIDEtiqueta.setStyle("-fx-alignment: CENTER;");
-        colNombreEtiqueta.setStyle("-fx-alignment: CENTER;");
-        colSelectEtiqueta.setStyle("-fx-alignment: CENTER;");
+        colSelectEtiqueta.setCellFactory(c -> crearBotonEliminarEtiqueta());
 
+        // UBICACIONES
         colIDUbicaciones.setCellValueFactory(c -> c.getValue().idProperty().asObject());
         colNombreUbicaciones.setCellValueFactory(c -> c.getValue().nombreProperty());
-        colSelectUbicaciones.setCellFactory(col -> crearBotonEliminarUbicacion());
-        colIDUbicaciones.setStyle("-fx-alignment: CENTER;");
-        colNombreUbicaciones.setStyle("-fx-alignment: CENTER;");
-        colIDUbicaciones.setStyle("-fx-alignment: CENTER;");
+        colSelectUbicaciones.setCellFactory(c -> crearBotonEliminarUbicacion());
 
-
+        // UNIDADES DE MEDIDA
+        colIDUM.setCellValueFactory(c -> c.getValue().idProperty().asObject());
+        colNombreUM.setCellValueFactory(c -> c.getValue().nombreProperty());
+        colSelectUM.setCellFactory(c -> crearBotonEliminarUM());
     }
 
+    // ================== DOBLE CLICK ==================
     private void configurarDobleClick() {
-
-        contenidoTablaMarcas.setRowFactory(tv -> {
-            TableRow<marcas> row = new TableRow<>();
-            row.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2 && !row.isEmpty()) {
-                    editarMarca(row.getItem());
-                }
-            });
-            return row;
-        });
-
-        contenidoTablaEtiquetas.setRowFactory(tv -> {
-            TableRow<etiquetas> row = new TableRow<>();
-            row.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2 && !row.isEmpty()) {
-                    editarEtiqueta(row.getItem());
-                }
-            });
-            return row;
-        });
-
-        contenidoTablaUbicaciones.setRowFactory(tv -> {
-            TableRow<ubicaciones> row = new TableRow<>();
-            row.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2 && !row.isEmpty()) {
-                    editarUbicacion(row.getItem());
-                }
-            });
-            return row;
-        });
-
+        dobleClick(contenidoTablaMarcas, this::editarMarca);
+        dobleClick(contenidoTablaEtiquetas, this::editarEtiqueta);
+        dobleClick(contenidoTablaUbicaciones, this::editarUbicacion);
+        dobleClick(contenidoTablaUM, this::editarUM);
     }
 
-    private void editarMarca(marcas m) {
-        TextInputDialog dialog = new TextInputDialog(m.getNombre());
-        dialog.setTitle("Editar marca");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Nombre de la marca:");
-
-        dialog.showAndWait().ifPresent(nombre -> {
-            if (!nombre.trim().isEmpty()) {
-                model.actualizarMarca(m.getId(), nombre.trim());
-                m.setNombre(nombre.trim());
-                contenidoTablaMarcas.refresh();
-            }
+    private <T> void dobleClick(TableView<T> tabla, Consumer<T> accion) {
+        tabla.setRowFactory(tv -> {
+            TableRow<T> row = new TableRow<>();
+            row.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && !row.isEmpty()) {
+                    accion.accept(row.getItem());
+                }
+            });
+            return row;
         });
+    }
+
+    // ================== EDITAR ==================
+    private void editarMarca(marcas m) {
+        editarGenerico("Editar marca", m.getNombre(),
+                nombre -> {
+                    if (model.actualizarMarca(m.getId(), nombre)) {
+                        Platform.runLater(() -> {
+                            m.setNombre(nombre);
+                            contenidoTablaMarcas.refresh();
+                        });
+                    }
+                },
+                m::setNombre,
+                contenidoTablaMarcas);
     }
 
     private void editarEtiqueta(etiquetas e) {
-        TextInputDialog dialog = new TextInputDialog(e.getNombre());
-        dialog.setTitle("Editar etiqueta");
+        editarGenerico("Editar etiqueta", e.getNombre(),
+                nombre -> {
+                    if (model.actualizarEtiqueta(e.getId(), nombre)) {
+                        Platform.runLater(() -> {
+                            e.setNombre(nombre);
+                            contenidoTablaEtiquetas.refresh();
+                        });
+                    }
+                },
+                e::setNombre,
+                contenidoTablaEtiquetas);
+    }
+
+    private void editarUbicacion(ubicaciones u) {
+        editarGenerico("Editar ubicación", u.getNombre(),
+                nombre -> {
+                    if (model.actualizarUbicacion(u.getId(), nombre)) {
+                        Platform.runLater(() -> {
+                            u.setNombre(nombre);
+                            contenidoTablaUbicaciones.refresh();
+                        });
+                    }
+                },
+                u::setNombre,
+                contenidoTablaUbicaciones);
+    }
+
+    private void editarUM(unidades_Medida u) {
+        editarGenerico("Editar unidad de medida", u.getNombre(),
+                nombre -> {
+                    if (model.actualizarUM(u.getId(), nombre)) {
+                        Platform.runLater(() -> {
+                            u.setNombre(nombre);
+                            contenidoTablaUM.refresh();
+                        });
+                    }
+                },
+                u::setNombre,
+                contenidoTablaUM);
+    }
+
+    private <T> void editarGenerico(
+            String titulo,
+            String valorActual,
+            Consumer<String> actualizar,
+            Consumer<String> setter,
+            TableView<T> tabla
+    ) {
+        TextInputDialog dialog = new TextInputDialog(valorActual);
+        dialog.setTitle(titulo);
         dialog.setHeaderText(null);
-        dialog.setContentText("Nombre de la etiqueta:");
 
         dialog.showAndWait().ifPresent(nombre -> {
             if (!nombre.trim().isEmpty()) {
-                model.actualizarEtiqueta(e.getId(), nombre.trim());
-                e.setNombre(nombre.trim());
-                contenidoTablaEtiquetas.refresh();
+                // Ejecutar la actualización en un hilo separado
+                new Thread(() -> {
+                    actualizar.accept(nombre.trim());
+                }).start();
             }
         });
     }
 
-    // ================= ELIMINAR CON OPCIÓN =================
-
+    // ================== ELIMINAR ==================
     private TableCell<marcas, Void> crearBotonEliminarMarca() {
-        return new TableCell<>() {
-
-            private final Button btn;
-
-            {
-                btn = new Button();
-                ImageView img = new ImageView(
-                        new Image(getClass().getResourceAsStream("/img/eliminar.png"))
-                );
-                img.setFitWidth(18);
-                img.setFitHeight(18);
-                img.setPreserveRatio(true);
-
-                btn.setGraphic(img);
-                btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-
-                btn.setOnAction(e -> {
-                    marcas m = getTableView().getItems().get(getIndex());
-
-                    int vinculados = model.contarProductosPorMarca(m.getId());
-
-                    if (vinculados > 0) {
-                        if (!confirmarConVinculos("marca", m.getNombre(), vinculados)) {
-                            return;
-                        }
-                    } else if (!confirmar("Eliminar marca", m.getNombre())) {
-                        return;
+        return crearBotonEliminar(
+                m -> model.contarProductosPorMarca(m.getId()),
+                m -> {
+                    if (model.eliminarMarca(m.getId())) {
+                        Platform.runLater(() -> {
+                            cacheMarcas.remove(m);
+                            contenidoTablaMarcas.getItems().remove(m);
+                        });
                     }
-
-                    model.eliminarMarca(m.getId());
-                    contenidoTablaMarcas.getItems().remove(m);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : btn);
-            }
-        };
+                },
+                marcas::getNombre,
+                "marca",
+                contenidoTablaMarcas
+        );
     }
 
     private TableCell<etiquetas, Void> crearBotonEliminarEtiqueta() {
+        return crearBotonEliminar(
+                e -> model.contarProductosPorEtiqueta(e.getId()),
+                e -> {
+                    if (model.eliminarEtiqueta(e.getId())) {
+                        Platform.runLater(() -> {
+                            cacheEtiquetas.remove(e);
+                            contenidoTablaEtiquetas.getItems().remove(e);
+                        });
+                    }
+                },
+                etiquetas::getNombre,
+                "etiqueta",
+                contenidoTablaEtiquetas
+        );
+    }
+
+    private TableCell<ubicaciones, Void> crearBotonEliminarUbicacion() {
+        return crearBotonEliminar(
+                u -> model.contarProductosPorUbicacion(u.getId()),
+                u -> {
+                    if (model.eliminarUbicacion(u.getId())) {
+                        Platform.runLater(() -> {
+                            cacheUbicaciones.remove(u);
+                            contenidoTablaUbicaciones.getItems().remove(u);
+                        });
+                    }
+                },
+                ubicaciones::getNombre,
+                "ubicación",
+                contenidoTablaUbicaciones
+        );
+    }
+
+    private TableCell<unidades_Medida, Void> crearBotonEliminarUM() {
+        return crearBotonEliminar(
+                u -> model.contarProductosPorUM(u.getId()),
+                u -> {
+                    if (model.eliminarUM(u.getId())) {
+                        Platform.runLater(() -> {
+                            cacheUM.remove(u);
+                            contenidoTablaUM.getItems().remove(u);
+                        });
+                    }
+                },
+                unidades_Medida::getNombre,
+                "unidad de medida",
+                contenidoTablaUM
+        );
+    }
+
+    private <T> TableCell<T, Void> crearBotonEliminar(
+            Function<T, Integer> contar,
+            Consumer<T> eliminar,
+            Function<T, String> obtenerNombre,
+            String tipo,
+            TableView<T> tabla
+    ) {
         return new TableCell<>() {
 
-            private final Button btn;
+            private final Button btn = crearBoton();
 
             {
-                btn = new Button();
-                ImageView img = new ImageView(
-                        new Image(getClass().getResourceAsStream("/img/eliminar.png"))
-                );
-                img.setFitWidth(18);
-                img.setFitHeight(18);
-                img.setPreserveRatio(true);
-
-                btn.setGraphic(img);
-                btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-
                 btn.setOnAction(e -> {
-                    etiquetas et = getTableView().getItems().get(getIndex());
-
-                    int vinculados = model.contarProductosPorEtiqueta(et.getId());
+                    T item = getTableView().getItems().get(getIndex());
+                    int vinculados = contar.apply(item);
+                    String nombre = obtenerNombre.apply(item);
 
                     if (vinculados > 0) {
-                        if (!confirmarConVinculos("etiqueta", et.getNombre(), vinculados)) {
-                            return;
-                        }
-                    } else if (!confirmar("Eliminar etiqueta", et.getNombre())) {
-                        return;
-                    }
+                        if (!confirmarConVinculos(tipo, nombre, vinculados)) return;
+                    } else if (!confirmar("Eliminar " + tipo, nombre)) return;
 
-                    model.eliminarEtiqueta(et.getId());
-                    contenidoTablaEtiquetas.getItems().remove(et);
+                    // Ejecutar la eliminación en un hilo separado
+                    new Thread(() -> {
+                        eliminar.accept(item);
+                    }).start();
                 });
             }
 
@@ -269,6 +501,20 @@ public class MainController {
         };
     }
 
+    private Button crearBoton() {
+        ImageView img = new ImageView(new Image(
+                getClass().getResourceAsStream("/img/eliminar.png")
+        ));
+        img.setFitWidth(18);
+        img.setFitHeight(18);
+
+        Button btn = new Button();
+        btn.setGraphic(img);
+        btn.setStyle("-fx-background-color: #333;");
+        return btn;
+    }
+
+    // ================== CONFIRMACIONES ==================
     private boolean confirmar(String titulo, String nombre) {
         Alert a = new Alert(Alert.AlertType.CONFIRMATION);
         a.setTitle(titulo);
@@ -283,137 +529,58 @@ public class MainController {
         a.setHeaderText(null);
         a.setContentText(
                 "La " + tipo + " \"" + nombre + "\" está vinculada a "
-                        + cantidad + " producto(s).\n\n¿Desea eliminarla de todos modos?"
+                        + cantidad + " producto(s).\n\n¿Desea eliminarla?"
         );
         return a.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
     }
 
-    @FXML
-    private void agregarMarca() {
+    // ================== AGREGAR ==================
+    @FXML private void agregarMarca() {
+        agregar("Agregar marca", model::insertarMarca, contenidoTablaMarcas);
+    }
+
+    @FXML private void agregarEtiqueta() {
+        agregar("Agregar etiqueta", model::insertarEtiqueta, contenidoTablaEtiquetas);
+    }
+
+    @FXML private void agregarUbicacion() {
+        agregar("Agregar ubicación", model::insertarUbicacion, contenidoTablaUbicaciones);
+    }
+
+    @FXML private void agregarUM() {
+        agregar("Agregar unidad de medida", model::insertarUM, contenidoTablaUM);
+    }
+
+    private <T> void agregar(String titulo, Consumer<String> insertar, TableView<T> tabla) {
         TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Agregar marca");
+        dialog.setTitle(titulo);
         dialog.setHeaderText(null);
-        dialog.setContentText("Nombre de la marca:");
 
         dialog.showAndWait().ifPresent(nombre -> {
             if (!nombre.trim().isEmpty()) {
-                model.insertarMarca(nombre.trim());
-                cargarDatos();
+                // Ejecutar la inserción en un hilo separado
+                new Thread(() -> {
+                    insertar.accept(nombre.trim());
+                    // Recargar datos después de insertar
+                    Platform.runLater(this::cargarDatos);
+                }).start();
             }
         });
     }
 
-    @FXML
-    private void agregarEtiqueta() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Agregar etiqueta");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Nombre de la etiqueta:");
-
-        dialog.showAndWait().ifPresent(nombre -> {
-            if (!nombre.trim().isEmpty()) {
-                model.insertarEtiqueta(nombre.trim());
-                cargarDatos();
-            }
-        });
+    // ================== MENSAJES DE ERROR ==================
+    private void mostrarError(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 
-    private void cargarDatos() {
-
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() {
-                ObservableList<marcas> marcas =
-                        FXCollections.observableArrayList(model.obtenerMarcas());
-                ObservableList<etiquetas> etiquetas =
-                        FXCollections.observableArrayList(model.obtenerEtiquetas());
-                ObservableList<ubicaciones> ubicaciones =
-                        FXCollections.observableArrayList(model.obtenerUbicaciones());
-
-                Platform.runLater(() -> {
-                    contenidoTablaMarcas.setItems(marcas);
-                    contenidoTablaEtiquetas.setItems(etiquetas);
-                    contenidoTablaUbicaciones.setItems(ubicaciones);
-                });
-                return null;
-            }
-        };
-        new Thread(task).start();
+    // ================== CLEANUP ==================
+    public void shutdown() {
+        if (dataLoadService != null && dataLoadService.isRunning()) {
+            dataLoadService.cancel();
+        }
     }
-
-    private void editarUbicacion(ubicaciones u) {
-        TextInputDialog dialog = new TextInputDialog(u.getNombre());
-        dialog.setTitle("Editar ubicación");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Nombre de la ubicación:");
-
-        dialog.showAndWait().ifPresent(nombre -> {
-            if (!nombre.trim().isEmpty()) {
-                model.actualizarUbicacion(u.getId(), nombre.trim());
-                u.setNombre(nombre.trim());
-                contenidoTablaUbicaciones.refresh();
-            }
-        });
-    }
-
-    private TableCell<ubicaciones, Void> crearBotonEliminarUbicacion() {
-        return new TableCell<>() {
-
-            private final Button btn;
-
-            {
-                btn = new Button();
-                ImageView img = new ImageView(
-                        new Image(getClass().getResourceAsStream("/img/eliminar.png"))
-                );
-                img.setFitWidth(18);
-                img.setFitHeight(18);
-                img.setPreserveRatio(true);
-
-                btn.setGraphic(img);
-                btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-
-                btn.setOnAction(e -> {
-                    ubicaciones u = getTableView().getItems().get(getIndex());
-
-                    int vinculados = model.contarProductosPorUbicacion(u.getId());
-
-                    if (vinculados > 0) {
-                        if (!confirmarConVinculos("ubicación", u.getNombre(), vinculados)) {
-                            return;
-                        }
-                    } else if (!confirmar("Eliminar ubicación", u.getNombre())) {
-                        return;
-                    }
-
-                    model.eliminarUbicacion(u.getId());
-                    contenidoTablaUbicaciones.getItems().remove(u);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : btn);
-            }
-        };
-    }
-
-    @FXML
-    private void agregarUbicacion() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Agregar ubicación");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Nombre de la ubicación:");
-
-        dialog.showAndWait().ifPresent(nombre -> {
-            if (!nombre.trim().isEmpty()) {
-                model.insertarUbicacion(nombre.trim());
-                cargarDatos();
-            }
-        });
-    }
-
-
-
 }

@@ -1,37 +1,62 @@
 package Consultas.clasificacion.model;
 
+import Compartido.model.DAO.Column;
+import Compartido.model.DAO.PrimaryKey;
+import Compartido.model.DAO.Table;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+@Table(name = "ubicaciones")
 public class ubicaciones {
 
-    private final IntegerProperty id;
-    private final StringProperty nombre;
+    @PrimaryKey
+    @Column(name = "id")
+    private Integer id;
 
-    public ubicaciones(int id, String nombre) {
-        this.id = new SimpleIntegerProperty(id);
-        this.nombre = new SimpleStringProperty(nombre);
+    @Column(name = "nombre")
+    private String nombre;
+
+    // Properties para JavaFX
+    private transient IntegerProperty idProperty;
+    private transient StringProperty nombreProperty;
+
+    public ubicaciones() {}
+
+    public ubicaciones(Integer id, String nombre) {
+        this.id = id;
+        this.nombre = nombre;
     }
 
-    public int getId() {
-        return id.get();
+    public Integer getId() { return id; }
+    public void setId(Integer id) {
+        this.id = id;
+        if (idProperty != null) {
+            idProperty.set(id);
+        }
     }
 
-    public String getNombre() {
-        return nombre.get();
-    }
-
+    public String getNombre() { return nombre; }
     public void setNombre(String nombre) {
-        this.nombre.set(nombre);
+        this.nombre = nombre;
+        if (nombreProperty != null) {
+            nombreProperty.set(nombre);
+        }
     }
 
+    // Métodos property para JavaFX
     public IntegerProperty idProperty() {
-        return id;
+        if (idProperty == null) {
+            idProperty = new SimpleIntegerProperty(id);
+        }
+        return idProperty;
     }
 
     public StringProperty nombreProperty() {
-        return nombre;
+        if (nombreProperty == null) {
+            nombreProperty = new SimpleStringProperty(nombre);
+        }
+        return nombreProperty;
     }
 }
