@@ -21,6 +21,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -51,6 +52,8 @@ public class MainController {
     @FXML private HBox contenedorComentario;
     @FXML private TextField comentario;
     @FXML private HBox contenedorBtnConfirmar;
+    @FXML private TextField factura;
+    @FXML private Button botonConfirmar;
     @FXML private CheckBox miCheckBox;
 
     @FXML private encabezadoController paneNavbarController;
@@ -140,6 +143,7 @@ public class MainController {
         });
         configurarAutocompleteClientes();
         configurarTabla();
+        configurarConfirmacion();
     }
 
     private void configurarAutocompleteClientes() {
@@ -223,6 +227,64 @@ public class MainController {
         controlador.setItemsVenta(itemsVenta);
         controlador.setMainController(this);
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml",controlador,"Venta");
+    }
+
+    private void configurarConfirmacion() {
+        if (botonConfirmar != null) {
+            botonConfirmar.setOnAction(event -> confirmarVenta());
+        }
+    }
+
+    private void confirmarVenta() {
+        if (itemsVenta.isEmpty()) {
+            mostrarAlerta("Advertencia", "Debe agregar al menos un producto para confirmar la venta.");
+            return;
+        }
+        if (clienteSeleccionadoId == null || clienteSeleccionadoId.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe seleccionar un cliente.");
+            return;
+        }
+        String facturaTexto = factura != null ? factura.getText().trim() : "";
+        if (facturaTexto.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe capturar el número de factura.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("Se está realizando una venta y una salida de productos de tu inventario.");
+        confirmacion.setContentText("¿Deseas continuar con el registro?");
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                String nota = comentario != null ? comentario.getText() : "";
+                boolean registrado = model.registrarVenta(
+                        clienteSeleccionadoId,
+                        nota,
+                        facturaTexto,
+                        new ArrayList<>(itemsVenta)
+                );
+                if (registrado) {
+                    itemsVenta.clear();
+                    if (comentario != null) {
+                        comentario.clear();
+                    }
+                    if (factura != null) {
+                        factura.clear();
+                    }
+                    mostrarAlerta("Éxito", "La venta se registró correctamente.");
+                } else {
+                    mostrarAlerta("Error", "No se pudo registrar la venta.");
+                }
+            }
+        });
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 
     private void configurarTabla() {
