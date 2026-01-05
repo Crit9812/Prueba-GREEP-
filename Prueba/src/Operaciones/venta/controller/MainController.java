@@ -9,6 +9,9 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -19,6 +22,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.control.cell.CheckBoxTableCell;
@@ -39,6 +43,7 @@ public class MainController {
     @FXML private TableView contenidoTabla;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
+    @FXML private Button btnEliminar;
     @FXML private ComboBox<String> buscador;
     @FXML private Label lblAgregar;
     @FXML private Label lblCliente;
@@ -275,11 +280,65 @@ public class MainController {
                 }
             });
         }
+
+        itemsVenta.addListener((javafx.collections.ListChangeListener<traspasoSalida>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (traspasoSalida item : change.getAddedSubList()) {
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+                        if (miCheckBox != null && miCheckBox.isSelected() && !item.isSeleccionado()) {
+                            item.setSeleccionado(true);
+                        }
+                    }
+                }
+                if (change.wasRemoved()) {
+                    actualizarSeleccionGeneral();
+                }
+            }
+        });
+
+        for (traspasoSalida item : itemsVenta) {
+            item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+        }
     }
 
     public void refrescarTabla() {
         if (contenidoTabla != null) {
             contenidoTabla.refresh();
+        }
+    }
+
+    @FXML
+    public void eliminarSeleccionados() {
+        List<traspasoSalida> seleccionados = itemsVenta.stream()
+                .filter(traspasoSalida::isSeleccionado)
+                .collect(Collectors.toList());
+        if (seleccionados.isEmpty()) {
+            return;
+        }
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("¿Deseas eliminar las ventas seleccionadas?");
+        confirmacion.setContentText("Esta acción eliminará los elementos seleccionados de la venta.");
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                itemsVenta.removeAll(seleccionados);
+                actualizarSeleccionGeneral();
+            }
+        });
+    }
+
+    private void actualizarSeleccionGeneral() {
+        if (miCheckBox == null || actualizandoSeleccion) {
+            return;
+        }
+        actualizandoSeleccion = true;
+        try {
+            boolean seleccionarTodo = !itemsVenta.isEmpty()
+                    && itemsVenta.stream().allMatch(traspasoSalida::isSeleccionado);
+            miCheckBox.setSelected(seleccionarTodo);
+        } finally {
+            actualizandoSeleccion = false;
         }
     }
 }
