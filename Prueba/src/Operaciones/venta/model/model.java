@@ -292,9 +292,9 @@ public class model {
                         }
                     }
 
-                    if (detalleEntradaId != null && colEntradaId != null && (colEntradaEstado != null || colEntradaTipo != null)) {
-                        if (esUltimoArticuloLote(conn, detalleEntradaId, item.getLote(), colArticuloDetalleEntrada, colArticuloLote)) {
-                            actualizarEntradaFinalizada(conn, detalleEntradaId, colEntradaId, colEntradaEstado, colEntradaTipo);
+                    if (detalleEntradaId != null && colEntradaId != null && colEntradaEstado != null) {
+                        if (entradaSinArticulos(conn, detalleEntradaId, colArticuloDetalleEntrada)) {
+                            actualizarEntradaFinalizada(conn, detalleEntradaId, colEntradaId, colEntradaEstado);
                         }
                     }
 
@@ -379,16 +379,14 @@ public class model {
         return null;
     }
 
-    private boolean esUltimoArticuloLote(Connection conn, int detalleEntradaId, String lote,
-                                         String colArticuloDetalleEntrada, String colArticuloLote) throws SQLException {
-        if (colArticuloDetalleEntrada == null || colArticuloLote == null) {
+    private boolean entradaSinArticulos(Connection conn, int detalleEntradaId,
+                                        String colArticuloDetalleEntrada) throws SQLException {
+        if (colArticuloDetalleEntrada == null) {
             return false;
         }
-        String sql = "SELECT COUNT(*) AS total FROM articulo WHERE " + colArticuloDetalleEntrada + " = ? AND "
-                + colArticuloLote + " = ?";
+        String sql = "SELECT COUNT(*) AS total FROM articulo WHERE " + colArticuloDetalleEntrada + " = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, detalleEntradaId);
-            ps.setString(2, lote);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("total") == 0;
@@ -399,12 +397,8 @@ public class model {
     }
 
     private void actualizarEntradaFinalizada(Connection conn, int detalleEntradaId, String colEntradaId,
-                                             String colEntradaEstado, String colEntradaTipo) throws SQLException {
-        String sql = "UPDATE entradas SET "
-                + (colEntradaEstado != null ? colEntradaEstado + " = ?" : "")
-                + (colEntradaEstado != null && colEntradaTipo != null ? ", " : "")
-                + (colEntradaTipo != null ? colEntradaTipo + " = ?" : "")
-                + " WHERE " + colEntradaId + " = ?";
+                                             String colEntradaEstado) throws SQLException {
+        String sql = "UPDATE entradas SET " + colEntradaEstado + " = ? WHERE " + colEntradaId + " = ?";
 
         Integer claveEntrada = obtenerClaveEntrada(conn, detalleEntradaId);
         if (claveEntrada == null) {
@@ -413,12 +407,7 @@ public class model {
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
-            if (colEntradaEstado != null) {
-                ps.setString(index++, "finalizado");
-            }
-            if (colEntradaTipo != null) {
-                ps.setString(index++, "venta");
-            }
+            ps.setString(index++, "finalizado");
             ps.setInt(index, claveEntrada);
             ps.executeUpdate();
         }
