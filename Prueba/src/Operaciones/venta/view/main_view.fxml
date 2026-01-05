@@ -44,15 +44,6 @@
                             </Label>
 
                             <Region fx:id="expansor"/>
-
-                            <Label fx:id="lblCliente" text="Cliente:" styleClass="labels"/>
-                            <ComboBox fx:id="buscador"
-                                      editable="true"
-                                      styleClass="barraBusqueda combo-sin-flecha">
-                                <HBox.margin>
-                                    <Insets left="10"/>
-                                </HBox.margin>
-                            </ComboBox>
                             <Button styleClass="botones" onMouseClicked="#abrirNuevoCliente">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -62,6 +53,15 @@
                                     </ImageView>
                                 </graphic>
                             </Button>
+                            <Label fx:id="lblCliente" text="Cliente:" styleClass="labels"/>
+                            <ComboBox fx:id="buscador"
+                                      editable="true"
+                                      styleClass="barraBusqueda combo-sin-flecha">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </ComboBox>
+
                             <Button styleClass="botones"  onMouseClicked="#abrirFormularioVenta">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
