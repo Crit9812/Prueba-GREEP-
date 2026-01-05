@@ -4,8 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregada parte de compra completa">
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregada parte de compra completa y cambio al cerrar formulario">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/controller/alertaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/alertaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/controller/encabezadoController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/encabezadoController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/model/DAO/GenericDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/model/DAO/GenericDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/view/encabezado.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/view/encabezado.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,7 +61,7 @@
     </favorite-branches>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="ad73aafb6de62afe81c8f042f446944947af863f" />
+        <entry key="$PROJECT_DIR$/.." value="codex/add-transfer-logging-functionality" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -318,7 +329,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767381648107</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Agregada parte de compra completa y cambio al cerrar formulario">
+      <option name="closed" value="true" />
+      <created>1767381825938</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1767381825938</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -381,7 +400,8 @@
     <MESSAGE value="comprar" />
     <MESSAGE value="Modificaciones de diseño en compras" />
     <MESSAGE value="Agregada parte de compra completa" />
-    <option name="LAST_COMMIT_MESSAGE" value="Agregada parte de compra completa" />
+    <MESSAGE value="Agregada parte de compra completa y cambio al cerrar formulario" />
+    <option name="LAST_COMMIT_MESSAGE" value="Agregada parte de compra completa y cambio al cerrar formulario" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

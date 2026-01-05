@@ -4,6 +4,7 @@ import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
+import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
 import Formularios.controller.controllerSincronizacionClaves;
@@ -45,10 +46,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     // Instancia única del modelo
-    private final model modeloClaves = new model();
+    private model modeloClaves;
 
     @FXML
     public void initialize() {
+        modeloClaves = new model();
         Platform.runLater(() -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
@@ -136,9 +138,22 @@ public class MainController {
                 }
             });
 
+            RefrescoHelper.setVistaActual("claves");
+            RefrescoHelper.registrarRefresco("claves", this::actualizarClaves);
             // Cargar tabla inicial
             cargarTabla();
         });
+    }
+
+    private void actualizarClaves() {
+        System.out.println("ACTUALIZANDO CLAVES...");
+        modeloClaves = new model();
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+        });
+        cargarTabla();
     }
 
     private void cargarTabla() {

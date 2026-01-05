@@ -22,6 +22,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import Compartido.exportar.exportador;
+import Compartido.helper.RefrescoHelper;
+
 
 import java.io.IOException;
 
@@ -57,10 +59,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     // EXACTAMENTE IGUAL que productos: instancia única
-    private final model clienteModel = new model();
+    private model clienteModel;
 
     @FXML
     public void initialize() {
+        clienteModel = new model();
         Platform.runLater(() -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
@@ -180,9 +183,39 @@ public class MainController {
                 buscarClientes(newValue);
             });
 
+            RefrescoHelper.setVistaActual("clientes");
+            RefrescoHelper.registrarRefresco("clientes", this::actualizarClientes);
+
             // Carga Inicial en background como productos
             cargarClientesEnTabla();
         });
+    }
+
+    // ========== NUEVO MÉTODO DE ACTUALIZACIÓN ==========
+    private void actualizarClientes() {
+        System.out.println("========================================");
+        System.out.println("ACTUALIZANDO CLIENTES");
+        System.out.println("Hora: " + new java.util.Date());
+        System.out.println("========================================");
+
+        // 1. Crear NUEVA instancia del modelo
+        clienteModel = new model();
+        System.out.println("✓ Nuevo modelo de clientes creado");
+
+        // 2. Limpiar UI
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+            System.out.println("✓ UI limpiada");
+        });
+
+        // 3. Recargar datos
+        cargarClientesEnTabla();
+
+        System.out.println("========================================");
+        System.out.println("ACTUALIZACIÓN DE CLIENTES COMPLETADA");
+        System.out.println("========================================");
     }
 
     // MetODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
@@ -190,8 +223,6 @@ public class MainController {
         Task<ObservableList<cliente>> task = new Task<>() {
             @Override
             protected ObservableList<cliente> call() {
-                // En productos es: productoModel.obtenerProductos()
-                // Aquí es exactamente igual pero con clienteModel
                 return FXCollections.observableArrayList(clienteModel.obtenerClientes());
             }
 
@@ -204,7 +235,7 @@ public class MainController {
         new Thread(task).start();
     }
 
-    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
+    // MeTODO EXACTAMENTE IGUAL que buscarProductos() en productos
     private void buscarClientes(String texto) {
         if (texto == null || texto.trim().isEmpty()) {
             cargarClientesEnTabla();

@@ -2,6 +2,7 @@ package Consultas.clasificacion.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.helper.RefrescoHelper;
 import Consultas.clasificacion.model.marcas;
 import Consultas.clasificacion.model.etiquetas;
 import Consultas.clasificacion.model.model;
@@ -16,6 +17,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import Compartido.helper.RefrescoHelper;
 
 import java.io.IOException;
 
@@ -46,12 +48,13 @@ public class MainController {
 
     @FXML private encabezadoController paneNavbarController;
 
-    private final model model = new model();
+    private  model model = new model();
 
     @FXML
     public void initialize() {
 
         Platform.runLater(() -> {
+
             try {
                 FXMLLoader loader = new FXMLLoader(
                         getClass().getResource("/Compartido/view/navbar.fxml")
@@ -78,6 +81,9 @@ public class MainController {
             contenidoTablaUbicaciones.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
 
             paneNavbarController.setTitulo("Clasificación", "#ffffff");
+
+            RefrescoHelper.setVistaActual("clasificacion");
+            RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
 
             configurarTablas();
             configurarDobleClick();

@@ -22,6 +22,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import Compartido.helper.RefrescoHelper;
 
 import java.io.IOException;
 
@@ -58,10 +59,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     // EXACTAMENTE IGUAL que productos: instancia única
-    private final model proveedorModel = new model();
+    private model proveedorModel;
 
     @FXML
     public void initialize() {
+        proveedorModel = new model();
         Platform.runLater(() -> {
 
             try {
@@ -183,15 +185,34 @@ public class MainController {
                 }
             });
 
-            // Configurar listener para el buscador - EXACTAMENTE IGUAL que productos
-            // ELIMINAR el buscador.setOnKeyPressed que estaba aquí
+            RefrescoHelper.setVistaActual("proveedores");
+            RefrescoHelper.registrarRefresco("proveedores", this::actualizarProveedores);
+
             buscador.textProperty().addListener((observable, oldValue, newValue) -> {
                 buscarProveedores(newValue);
             });
         });
     }
 
-    // MÉTODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
+    private void actualizarProveedores() {
+
+        // 1. Crear NUEVA instancia del modelo
+        proveedorModel = new model();
+
+        // 2. Limpiar campo de búsqueda
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            // Opcional: limpiar tabla temporalmente
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+        });
+        cargarProveedoresEnTabla();
+
+        System.out.println("========================================");
+        System.out.println("ACTUALIZACIÓN DE PROVEEDORES COMPLETADA");
+        System.out.println("========================================");
+    }
+
     private void cargarProveedoresEnTabla() {
         Task<ObservableList<proveedores>> task = new Task<>() {
             @Override

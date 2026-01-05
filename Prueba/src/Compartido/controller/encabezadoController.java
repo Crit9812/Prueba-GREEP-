@@ -1,5 +1,6 @@
 package Compartido.controller;
 
+import Compartido.helper.RefrescoHelper;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -40,8 +41,7 @@ public class encabezadoController {
 
         });
 
-        labelUsuario.setText( Compartido.sesion.SesionUsuario.getNombreUsuario() );
-
+        labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
     }
 
     public void setTitulo(String titulo, String colorHex) {
@@ -59,7 +59,9 @@ public class encabezadoController {
         );
     }
 
+    @FXML
+    private void actualizar() {
+        RefrescoHelper.refrescar();
+    }
+
 }
-
-
-

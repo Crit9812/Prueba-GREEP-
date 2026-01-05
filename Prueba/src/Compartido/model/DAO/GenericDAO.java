@@ -305,7 +305,7 @@ public class GenericDAO<T> {
         return lista;
     }
 
-    // --------------------- Métodos específicos a cada caso -------------------
+    // --------------------- Métodos auxiliares -------------------
 
     // Metodo generalizado para construir descripciones concatenando campos
     public static String construirDescripcion(String... campos) {
@@ -327,108 +327,7 @@ public class GenericDAO<T> {
         return sb.toString();
     }
 
-    // Metodo común para procesar una fila de ResultSet para claves completas
-    private String[] procesarFilaClaveCompleta(ResultSet rs) throws SQLException {
-        String[] fila = new String[6];
-
-        // Obtener campos individuales
-        String idAlterno = rs.getString("idAlterno");
-        String idProducto = rs.getString("idProducto");
-        String producto = rs.getString("producto");
-
-        // Manejar idProveedor que puede ser null
-        Object provIdObj = rs.getObject("idProveedor");
-        String idProveedor = provIdObj == null ? "" : provIdObj.toString();
-
-        String proveedor = rs.getString("proveedor");
-
-        // Construir descripción usando el método generalizado
-        String marca = rs.getString("marca");
-        String etiqueta = rs.getString("etiqueta");
-        String unidadMedida = rs.getString("unidadMedida");
-        String descripcionProducto = rs.getString("descripcionProducto");
-
-        String descripcion = construirDescripcion(marca, etiqueta, unidadMedida, descripcionProducto);
-
-        // Asignar valores al array
-        fila[0] = idAlterno != null ? idAlterno : "";
-        fila[1] = idProducto != null ? idProducto : "";
-        fila[2] = producto != null ? producto : "";
-        fila[3] = idProveedor;
-        fila[4] = proveedor != null ? proveedor : "";
-        fila[5] = descripcion;
-
-        return fila;
-    }
-
-    public ArrayList<String[]> obtenerClavesCompletas() {
-        ArrayList<String[]> resultados = new ArrayList<>();
-
-        String sql = "SELECT c.idAlterno AS idAlterno, " +
-                "       c.idProducto AS idProducto, " +
-                "       p.nombre AS producto, " +
-                "       c.idProveedor AS idProveedor, " +
-                "       pr.Nombre AS proveedor, " +
-                "       m.nombre AS marca, " +
-                "       e.nombre AS etiqueta, " +
-                "       p.unidadMedida AS unidadMedida, " +
-                "       p.descripcion AS descripcionProducto " +
-                "FROM claves c " +
-                "LEFT JOIN productos p ON c.idProducto = p.id " +
-                "LEFT JOIN proveedores pr ON c.idProveedor = pr.id " +
-                "LEFT JOIN marcas m ON p.marca = m.id " +
-                "LEFT JOIN etiquetas e ON p.etiqueta = e.id";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                resultados.add(procesarFilaClaveCompleta(rs));
-            }
-        } catch (Exception e) {
-            System.out.println("Error en obtenerClavesCompletas: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return resultados;
-    }
-
-    public ArrayList<String[]> buscarClavesCompletas(String textoBusqueda) {
-        ArrayList<String[]> resultados = new ArrayList<>();
-
-        String sql = "SELECT c.idAlterno AS idAlterno, " +
-                "       c.idProducto AS idProducto, " +
-                "       p.nombre AS producto, " +
-                "       c.idProveedor AS idProveedor, " +
-                "       pr.Nombre AS proveedor, " +
-                "       m.nombre AS marca, " +
-                "       e.nombre AS etiqueta, " +
-                "       p.unidadMedida AS unidadMedida, " +
-                "       p.descripcion AS descripcionProducto " +
-                "FROM claves c " +
-                "LEFT JOIN productos p ON c.idProducto = p.id " +
-                "LEFT JOIN proveedores pr ON c.idProveedor = pr.id " +
-                "LEFT JOIN marcas m ON p.marca = m.id " +
-                "LEFT JOIN etiquetas e ON p.etiqueta = e.id " +
-                "WHERE LOWER(c.idAlterno) LIKE ? OR LOWER(c.idProducto) LIKE ?";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            String busqueda = "%" + textoBusqueda.toLowerCase() + "%";
-            ps.setString(1, busqueda);  // c.idAlterno
-            ps.setString(2, busqueda);  // c.idProducto
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    resultados.add(procesarFilaClaveCompleta(rs));
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Error en buscarClavesCompletas: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return resultados;
-    }
+    // --------------------- Métodos  -------------------
 
     public ArrayList<Map<String, String>> obtenerProductosConMarcaEtiqueta() {
         ArrayList<Map<String, String>> resultados = new ArrayList<>();

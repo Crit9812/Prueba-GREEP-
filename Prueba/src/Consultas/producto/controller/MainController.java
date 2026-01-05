@@ -3,6 +3,7 @@ package Consultas.producto.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportarPlantilla;
+import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
 import Consultas.producto.model.producto;
@@ -60,7 +61,7 @@ public class MainController {
     @FXML private ImageView previewImage;
     @FXML private encabezadoController paneNavbarController;
 
-    private final model productoModel = new model();
+    private model productoModel;
 
     // Mapas concurrentes para alta velocidad y cache
     private Map<String, String> mapEtiquetas = new ConcurrentHashMap<>();
@@ -69,6 +70,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        productoModel = new model();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
             VBox navbarLoaded = loader.load();
@@ -163,6 +165,42 @@ public class MainController {
         });
 
         preloadDatosUltraRapido();
+        RefrescoHelper.setVistaActual("productos");
+        RefrescoHelper.registrarRefresco("productos", this::actualizarProductos);
+
+    }
+
+    private void actualizarProductos() {
+        System.out.println("=== EJECUTANDO ACTUALIZACIÓN DE PRODUCTOS ===");
+
+        // 1. Crear NUEVA instancia del modelo (esto forzará nueva conexión)
+        productoModel = new model();
+        System.out.println("Nuevo modelo creado");
+
+        // 2. Limpiar todas las cachés
+        cacheImagenes.clear();
+        mapEtiquetas.clear();
+        mapMarcas.clear();
+
+        // 3. Limpiar la UI
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            previewImage.setImage(null);
+            contenidoTabla.setItems(FXCollections.observableArrayList()); // Limpiar tabla temporalmente
+        });
+
+        // 4. Pequeña pausa para que se limpie la UI
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // 5. Recargar los datos con la nueva instancia
+        preloadDatosUltraRapido();
+
+        System.out.println("=== ACTUALIZACIÓN COMPLETADA ===");
     }
 
     private void preloadDatosUltraRapido() {
@@ -322,6 +360,8 @@ public class MainController {
             contenidoTabla.setItems(productos);
         }
     }
+
+
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("productos");

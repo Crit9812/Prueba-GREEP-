@@ -6,7 +6,7 @@ import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
 
-public class model { //njjgj
+public class model {
 
     private final GenericDAO<cliente> dao = new GenericDAO<>(cliente.class);
 
