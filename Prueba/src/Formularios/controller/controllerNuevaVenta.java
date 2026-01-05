@@ -5,6 +5,7 @@ import Compartido.helper.AutoCompleteComboBoxListener;
 import Compartido.model.DAO.GenericDAO;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
+import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -51,6 +52,7 @@ public class controllerNuevaVenta {
     @FXML private TextField txtFactor;
     @FXML private TextField txtCantidadUbicacion;
     @FXML private TextField txtPrecioEntrada;
+    @FXML private TextField txtPrecioEntradaIva;
     @FXML private TextField txtPrecioSalida;
     @FXML private CheckBox checkBoxIVA;
     @FXML private TextField txtPrecioIVA;
@@ -69,8 +71,11 @@ public class controllerNuevaVenta {
 
     private final modelNuevoTraspasoSalida modelo = new modelNuevoTraspasoSalida();
     private productoCboxController productoController;
+    private ObservableList<traspasoSalida> itemsVenta;
+    private Operaciones.venta.controller.MainController mainController;
 
     private BigDecimal precioEntradaBase = BigDecimal.ZERO;
+    private BigDecimal precioEntradaIvaBase = BigDecimal.ZERO;
     private boolean loteValidado = false;
     private boolean caducidadValidada = false;
     private boolean presentacionValida = false;
@@ -282,17 +287,25 @@ public class controllerNuevaVenta {
             return;
         }
         precioEntradaBase = precios.getPrecioUnitario() != null ? precios.getPrecioUnitario() : BigDecimal.ZERO;
+        precioEntradaIvaBase = precios.getPrecioIva() != null ? precios.getPrecioIva() : BigDecimal.ZERO;
 
         txtPrecioEntrada.setText(formatearDecimal(precioEntradaBase));
+        if (txtPrecioEntradaIva != null) {
+            txtPrecioEntradaIva.setText(formatearDecimal(precioEntradaIvaBase));
+        }
         recalcularPrecios();
     }
 
     private void limpiarPrecios() {
         txtPrecioEntrada.clear();
+        if (txtPrecioEntradaIva != null) {
+            txtPrecioEntradaIva.clear();
+        }
         txtPrecioIVA.clear();
         txtPrecioBruto.clear();
         txtPrecioTotal.clear();
         precioEntradaBase = BigDecimal.ZERO;
+        precioEntradaIvaBase = BigDecimal.ZERO;
     }
 
     private void guardarItem() {
@@ -305,6 +318,9 @@ public class controllerNuevaVenta {
         String presentacion = cbPresentacion.getValue();
         String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
         String precioEntrada = txtPrecioEntrada.getText() != null ? txtPrecioEntrada.getText().trim() : "";
+        String precioEntradaIva = txtPrecioEntradaIva != null && txtPrecioEntradaIva.getText() != null
+                ? txtPrecioEntradaIva.getText().trim()
+                : "";
         String precioSalida = txtPrecioSalida.getText() != null ? txtPrecioSalida.getText().trim() : "";
         String precioIva = txtPrecioIVA.getText() != null ? txtPrecioIVA.getText().trim() : "";
         String precioBruto = txtPrecioBruto.getText() != null ? txtPrecioBruto.getText().trim() : "";
@@ -319,6 +335,7 @@ public class controllerNuevaVenta {
                 || presentacion == null || presentacion.isBlank()
                 || factorTexto.isBlank()
                 || precioEntrada.isBlank()
+                || precioEntradaIva.isBlank()
                 || precioSalida.isBlank()
                 || precioIva.isBlank()
                 || precioBruto.isBlank()
@@ -362,6 +379,45 @@ public class controllerNuevaVenta {
         if (sumaUbicaciones != cantidad) {
             mostrarAlerta("Advertencia", "La suma de cantidades por ubicación debe ser igual a la cantidad total.");
             return;
+        }
+
+        BigDecimal precioEntradaDecimal = parseDecimal(precioEntrada);
+        BigDecimal precioSalidaDecimal = parseDecimal(precioSalida);
+        if (precioSalidaDecimal.compareTo(precioEntradaDecimal) < 0) {
+            Alert confirmacion = new Alert(AlertType.CONFIRMATION);
+            confirmacion.setTitle("Advertencia");
+            confirmacion.setHeaderText("El precio de salida es menor al precio de entrada.");
+            confirmacion.setContentText("Esto representa una pérdida de dinero. ¿Deseas continuar?");
+            Optional<javafx.scene.control.ButtonType> respuesta = confirmacion.showAndWait();
+            if (respuesta.isEmpty() || respuesta.get() != javafx.scene.control.ButtonType.OK) {
+                return;
+            }
+        }
+
+        if (itemsVenta == null) {
+            mostrarAlerta("Error", "No se pudo registrar la venta en la tabla.");
+            return;
+        }
+
+        traspasoSalida item = new traspasoSalida(
+                clave,
+                nombre,
+                descripcion,
+                lote,
+                caducidad.toString(),
+                cantidad,
+                presentacion,
+                factor,
+                ubicacionesSeleccionadas,
+                precioSalida,
+                precioIva,
+                precioBruto,
+                precioTotal
+        );
+        itemsVenta.add(item);
+
+        if (mainController != null) {
+            mainController.refrescarTabla();
         }
 
         mostrarAlertaSinEspera("Éxito", "Producto agregado a la venta.");
@@ -1428,6 +1484,9 @@ public class controllerNuevaVenta {
 
     private void configurarCamposLectura() {
         txtPrecioEntrada.setEditable(false);
+        if (txtPrecioEntradaIva != null) {
+            txtPrecioEntradaIva.setEditable(false);
+        }
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);
         txtPrecioTotal.setEditable(false);
@@ -1579,5 +1638,13 @@ public class controllerNuevaVenta {
 
         contenedorUbicaciones.getChildren().remove(fila);
         contadorFilas--;
+    }
+
+    public void setItemsVenta(ObservableList<traspasoSalida> itemsVenta) {
+        this.itemsVenta = itemsVenta;
+    }
+
+    public void setMainController(Operaciones.venta.controller.MainController mainController) {
+        this.mainController = mainController;
     }
 }

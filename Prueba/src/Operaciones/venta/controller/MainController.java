@@ -9,14 +9,22 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import java.io.IOException;
 import java.util.List;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.Callback;
+import Operaciones.traspasoSalida.model.traspasoSalida;
 
 public class MainController {
 
@@ -38,13 +46,28 @@ public class MainController {
     @FXML private HBox contenedorComentario;
     @FXML private TextField comentario;
     @FXML private HBox contenedorBtnConfirmar;
+    @FXML private CheckBox miCheckBox;
 
     @FXML private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> clientesCache;
     private final ObservableList<String> clientesFiltrados = FXCollections.observableArrayList();
+    private final ObservableList<traspasoSalida> itemsVenta = FXCollections.observableArrayList();
     private String clienteSeleccionadoId;
     private boolean actualizandoFiltroCliente = false;
+    private boolean actualizandoSeleccion = false;
+    @FXML private TableColumn<traspasoSalida, Boolean> colSelect;
+    @FXML private TableColumn<traspasoSalida, String> colClaveProduct;
+    @FXML private TableColumn<traspasoSalida, String> colProducto;
+    @FXML private TableColumn<traspasoSalida, String> colDescripcionProducto;
+    @FXML private TableColumn<traspasoSalida, String> colCantidad;
+    @FXML private TableColumn<traspasoSalida, String> colLote;
+    @FXML private TableColumn<traspasoSalida, String> colCaducidad;
+    @FXML private TableColumn<traspasoSalida, String> colUbicacion;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioUnitario;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioIva;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioBruto;
+    @FXML private TableColumn<traspasoSalida, String> colPrecioTotaal;
 
 
     @FXML
@@ -111,6 +134,7 @@ public class MainController {
 
         });
         configurarAutocompleteClientes();
+        configurarTabla();
     }
 
     private void configurarAutocompleteClientes() {
@@ -191,6 +215,71 @@ public class MainController {
     @FXML
     public void abrirFormularioVenta() {
         Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
+        controlador.setItemsVenta(itemsVenta);
+        controlador.setMainController(this);
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml",controlador,"Venta");
+    }
+
+    private void configurarTabla() {
+        if (contenidoTabla == null) {
+            return;
+        }
+        contenidoTabla.setItems(itemsVenta);
+
+        colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<traspasoSalida, Boolean>, ObservableValue<Boolean>>() {
+            @Override
+            public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<traspasoSalida, Boolean> param) {
+                traspasoSalida item = param.getValue();
+                if (item != null) {
+                    return item.seleccionadoProperty();
+                }
+                return new SimpleBooleanProperty(false);
+            }
+        });
+
+        colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
+        colClaveProduct.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
+        colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
+        colDescripcionProducto.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
+        colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        colLote.setCellValueFactory(new PropertyValueFactory<>("lote"));
+        colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
+        colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacionResumen"));
+        colPrecioUnitario.setCellValueFactory(new PropertyValueFactory<>("precioEntrada"));
+        colPrecioIva.setCellValueFactory(new PropertyValueFactory<>("precioIva"));
+        colPrecioBruto.setCellValueFactory(new PropertyValueFactory<>("precioBruto"));
+        colPrecioTotaal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
+
+        TableColumn<traspasoSalida, ?>[] columnas = new TableColumn[] {
+                colSelect, colClaveProduct, colProducto, colDescripcionProducto, colCantidad, colLote,
+                colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+        };
+
+        for (TableColumn<traspasoSalida, ?> col : columnas) {
+            col.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setEditable(true);
+        if (miCheckBox != null) {
+            miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+                if (actualizandoSeleccion) {
+                    return;
+                }
+                actualizandoSeleccion = true;
+                try {
+                    for (traspasoSalida item : itemsVenta) {
+                        item.setSeleccionado(newVal);
+                    }
+                } finally {
+                    actualizandoSeleccion = false;
+                }
+            });
+        }
+    }
+
+    public void refrescarTabla() {
+        if (contenidoTabla != null) {
+            contenidoTabla.refresh();
+        }
     }
 }

@@ -122,6 +122,13 @@
                             <TextField fx:id="txtPrecioEntrada"/>
                         </VBox>
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Precio entrada con IVA:"/>
+                            <TextField fx:id="txtPrecioEntradaIva"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="20">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
                             <Label text="Precio salida:"/>
                             <TextField fx:id="txtPrecioSalida"/>
                         </VBox>
