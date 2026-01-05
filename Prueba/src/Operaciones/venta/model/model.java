@@ -292,8 +292,9 @@ public class model {
                         }
                     }
 
-                    if (detalleEntradaId != null && colEntradaId != null && colEntradaEstado != null) {
-                        if (entradaSinArticulos(conn, detalleEntradaId, colArticuloDetalleEntrada)) {
+                    if (detalleEntradaId != null && colEntradaId != null && colEntradaEstado != null
+                            && colDetalleEntradaClaveEntrada != null && colDetalleEntradaId != null) {
+                        if (entradaSinArticulos(conn, detalleEntradaId, colDetalleEntradaClaveEntrada, colDetalleEntradaId, colArticuloDetalleEntrada)) {
                             actualizarEntradaFinalizada(conn, detalleEntradaId, colEntradaId, colEntradaEstado);
                         }
                     }
@@ -379,14 +380,30 @@ public class model {
         return null;
     }
 
-    private boolean entradaSinArticulos(Connection conn, int detalleEntradaId,
-                                        String colArticuloDetalleEntrada) throws SQLException {
-        if (colArticuloDetalleEntrada == null) {
+    private boolean entradaSinArticulos(Connection conn, int detalleEntradaId, String colDetalleEntradaClaveEntrada,
+                                        String colDetalleEntradaId, String colArticuloDetalleEntrada) throws SQLException {
+        if (colDetalleEntradaClaveEntrada == null || colDetalleEntradaId == null || colArticuloDetalleEntrada == null) {
             return false;
         }
-        String sql = "SELECT COUNT(*) AS total FROM articulo WHERE " + colArticuloDetalleEntrada + " = ?";
+        String sqlEntrada = "SELECT " + colDetalleEntradaClaveEntrada + " AS claveEntrada FROM detalle_Entrada WHERE "
+                + colDetalleEntradaId + " = ? LIMIT 1";
+        Integer claveEntrada = null;
+        try (PreparedStatement psEntrada = conn.prepareStatement(sqlEntrada)) {
+            psEntrada.setInt(1, detalleEntradaId);
+            try (ResultSet rs = psEntrada.executeQuery()) {
+                if (rs.next()) {
+                    claveEntrada = rs.getInt("claveEntrada");
+                }
+            }
+        }
+        if (claveEntrada == null) {
+            return false;
+        }
+
+        String sql = "SELECT COUNT(*) AS total FROM articulo a JOIN detalle_Entrada de ON de." + colDetalleEntradaId
+                + " = a." + colArticuloDetalleEntrada + " WHERE de." + colDetalleEntradaClaveEntrada + " = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, detalleEntradaId);
+            ps.setInt(1, claveEntrada);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("total") == 0;
