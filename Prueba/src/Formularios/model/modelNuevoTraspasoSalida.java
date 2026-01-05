@@ -1,5 +1,6 @@
 package Formularios.model;
 
+import Compartido.model.DAO.GenericDAO;
 import conexion.Conexion;
 
 import java.math.BigDecimal;
@@ -257,6 +258,13 @@ public class modelNuevoTraspasoSalida {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public Optional<GenericDAO.ValidacionLoteSalida> validarLoteTraspasoSalida(String lote, String idProducto) {
+        if (lote == null || lote.isBlank() || idProducto == null || idProducto.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(GenericDAO.validarLoteTraspasoSalida(idProducto, lote));
     }
 
 

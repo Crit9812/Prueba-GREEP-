@@ -372,4 +372,146 @@ public class GenericDAO<T> {
         return resultados;
     }
 
+    public static class ValidacionLoteSalida {
+        private final boolean entradaCompletada;
+        private final boolean tieneSalida;
+
+        public ValidacionLoteSalida(boolean entradaCompletada, boolean tieneSalida) {
+            this.entradaCompletada = entradaCompletada;
+            this.tieneSalida = tieneSalida;
+        }
+
+        public boolean isEntradaCompletada() {
+            return entradaCompletada;
+        }
+
+        public boolean isTieneSalida() {
+            return tieneSalida;
+        }
+    }
+
+    public static ValidacionLoteSalida validarLoteTraspasoSalida(String idProducto, String lote) {
+        if (idProducto == null || idProducto.isBlank() || lote == null || lote.isBlank()) {
+            return null;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+
+            String colEntradaId = resolverColumna(columnasEntradas, "id", "claveEntrada", "idEntrada", "entrada_id");
+            String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+            String colDetalleEntradaEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto", "producto_id");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                    "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+
+            if (colEntradaId == null || colEntradaEstado == null
+                    || colDetalleEntradaId == null || colDetalleEntradaEntrada == null || colDetalleEntradaProducto == null
+                    || colArticuloDetalleEntrada == null || colArticuloLote == null) {
+                return null;
+            }
+
+            String sqlEstado = """
+                SELECT e.`%s` AS estado
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.`%s` = a.`%s`
+                JOIN entradas e ON e.`%s` = de.`%s`
+                WHERE a.`%s` = ? AND de.`%s` = ?
+                ORDER BY e.`%s` DESC
+                LIMIT 1
+            """.formatted(colEntradaEstado, colDetalleEntradaId, colArticuloDetalleEntrada,
+                    colEntradaId, colDetalleEntradaEntrada, colArticuloLote, colDetalleEntradaProducto, colEntradaId);
+
+            boolean entradaCompletada = false;
+            try (PreparedStatement ps = conn.prepareStatement(sqlEstado)) {
+                ps.setString(1, lote);
+                ps.setString(2, idProducto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String estado = rs.getString("estado");
+                        entradaCompletada = estado != null && estado.trim().equalsIgnoreCase("completado");
+                    }
+                }
+            }
+
+            boolean tieneSalida = false;
+            if (colArticuloDetalleSalida != null) {
+                String sqlSalida = """
+                    SELECT 1
+                    FROM articulo a
+                    JOIN detalle_Entrada de ON de.`%s` = a.`%s`
+                    WHERE a.`%s` = ? AND de.`%s` = ?
+                      AND a.`%s` IS NOT NULL AND a.`%s` <> 0
+                    LIMIT 1
+                """.formatted(colDetalleEntradaId, colArticuloDetalleEntrada, colArticuloLote,
+                        colDetalleEntradaProducto, colArticuloDetalleSalida, colArticuloDetalleSalida);
+
+                try (PreparedStatement ps = conn.prepareStatement(sqlSalida)) {
+                    ps.setString(1, lote);
+                    ps.setString(2, idProducto);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        tieneSalida = rs.next();
+                    }
+                }
+            }
+
+            return new ValidacionLoteSalida(entradaCompletada, tieneSalida);
+        } catch (Exception e) {
+            System.out.println("Error en validarLoteTraspasoSalida: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
+        Map<String, String> columnas = new HashMap<>();
+        DatabaseMetaData meta = conn.getMetaData();
+
+        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre == null) {
+                    continue;
+                }
+                String limpio = nombre.trim();
+                columnas.put(limpio.toLowerCase(), limpio);
+            }
+        }
+
+        if (columnas.isEmpty()) {
+            try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla.toLowerCase(), null)) {
+                while (rs.next()) {
+                    String nombre = rs.getString("COLUMN_NAME");
+                    if (nombre == null) {
+                        continue;
+                    }
+                    String limpio = nombre.trim();
+                    columnas.put(limpio.toLowerCase(), limpio);
+                }
+            }
+        }
+
+        return columnas;
+    }
+
+    private static String resolverColumna(Map<String, String> columnas, String... candidatos) {
+        for (String candidato : candidatos) {
+            if (candidato == null) {
+                continue;
+            }
+            String match = columnas.get(candidato.toLowerCase());
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
+    }
+
 }

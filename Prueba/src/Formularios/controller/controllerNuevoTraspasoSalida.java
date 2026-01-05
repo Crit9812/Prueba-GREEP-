@@ -794,6 +794,21 @@ public class controllerNuevoTraspasoSalida {
         txtCantidadUbicacion.setDisable(false);
     }
 
+    private static class ResultadoValidacionLote {
+        private final Optional<java.time.LocalDate> caducidad;
+        private final boolean loteExiste;
+        private final boolean entradaCompletada;
+        private final boolean tieneSalida;
+
+        private ResultadoValidacionLote(Optional<java.time.LocalDate> caducidad, boolean loteExiste,
+                                        boolean entradaCompletada, boolean tieneSalida) {
+            this.caducidad = caducidad;
+            this.loteExiste = loteExiste;
+            this.entradaCompletada = entradaCompletada;
+            this.tieneSalida = tieneSalida;
+        }
+    }
+
     private void validarLoteCompleto(String lote) {
         if (lote.isBlank()) {
             loteValidado = false;
@@ -810,14 +825,25 @@ public class controllerNuevoTraspasoSalida {
         }
         String loteSnapshot = lote;
         String productoSnapshot = idProducto;
-        javafx.concurrent.Task<Optional<java.time.LocalDate>> task = new javafx.concurrent.Task<>() {
+        javafx.concurrent.Task<ResultadoValidacionLote> task = new javafx.concurrent.Task<>() {
             @Override
-            protected Optional<java.time.LocalDate> call() {
+            protected ResultadoValidacionLote call() {
                 boolean existe = modelo.existeLoteParaProducto(loteSnapshot, productoSnapshot);
                 if (!existe) {
-                    return Optional.empty();
+                    return new ResultadoValidacionLote(Optional.empty(), false, true, false);
                 }
-                return modelo.obtenerCaducidadParaLoteProducto(loteSnapshot, productoSnapshot);
+                Optional<Compartido.model.DAO.GenericDAO.ValidacionLoteSalida> validacion = modelo
+                        .validarLoteTraspasoSalida(loteSnapshot, productoSnapshot);
+                boolean entradaCompletada = validacion.map(Compartido.model.DAO.GenericDAO.ValidacionLoteSalida::isEntradaCompletada)
+                        .orElse(true);
+                boolean tieneSalida = validacion.map(Compartido.model.DAO.GenericDAO.ValidacionLoteSalida::isTieneSalida)
+                        .orElse(false);
+                if (!entradaCompletada || tieneSalida) {
+                    return new ResultadoValidacionLote(Optional.empty(), true, entradaCompletada, tieneSalida);
+                }
+                Optional<java.time.LocalDate> caducidad = modelo
+                        .obtenerCaducidadParaLoteProducto(loteSnapshot, productoSnapshot);
+                return new ResultadoValidacionLote(caducidad, true, true, false);
             }
 
             @Override
@@ -827,8 +853,28 @@ public class controllerNuevoTraspasoSalida {
                 if (!loteSnapshot.equals(loteActual) || !productoSnapshot.equals(idActual)) {
                     return;
                 }
-                Optional<java.time.LocalDate> caducidad = getValue();
-                if (caducidad.isEmpty()) {
+                ResultadoValidacionLote resultado = getValue();
+                if (!resultado.loteExiste) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia", "El lote no corresponde al producto seleccionado.");
+                } else if (!resultado.entradaCompletada) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto no esta en stock, posiblemente este en tus traspasos de entrada");
+                } else if (resultado.tieneSalida) {
+                    loteValidado = false;
+                    txtLote.clear();
+                    dpCaducidad.setValue(null);
+                    limpiarUbicacionPrimaria();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El producto esta en proceso de salida a una sucursal");
+                } else if (resultado.caducidad.isEmpty()) {
                     loteValidado = false;
                     txtLote.clear();
                     dpCaducidad.setValue(null);
@@ -836,7 +882,7 @@ public class controllerNuevoTraspasoSalida {
                     mostrarAlertaSinEspera("Advertencia", "El lote no corresponde al producto seleccionado.");
                 } else {
                     loteValidado = true;
-                    dpCaducidad.setValue(caducidad.get());
+                    dpCaducidad.setValue(resultado.caducidad.get());
                     caducidadValidada = true;
                 }
                 ubicacionValidada = false;
