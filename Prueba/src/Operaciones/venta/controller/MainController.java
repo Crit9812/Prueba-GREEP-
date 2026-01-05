@@ -53,6 +53,7 @@ public class MainController {
     @FXML private TextField comentario;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private TextField factura;
+    @FXML private TextField totalVenta;
     @FXML private Button botonConfirmar;
     @FXML private CheckBox miCheckBox;
 
@@ -144,6 +145,7 @@ public class MainController {
         configurarAutocompleteClientes();
         configurarTabla();
         configurarConfirmacion();
+        configurarTotalVenta();
     }
 
     private void configurarAutocompleteClientes() {
@@ -361,6 +363,55 @@ public class MainController {
 
         for (traspasoSalida item : itemsVenta) {
             item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionGeneral());
+        }
+    }
+
+    private void configurarTotalVenta() {
+        if (totalVenta != null) {
+            totalVenta.setEditable(false);
+            totalVenta.setText("0.00");
+        }
+
+        itemsVenta.addListener((javafx.collections.ListChangeListener<traspasoSalida>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (traspasoSalida item : change.getAddedSubList()) {
+                        item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalVenta());
+                    }
+                }
+                if (change.wasRemoved()) {
+                    actualizarTotalVenta();
+                }
+            }
+        });
+
+        actualizarTotalVenta();
+    }
+
+    private void actualizarTotalVenta() {
+        if (totalVenta == null) {
+            return;
+        }
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (traspasoSalida item : itemsVenta) {
+            total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
+        }
+        totalVenta.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private java.math.BigDecimal parseTotal(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return java.math.BigDecimal.ZERO;
+        }
+        String limpio = valor.trim().replace(",", "");
+        limpio = limpio.replaceAll("[^0-9.\\-]", "");
+        if (limpio.isBlank() || "-".equals(limpio)) {
+            return java.math.BigDecimal.ZERO;
+        }
+        try {
+            return new java.math.BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
         }
     }
 
