@@ -368,6 +368,11 @@ public class controllerCompraEmergente {
             return;
         }
 
+        if (tieneUbicacionesDuplicadas(ubicacionesSeleccionadas)) {
+            mostrarAlerta("Advertencia", "No se puede seleccionar la misma ubicación más de una vez.");
+            return;
+        }
+
         int cantidad = Integer.parseInt(cantidadTexto.trim());
 
         helperCompraEmergente.ResultadoValidacion validacionUbicaciones =
@@ -474,6 +479,23 @@ public class controllerCompraEmergente {
         return resultado;
     }
 
+    private boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {
+        java.util.Set<String> ubicacionesUnicas = new java.util.HashSet<>();
+        for (UbicacionCompra ubicacionCompra : ubicacionesSeleccionadas) {
+            if (ubicacionCompra == null || ubicacionCompra.getUbicacion() == null) {
+                continue;
+            }
+            String ubicacion = ubicacionCompra.getUbicacion().trim();
+            if (ubicacion.isBlank()) {
+                continue;
+            }
+            if (!ubicacionesUnicas.add(ubicacion)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void limpiarFormularioParaNuevo() {
         productoController.limpiarSeleccion(); txtDescripcion.clear(); txtLote.clear();
         dpCaducidad.setValue(null); txtCantidad.clear(); cbPresentacion.setValue("pz");
@@ -482,8 +504,28 @@ public class controllerCompraEmergente {
         if (checkBoxIVA != null) {
             checkBoxIVA.setSelected(false);
         }
-        ubicacionManager.limpiar();
+        if (ubicacionManager != null) {
+            ubicacionManager.limpiar();
+        }
+        reiniciarFormularioUbicaciones();
         cbClaveProducto.requestFocus();
+    }
+
+    private void reiniciarFormularioUbicaciones() {
+        if (contenedorUbicaciones != null) {
+            while (contenedorUbicaciones.getChildren().size() > 1) {
+                contenedorUbicaciones.getChildren().remove(1);
+            }
+        }
+        if (comboUbicacion != null) {
+            comboUbicacion.setValue(null);
+            if (comboUbicacion.getEditor() != null) {
+                comboUbicacion.getEditor().clear();
+            }
+        }
+        if (txtCantidadUbicacion != null) {
+            txtCantidadUbicacion.clear();
+        }
     }
 
     @FXML
