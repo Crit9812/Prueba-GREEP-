@@ -76,6 +76,7 @@ public class controllerNuevaVenta {
     private boolean modoEdicion = false;
     private traspasoSalida itemEnEdicion;
     private traspasoSalida itemPendienteEdicion;
+    private boolean cargandoEdicion = false;
 
     private BigDecimal precioEntradaBase = BigDecimal.ZERO;
     private BigDecimal precioEntradaIvaBase = BigDecimal.ZERO;
@@ -634,6 +635,9 @@ public class controllerNuevaVenta {
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {
+        if (cargandoEdicion) {
+            return;
+        }
         Platform.runLater(() -> {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle(titulo);
@@ -644,6 +648,9 @@ public class controllerNuevaVenta {
     }
 
     private void mostrarAlertaSinEspera(String titulo, String mensaje) {
+        if (cargandoEdicion) {
+            return;
+        }
         Platform.runLater(() -> {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle(titulo);
@@ -962,6 +969,9 @@ public class controllerNuevaVenta {
     }
 
     private void mostrarAlertaCascada(String mensaje) {
+        if (cargandoEdicion) {
+            return;
+        }
         mostrarAlertaSinEspera("Advertencia", mensaje);
     }
 
@@ -1769,10 +1779,11 @@ public class controllerNuevaVenta {
             itemPendienteEdicion = item;
             return;
         }
+        cargandoEdicion = true;
         this.itemEnEdicion = item;
         this.modoEdicion = true;
 
-        productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
+        cargarProductoEnCombos(item);
         txtDescripcion.setText(item.getDescripcion());
         txtLote.setText(item.getLote());
         if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
@@ -1809,6 +1820,7 @@ public class controllerNuevaVenta {
         if (btnGuardar != null) {
             btnGuardar.setText("Actualizar");
         }
+        Platform.runLater(() -> cargandoEdicion = false);
     }
 
     private void cargarUbicaciones(List<UbicacionCompra> ubicaciones) {
@@ -1832,6 +1844,26 @@ public class controllerNuevaVenta {
             combo.setValue(ubicacionCompra.getUbicacion());
             campoCantidad.setText(String.valueOf(ubicacionCompra.getCantidad()));
         }
+    }
+
+    private void cargarProductoEnCombos(traspasoSalida item) {
+        if (item == null || productoController == null) {
+            return;
+        }
+        boolean cargado = productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
+        if (cargado) {
+            return;
+        }
+        PauseTransition retry = new PauseTransition(Duration.millis(200));
+        retry.setOnFinished(event -> {
+            boolean retryCargado = productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
+            if (!retryCargado) {
+                PauseTransition retry2 = new PauseTransition(Duration.millis(200));
+                retry2.setOnFinished(e -> productoController.setSeleccion(item.getClaveProducto(), item.getProducto()));
+                retry2.playFromStart();
+            }
+        });
+        retry.playFromStart();
     }
 
     public void prepararEdicion(traspasoSalida item) {
