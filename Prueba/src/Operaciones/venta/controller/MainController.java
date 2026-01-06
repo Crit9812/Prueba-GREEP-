@@ -378,6 +378,7 @@ public class MainController {
                     for (traspasoSalida item : change.getAddedSubList()) {
                         item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalVenta());
                     }
+                    actualizarTotalVenta();
                 }
                 if (change.wasRemoved()) {
                     actualizarTotalVenta();
