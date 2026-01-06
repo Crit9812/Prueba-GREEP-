@@ -75,6 +75,7 @@ public class controllerNuevaVenta {
     private Operaciones.venta.controller.MainController mainController;
     private boolean modoEdicion = false;
     private traspasoSalida itemEnEdicion;
+    private traspasoSalida itemPendienteEdicion;
 
     private BigDecimal precioEntradaBase = BigDecimal.ZERO;
     private BigDecimal precioEntradaIvaBase = BigDecimal.ZERO;
@@ -115,6 +116,12 @@ public class controllerNuevaVenta {
         ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
+
+        if (itemPendienteEdicion != null) {
+            traspasoSalida pendiente = itemPendienteEdicion;
+            itemPendienteEdicion = null;
+            cargarItemParaEditar(pendiente);
+        }
     }
 
     private void configurarPresentaciones() {
@@ -1758,6 +1765,10 @@ public class controllerNuevaVenta {
         if (item == null) {
             return;
         }
+        if (productoController == null) {
+            itemPendienteEdicion = item;
+            return;
+        }
         this.itemEnEdicion = item;
         this.modoEdicion = true;
 
@@ -1820,6 +1831,17 @@ public class controllerNuevaVenta {
             TextField campoCantidad = (TextField) contenedorCantidad.getChildren().get(1);
             combo.setValue(ubicacionCompra.getUbicacion());
             campoCantidad.setText(String.valueOf(ubicacionCompra.getCantidad()));
+        }
+    }
+
+    public void prepararEdicion(traspasoSalida item) {
+        if (item == null) {
+            return;
+        }
+        if (productoController == null) {
+            itemPendienteEdicion = item;
+        } else {
+            cargarItemParaEditar(item);
         }
     }
 }

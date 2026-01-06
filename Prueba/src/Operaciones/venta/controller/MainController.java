@@ -234,7 +234,7 @@ public class MainController {
         controlador.setItemsVenta(itemsVenta);
         controlador.setMainController(this);
         if (itemEditar != null) {
-            controlador.cargarItemParaEditar(itemEditar);
+            controlador.prepararEdicion(itemEditar);
         }
         controllerFormularios.controllerFormulario.llamarFormulario(
                 "/Formularios/view/nuevaVenta.fxml",
