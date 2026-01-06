@@ -373,6 +373,10 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
             return;
         }
+        if (tieneUbicacionesDuplicadas(ubicacionesSeleccionadas)) {
+            mostrarAlerta("Advertencia", "No se puede seleccionar la misma ubicación más de una vez.");
+            return;
+        }
         int sumaUbicaciones = ubicacionesSeleccionadas.stream()
                 .mapToInt(UbicacionCompra::getCantidad)
                 .sum();
@@ -478,6 +482,23 @@ public class controllerNuevaVenta {
         }
 
         return resultado;
+    }
+
+    private boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {
+        java.util.Set<String> ubicacionesUnicas = new java.util.HashSet<>();
+        for (UbicacionCompra ubicacionCompra : ubicacionesSeleccionadas) {
+            if (ubicacionCompra == null || ubicacionCompra.getUbicacion() == null) {
+                continue;
+            }
+            String ubicacion = ubicacionCompra.getUbicacion().trim();
+            if (ubicacion.isBlank()) {
+                continue;
+            }
+            if (!ubicacionesUnicas.add(ubicacion)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void limpiarFormularioParaNuevo() {
