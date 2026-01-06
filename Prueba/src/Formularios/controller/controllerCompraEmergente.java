@@ -482,8 +482,20 @@ public class controllerCompraEmergente {
         if (checkBoxIVA != null) {
             checkBoxIVA.setSelected(false);
         }
-        ubicacionManager.limpiar();
+        if (ubicacionManager != null) {
+            ubicacionManager.limpiar();
+        }
+        reiniciarValidacionUbicaciones();
         cbClaveProducto.requestFocus();
+    }
+
+    private void reiniciarValidacionUbicaciones() {
+        ubicacionManager = new UbicacionManager(
+                contenedorUbicaciones,
+                comboUbicacion,
+                txtCantidadUbicacion,
+                ubicaciones
+        );
     }
 
     @FXML
