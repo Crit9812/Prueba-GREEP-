@@ -73,6 +73,8 @@ public class controllerNuevaVenta {
     private productoCboxController productoController;
     private ObservableList<traspasoSalida> itemsVenta;
     private Operaciones.venta.controller.MainController mainController;
+    private boolean modoEdicion = false;
+    private traspasoSalida itemEnEdicion;
 
     private BigDecimal precioEntradaBase = BigDecimal.ZERO;
     private BigDecimal precioEntradaIvaBase = BigDecimal.ZERO;
@@ -373,7 +375,13 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
             return;
         }
-        if (existeProductoLoteEnVenta(clave, lote)) {
+        if (modoEdicion) {
+            if (existeProductoLoteEnVentaExcluyendoActual(clave, lote)) {
+                mostrarAlerta("Advertencia",
+                        "Ya se agregó este producto con el mismo lote. Finaliza la venta para poder repetirlo.");
+                return;
+            }
+        } else if (existeProductoLoteEnVenta(clave, lote)) {
             mostrarAlerta("Advertencia",
                     "Ya se agregó este producto con el mismo lote. Finaliza la venta para poder repetirlo.");
             return;
@@ -423,6 +431,20 @@ public class controllerNuevaVenta {
                 precioBruto,
                 precioTotal
         );
+        if (modoEdicion && itemEnEdicion != null) {
+            if (mainController != null) {
+                mainController.actualizarItemEnLista(itemEnEdicion, item);
+            } else if (itemsVenta != null) {
+                int indice = itemsVenta.indexOf(itemEnEdicion);
+                if (indice >= 0) {
+                    itemsVenta.set(indice, item);
+                }
+            }
+            mostrarAlertaSinEspera("Éxito", "Producto actualizado correctamente.");
+            cerrarFormulario();
+            return;
+        }
+
         itemsVenta.add(item);
 
         if (mainController != null) {
@@ -507,6 +529,22 @@ public class controllerNuevaVenta {
                         && loteNormalizado.equals(item.getLote()));
     }
 
+    private boolean existeProductoLoteEnVentaExcluyendoActual(String clave, String lote) {
+        if (clave == null || clave.isBlank() || lote == null || lote.isBlank()) {
+            return false;
+        }
+        if (itemsVenta == null) {
+            return false;
+        }
+        String claveNormalizada = clave.trim();
+        String loteNormalizado = lote.trim();
+        return itemsVenta.stream()
+                .anyMatch(item -> item != null
+                        && item != itemEnEdicion
+                        && claveNormalizada.equals(item.getClaveProducto())
+                        && loteNormalizado.equals(item.getLote()));
+    }
+
     private boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {
         java.util.Set<String> ubicacionesUnicas = new java.util.HashSet<>();
         for (UbicacionCompra ubicacionCompra : ubicacionesSeleccionadas) {
@@ -525,6 +563,11 @@ public class controllerNuevaVenta {
     }
 
     private void limpiarFormularioParaNuevo() {
+        modoEdicion = false;
+        itemEnEdicion = null;
+        if (btnGuardar != null) {
+            btnGuardar.setText("Guardar");
+        }
         limpiarValidacionesInventario();
         cbClaveProducto.setValue(null);
         cbProductoNombre.setValue(null);
@@ -563,6 +606,13 @@ public class controllerNuevaVenta {
             TextField campoCantidad = (TextField) contenedorCantidad.getChildren().get(1);
             limpiarComboUbicacion(combo);
             campoCantidad.clear();
+        }
+    }
+
+    private void cerrarFormulario() {
+        if (btnGuardar != null && btnGuardar.getScene() != null) {
+            javafx.stage.Stage stage = (javafx.stage.Stage) btnGuardar.getScene().getWindow();
+            stage.close();
         }
     }
 
@@ -1702,5 +1752,74 @@ public class controllerNuevaVenta {
 
     public void setMainController(Operaciones.venta.controller.MainController mainController) {
         this.mainController = mainController;
+    }
+
+    public void cargarItemParaEditar(traspasoSalida item) {
+        if (item == null) {
+            return;
+        }
+        this.itemEnEdicion = item;
+        this.modoEdicion = true;
+
+        productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
+        txtDescripcion.setText(item.getDescripcion());
+        txtLote.setText(item.getLote());
+        if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
+            try {
+                dpCaducidad.setValue(java.time.LocalDate.parse(item.getCaducidad()));
+            } catch (Exception ignored) {
+                dpCaducidad.setValue(null);
+            }
+        }
+        txtCantidad.setText(String.valueOf(item.getCantidad()));
+        cbPresentacion.setValue(item.getPresentacion());
+        txtFactor.setText(String.valueOf(item.getFactor()));
+        txtPrecioSalida.setText(item.getPrecioEntrada());
+        txtPrecioIVA.setText(item.getPrecioIva());
+        txtPrecioBruto.setText(item.getPrecioBruto());
+        txtPrecioTotal.setText(item.getPrecioTotal());
+        if (checkBoxIVA != null) {
+            BigDecimal precioSalida = parseDecimal(item.getPrecioEntrada());
+            BigDecimal precioIva = parseDecimal(item.getPrecioIva());
+            checkBoxIVA.setSelected(precioIva.compareTo(precioSalida) > 0);
+        }
+
+        cargarUbicaciones(item.getUbicaciones());
+        ultimoLoteValidado = item.getLote();
+        ultimoFactorValidado = String.valueOf(item.getFactor());
+        ultimaPresentacionValidada = item.getPresentacion();
+        loteValidado = true;
+        caducidadValidada = true;
+        presentacionValida = true;
+        factorValido = true;
+        ubicacionValidada = true;
+        cantidadTotalValida = true;
+
+        if (btnGuardar != null) {
+            btnGuardar.setText("Actualizar");
+        }
+    }
+
+    private void cargarUbicaciones(List<UbicacionCompra> ubicaciones) {
+        limpiarFilasAdicionales();
+        if (ubicaciones == null || ubicaciones.isEmpty() || contenedorUbicaciones == null) {
+            return;
+        }
+        for (int i = 0; i < ubicaciones.size(); i++) {
+            UbicacionCompra ubicacionCompra = ubicaciones.get(i);
+            if (i > 0) {
+                agregarUbicacionCombo();
+            }
+            if (i >= contenedorUbicaciones.getChildren().size()) {
+                continue;
+            }
+            HBox fila = (HBox) contenedorUbicaciones.getChildren().get(i);
+            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
+            VBox contenedorCantidad = (VBox) fila.getChildren().get(1);
+            ComboBox<String> combo = (ComboBox<String>) contenedorUbicacion.getChildren().get(1);
+            TextField campoCantidad = (TextField) contenedorCantidad.getChildren().get(1);
+            combo.setValue(ubicacionCompra.getUbicacion());
+            campoCantidad.setText(String.valueOf(ubicacionCompra.getCantidad()));
+        }
     }
 }

@@ -225,10 +225,21 @@ public class MainController {
 
     @FXML
     public void abrirFormularioVenta() {
+        abrirFormularioVenta(null);
+    }
+
+    private void abrirFormularioVenta(traspasoSalida itemEditar) {
         Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
         controlador.setItemsVenta(itemsVenta);
         controlador.setMainController(this);
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml",controlador,"Venta");
+        if (itemEditar != null) {
+            controlador.cargarItemParaEditar(itemEditar);
+        }
+        controllerFormularios.controllerFormulario.llamarFormulario(
+                "/Formularios/view/nuevaVenta.fxml",
+                controlador,
+                itemEditar == null ? "Venta" : "Editar venta"
+        );
     }
 
     private void configurarConfirmacion() {
@@ -345,6 +356,25 @@ public class MainController {
             });
         }
 
+        contenidoTabla.setRowFactory(tv -> {
+            TableRow<traspasoSalida> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirFormularioVenta(row.getItem());
+                }
+            });
+            return row;
+        });
+
+        contenidoTabla.setOnKeyPressed(event -> {
+            if (event.getCode().toString().equals("ENTER")) {
+                traspasoSalida seleccion = (traspasoSalida) contenidoTabla.getSelectionModel().getSelectedItem();
+                if (seleccion != null) {
+                    abrirFormularioVenta(seleccion);
+                }
+            }
+        });
+
         itemsVenta.addListener((javafx.collections.ListChangeListener<traspasoSalida>) change -> {
             while (change.next()) {
                 if (change.wasAdded()) {
@@ -422,6 +452,15 @@ public class MainController {
     public void refrescarTabla() {
         if (contenidoTabla != null) {
             contenidoTabla.refresh();
+        }
+    }
+
+    public void actualizarItemEnLista(traspasoSalida itemViejo, traspasoSalida itemNuevo) {
+        int indice = itemsVenta.indexOf(itemViejo);
+        if (indice >= 0) {
+            itemsVenta.set(indice, itemNuevo);
+            refrescarTabla();
+            actualizarTotalVenta();
         }
     }
 
