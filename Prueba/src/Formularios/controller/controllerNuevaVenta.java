@@ -1473,7 +1473,19 @@ public class controllerNuevaVenta {
             return false;
         }
         String ubicacionNormalizada = ubicacion.trim();
-        for (ComboBox<String> combo : ubicacionesCapturadas.keySet()) {
+        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
+            if (!(nodo instanceof HBox)) {
+                continue;
+            }
+            HBox fila = (HBox) nodo;
+            if (fila.getChildren().isEmpty()) {
+                continue;
+            }
+            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
+            if (contenedorUbicacion.getChildren().size() < 2) {
+                continue;
+            }
+            ComboBox<String> combo = (ComboBox<String>) contenedorUbicacion.getChildren().get(1);
             if (combo == null || combo == comboActual) {
                 continue;
             }
