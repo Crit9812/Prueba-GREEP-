@@ -485,17 +485,25 @@ public class controllerCompraEmergente {
         if (ubicacionManager != null) {
             ubicacionManager.limpiar();
         }
-        reiniciarValidacionUbicaciones();
+        reiniciarFormularioUbicaciones();
         cbClaveProducto.requestFocus();
     }
 
-    private void reiniciarValidacionUbicaciones() {
-        ubicacionManager = new UbicacionManager(
-                contenedorUbicaciones,
-                comboUbicacion,
-                txtCantidadUbicacion,
-                ubicaciones
-        );
+    private void reiniciarFormularioUbicaciones() {
+        if (contenedorUbicaciones != null) {
+            while (contenedorUbicaciones.getChildren().size() > 1) {
+                contenedorUbicaciones.getChildren().remove(1);
+            }
+        }
+        if (comboUbicacion != null) {
+            comboUbicacion.setValue(null);
+            if (comboUbicacion.getEditor() != null) {
+                comboUbicacion.getEditor().clear();
+            }
+        }
+        if (txtCantidadUbicacion != null) {
+            txtCantidadUbicacion.clear();
+        }
     }
 
     @FXML
