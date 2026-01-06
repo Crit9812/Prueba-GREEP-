@@ -1783,7 +1783,65 @@ public class controllerNuevaVenta {
         this.itemEnEdicion = item;
         this.modoEdicion = true;
 
-        cargarProductoEnCombos(item);
+        intentarCargarProducto(item, 0);
+    }
+
+    private void cargarUbicaciones(List<UbicacionCompra> ubicaciones) {
+        limpiarFilasAdicionales();
+        if (ubicaciones == null || ubicaciones.isEmpty() || contenedorUbicaciones == null) {
+            return;
+        }
+        for (int i = 0; i < ubicaciones.size(); i++) {
+            UbicacionCompra ubicacionCompra = ubicaciones.get(i);
+            if (i > 0) {
+                agregarUbicacionCombo();
+            }
+            if (i >= contenedorUbicaciones.getChildren().size()) {
+                continue;
+            }
+            HBox fila = (HBox) contenedorUbicaciones.getChildren().get(i);
+            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
+            VBox contenedorCantidad = (VBox) fila.getChildren().get(1);
+            ComboBox<String> combo = (ComboBox<String>) contenedorUbicacion.getChildren().get(1);
+            TextField campoCantidad = (TextField) contenedorCantidad.getChildren().get(1);
+            combo.setValue(ubicacionCompra.getUbicacion());
+            campoCantidad.setText(String.valueOf(ubicacionCompra.getCantidad()));
+        }
+    }
+
+    private void intentarCargarProducto(traspasoSalida item, int intento) {
+        if (item == null || productoController == null) {
+            return;
+        }
+        boolean cargado = productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
+        if (cargado) {
+            aplicarDatosEdicion(item, true);
+            return;
+        }
+        if (intento >= 10) {
+            aplicarDatosEdicion(item, false);
+            return;
+        }
+        PauseTransition retry = new PauseTransition(Duration.millis(200));
+        retry.setOnFinished(event -> intentarCargarProducto(item, intento + 1));
+        retry.playFromStart();
+    }
+
+    private void aplicarDatosEdicion(traspasoSalida item, boolean productoCargado) {
+        if (!productoCargado) {
+            if (cbClaveProducto != null) {
+                cbClaveProducto.setValue(item.getClaveProducto());
+                if (cbClaveProducto.getEditor() != null) {
+                    cbClaveProducto.getEditor().setText(item.getClaveProducto());
+                }
+            }
+            if (cbProductoNombre != null) {
+                cbProductoNombre.setValue(item.getProducto());
+                if (cbProductoNombre.getEditor() != null) {
+                    cbProductoNombre.getEditor().setText(item.getProducto());
+                }
+            }
+        }
         txtDescripcion.setText(item.getDescripcion());
         txtLote.setText(item.getLote());
         if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
@@ -1821,49 +1879,6 @@ public class controllerNuevaVenta {
             btnGuardar.setText("Actualizar");
         }
         Platform.runLater(() -> cargandoEdicion = false);
-    }
-
-    private void cargarUbicaciones(List<UbicacionCompra> ubicaciones) {
-        limpiarFilasAdicionales();
-        if (ubicaciones == null || ubicaciones.isEmpty() || contenedorUbicaciones == null) {
-            return;
-        }
-        for (int i = 0; i < ubicaciones.size(); i++) {
-            UbicacionCompra ubicacionCompra = ubicaciones.get(i);
-            if (i > 0) {
-                agregarUbicacionCombo();
-            }
-            if (i >= contenedorUbicaciones.getChildren().size()) {
-                continue;
-            }
-            HBox fila = (HBox) contenedorUbicaciones.getChildren().get(i);
-            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
-            VBox contenedorCantidad = (VBox) fila.getChildren().get(1);
-            ComboBox<String> combo = (ComboBox<String>) contenedorUbicacion.getChildren().get(1);
-            TextField campoCantidad = (TextField) contenedorCantidad.getChildren().get(1);
-            combo.setValue(ubicacionCompra.getUbicacion());
-            campoCantidad.setText(String.valueOf(ubicacionCompra.getCantidad()));
-        }
-    }
-
-    private void cargarProductoEnCombos(traspasoSalida item) {
-        if (item == null || productoController == null) {
-            return;
-        }
-        boolean cargado = productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
-        if (cargado) {
-            return;
-        }
-        PauseTransition retry = new PauseTransition(Duration.millis(200));
-        retry.setOnFinished(event -> {
-            boolean retryCargado = productoController.setSeleccion(item.getClaveProducto(), item.getProducto());
-            if (!retryCargado) {
-                PauseTransition retry2 = new PauseTransition(Duration.millis(200));
-                retry2.setOnFinished(e -> productoController.setSeleccion(item.getClaveProducto(), item.getProducto()));
-                retry2.playFromStart();
-            }
-        });
-        retry.playFromStart();
     }
 
     public void prepararEdicion(traspasoSalida item) {
