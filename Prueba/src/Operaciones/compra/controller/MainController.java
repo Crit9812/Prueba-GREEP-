@@ -502,7 +502,10 @@ public class MainController {
             return;
         }
         java.math.BigDecimal total = java.math.BigDecimal.ZERO;
-        for (compra item : itemsCompra) {
+        java.util.List<compra> filas = contenidoTabla != null
+                ? (java.util.List<compra>) contenidoTabla.getItems()
+                : itemsCompra;
+        for (compra item : filas) {
             total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
         }
         totalCompra.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());

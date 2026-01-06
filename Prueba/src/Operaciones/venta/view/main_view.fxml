@@ -25,7 +25,7 @@
                                     <Insets left="25"/>
                                 </HBox.margin>
                             </CheckBox>
-                            <Button fx:id="btnEliminar"  styleClass="botones">
+                            <Button fx:id="btnEliminar" styleClass="botones" onMouseClicked="#eliminarSeleccionados">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -117,6 +117,20 @@
                                 <TableColumn fx:id="colPrecioTotaal" text="Precio total" prefWidth="360" />
                             </columns>
                         </TableView>
+
+                        <!-- TOTAL PEGADO A LA TABLA -->
+                        <HBox alignment="CENTER_RIGHT">
+                            <Label fx:id="lblTotal" text="Total:" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <TextField fx:id="totalVenta"
+                                       editable="false"
+                                       styleClass="factura"
+                                       promptText="Total">
+                            </TextField>
+                        </HBox>
                     </VBox>
                     <HBox fx:id="contenedorComentario" spacing="8" alignment="CENTER_LEFT">
                         <!-- margen izquierdo / derecho lo aplicas al HBox si lo quieres -->
