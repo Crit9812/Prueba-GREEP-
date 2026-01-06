@@ -225,9 +225,16 @@ public class MainController {
 
     @FXML
     public void abrirFormularioVenta() {
+        abrirFormularioVenta(null);
+    }
+
+    private void abrirFormularioVenta(traspasoSalida itemParaEditar) {
         Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
         controlador.setItemsVenta(itemsVenta);
         controlador.setMainController(this);
+        if (itemParaEditar != null) {
+            controlador.setItemParaEditar(itemParaEditar);
+        }
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml",controlador,"Venta");
     }
 
@@ -328,6 +335,16 @@ public class MainController {
             col.setStyle("-fx-alignment: CENTER;");
         }
 
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<traspasoSalida> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirFormularioVenta(row.getItem());
+                }
+            });
+            return row;
+        });
+
         contenidoTabla.setEditable(true);
         if (miCheckBox != null) {
             miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
@@ -426,6 +443,10 @@ public class MainController {
     }
 
     public boolean existeProductoLote(String claveProducto, String lote) {
+        return existeProductoLote(claveProducto, lote, null);
+    }
+
+    public boolean existeProductoLote(String claveProducto, String lote, traspasoSalida itemExcluir) {
         if (claveProducto == null || claveProducto.isBlank() || lote == null || lote.isBlank()) {
             return false;
         }
@@ -433,6 +454,7 @@ public class MainController {
         String loteNormalizado = lote.trim();
         return itemsVenta.stream()
                 .anyMatch(item -> item != null
+                        && item != itemExcluir
                         && claveNormalizada.equals(item.getClaveProducto())
                         && loteNormalizado.equals(item.getLote()));
     }
