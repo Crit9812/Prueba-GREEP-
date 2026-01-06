@@ -5,7 +5,6 @@ import conexion.Conexion;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -78,9 +77,6 @@ public class model {
             String colFecha = resolverColumna(columnasSalida, "fechaSalida", "fecha", "fecha_salida", "created_at");
             String colHora = resolverColumna(columnasSalida, "horaSalida", "hora", "hora_salida");
             String colTipo = resolverColumna(columnasSalida, "tipoSalida", "tipo", "tipo_salida");
-            String colPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto",
-                    "precio_neto", "precioNetoTotal");
-            String colPrecioTotal = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal", "precio_total");
             String colUsuarioSalida = resolverColumna(columnasSalida, "claveUsuarioSalida", "idUsuarioSalida",
                     "id_usuario_salida", "usuarioSalida", "usuario_salida");
             String colEstado = resolverColumna(columnasSalida, "Estado", "estado");
@@ -95,22 +91,6 @@ public class model {
             Integer idUsuarioSalida = SesionUsuario.getIdUsuario();
             if (colUsuarioSalida != null && idUsuarioSalida != null) {
                 valoresSalida.put(colUsuarioSalida, idUsuarioSalida);
-            }
-
-            BigDecimal totalNeto = BigDecimal.ZERO;
-            BigDecimal totalGeneral = BigDecimal.ZERO;
-            for (traspasoSalida item : items) {
-                BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
-                BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
-                totalNeto = totalNeto.add(precioBruto);
-                totalGeneral = totalGeneral.add(precioTotal);
-            }
-
-            if (colPrecioNeto != null) {
-                valoresSalida.put(colPrecioNeto, totalNeto.setScale(2, RoundingMode.HALF_UP));
-            }
-            if (colPrecioTotal != null) {
-                valoresSalida.put(colPrecioTotal, totalGeneral.setScale(2, RoundingMode.HALF_UP));
             }
 
             long idSalida = insertarRegistro(conn, "salidas", columnasSalida, valoresSalida);
@@ -157,8 +137,6 @@ public class model {
                         "precio_iva");
                 String colPrecioBruto = resolverColumna(columnasDetalleSalida, "precioBrutoTotalSalida",
                         "precioBrutoTotal", "precioBruto", "precio_bruto");
-                String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotalSalida", "precioTotal",
-                        "precio_total");
                 String colDetalleLote = resolverColumna(columnasDetalleSalida, "lote");
                 String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
                 String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
@@ -170,9 +148,6 @@ public class model {
                 if (colPrecioSalida != null) valoresDetalle.put(colPrecioSalida, parseDecimal(item.getPrecioEntrada()));
                 if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
-                if (colPrecioTotalDetalle != null) {
-                    valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
-                }
                 if (colDetalleLote != null) valoresDetalle.put(colDetalleLote, item.getLote());
                 if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));
                 if (colDetallePresentacion != null) valoresDetalle.put(colDetallePresentacion, item.getPresentacion());
