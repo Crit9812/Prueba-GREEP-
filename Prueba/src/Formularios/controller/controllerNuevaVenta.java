@@ -373,6 +373,11 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
             return;
         }
+        if (existeProductoLoteEnVenta(clave, lote)) {
+            mostrarAlerta("Advertencia",
+                    "Ya se agregó este producto con el mismo lote. Finaliza la venta para poder repetirlo.");
+            return;
+        }
         if (tieneUbicacionesDuplicadas(ubicacionesSeleccionadas)) {
             mostrarAlerta("Advertencia", "No se puede seleccionar la misma ubicación más de una vez.");
             return;
@@ -482,6 +487,24 @@ public class controllerNuevaVenta {
         }
 
         return resultado;
+    }
+
+    private boolean existeProductoLoteEnVenta(String clave, String lote) {
+        if (clave == null || clave.isBlank() || lote == null || lote.isBlank()) {
+            return false;
+        }
+        if (mainController != null && mainController.existeProductoLote(clave, lote)) {
+            return true;
+        }
+        if (itemsVenta == null) {
+            return false;
+        }
+        String claveNormalizada = clave.trim();
+        String loteNormalizado = lote.trim();
+        return itemsVenta.stream()
+                .anyMatch(item -> item != null
+                        && claveNormalizada.equals(item.getClaveProducto())
+                        && loteNormalizado.equals(item.getLote()));
     }
 
     private boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {

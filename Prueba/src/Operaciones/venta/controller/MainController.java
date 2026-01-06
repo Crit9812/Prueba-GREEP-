@@ -425,6 +425,18 @@ public class MainController {
         }
     }
 
+    public boolean existeProductoLote(String claveProducto, String lote) {
+        if (claveProducto == null || claveProducto.isBlank() || lote == null || lote.isBlank()) {
+            return false;
+        }
+        String claveNormalizada = claveProducto.trim();
+        String loteNormalizado = lote.trim();
+        return itemsVenta.stream()
+                .anyMatch(item -> item != null
+                        && claveNormalizada.equals(item.getClaveProducto())
+                        && loteNormalizado.equals(item.getLote()));
+    }
+
     @FXML
     public void eliminarSeleccionados() {
         List<traspasoSalida> seleccionados = itemsVenta.stream()
