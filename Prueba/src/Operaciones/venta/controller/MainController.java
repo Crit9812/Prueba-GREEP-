@@ -393,7 +393,10 @@ public class MainController {
             return;
         }
         java.math.BigDecimal total = java.math.BigDecimal.ZERO;
-        for (traspasoSalida item : itemsVenta) {
+        java.util.List<traspasoSalida> filas = contenidoTabla != null
+                ? (java.util.List<traspasoSalida>) contenidoTabla.getItems()
+                : itemsVenta;
+        for (traspasoSalida item : filas) {
             total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
         }
         totalVenta.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
