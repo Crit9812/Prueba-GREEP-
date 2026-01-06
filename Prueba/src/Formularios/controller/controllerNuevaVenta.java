@@ -373,6 +373,15 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
             return;
         }
+        if (existeProductoLoteEnVenta(clave, lote)) {
+            mostrarAlerta("Advertencia",
+                    "Ya se agregó este producto con el mismo lote. Finaliza la venta para poder repetirlo.");
+            return;
+        }
+        if (tieneUbicacionesDuplicadas(ubicacionesSeleccionadas)) {
+            mostrarAlerta("Advertencia", "No se puede seleccionar la misma ubicación más de una vez.");
+            return;
+        }
         int sumaUbicaciones = ubicacionesSeleccionadas.stream()
                 .mapToInt(UbicacionCompra::getCantidad)
                 .sum();
@@ -478,6 +487,41 @@ public class controllerNuevaVenta {
         }
 
         return resultado;
+    }
+
+    private boolean existeProductoLoteEnVenta(String clave, String lote) {
+        if (clave == null || clave.isBlank() || lote == null || lote.isBlank()) {
+            return false;
+        }
+        if (mainController != null && mainController.existeProductoLote(clave, lote)) {
+            return true;
+        }
+        if (itemsVenta == null) {
+            return false;
+        }
+        String claveNormalizada = clave.trim();
+        String loteNormalizado = lote.trim();
+        return itemsVenta.stream()
+                .anyMatch(item -> item != null
+                        && claveNormalizada.equals(item.getClaveProducto())
+                        && loteNormalizado.equals(item.getLote()));
+    }
+
+    private boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {
+        java.util.Set<String> ubicacionesUnicas = new java.util.HashSet<>();
+        for (UbicacionCompra ubicacionCompra : ubicacionesSeleccionadas) {
+            if (ubicacionCompra == null || ubicacionCompra.getUbicacion() == null) {
+                continue;
+            }
+            String ubicacion = ubicacionCompra.getUbicacion().trim();
+            if (ubicacion.isBlank()) {
+                continue;
+            }
+            if (!ubicacionesUnicas.add(ubicacion)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void limpiarFormularioParaNuevo() {
@@ -1452,7 +1496,19 @@ public class controllerNuevaVenta {
             return false;
         }
         String ubicacionNormalizada = ubicacion.trim();
-        for (ComboBox<String> combo : ubicacionesCapturadas.keySet()) {
+        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
+            if (!(nodo instanceof HBox)) {
+                continue;
+            }
+            HBox fila = (HBox) nodo;
+            if (fila.getChildren().isEmpty()) {
+                continue;
+            }
+            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
+            if (contenedorUbicacion.getChildren().size() < 2) {
+                continue;
+            }
+            ComboBox<String> combo = (ComboBox<String>) contenedorUbicacion.getChildren().get(1);
             if (combo == null || combo == comboActual) {
                 continue;
             }
