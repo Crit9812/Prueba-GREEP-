@@ -359,7 +359,6 @@ public class controllerNuevoTraspasoSalida {
         }
 
         String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
-        String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
 
