@@ -359,7 +359,6 @@ public class controllerNuevoTraspasoSalida {
         }
 
         String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
-        String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
 
@@ -416,6 +415,7 @@ public class controllerNuevoTraspasoSalida {
         String clave = productoController.getIdSeleccionado();
         String nombre = productoController.getNombreSeleccionado();
         String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
+        String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
