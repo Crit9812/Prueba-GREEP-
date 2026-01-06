@@ -358,6 +358,7 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
 
+        String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
 
@@ -486,6 +487,7 @@ public class controllerNuevoTraspasoSalida {
                 clave,
                 nombre,
                 descripcion,
+                claveAlterna,
                 lote,
                 caducidad.toString(),
                 cantidad,

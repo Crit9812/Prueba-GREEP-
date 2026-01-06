@@ -17,6 +17,7 @@ public class traspasoSalida {
     private final StringProperty claveProducto = new SimpleStringProperty("");
     private final StringProperty producto = new SimpleStringProperty("");
     private final StringProperty descripcion = new SimpleStringProperty("");
+    private final StringProperty claveAlterna = new SimpleStringProperty("");
     private final StringProperty lote = new SimpleStringProperty("");
     private final StringProperty caducidad = new SimpleStringProperty("");
     private final IntegerProperty cantidad = new SimpleIntegerProperty(0);
@@ -31,12 +32,13 @@ public class traspasoSalida {
 
     private final List<UbicacionCompra> ubicaciones = new ArrayList<>();
 
-    public traspasoSalida(String claveProducto, String producto, String descripcion, String lote, String caducidad,
+    public traspasoSalida(String claveProducto, String producto, String descripcion, String claveAlterna, String lote, String caducidad,
                           int cantidad, String presentacion, int factor, List<UbicacionCompra> ubicaciones,
                           String precioEntrada, String precioIva, String precioBruto, String precioTotal) {
         this.claveProducto.set(claveProducto != null ? claveProducto : "");
         this.producto.set(producto != null ? producto : "");
         this.descripcion.set(descripcion != null ? descripcion : "");
+        this.claveAlterna.set(claveAlterna != null ? claveAlterna : "");
         this.lote.set(lote != null ? lote : "");
         this.caducidad.set(caducidad != null ? caducidad : "");
         this.cantidad.set(cantidad);
@@ -83,6 +85,14 @@ public class traspasoSalida {
 
     public StringProperty descripcionProperty() {
         return descripcion;
+    }
+
+    public String getClaveAlterna() {
+        return claveAlterna.get();
+    }
+
+    public StringProperty claveAlternaProperty() {
+        return claveAlterna;
     }
 
     public String getLote() {

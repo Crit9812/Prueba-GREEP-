@@ -156,6 +156,9 @@ public class controllerNuevaVenta {
 
     private void configurarEventos() {
         cbClaveProducto.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
@@ -164,6 +167,9 @@ public class controllerNuevaVenta {
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
@@ -172,6 +178,9 @@ public class controllerNuevaVenta {
         });
 
         cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
@@ -180,6 +189,9 @@ public class controllerNuevaVenta {
         });
 
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null && !newVal.isBlank()) {
                 String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
                 if (cantidadTexto.isBlank()) {
@@ -200,6 +212,9 @@ public class controllerNuevaVenta {
         });
 
         txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (oldVal != null && !oldVal.equals(newVal)) {
                 loteValidado = false;
                 caducidadValidada = false;
@@ -268,6 +283,7 @@ public class controllerNuevaVenta {
             return;
         }
 
+        String claveAlterna = cbClaveAlterna.getValue() != null ? cbClaveAlterna.getValue().trim() : "";
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
 
@@ -428,6 +444,7 @@ public class controllerNuevaVenta {
                 clave,
                 nombre,
                 descripcion,
+                claveAlterna,
                 lote,
                 caducidad.toString(),
                 cantidad,
@@ -1451,6 +1468,9 @@ public class controllerNuevaVenta {
         });
 
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null && !newVal.isBlank()) {
                 comboBox.getEditor().setText(newVal);
             }
@@ -1494,6 +1514,9 @@ public class controllerNuevaVenta {
         }
         validarNumerosEnteros(campoCantidad);
         campoCantidad.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null && !newVal.isBlank()
                     && (combo.getValue() == null || combo.getValue().isBlank())) {
                 campoCantidad.clear();
@@ -1509,6 +1532,9 @@ public class controllerNuevaVenta {
             return;
         }
         combo.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (cargandoEdicion) {
+                return;
+            }
             if (newVal != null && !newVal.isBlank()
                     && (txtFactor.getText() == null || txtFactor.getText().isBlank())) {
                 combo.setValue(null);
@@ -1842,6 +1868,14 @@ public class controllerNuevaVenta {
                 }
             }
         }
+        if (productoController != null && item.getClaveAlterna() != null && !item.getClaveAlterna().isBlank()) {
+            productoController.setSeleccionPorClaveAlterna(item.getClaveAlterna());
+        } else if (cbClaveAlterna != null) {
+            cbClaveAlterna.setValue(item.getClaveAlterna());
+            if (cbClaveAlterna.getEditor() != null) {
+                cbClaveAlterna.getEditor().setText(item.getClaveAlterna());
+            }
+        }
         txtDescripcion.setText(item.getDescripcion());
         txtLote.setText(item.getLote());
         if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
@@ -1864,7 +1898,6 @@ public class controllerNuevaVenta {
             checkBoxIVA.setSelected(precioIva.compareTo(precioSalida) > 0);
         }
 
-        cargarUbicaciones(item.getUbicaciones());
         ultimoLoteValidado = item.getLote();
         ultimoFactorValidado = String.valueOf(item.getFactor());
         ultimaPresentacionValidada = item.getPresentacion();
@@ -1874,6 +1907,7 @@ public class controllerNuevaVenta {
         factorValido = true;
         ubicacionValidada = true;
         cantidadTotalValida = true;
+        cargarUbicaciones(item.getUbicaciones());
 
         if (btnGuardar != null) {
             btnGuardar.setText("Actualizar");
