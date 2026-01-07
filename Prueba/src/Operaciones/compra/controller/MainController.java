@@ -32,72 +32,40 @@ import javafx.util.Callback;
 
 public class MainController {
 
-    @FXML
-    private StackPane root;
-    @FXML
-    private BorderPane paneNavbar;
-    @FXML
-    private Label labelUsuario;
-    @FXML
-    private VBox navbar;
-    @FXML
-    private VBox contenedor;
-    @FXML
-    private Pane overlayPane;
-    @FXML
-    private HBox rootHBox;
-    @FXML
-    private Label lblEliminar;
-    @FXML
-    private ComboBox<String> buscador;
-    @FXML
-    private Label lblAgregar;
-    @FXML
-    private Label lblProveedores;
-    @FXML
-    private Region expansor;
-    @FXML
-    private VBox contenedorTabla;
-    @FXML
-    private TableView<compra> contenidoTabla;
-    @FXML
-    private HBox contenedorComentario;
-    @FXML
-    private TextField comentario;
-    @FXML
-    private HBox contenedorBtnConfirmar;
-    @FXML
-    private TextField factura;
-    @FXML
-    private TextField totalCompra;
-    @FXML
-    private CheckBox miCheckBox;
+    @FXML private StackPane root;
+    @FXML private BorderPane paneNavbar;
+    @FXML private Label labelUsuario;
+    @FXML private VBox navbar;
+    @FXML private VBox contenedor;
+    @FXML private Pane overlayPane;
+    @FXML private HBox rootHBox;
+    @FXML private Label lblEliminar;
+    @FXML private ComboBox<String> buscador;
+    @FXML private Label lblAgregar;
+    @FXML private Label lblProveedores;
+    @FXML private Region expansor;
+    @FXML private VBox contenedorTabla;
+    @FXML private TableView<compra> contenidoTabla;
+    @FXML private HBox contenedorComentario;
+    @FXML private TextField comentario;
+    @FXML private HBox contenedorBtnConfirmar;
+    @FXML private TextField factura;
+    @FXML private TextField totalCompra;
+    @FXML private CheckBox miCheckBox;
 
-    @FXML
-    private TableColumn<compra, Boolean> colSelect;
-    @FXML
-    private TableColumn<compra, String> colClaveProduct;
-    @FXML
-    private TableColumn<compra, String> colProducto;
-    @FXML
-    private TableColumn<compra, String> colDescripcionProducto;
-    @FXML
-    private TableColumn<compra, String> colLote;
-    @FXML
-    private TableColumn<compra, String> colCaducidad;
-    @FXML
-    private TableColumn<compra, String> colUbicacion;
-    @FXML
-    private TableColumn<compra, String> colPrecioUnitario;
-    @FXML
-    private TableColumn<compra, String> colPrecioIva;
-    @FXML
-    private TableColumn<compra, String> colPrecioBruto;
-    @FXML
-    private TableColumn<compra, String> colPrecioTotaal;
+    @FXML private TableColumn<compra, Boolean> colSelect;
+    @FXML private TableColumn<compra, String> colClaveProduct;
+    @FXML private TableColumn<compra, String> colProducto;
+    @FXML private TableColumn<compra, String> colDescripcionProducto;
+    @FXML private TableColumn<compra, String> colLote;
+    @FXML private TableColumn<compra, String> colCaducidad;
+    @FXML private TableColumn<compra, String> colUbicacion;
+    @FXML private TableColumn<compra, String> colPrecioUnitario;
+    @FXML private TableColumn<compra, String> colPrecioIva;
+    @FXML private TableColumn<compra, String> colPrecioBruto;
+    @FXML private TableColumn<compra, String> colPrecioTotaal;
+    @FXML private encabezadoController paneNavbarController;
 
-    @FXML
-    private encabezadoController paneNavbarController;
     private final model model = new model();
     private ObservableList<String> proveedoresCache;
     private final ObservableList<String> proveedoresFiltrados = FXCollections.observableArrayList();
@@ -171,7 +139,6 @@ public class MainController {
         configurarSeleccionTodo();
         configurarBloqueoProveedor();
         configurarTotalCompra();
-
     }
 
     private void configurarAutocompleteProveedores() {
@@ -246,8 +213,6 @@ public class MainController {
 
     private void configurarTabla() {
         contenidoTabla.setItems(itemsCompra);
-
-        // Hacer que la tabla sea editable para los checkboxes
         contenidoTabla.setEditable(true);
 
         // CONFIGURACIÓN CORRECTA DE LA COLUMNA DE CHECKBOX
@@ -259,7 +224,6 @@ public class MainController {
             }
         });
 
-        // Usar CheckBoxTableCell con la configuración correcta
         colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
         colSelect.setEditable(true);
 
@@ -397,11 +361,7 @@ public class MainController {
         }
     }
 
-    @FXML
-    public void abrirNuevoProveedor() {
-        Formularios.controller.controllerNuevoProveedor controlador = new Formularios.controller.controllerNuevoProveedor();
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoProveedor.fxml", controlador, "Proveedor");
-    }
+
 
     @FXML
     public void guardarCompras() {
@@ -439,6 +399,7 @@ public class MainController {
             actualizarTotalCompra();
             proveedorSeleccionadoId = null;
             buscador.setDisable(false);
+            buscador.setValue(null);
         } else {
             mostrarAlerta("Error", "No se pudo registrar la compra.");
         }
@@ -502,10 +463,7 @@ public class MainController {
             return;
         }
         java.math.BigDecimal total = java.math.BigDecimal.ZERO;
-        java.util.List<compra> filas = contenidoTabla != null
-                ? (java.util.List<compra>) contenidoTabla.getItems()
-                : itemsCompra;
-        for (compra item : filas) {
+        for (compra item : itemsCompra) {
             total = total.add(parseTotal(item != null ? item.getPrecioTotal() : null));
         }
         totalCompra.setText(total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
@@ -525,5 +483,122 @@ public class MainController {
         } catch (NumberFormatException e) {
             return java.math.BigDecimal.ZERO;
         }
+    }
+
+    // Añadir estos métodos a la clase MainController:
+
+    // 👉 Método para refrescar la lista de proveedores
+    public void refrescarProveedores() {
+        javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected java.util.List<String> call() {
+                return model.obtenerNombresProveedores();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.List<String> resultado = getValue();
+                proveedoresCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                proveedoresFiltrados.setAll(proveedoresCache);
+
+                // Mantener el proveedor seleccionado si existe
+                String seleccionActual = buscador.getValue();
+                if (seleccionActual != null && proveedoresCache.contains(seleccionActual)) {
+                    buscador.setValue(seleccionActual);
+                }
+            }
+
+            @Override
+            protected void failed() {
+                proveedoresCache.clear();
+                proveedoresFiltrados.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    public void agregarYSeleccionarProveedor(String nombreProveedor) {
+        if (nombreProveedor == null || nombreProveedor.trim().isEmpty()) {
+            return;
+        }
+
+        Platform.runLater(() -> {
+            // 👉 Primero, desactivar temporalmente el listener del filtro
+            boolean listenerAnterior = actualizandoFiltroProveedor;
+            actualizandoFiltroProveedor = true;
+
+            try {
+                // Refrescar la lista completa
+                javafx.concurrent.Task<java.util.List<String>> task = new javafx.concurrent.Task<>() {
+                    @Override
+                    protected java.util.List<String> call() {
+                        return model.obtenerNombresProveedores();
+                    }
+
+                    @Override
+                    protected void succeeded() {
+                        java.util.List<String> resultado = getValue();
+                        Platform.runLater(() -> {
+                            // Limpiar y actualizar las listas
+                            proveedoresCache.clear();
+                            proveedoresFiltrados.clear();
+
+                            if (resultado != null) {
+                                proveedoresCache.addAll(resultado);
+                                proveedoresFiltrados.addAll(proveedoresCache);
+                            }
+
+                            // 👉 CRÍTICO: Establecer el valor ANTES de reactivar el listener
+                            buscador.setValue(nombreProveedor);
+
+                            // Obtener y establecer el ID
+                            proveedorSeleccionadoId = model.obtenerIdProveedorPorNombre(nombreProveedor);
+
+                            // 👉 También actualizar el texto del editor
+                            buscador.getEditor().setText(nombreProveedor);
+
+                            // Forzar un refresh del combobox
+                            buscador.getSelectionModel().select(nombreProveedor);
+                        });
+                    }
+                };
+
+                Thread hilo = new Thread(task);
+                hilo.setDaemon(true);
+                hilo.start();
+
+            } finally {
+                // 👉 Reactivar el listener después de un breve retardo
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(100); // Pequeña pausa para asegurar
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    Platform.runLater(() -> {
+                        actualizandoFiltroProveedor = false;
+                    });
+                }).start();
+            }
+        });
+    }
+
+    @FXML
+    public void abrirNuevoProveedor() {
+        Formularios.controller.controllerNuevoProveedor controlador = new Formularios.controller.controllerNuevoProveedor();
+
+        // 👉 NUEVO: Configurar callback para cuando se guarde el proveedor
+        controlador.setOnSaved(() -> {
+            // Después de guardar, refrescar y seleccionar el nuevo proveedor
+            String nombreNuevoProveedor = controlador.getNombreProveedor(); // Necesitarás un getter
+            if (nombreNuevoProveedor != null) {
+                agregarYSeleccionarProveedor(nombreNuevoProveedor);
+            }
+        });
+
+        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoProveedor.fxml", controlador, "Proveedor");
     }
 }

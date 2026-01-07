@@ -95,6 +95,7 @@ public class controllerNuevoCliente {
         titulo.setText("Agregar cliente");
     }
 
+    // En controllerNuevoCliente.java, modifica el método guardarCliente():
     @FXML
     public void guardarCliente() {
 
@@ -130,10 +131,17 @@ public class controllerNuevoCliente {
                                 "Cliente agregado correctamente"
                 ).showAndWait();
 
-                if (onSaved != null) onSaved.run();
+                // 👉 IMPORTANTE: Ejecutar callback ANTES de cerrar
+                if (onSaved != null) {
+                    onSaved.run();
+                }
 
-                Stage stage = (Stage) btnGuardar.getScene().getWindow();
-                stage.close();
+                // 👉 Cerrar después de un breve retardo (igual que proveedores)
+                javafx.application.Platform.runLater(() -> {
+                    Stage stage = (Stage) btnGuardar.getScene().getWindow();
+                    stage.close();
+                });
+
             } else {
                 new Alert(Alert.AlertType.ERROR,
                         "No se pudo guardar el cliente."
@@ -164,5 +172,10 @@ public class controllerNuevoCliente {
             return false;
         }
         return true;
+    }
+
+    // Añade este método a la clase controllerNuevoCliente (después de setOnSaved)
+    public String getNombreCliente() {
+        return txtNombre.getText().trim();
     }
 }

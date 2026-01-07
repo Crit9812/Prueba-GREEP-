@@ -52,6 +52,9 @@
                                         </image>
                                     </ImageView>
                                 </graphic>
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
                             </Button>
                             <Label fx:id="lblCliente" text="Cliente:" styleClass="labels"/>
                             <ComboBox fx:id="buscador"
