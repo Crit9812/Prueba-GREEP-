@@ -117,6 +117,7 @@ public class model {
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
             String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
             String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
             String colEntradaTipo = resolverColumna(columnasEntradas, "tipoEntrada", "tipo", "tipo_entrada");
@@ -212,6 +213,9 @@ public class model {
                     if (colArticuloFactor != null) {
                         sql.append(" AND a.").append(colArticuloFactor).append(" = ?");
                     }
+                    if (colArticuloEstado != null) {
+                        sql.append(" AND LOWER(a.").append(colArticuloEstado).append(") = ?");
+                    }
                     if (colDetalleEntradaProducto != null && colDetalleEntradaId != null && colArticuloDetalleEntrada != null) {
                         sql.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
                     }
@@ -235,6 +239,9 @@ public class model {
                         if (colArticuloFactor != null) {
                             ps.setInt(index++, item.getFactor());
                         }
+                        if (colArticuloEstado != null) {
+                            ps.setString(index++, "disponible");
+                        }
                         if (colDetalleEntradaProducto != null && colDetalleEntradaId != null
                                 && colArticuloDetalleEntrada != null) {
                             ps.setString(index++, item.getClaveProducto());
@@ -253,17 +260,35 @@ public class model {
                         return false;
                     }
 
-                    String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
-                    String sqlDelete = "DELETE FROM articulo WHERE " + colArticuloId + " IN (" + placeholders + ")";
-                    try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
-                        int index = 1;
-                        for (Integer idArticulo : articulosParaEliminar) {
-                            psDelete.setInt(index++, idArticulo);
+                    if (colArticuloEstado != null) {
+                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
+                        String sqlUpdate = "UPDATE articulo SET " + colArticuloEstado + " = ? WHERE " + colArticuloId
+                                + " IN (" + placeholders + ")";
+                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate)) {
+                            int index = 1;
+                            psUpdate.setString(index++, "vendido");
+                            for (Integer idArticulo : articulosParaEliminar) {
+                                psUpdate.setInt(index++, idArticulo);
+                            }
+                            int actualizadas = psUpdate.executeUpdate();
+                            if (actualizadas < cantidad) {
+                                conn.rollback();
+                                return false;
+                            }
                         }
-                        int eliminadas = psDelete.executeUpdate();
-                        if (eliminadas < cantidad) {
-                            conn.rollback();
-                            return false;
+                    } else {
+                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
+                        String sqlDelete = "DELETE FROM articulo WHERE " + colArticuloId + " IN (" + placeholders + ")";
+                        try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
+                            int index = 1;
+                            for (Integer idArticulo : articulosParaEliminar) {
+                                psDelete.setInt(index++, idArticulo);
+                            }
+                            int eliminadas = psDelete.executeUpdate();
+                            if (eliminadas < cantidad) {
+                                conn.rollback();
+                                return false;
+                            }
                         }
                     }
 

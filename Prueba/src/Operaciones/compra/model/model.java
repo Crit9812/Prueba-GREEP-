@@ -175,6 +175,7 @@ public class model {
                     String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
                     String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
                     String colArticuloSegmentado = resolverColumna(columnasArticulo, "segmentado");
+                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
                     Integer ubicacionId = resolverUbicacionId(conn, entry.getKey());
                     int cantidadUbicacion = entry.getValue();
@@ -189,6 +190,7 @@ public class model {
                         if (colArticuloPresentacion != null) valoresArticulo.put(colArticuloPresentacion, item.getPresentacion());
                         if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, parseInteger(item.getFactor()));
                         if (colArticuloSegmentado != null) valoresArticulo.put(colArticuloSegmentado, esSegmentado(item.getPresentacion()));
+                        if (colArticuloEstado != null) valoresArticulo.put(colArticuloEstado, "disponible");
 
                         insertarRegistro(conn, "articulo", columnasArticulo, valoresArticulo);
                     }

@@ -407,6 +407,7 @@ public class GenericDAO<T> {
             String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
                     "detalleSalida", "detalle_salida", "detalle_salida_id");
             String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
                     "id_detalle_entrada");
@@ -424,18 +425,25 @@ public class GenericDAO<T> {
                 return new ValidacionDisponibilidadSalida(false, 0);
             }
 
+            String disponibleCond = "(a.`%s` IS NULL OR a.`%s` = 0)".formatted(
+                    colArticuloDetalleSalida,
+                    colArticuloDetalleSalida
+            );
+            if (colArticuloEstado != null) {
+                disponibleCond = disponibleCond + " AND LOWER(a.`" + colArticuloEstado + "`) = ?";
+            }
+
             String sql = """
                 SELECT
                     SUM(CASE WHEN LOWER(e.`%s`) = ? THEN 1 ELSE 0 END) AS completados,
-                    SUM(CASE WHEN (a.`%s` IS NULL OR a.`%s` = 0) THEN 1 ELSE 0 END) AS disponibles
+                    SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS disponibles
                 FROM articulo a
                 JOIN detalle_Entrada de ON de.`%s` = a.`%s`
                 JOIN entradas e ON e.`%s` = de.`%s`
                 WHERE a.`%s` = ? AND de.`%s` = ?
             """.formatted(
                     colEntradaEstado,
-                    colArticuloDetalleSalida,
-                    colArticuloDetalleSalida,
+                    disponibleCond,
                     colDetalleEntradaId,
                     colArticuloDetalleEntrada,
                     colEntradaId,
@@ -445,9 +453,13 @@ public class GenericDAO<T> {
             );
 
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, "completado");
-                ps.setString(2, lote);
-                ps.setString(3, idProducto);
+                int index = 1;
+                ps.setString(index++, "completado");
+                if (colArticuloEstado != null) {
+                    ps.setString(index++, "disponible");
+                }
+                ps.setString(index++, lote);
+                ps.setString(index, idProducto);
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -478,6 +490,7 @@ public class GenericDAO<T> {
             String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
                     "detalleSalida", "detalle_salida", "detalle_salida_id");
             String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
                     "id_detalle_entrada");
@@ -489,24 +502,26 @@ public class GenericDAO<T> {
                 return 0;
             }
 
-            String sql = """
-                SELECT COUNT(*) AS total
-                FROM articulo a
-                JOIN detalle_Entrada de ON de.`%s` = a.`%s`
-                WHERE a.`%s` = ? AND de.`%s` = ?
-                  AND (a.`%s` IS NULL OR a.`%s` = 0)
-            """.formatted(
-                    colDetalleEntradaId,
-                    colArticuloDetalleEntrada,
-                    colArticuloLote,
-                    colDetalleEntradaProducto,
-                    colArticuloDetalleSalida,
-                    colArticuloDetalleSalida
-            );
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? AND de.`")
+                    .append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
 
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, lote);
-                ps.setString(2, idProducto);
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                ps.setString(index++, idProducto);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         return rs.getInt("total");
@@ -536,6 +551,7 @@ public class GenericDAO<T> {
                     "detalleSalida", "detalle_salida", "detalle_salida_id");
             String colArticuloLote = resolverColumna(columnasArticulo, "lote");
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
                     "id_detalle_entrada");
@@ -547,26 +563,28 @@ public class GenericDAO<T> {
                 return 0;
             }
 
-            String sql = """
-                SELECT COUNT(*) AS total
-                FROM articulo a
-                JOIN detalle_Entrada de ON de.`%s` = a.`%s`
-                WHERE de.`%s` = ? AND a.`%s` = ? AND a.`%s` = ?
-                  AND (a.`%s` IS NULL OR a.`%s` = 0)
-            """.formatted(
-                    colDetalleEntradaId,
-                    colArticuloDetalleEntrada,
-                    colDetalleEntradaProducto,
-                    colArticuloLote,
-                    colArticuloCaducidad,
-                    colArticuloDetalleSalida,
-                    colArticuloDetalleSalida
-            );
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? AND a.`")
+                    .append(colArticuloLote).append("` = ? AND a.`").append(colArticuloCaducidad)
+                    .append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
 
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, idProducto);
-                ps.setString(2, lote);
-                ps.setDate(3, java.sql.Date.valueOf(caducidad));
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, idProducto);
+                ps.setString(index++, lote);
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         return rs.getInt("total");
@@ -596,6 +614,7 @@ public class GenericDAO<T> {
             String colArticuloLote = resolverColumna(columnasArticulo, "lote");
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
             String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colUbicacionId = resolverColumna(columnasUbicaciones, "id", "idUbicacion", "ubicacion_id",
                     "id_ubicacion");
@@ -606,26 +625,28 @@ public class GenericDAO<T> {
                 return 0;
             }
 
-            String sql = """
-                SELECT COUNT(*) AS total
-                FROM articulo a
-                JOIN ubicaciones u ON u.`%s` = a.`%s`
-                WHERE a.`%s` = ? AND a.`%s` = ? AND u.`%s` = ?
-                  AND (a.`%s` IS NULL OR a.`%s` = 0)
-            """.formatted(
-                    colUbicacionId,
-                    colArticuloUbicacion,
-                    colArticuloLote,
-                    colArticuloCaducidad,
-                    colUbicacionNombre,
-                    colArticuloDetalleSalida,
-                    colArticuloDetalleSalida
-            );
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                    .append("` = a.`").append(colArticuloUbicacion).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? AND a.`")
+                    .append(colArticuloCaducidad).append("` = ? AND u.`")
+                    .append(colUbicacionNombre).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
 
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, lote);
-                ps.setDate(2, java.sql.Date.valueOf(caducidad));
-                ps.setString(3, ubicacionNombre);
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                ps.setString(index++, ubicacionNombre);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         return rs.getInt("total");
@@ -661,6 +682,7 @@ public class GenericDAO<T> {
             String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
             String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
             String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
                     "id_detalle_entrada");
@@ -678,40 +700,36 @@ public class GenericDAO<T> {
                 return 0;
             }
 
-            String sql = """
-                SELECT COUNT(*) AS total
-                FROM articulo a
-                JOIN detalle_Entrada de ON de.`%s` = a.`%s`
-                JOIN ubicaciones u ON u.`%s` = a.`%s`
-                WHERE de.`%s` = ?
-                  AND a.`%s` = ?
-                  AND a.`%s` = ?
-                  AND a.`%s` = ?
-                  AND a.`%s` = ?
-                  AND u.`%s` = ?
-                  AND (a.`%s` IS NULL OR a.`%s` = 0)
-            """.formatted(
-                    colDetalleEntradaId,
-                    colArticuloDetalleEntrada,
-                    colUbicacionId,
-                    colArticuloUbicacion,
-                    colDetalleEntradaProducto,
-                    colArticuloLote,
-                    colArticuloCaducidad,
-                    colArticuloPresentacion,
-                    colArticuloFactor,
-                    colUbicacionNombre,
-                    colArticuloDetalleSalida,
-                    colArticuloDetalleSalida
-            );
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                    .append("` = a.`").append(colArticuloUbicacion).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloLote).append("` = ? ")
+                    .append("AND a.`").append(colArticuloCaducidad).append("` = ? ")
+                    .append("AND a.`").append(colArticuloPresentacion).append("` = ? ")
+                    .append("AND a.`").append(colArticuloFactor).append("` = ? ")
+                    .append("AND u.`").append(colUbicacionNombre).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
 
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, idProducto);
-                ps.setString(2, lote);
-                ps.setDate(3, java.sql.Date.valueOf(caducidad));
-                ps.setString(4, presentacion);
-                ps.setInt(5, factor);
-                ps.setString(6, ubicacionNombre);
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, idProducto);
+                ps.setString(index++, lote);
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                ps.setString(index++, presentacion);
+                ps.setInt(index++, factor);
+                ps.setString(index++, ubicacionNombre);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         return rs.getInt("total");

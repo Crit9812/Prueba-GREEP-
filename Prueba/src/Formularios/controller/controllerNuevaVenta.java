@@ -98,7 +98,7 @@ public class controllerNuevaVenta {
     @FXML
     public void initialize() {
         productoController = new productoCboxController();
-        productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+        productoController.inicializarDisponibles(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
 
         configurarPresentaciones();
         configurarAutocompletadoUbicacion(comboUbicacion);
