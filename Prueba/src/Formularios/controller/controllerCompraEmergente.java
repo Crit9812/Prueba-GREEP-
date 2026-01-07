@@ -149,6 +149,16 @@ public class controllerCompraEmergente {
             protected void succeeded() {
                 List<String> resultados = getValue();
                 ubicaciones.setAll(resultados != null ? resultados : List.of());
+
+                // IMPORTANTE: Configurar el combo principal con las ubicaciones cargadas
+                if (comboUbicacion != null) {
+                    comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
+                }
+
+                // Si ya existe el manager, actualizar todas las listas
+                if (ubicacionManager != null) {
+                    ubicacionManager.actualizarListaUbicaciones(ubicaciones);
+                }
             }
 
             @Override
@@ -425,6 +435,7 @@ public class controllerCompraEmergente {
             cerrarFormulario();
         } else {
             mostrarAlertaSinEspera("Éxito", "Producto agregado a la compra");
+
             limpiarFormularioParaNuevo();
         }
     }
@@ -497,26 +508,28 @@ public class controllerCompraEmergente {
     }
 
     private void limpiarFormularioParaNuevo() {
-        productoController.limpiarSeleccion(); txtDescripcion.clear(); txtLote.clear();
-        dpCaducidad.setValue(null); txtCantidad.clear(); cbPresentacion.setValue("pz");
-        txtFactor.clear(); txtCantidadUbicacion.clear(); txtPrecioEntrada.clear();
-        txtPrecioIVA.clear(); txtPrecioBruto.clear(); txtPrecioTotal.clear();
+        productoController.limpiarSeleccion();
+        txtDescripcion.clear();
+        txtLote.clear();
+        dpCaducidad.setValue(null);
+        txtCantidad.clear();
+        cbPresentacion.setValue("pz");
+        txtFactor.clear();
+        txtCantidadUbicacion.clear();
+        txtPrecioEntrada.clear();
+        txtPrecioIVA.clear();
+        txtPrecioBruto.clear();
+        txtPrecioTotal.clear();
         if (checkBoxIVA != null) {
             checkBoxIVA.setSelected(false);
         }
+
+        // Limpiar ubicaciones usando el manager
         if (ubicacionManager != null) {
             ubicacionManager.limpiar();
         }
-        reiniciarFormularioUbicaciones();
-        cbClaveProducto.requestFocus();
-    }
 
-    private void reiniciarFormularioUbicaciones() {
-        if (contenedorUbicaciones != null) {
-            while (contenedorUbicaciones.getChildren().size() > 1) {
-                contenedorUbicaciones.getChildren().remove(1);
-            }
-        }
+        // Limpiar manualmente el combo principal y cantidad como respaldo
         if (comboUbicacion != null) {
             comboUbicacion.setValue(null);
             if (comboUbicacion.getEditor() != null) {
@@ -526,6 +539,8 @@ public class controllerCompraEmergente {
         if (txtCantidadUbicacion != null) {
             txtCantidadUbicacion.clear();
         }
+
+        cbClaveProducto.requestFocus();
     }
 
     @FXML
@@ -712,8 +727,6 @@ public class controllerCompraEmergente {
     }
 
     @FXML private void agregarUbicacion() {ubicacionManager.agregarFilaUbicacion();}
-
-
 
     private void commitirSeleccionCombo(ComboBox<String> comboBox, boolean[] actualizando) {
         if (comboBox == null || actualizando[0]) {

@@ -28,6 +28,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Callback;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 
@@ -215,12 +217,6 @@ public class MainController {
                 clienteSeleccionadoId = null;
             }
         });
-    }
-
-    @FXML
-    public void abrirNuevoCliente() {
-        Formularios.controller.controllerNuevoCliente controlador = new Formularios.controller.controllerNuevoCliente();
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoCliente.fxml",controlador,"Cliente");
     }
 
     @FXML
@@ -491,5 +487,121 @@ public class MainController {
         } finally {
             actualizandoSeleccion = false;
         }
+    }
+
+    public void refrescarClientes() {
+        Task<List<String>> task = new Task<>() {
+            @Override
+            protected List<String> call() {
+                return model.obtenerNombresClientes();
+            }
+
+            @Override
+            protected void succeeded() {
+                List<String> resultado = getValue();
+                Platform.runLater(() -> {
+                    clientesCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
+                    clientesFiltrados.setAll(clientesCache);
+
+                    // Mantener el cliente seleccionado si existe
+                    String seleccionActual = buscador.getValue();
+                    if (seleccionActual != null && clientesCache.contains(seleccionActual)) {
+                        buscador.setValue(seleccionActual);
+                    }
+                });
+            }
+
+            @Override
+            protected void failed() {
+                clientesCache.clear();
+                clientesFiltrados.clear();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    public void agregarYSeleccionarCliente(String nombreCliente) {
+        if (nombreCliente == null || nombreCliente.trim().isEmpty()) {
+            return;
+        }
+
+        Platform.runLater(() -> {
+            // 👉 PRIMERO, desactivar temporalmente el listener del filtro
+            actualizandoFiltroCliente = true;
+
+            try {
+                // Refrescar la lista completa (COPIA EXACTA de proveedores)
+                Task<List<String>> task = new Task<>() {
+                    @Override
+                    protected List<String> call() {
+                        return model.obtenerNombresClientes();
+                    }
+
+                    @Override
+                    protected void succeeded() {
+                        List<String> resultado = getValue();
+                        Platform.runLater(() -> {
+                            // Limpiar y actualizar las listas
+                            clientesCache.clear();
+                            clientesFiltrados.clear();
+
+                            if (resultado != null) {
+                                clientesCache.addAll(resultado);
+                                clientesFiltrados.addAll(clientesCache);
+                            }
+
+                            // 👉 CRÍTICO: Establecer el valor ANTES de reactivar el listener
+                            buscador.setValue(nombreCliente);
+
+                            // Obtener y establecer el ID
+                            clienteSeleccionadoId = model.obtenerIdClientePorNombre(nombreCliente);
+
+                            // 👉 También actualizar el texto del editor
+                            buscador.getEditor().setText(nombreCliente);
+
+                            // Forzar un refresh del combobox
+                            buscador.getSelectionModel().select(nombreCliente);
+                        });
+                    }
+                };
+
+                Thread hilo = new Thread(task);
+                hilo.setDaemon(true);
+                hilo.start();
+
+            } finally {
+                // 👉 Reactivar el listener después de un breve retardo (IGUAL que proveedores)
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(100); // MISMO tiempo que proveedores
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    Platform.runLater(() -> {
+                        actualizandoFiltroCliente = false;
+                    });
+                }).start();
+            }
+        });
+    }
+
+    @FXML
+    public void abrirNuevoCliente() {
+        Formularios.controller.controllerNuevoCliente controlador = new Formularios.controller.controllerNuevoCliente();
+
+        // 👉 EXACTAMENTE IGUAL que en proveedores
+        controlador.setOnSaved(() -> {
+            // Después de guardar, refrescar y seleccionar el nuevo cliente
+            String nombreNuevoCliente = controlador.getNombreCliente();
+            if (nombreNuevoCliente != null) {
+                agregarYSeleccionarCliente(nombreNuevoCliente);
+            }
+        });
+
+        // 👉 LLAMA AL MÉTODO EXACTO que en proveedores
+        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoCliente.fxml", controlador, "Cliente");
     }
 }

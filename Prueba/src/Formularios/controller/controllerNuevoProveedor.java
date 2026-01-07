@@ -8,6 +8,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import javafx.application.Platform;
 
 public class controllerNuevoProveedor {
 
@@ -129,13 +130,22 @@ public class controllerNuevoProveedor {
                     model.agregarProveedor(p);
 
             if (exito) {
-                new Alert(Alert.AlertType.INFORMATION,
-                        modoEdicion ? "Proveedor actualizado correctamente" :
-                                "Proveedor agregado correctamente"
-                ).showAndWait();
+                String mensaje = modoEdicion ?
+                        "Proveedor actualizado correctamente" :
+                        "Proveedor agregado correctamente";
 
-                Stage stage = (Stage) btnGuardar.getScene().getWindow();
-                stage.close();
+                new Alert(Alert.AlertType.INFORMATION, mensaje).showAndWait();
+
+                // 👉 NUEVO: Ejecutar callback si existe (para notificar al controller principal)
+                if (onSaved != null) {
+                    onSaved.run();
+                }
+
+                // 👉 NUEVO: Cerrar la ventana después de un breve retardo
+                Platform.runLater(() -> {
+                    Stage stage = (Stage) btnGuardar.getScene().getWindow();
+                    stage.close();
+                });
 
             } else {
                 new Alert(Alert.AlertType.ERROR,
@@ -148,5 +158,9 @@ public class controllerNuevoProveedor {
                     "Revisa CP, N° Interior, N° Exterior y Teléfono: deben ser numéricos"
             ).showAndWait();
         }
+    }
+
+    public String getNombreProveedor() {
+        return txtNombre.getText().trim();
     }
 }

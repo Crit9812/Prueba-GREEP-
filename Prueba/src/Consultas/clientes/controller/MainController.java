@@ -13,16 +13,13 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
+import controllerFormularios.controllerFormulario;
 
 
 import java.io.IOException;
@@ -254,21 +251,13 @@ public class MainController {
 
     private void abrirFormulario(cliente clienteEditar) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoCliente.fxml"));
-            Parent vista = loader.load();
+            controllerNuevoCliente ctrl = new controllerNuevoCliente();
+            if (clienteEditar != null) {
+                ctrl.cargarCliente(clienteEditar);
+            }
 
-            controllerNuevoCliente ctrl = loader.getController();
-            if (clienteEditar != null) ctrl.cargarCliente(clienteEditar);
-
-            Stage stage = new Stage();
-            stage.setTitle(clienteEditar == null ? "Nuevo Cliente" : "Editar Cliente");
-            stage.setScene(new Scene(vista));
-            stage.setResizable(false);
-            stage.centerOnScreen();
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.initOwner(root.getScene().getWindow());
-
-            stage.showAndWait();
+            String titulo = clienteEditar == null ? "Nuevo Cliente" : "Editar Cliente";
+            controllerFormulario.llamarFormulario("/Formularios/view/nuevoCliente.fxml", ctrl, titulo);
             // Recargar como en productos
             cargarClientesEnTabla();
 
