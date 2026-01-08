@@ -156,6 +156,7 @@ public class model {
                         "precioBrutoTotal", "precioBruto", "precio_bruto");
                 String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotalSalida", "precioTotal",
                         "precio_total");
+                String colNotaDetalle = resolverColumna(columnasDetalleSalida, "Nota", "nota", "comentario", "observaciones");
                 String colDetalleLote = resolverColumna(columnasDetalleSalida, "lote");
                 String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
                 String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
@@ -169,6 +170,9 @@ public class model {
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
                 if (colPrecioTotalDetalle != null) {
                     valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
+                }
+                if (colNotaDetalle != null) {
+                    valoresDetalle.put(colNotaDetalle, item.getNota());
                 }
                 if (colDetalleLote != null) valoresDetalle.put(colDetalleLote, item.getLote());
                 if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));

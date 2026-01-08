@@ -51,6 +51,7 @@ public class controllerNuevaVenta {
     @FXML private ComboBox<String> cbPresentacion;
     @FXML private TextField txtFactor;
     @FXML private TextField txtCantidadUbicacion;
+    @FXML private TextField txtNota;
     @FXML private TextField txtPrecioEntrada;
     @FXML private TextField txtPrecioEntradaIva;
     @FXML private TextField txtPrecioSalida;
@@ -247,6 +248,9 @@ public class controllerNuevaVenta {
         txtFactor.clear();
         limpiarUbicacionPrimaria();
         limpiarPrecios();
+        if (txtNota != null) {
+            txtNota.clear();
+        }
     }
 
     private void actualizarDescripcionDesdeProducto() {
@@ -323,6 +327,7 @@ public class controllerNuevaVenta {
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        String nota = txtNota != null && txtNota.getText() != null ? txtNota.getText().trim() : "";
         String presentacion = cbPresentacion.getValue();
         String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
         String precioEntrada = txtPrecioEntrada.getText() != null ? txtPrecioEntrada.getText().trim() : "";
@@ -348,7 +353,7 @@ public class controllerNuevaVenta {
                 || precioIva.isBlank()
                 || precioBruto.isBlank()
                 || precioTotal.isBlank()) {
-            mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar.");
+            mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar, excepto el comentario.");
             return;
         }
 
@@ -426,6 +431,7 @@ public class controllerNuevaVenta {
             itemParaEditar.setPresentacion(presentacion);
             itemParaEditar.setFactor(factor);
             itemParaEditar.setUbicaciones(ubicacionesSeleccionadas);
+            itemParaEditar.setNota(nota);
             itemParaEditar.setPrecioEntrada(precioSalida);
             itemParaEditar.setPrecioIva(precioIva);
             itemParaEditar.setPrecioBruto(precioBruto);
@@ -446,6 +452,7 @@ public class controllerNuevaVenta {
                     precioBruto,
                     precioTotal
             );
+            item.setNota(nota);
             itemsVenta.add(item);
         }
 
@@ -1763,6 +1770,9 @@ public class controllerNuevaVenta {
         cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
         cbProductoNombre.setValue(itemParaEditar.getProducto());
         txtDescripcion.setText(itemParaEditar.getDescripcion());
+        if (txtNota != null) {
+            txtNota.setText(itemParaEditar.getNota());
+        }
         txtLote.setText(itemParaEditar.getLote());
         configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
         loteValidado = true;

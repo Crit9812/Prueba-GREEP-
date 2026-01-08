@@ -60,6 +60,7 @@ public class MainController {
     @FXML private TableColumn<compra, String> colLote;
     @FXML private TableColumn<compra, String> colCaducidad;
     @FXML private TableColumn<compra, String> colUbicacion;
+    @FXML private TableColumn<compra, String> colNota;
     @FXML private TableColumn<compra, String> colPrecioUnitario;
     @FXML private TableColumn<compra, String> colPrecioIva;
     @FXML private TableColumn<compra, String> colPrecioBruto;
@@ -234,6 +235,7 @@ public class MainController {
         colLote.setCellValueFactory(new PropertyValueFactory<>("lote"));
         colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
         colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacionResumen"));
+        colNota.setCellValueFactory(new PropertyValueFactory<>("nota"));
         colPrecioUnitario.setCellValueFactory(new PropertyValueFactory<>("precioEntrada"));
         colPrecioIva.setCellValueFactory(new PropertyValueFactory<>("precioIva"));
         colPrecioBruto.setCellValueFactory(new PropertyValueFactory<>("precioBruto"));
@@ -242,7 +244,7 @@ public class MainController {
         // Centrar el contenido de todas las columnas
         TableColumn<compra, ?>[] columnas = new TableColumn[]{
                 colSelect, colClaveProduct, colProducto, colDescripcionProducto, colLote,
-                colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+                colCaducidad, colUbicacion, colNota, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
         };
         for (TableColumn<compra, ?> col : columnas) {
             col.setStyle("-fx-alignment: CENTER;");

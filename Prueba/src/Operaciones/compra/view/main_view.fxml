@@ -123,6 +123,7 @@
                                 <TableColumn fx:id="colLote" text="Lote" prefWidth="250"/>
                                 <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="360"/>
                                 <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="360"/>
+                                <TableColumn fx:id="colNota" text="Nota" prefWidth="360"/>
                                 <TableColumn fx:id="colPrecioUnitario" text="Precio unitario" prefWidth="360"/>
                                 <TableColumn fx:id="colPrecioIva" text="Precio con IVA" prefWidth="360"/>
                                 <TableColumn fx:id="colPrecioBruto" text="Precio bruto" prefWidth="360"/>

@@ -75,6 +75,7 @@ public class MainController {
     @FXML private TableColumn<traspasoSalida, String> colLote;
     @FXML private TableColumn<traspasoSalida, String> colCaducidad;
     @FXML private TableColumn<traspasoSalida, String> colUbicacion;
+    @FXML private TableColumn<traspasoSalida, String> colNota;
     @FXML private TableColumn<traspasoSalida, String> colPrecioUnitario;
     @FXML private TableColumn<traspasoSalida, String> colPrecioIva;
     @FXML private TableColumn<traspasoSalida, String> colPrecioBruto;
@@ -317,6 +318,7 @@ public class MainController {
         colLote.setCellValueFactory(new PropertyValueFactory<>("lote"));
         colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
         colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacionResumen"));
+        colNota.setCellValueFactory(new PropertyValueFactory<>("nota"));
         colPrecioUnitario.setCellValueFactory(new PropertyValueFactory<>("precioEntrada"));
         colPrecioIva.setCellValueFactory(new PropertyValueFactory<>("precioIva"));
         colPrecioBruto.setCellValueFactory(new PropertyValueFactory<>("precioBruto"));
@@ -324,7 +326,7 @@ public class MainController {
 
         TableColumn<traspasoSalida, ?>[] columnas = new TableColumn[] {
                 colSelect, colClaveProduct, colProducto, colDescripcionProducto, colCantidad, colLote,
-                colCaducidad, colUbicacion, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+                colCaducidad, colUbicacion, colNota, colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
         };
 
         for (TableColumn<traspasoSalida, ?> col : columnas) {
