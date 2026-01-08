@@ -435,13 +435,14 @@ public class GenericDAO<T> {
 
             String sql = """
                 SELECT
-                    SUM(CASE WHEN LOWER(e.`%s`) = ? THEN 1 ELSE 0 END) AS completados,
+                    SUM(CASE WHEN LOWER(e.`%s`) = ? OR LOWER(e.`%s`) = ? THEN 1 ELSE 0 END) AS completados,
                     SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS disponibles
                 FROM articulo a
                 JOIN detalle_Entrada de ON de.`%s` = a.`%s`
                 JOIN entradas e ON e.`%s` = de.`%s`
                 WHERE a.`%s` = ? AND de.`%s` = ?
             """.formatted(
+                    colEntradaEstado,
                     colEntradaEstado,
                     disponibleCond,
                     colDetalleEntradaId,
@@ -455,6 +456,7 @@ public class GenericDAO<T> {
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 int index = 1;
                 ps.setString(index++, "completado");
+                ps.setString(index++, "disponible");
                 if (colArticuloEstado != null) {
                     ps.setString(index++, "disponible");
                 }
