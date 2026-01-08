@@ -72,7 +72,7 @@ public class MainController {
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
             buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.75));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Claves", "#ffffff");
@@ -140,24 +140,83 @@ public class MainController {
 
             RefrescoHelper.setVistaActual("claves");
             RefrescoHelper.registrarRefresco("claves", this::actualizarClaves);
+
             // Cargar tabla inicial
             cargarTabla();
         });
     }
 
+    // ========== MÉTODO DE ACTUALIZACIÓN (IGUAL QUE CLIENTES) ==========
     private void actualizarClaves() {
-        System.out.println("ACTUALIZANDO CLAVES...");
+        System.out.println("========================================");
+        System.out.println("ACTUALIZANDO CLAVES");
+        System.out.println("Hora: " + new java.util.Date());
+        System.out.println("========================================");
+
+        // 1. Crear NUEVA instancia del modelo
         modeloClaves = new model();
+        System.out.println("✓ Nuevo modelo de claves creado");
+
+        // 2. Limpiar UI
         Platform.runLater(() -> {
             buscador.clear();
             contenidoTabla.getSelectionModel().clearSelection();
             contenidoTabla.setItems(FXCollections.observableArrayList());
+            System.out.println("✓ UI limpiada");
         });
+
+        // 3. Pequeña pausa para asegurar sincronización
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // 4. Recargar datos
         cargarTabla();
+
+        System.out.println("========================================");
+        System.out.println("ACTUALIZACIÓN DE CLAVES COMPLETADA");
+        System.out.println("========================================");
     }
 
     private void cargarTabla() {
-        contenidoTabla.setItems(modeloClaves.obtenerParaTabla());
+        try {
+            // Crear tarea asíncrona para cargar datos
+            javafx.concurrent.Task<javafx.collections.ObservableList<String[]>> task =
+                    new javafx.concurrent.Task<>() {
+
+                        @Override
+                        protected javafx.collections.ObservableList<String[]> call() {
+                            System.out.println("✓ Cargando datos desde la base de datos...");
+                            return modeloClaves.obtenerParaTabla();
+                        }
+
+                        @Override
+                        protected void succeeded() {
+                            javafx.collections.ObservableList<String[]> datos = getValue();
+                            Platform.runLater(() -> {
+                                contenidoTabla.setItems(datos);
+                                System.out.println("✓ Tabla actualizada con " + datos.size() + " registros");
+                            });
+                        }
+
+                        @Override
+                        protected void failed() {
+                            System.err.println("✗ Error al cargar tabla: " + getException().getMessage());
+                            getException().printStackTrace();
+                            Platform.runLater(() -> {
+                                mostrarAlertaError("Error", "No se pudieron cargar los datos: " + getException().getMessage());
+                            });
+                        }
+                    };
+
+            new Thread(task).start();
+
+        } catch (Exception e) {
+            System.err.println("✗ Error en cargarTabla: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     @FXML

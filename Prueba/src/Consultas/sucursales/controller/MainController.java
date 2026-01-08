@@ -4,6 +4,7 @@ import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
+import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
 import Consultas.sucursales.model.model;
@@ -54,10 +55,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     // EXACTAMENTE IGUAL que productos: instancia única
-    private final model sucursalModel = new model();
+    private  model sucursalModel;
 
     @FXML
     public void initialize() {
+        sucursalModel = new model();
         Platform.runLater(() -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
@@ -179,6 +181,35 @@ public class MainController {
                 buscarSucursales(newValue);
             });
         });
+        RefrescoHelper.setVistaActual("sucursales");
+        RefrescoHelper.registrarRefresco("sucursales", this::actualizarSucursales);
+    }
+
+    // ========== NUEVO MÉTODO DE ACTUALIZACIÓN (IGUAL QUE CLIENTES) ==========
+    private void actualizarSucursales() {
+        System.out.println("========================================");
+        System.out.println("ACTUALIZANDO SUCURSALES");
+        System.out.println("Hora: " + new java.util.Date());
+        System.out.println("========================================");
+
+        // 1. Crear NUEVA instancia del modelo
+        sucursalModel = new model();
+        System.out.println("✓ Nuevo modelo de sucursales creado");
+
+        // 2. Limpiar UI
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+            System.out.println("✓ UI limpiada");
+        });
+
+        // 3. Recargar datos
+        cargarSucursalesEnTabla();
+
+        System.out.println("========================================");
+        System.out.println("ACTUALIZACIÓN DE SUCURSALES COMPLETADA");
+        System.out.println("========================================");
     }
 
     // MÉeODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos

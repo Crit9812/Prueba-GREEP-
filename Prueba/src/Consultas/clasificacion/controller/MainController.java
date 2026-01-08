@@ -74,6 +74,7 @@ public class MainController {
             configurarLayout();
             configurarTablas();
             configurarDobleClick();
+            configurarEnter();
 
             SplitPane.setResizableWithParent(navbar, false);
             SplitPane.setResizableWithParent(contenedor, true);
@@ -324,8 +325,8 @@ public class MainController {
                 nombre -> {
                     if (model.actualizarMarca(m.getId(), nombre)) {
                         Platform.runLater(() -> {
-                            m.setNombre(nombre);
-                            contenidoTablaMarcas.refresh();
+                                m.setNombre(nombre);
+                                contenidoTablaMarcas.refresh();
                         });
                     }
                 },
@@ -385,6 +386,25 @@ public class MainController {
         TextInputDialog dialog = new TextInputDialog(valorActual);
         dialog.setTitle(titulo);
         dialog.setHeaderText(null);
+
+        // Obtener el campo de texto del diálogo
+        TextField inputField = dialog.getEditor();
+
+        // Configurar ENTER para guardar
+        inputField.setOnAction(e -> {
+            String nombre = inputField.getText().trim();
+            if (!nombre.isEmpty()) {
+                // Ejecutar la actualización
+                new Thread(() -> {
+                    actualizar.accept(nombre);
+                }).start();
+                // Cerrar el diálogo
+                dialog.getDialogPane().getButtonTypes().stream()
+                        .filter(bt -> bt.getButtonData() == ButtonBar.ButtonData.OK_DONE)
+                        .findFirst()
+                        .ifPresent(okButton -> dialog.setResult(nombre));
+            }
+        });
 
         dialog.showAndWait().ifPresent(nombre -> {
             if (!nombre.trim().isEmpty()) {
@@ -575,6 +595,27 @@ public class MainController {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+    // ================== ENTER PARA EDITAR ==================
+    private void configurarEnter() {
+        // Configurar ENTER para cada tabla
+        configurarEnterEnTabla(contenidoTablaMarcas, this::editarMarca);
+        configurarEnterEnTabla(contenidoTablaEtiquetas, this::editarEtiqueta);
+        configurarEnterEnTabla(contenidoTablaUbicaciones, this::editarUbicacion);
+        configurarEnterEnTabla(contenidoTablaUM, this::editarUM);
+    }
+
+    private <T> void configurarEnterEnTabla(TableView<T> tabla, Consumer<T> accion) {
+        tabla.setOnKeyPressed(event -> {
+            // Verificar si se presionó ENTER
+            if (event.getCode().toString().equals("ENTER")) {
+                T seleccionado = tabla.getSelectionModel().getSelectedItem();
+                if (seleccionado != null) {
+                    accion.accept(seleccionado);
+                }
+            }
+        });
     }
 
     // ================== CLEANUP ==================

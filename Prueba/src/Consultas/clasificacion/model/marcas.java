@@ -30,10 +30,20 @@ public class marcas {
     }
 
     public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public void setId(Integer id) {
+        this.id = id;
+        if (idProperty != null) {  // ← AGREGAR
+            idProperty.set(id);    // ← AGREGAR
+        }
+    }
 
     public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+        if (nombreProperty != null) {
+            nombreProperty.set(nombre);
+        }
+    }
 
     // Métodos property para JavaFX
     public IntegerProperty idProperty() {

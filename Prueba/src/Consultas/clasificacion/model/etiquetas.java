@@ -3,6 +3,7 @@ package Consultas.clasificacion.model;
 import Compartido.model.DAO.Column;
 import Compartido.model.DAO.PrimaryKey;
 import Compartido.model.DAO.Table;
+import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -60,3 +61,5 @@ public class etiquetas {
         return nombreProperty;
     }
 }
+
+

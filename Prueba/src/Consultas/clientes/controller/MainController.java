@@ -13,6 +13,8 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -20,6 +22,8 @@ import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
 import controllerFormularios.controllerFormulario;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 
 import java.io.IOException;
@@ -251,18 +255,49 @@ public class MainController {
 
     private void abrirFormulario(cliente clienteEditar) {
         try {
+            // 1. Cargar FXML con controlador manual
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoCliente.fxml"));
+
+            // 2. Crear controlador manualmente
             controllerNuevoCliente ctrl = new controllerNuevoCliente();
+            loader.setController(ctrl);
+
+            // 3. Cargar el FXML - esto llama al initialize() del controlador
+            Parent formularioRoot = loader.load();
+
+            // 4. AHORA configurar el cliente (después de initialize())
             if (clienteEditar != null) {
                 ctrl.cargarCliente(clienteEditar);
+            } else {
+                // Si tienes el método prepararNuevoCliente, llamarlo
+                try {
+                    ctrl.prepararNuevoCliente();
+                } catch (Exception e) {
+                    // Si no existe el método, no pasa nada
+                }
             }
 
+            // 5. Configurar callback para guardar
+            ctrl.setOnSaved(() -> {
+                cargarClientesEnTabla();
+            });
+
+            // 6. Mostrar ventana
             String titulo = clienteEditar == null ? "Nuevo Cliente" : "Editar Cliente";
-            controllerFormulario.llamarFormulario("/Formularios/view/nuevoCliente.fxml", ctrl, titulo);
-            // Recargar como en productos
-            cargarClientesEnTabla();
+            Stage stage = new Stage();
+            stage.setTitle(titulo);
+            stage.setScene(new Scene(formularioRoot));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setResizable(false);
+            stage.setAlwaysOnTop(true);
+
+            stage.setOnHidden(e -> cargarClientesEnTabla());
+            stage.showAndWait();
 
         } catch (Exception e) {
             e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR,
+                    "Error: " + e.getMessage()).show();
         }
     }
 
