@@ -75,6 +75,7 @@ public class controllerCompraEmergente {
     private boolean inicializado = false;
     private compra itemParaEditar;
     private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ISO_LOCAL_DATE;
+    private String ultimoIdProductoDescripcion = "";
 
     @FXML
     public void initialize() {
@@ -337,8 +338,13 @@ public class controllerCompraEmergente {
     }
 
     private void actualizarDescripcionDesdeProducto() {
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto != null && idProducto.equals(ultimoIdProductoDescripcion)) {
+            return;
+        }
         String descripcion = productoController.getDescripcionSeleccionada();
         txtDescripcion.setText(descripcion);
+        ultimoIdProductoDescripcion = idProducto != null ? idProducto : "";
     }
 
     // Metodo para actualizar la clave alterna desde el formulario de claves
