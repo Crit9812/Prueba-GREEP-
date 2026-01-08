@@ -48,6 +48,7 @@ public class controllerCompraEmergente {
     @FXML private ComboBox<String> cbPresentacion;
     @FXML private TextField txtFactor;
     @FXML private TextField txtCantidadUbicacion;
+    @FXML private TextField txtNota;
     @FXML private TextField txtPrecioEntrada;
     @FXML private CheckBox checkBoxIVA;
     @FXML private TextField txtPrecioIVA;
@@ -350,6 +351,7 @@ public class controllerCompraEmergente {
         String lote = txtLote.getText();
         String caducidad = obtenerCaducidadTexto();
         String cantidadTexto = txtCantidad.getText();
+        String nota = txtNota != null ? txtNota.getText() : "";
         String presentacion = cbPresentacion.getValue();
         String factor = txtFactor.getText();
         String precioEntrada = txtPrecioEntrada.getText();
@@ -409,6 +411,7 @@ public class controllerCompraEmergente {
             itemParaEditar.setPresentacion(presentacion);
             itemParaEditar.setFactor(factor);
             itemParaEditar.setUbicaciones(ubicacionesSeleccionadas);
+            itemParaEditar.setNota(nota);
             itemParaEditar.setPrecioEntrada(precioEntrada);
             itemParaEditar.setPrecioIva(precioIVA);
             itemParaEditar.setPrecioBruto(precioBruto);
@@ -422,6 +425,7 @@ public class controllerCompraEmergente {
                     checkBoxIVA != null && checkBoxIVA.isSelected(),
                     proveedorId, proveedorNombre
             );
+            item.setNota(nota);
 
             itemsCompra.add(item);
         }
@@ -516,6 +520,9 @@ public class controllerCompraEmergente {
         cbPresentacion.setValue("pz");
         txtFactor.clear();
         txtCantidadUbicacion.clear();
+        if (txtNota != null) {
+            txtNota.clear();
+        }
         txtPrecioEntrada.clear();
         txtPrecioIVA.clear();
         txtPrecioBruto.clear();
@@ -712,6 +719,9 @@ public class controllerCompraEmergente {
         cbProductoNombre.setValue(itemParaEditar.getProducto());
         cbClaveAlterna.setValue(itemParaEditar.getClaveAlterna());
         txtDescripcion.setText(itemParaEditar.getDescripcion());
+        if (txtNota != null) {
+            txtNota.setText(itemParaEditar.getNota());
+        }
         txtLote.setText(itemParaEditar.getLote());
         configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
         txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));

@@ -130,6 +130,14 @@
                         </VBox>
                     </HBox>
 
+                    <!-- Subtitulo -->
+                    <HBox spacing="20">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Subtitulo:"/>
+                            <TextField fx:id="txtNota" style="-fx-min-height: 40;"/>
+                        </VBox>
+                    </HBox>
+
                     <!-- Precios -->
                     <HBox spacing="20">
                         <VBox spacing="5" HBox.hgrow="ALWAYS">

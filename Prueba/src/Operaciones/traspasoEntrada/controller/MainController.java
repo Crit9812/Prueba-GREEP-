@@ -176,10 +176,15 @@ public class MainController {
             claves.add(entrada.getClaveEntrada());
         }
 
-        boolean eliminarArticulos = opcion.equalsIgnoreCase("Rechazar");
-        String nuevoEstado = eliminarArticulos ? "Finalizado" : "Completado";
+        boolean rechazar = opcion.equalsIgnoreCase("Rechazar");
+        String nuevoEstadoEntrada = rechazar ? "rechazado" : "disponible";
+        String nuevoEstadoArticulos = rechazar ? "rechazado" : "disponible";
 
-        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(claves, nuevoEstado, eliminarArticulos);
+        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(
+                claves,
+                nuevoEstadoEntrada,
+                nuevoEstadoArticulos
+        );
         if (actualizado) {
             cargarTabla();
             miCheckBox.setSelected(false);

@@ -95,7 +95,7 @@ public class model {
         return lista;
     }
 
-    public boolean actualizarEstadoEntradas(List<String> clavesEntrada, String nuevoEstado, boolean eliminarArticulos) {
+    public boolean actualizarEstadoEntradas(List<String> clavesEntrada, String nuevoEstadoEntrada, String nuevoEstadoArticulos) {
         if (clavesEntrada == null || clavesEntrada.isEmpty()) {
             return false;
         }
@@ -112,23 +112,17 @@ public class model {
                 return false;
             }
 
-            if (eliminarArticulos) {
-                boolean eliminado = eliminarArticulosPorEntradas(conn, clavesEntrada, colId);
-                if (!eliminado) {
-                    conn.rollback();
-                    return false;
-                }
+            boolean actualizadoArticulos = actualizarEstadoArticulosPorEntradas(
+                    conn,
+                    clavesEntrada,
+                    nuevoEstadoArticulos
+            );
+            if (!actualizadoArticulos) {
+                conn.rollback();
+                return false;
             }
 
-            if (!eliminarArticulos) {
-                boolean actualizadoArticulos = actualizarEstadoArticulosPorEntradas(conn, clavesEntrada, "disponible");
-                if (!actualizadoArticulos) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-
-            boolean actualizado = actualizarEstado(conn, clavesEntrada, colId, colEstado, nuevoEstado);
+            boolean actualizado = actualizarEstado(conn, clavesEntrada, colId, colEstado, nuevoEstadoEntrada);
             if (!actualizado) {
                 conn.rollback();
                 return false;

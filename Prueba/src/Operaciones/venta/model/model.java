@@ -156,6 +156,7 @@ public class model {
                         "precioBrutoTotal", "precioBruto", "precio_bruto");
                 String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotalSalida", "precioTotal",
                         "precio_total");
+                String colNotaDetalle = resolverColumna(columnasDetalleSalida, "Nota", "nota", "comentario", "observaciones");
                 String colDetalleLote = resolverColumna(columnasDetalleSalida, "lote");
                 String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
                 String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
@@ -169,6 +170,9 @@ public class model {
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
                 if (colPrecioTotalDetalle != null) {
                     valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
+                }
+                if (colNotaDetalle != null) {
+                    valoresDetalle.put(colNotaDetalle, item.getNota());
                 }
                 if (colDetalleLote != null) valoresDetalle.put(colDetalleLote, item.getLote());
                 if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));
@@ -330,10 +334,18 @@ public class model {
                     }
 
                     if (detalleEntradaId != null && colEntradaId != null && colEntradaEstado != null
-                            && colDetalleEntradaClaveEntrada != null && colDetalleEntradaId != null) {
-                        if (entradaSinArticulos(conn, detalleEntradaId, colDetalleEntradaClaveEntrada, colDetalleEntradaId, colArticuloDetalleEntrada)) {
-                            actualizarEntradaFinalizada(conn, detalleEntradaId, colEntradaId, colEntradaEstado);
-                        }
+                            && colDetalleEntradaClaveEntrada != null && colDetalleEntradaId != null
+                            && colArticuloDetalleEntrada != null && colArticuloEstado != null) {
+                        actualizarEstadoEntradaPorDetalle(
+                                conn,
+                                detalleEntradaId,
+                                colEntradaId,
+                                colEntradaEstado,
+                                colDetalleEntradaId,
+                                colDetalleEntradaClaveEntrada,
+                                colArticuloDetalleEntrada,
+                                colArticuloEstado
+                        );
                     }
 
                 }
@@ -417,65 +429,71 @@ public class model {
         return null;
     }
 
-    private boolean entradaSinArticulos(Connection conn, int detalleEntradaId, String colDetalleEntradaClaveEntrada,
-                                        String colDetalleEntradaId, String colArticuloDetalleEntrada) throws SQLException {
-        if (colDetalleEntradaClaveEntrada == null || colDetalleEntradaId == null || colArticuloDetalleEntrada == null) {
-            return false;
-        }
-        String sqlEntrada = "SELECT " + colDetalleEntradaClaveEntrada + " AS claveEntrada FROM detalle_Entrada WHERE "
-                + colDetalleEntradaId + " = ? LIMIT 1";
-        Integer claveEntrada = null;
-        try (PreparedStatement psEntrada = conn.prepareStatement(sqlEntrada)) {
-            psEntrada.setInt(1, detalleEntradaId);
-            try (ResultSet rs = psEntrada.executeQuery()) {
-                if (rs.next()) {
-                    claveEntrada = rs.getInt("claveEntrada");
-                }
-            }
-        }
-        if (claveEntrada == null) {
-            return false;
+    private void actualizarEstadoEntradaPorDetalle(Connection conn,
+                                                   int detalleEntradaId,
+                                                   String colEntradaId,
+                                                   String colEntradaEstado,
+                                                   String colDetalleEntradaId,
+                                                   String colDetalleEntradaClaveEntrada,
+                                                   String colArticuloDetalleEntrada,
+                                                   String colArticuloEstado) throws SQLException {
+        if (colEntradaId == null || colEntradaEstado == null || colDetalleEntradaId == null
+                || colDetalleEntradaClaveEntrada == null || colArticuloDetalleEntrada == null
+                || colArticuloEstado == null) {
+            return;
         }
 
-        String sql = "SELECT COUNT(*) AS total FROM articulo a JOIN detalle_Entrada de ON de." + colDetalleEntradaId
-                + " = a." + colArticuloDetalleEntrada + " WHERE de." + colDetalleEntradaClaveEntrada + " = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, claveEntrada);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total") == 0;
-                }
-            }
-        }
-        return false;
-    }
-
-    private void actualizarEntradaFinalizada(Connection conn, int detalleEntradaId, String colEntradaId,
-                                             String colEntradaEstado) throws SQLException {
-        String sql = "UPDATE entradas SET " + colEntradaEstado + " = ? WHERE " + colEntradaId + " = ?";
-
-        Integer claveEntrada = obtenerClaveEntrada(conn, detalleEntradaId);
+        Integer claveEntrada = obtenerClaveEntrada(conn, detalleEntradaId, colDetalleEntradaId, colDetalleEntradaClaveEntrada);
         if (claveEntrada == null) {
             return;
         }
 
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            int index = 1;
-            ps.setString(index++, "finalizado");
-            ps.setInt(index, claveEntrada);
+        String sqlConteo = "SELECT LOWER(a." + colArticuloEstado + ") AS estado, COUNT(*) AS total " +
+                "FROM articulo a JOIN detalle_Entrada de ON de." + colDetalleEntradaId + " = a." +
+                colArticuloDetalleEntrada + " WHERE de." + colDetalleEntradaClaveEntrada + " = ? " +
+                "GROUP BY LOWER(a." + colArticuloEstado + ")";
+
+        int disponibles = 0;
+        int pendientes = 0;
+        int vendidos = 0;
+        try (PreparedStatement ps = conn.prepareStatement(sqlConteo)) {
+            ps.setInt(1, claveEntrada);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String estado = rs.getString("estado");
+                    int total = rs.getInt("total");
+                    if ("disponible".equalsIgnoreCase(estado)) {
+                        disponibles += total;
+                    } else if ("pendiente".equalsIgnoreCase(estado)) {
+                        pendientes += total;
+                    } else if ("vendido".equalsIgnoreCase(estado)) {
+                        vendidos += total;
+                    }
+                }
+            }
+        }
+
+        String nuevoEstado;
+        if (disponibles > 0) {
+            nuevoEstado = "disponible";
+        } else if (pendientes > 0) {
+            nuevoEstado = "pendiente";
+        } else if (vendidos > 0) {
+            nuevoEstado = "finalizado";
+        } else {
+            nuevoEstado = "finalizado";
+        }
+
+        String sqlUpdate = "UPDATE entradas SET " + colEntradaEstado + " = ? WHERE " + colEntradaId + " = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+            ps.setString(1, nuevoEstado);
+            ps.setInt(2, claveEntrada);
             ps.executeUpdate();
         }
     }
 
-    private Integer obtenerClaveEntrada(Connection conn, int detalleEntradaId) throws SQLException {
-        Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
-        String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
-                "id_detalle_entrada");
-        String colDetalleEntradaClaveEntrada = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada",
-                "entrada_id", "id_entrada");
-        if (colDetalleEntradaId == null || colDetalleEntradaClaveEntrada == null) {
-            return null;
-        }
+    private Integer obtenerClaveEntrada(Connection conn, int detalleEntradaId, String colDetalleEntradaId,
+                                        String colDetalleEntradaClaveEntrada) throws SQLException {
         String sql = "SELECT " + colDetalleEntradaClaveEntrada + " AS claveEntrada FROM detalle_Entrada WHERE "
                 + colDetalleEntradaId + " = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

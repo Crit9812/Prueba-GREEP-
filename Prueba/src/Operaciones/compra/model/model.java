@@ -97,7 +97,7 @@ public class model {
             if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
             if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
-            if (colEstado != null) valoresEntrada.put(colEstado, "Completado");
+            if (colEstado != null) valoresEntrada.put(colEstado, "disponible");
             Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
             if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
                 valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
@@ -137,6 +137,7 @@ public class model {
                 String colPrecioIva = resolverColumna(columnasDetalle, "precioIVA", "precioIva", "precio_iva");
                 String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto", "precio_bruto");
                 String colPrecioTotalDetalle = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
+                String colNotaDetalle = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
 
                 if (colEntrada != null) valoresDetalle.put(colEntrada, idEntrada);
                 if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
@@ -145,6 +146,7 @@ public class model {
                 if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
                 if (colPrecioTotalDetalle != null) valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
+                if (colNotaDetalle != null) valoresDetalle.put(colNotaDetalle, item.getNota());
 
                 long idDetalleEntrada = insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 

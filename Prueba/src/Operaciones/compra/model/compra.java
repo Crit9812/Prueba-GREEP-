@@ -18,6 +18,7 @@ public class compra {
     private final StringProperty presentacion = new SimpleStringProperty("");
     private final StringProperty factor = new SimpleStringProperty("");
     private final StringProperty ubicacionResumen = new SimpleStringProperty("");
+    private final StringProperty nota = new SimpleStringProperty("");
     private final StringProperty precioEntrada = new SimpleStringProperty("");
     private final StringProperty precioIva = new SimpleStringProperty("");
     private final StringProperty precioBruto = new SimpleStringProperty("");
@@ -47,6 +48,7 @@ public class compra {
             this.ubicaciones.addAll(ubicaciones);
         }
         this.ubicacionResumen.set(armarResumenUbicaciones());
+        this.nota.set("");
         this.precioEntrada.set(precioEntrada != null ? precioEntrada : "");
         this.precioIva.set(precioIva != null ? precioIva : "");
         this.precioBruto.set(precioBruto != null ? precioBruto : "");
@@ -179,6 +181,18 @@ public class compra {
 
     public StringProperty ubicacionResumenProperty() {
         return ubicacionResumen;
+    }
+
+    public String getNota() {
+        return nota.get();
+    }
+
+    public StringProperty notaProperty() {
+        return nota;
+    }
+
+    public void setNota(String nota) {
+        this.nota.set(nota != null ? nota : "");
     }
 
     public String getPrecioEntrada() {
