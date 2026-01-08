@@ -97,7 +97,7 @@ public class model {
             if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
             if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
-            if (colEstado != null) valoresEntrada.put(colEstado, "Completado");
+            if (colEstado != null) valoresEntrada.put(colEstado, "disponible");
             Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
             if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
                 valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
