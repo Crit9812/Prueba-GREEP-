@@ -296,7 +296,7 @@ public class model {
                             sqlUpdate.append(colArticuloEstado).append(" = ?");
                         }
                         sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
-                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate)) {
+                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
                             int index = 1;
                             if (colArticuloDetalleSalida != null) {
                                 psUpdate.setLong(index++, idDetalleSalida);
