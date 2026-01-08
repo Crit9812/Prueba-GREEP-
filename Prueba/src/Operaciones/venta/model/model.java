@@ -77,6 +77,9 @@ public class model {
             String colFecha = resolverColumna(columnasSalida, "fechaSalida", "fecha", "fecha_salida", "created_at");
             String colHora = resolverColumna(columnasSalida, "horaSalida", "hora", "hora_salida");
             String colTipo = resolverColumna(columnasSalida, "tipoSalida", "tipo", "tipo_salida");
+            String colPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto",
+                    "precio_neto", "precioNetoTotal");
+            String colPrecioTotal = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal", "precio_total");
             String colUsuarioSalida = resolverColumna(columnasSalida, "claveUsuarioSalida", "idUsuarioSalida",
                     "id_usuario_salida", "usuarioSalida", "usuario_salida");
             String colEstado = resolverColumna(columnasSalida, "Estado", "estado");
@@ -91,6 +94,19 @@ public class model {
             Integer idUsuarioSalida = SesionUsuario.getIdUsuario();
             if (colUsuarioSalida != null && idUsuarioSalida != null) {
                 valoresSalida.put(colUsuarioSalida, idUsuarioSalida);
+            }
+
+            BigDecimal totalNeto = BigDecimal.ZERO;
+            BigDecimal totalGeneral = BigDecimal.ZERO;
+            for (traspasoSalida item : items) {
+                totalNeto = totalNeto.add(parseDecimal(item.getPrecioBruto()));
+                totalGeneral = totalGeneral.add(parseDecimal(item.getPrecioTotal()));
+            }
+            if (colPrecioNeto != null) {
+                valoresSalida.put(colPrecioNeto, totalNeto);
+            }
+            if (colPrecioTotal != null) {
+                valoresSalida.put(colPrecioTotal, totalGeneral);
             }
 
             long idSalida = insertarRegistro(conn, "salidas", columnasSalida, valoresSalida);
@@ -265,13 +281,29 @@ public class model {
                         return false;
                     }
 
-                    if (colArticuloEstado != null) {
+                    if (colArticuloEstado != null || colArticuloDetalleSalida != null) {
                         String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
-                        String sqlUpdate = "UPDATE articulo SET " + colArticuloEstado + " = ? WHERE " + colArticuloId
-                                + " IN (" + placeholders + ")";
+                        StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ");
+                        boolean agregaComa = false;
+                        if (colArticuloDetalleSalida != null) {
+                            sqlUpdate.append(colArticuloDetalleSalida).append(" = ?");
+                            agregaComa = true;
+                        }
+                        if (colArticuloEstado != null) {
+                            if (agregaComa) {
+                                sqlUpdate.append(", ");
+                            }
+                            sqlUpdate.append(colArticuloEstado).append(" = ?");
+                        }
+                        sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
                         try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate)) {
                             int index = 1;
-                            psUpdate.setString(index++, "vendido");
+                            if (colArticuloDetalleSalida != null) {
+                                psUpdate.setLong(index++, idDetalleSalida);
+                            }
+                            if (colArticuloEstado != null) {
+                                psUpdate.setString(index++, "vendido");
+                            }
                             for (Integer idArticulo : articulosParaEliminar) {
                                 psUpdate.setInt(index++, idArticulo);
                             }
