@@ -77,6 +77,9 @@ public class model {
             String colFecha = resolverColumna(columnasSalida, "fechaSalida", "fecha", "fecha_salida", "created_at");
             String colHora = resolverColumna(columnasSalida, "horaSalida", "hora", "hora_salida");
             String colTipo = resolverColumna(columnasSalida, "tipoSalida", "tipo", "tipo_salida");
+            String colPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto",
+                    "precio_neto", "precioNetoTotal");
+            String colPrecioTotal = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal", "precio_total");
             String colUsuarioSalida = resolverColumna(columnasSalida, "claveUsuarioSalida", "idUsuarioSalida",
                     "id_usuario_salida", "usuarioSalida", "usuario_salida");
             String colEstado = resolverColumna(columnasSalida, "Estado", "estado");
@@ -91,6 +94,19 @@ public class model {
             Integer idUsuarioSalida = SesionUsuario.getIdUsuario();
             if (colUsuarioSalida != null && idUsuarioSalida != null) {
                 valoresSalida.put(colUsuarioSalida, idUsuarioSalida);
+            }
+
+            BigDecimal totalNeto = BigDecimal.ZERO;
+            BigDecimal totalGeneral = BigDecimal.ZERO;
+            for (traspasoSalida item : items) {
+                totalNeto = totalNeto.add(parseDecimal(item.getPrecioBruto()));
+                totalGeneral = totalGeneral.add(parseDecimal(item.getPrecioTotal()));
+            }
+            if (colPrecioNeto != null) {
+                valoresSalida.put(colPrecioNeto, totalNeto);
+            }
+            if (colPrecioTotal != null) {
+                valoresSalida.put(colPrecioTotal, totalGeneral);
             }
 
             long idSalida = insertarRegistro(conn, "salidas", columnasSalida, valoresSalida);
@@ -117,6 +133,7 @@ public class model {
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
             String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
             String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
             String colEntradaTipo = resolverColumna(columnasEntradas, "tipoEntrada", "tipo", "tipo_entrada");
@@ -137,6 +154,8 @@ public class model {
                         "precio_iva");
                 String colPrecioBruto = resolverColumna(columnasDetalleSalida, "precioBrutoTotalSalida",
                         "precioBrutoTotal", "precioBruto", "precio_bruto");
+                String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotalSalida", "precioTotal",
+                        "precio_total");
                 String colDetalleLote = resolverColumna(columnasDetalleSalida, "lote");
                 String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
                 String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
@@ -148,6 +167,9 @@ public class model {
                 if (colPrecioSalida != null) valoresDetalle.put(colPrecioSalida, parseDecimal(item.getPrecioEntrada()));
                 if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
+                if (colPrecioTotalDetalle != null) {
+                    valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
+                }
                 if (colDetalleLote != null) valoresDetalle.put(colDetalleLote, item.getLote());
                 if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));
                 if (colDetallePresentacion != null) valoresDetalle.put(colDetallePresentacion, item.getPresentacion());
@@ -212,6 +234,9 @@ public class model {
                     if (colArticuloFactor != null) {
                         sql.append(" AND a.").append(colArticuloFactor).append(" = ?");
                     }
+                    if (colArticuloEstado != null) {
+                        sql.append(" AND LOWER(a.").append(colArticuloEstado).append(") = ?");
+                    }
                     if (colDetalleEntradaProducto != null && colDetalleEntradaId != null && colArticuloDetalleEntrada != null) {
                         sql.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
                     }
@@ -235,6 +260,9 @@ public class model {
                         if (colArticuloFactor != null) {
                             ps.setInt(index++, item.getFactor());
                         }
+                        if (colArticuloEstado != null) {
+                            ps.setString(index++, "disponible");
+                        }
                         if (colDetalleEntradaProducto != null && colDetalleEntradaId != null
                                 && colArticuloDetalleEntrada != null) {
                             ps.setString(index++, item.getClaveProducto());
@@ -253,17 +281,51 @@ public class model {
                         return false;
                     }
 
-                    String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
-                    String sqlDelete = "DELETE FROM articulo WHERE " + colArticuloId + " IN (" + placeholders + ")";
-                    try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
-                        int index = 1;
-                        for (Integer idArticulo : articulosParaEliminar) {
-                            psDelete.setInt(index++, idArticulo);
+                    if (colArticuloEstado != null || colArticuloDetalleSalida != null) {
+                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
+                        StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ");
+                        boolean agregaComa = false;
+                        if (colArticuloDetalleSalida != null) {
+                            sqlUpdate.append(colArticuloDetalleSalida).append(" = ?");
+                            agregaComa = true;
                         }
-                        int eliminadas = psDelete.executeUpdate();
-                        if (eliminadas < cantidad) {
-                            conn.rollback();
-                            return false;
+                        if (colArticuloEstado != null) {
+                            if (agregaComa) {
+                                sqlUpdate.append(", ");
+                            }
+                            sqlUpdate.append(colArticuloEstado).append(" = ?");
+                        }
+                        sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
+                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
+                            int index = 1;
+                            if (colArticuloDetalleSalida != null) {
+                                psUpdate.setLong(index++, idDetalleSalida);
+                            }
+                            if (colArticuloEstado != null) {
+                                psUpdate.setString(index++, "vendido");
+                            }
+                            for (Integer idArticulo : articulosParaEliminar) {
+                                psUpdate.setInt(index++, idArticulo);
+                            }
+                            int actualizadas = psUpdate.executeUpdate();
+                            if (actualizadas < cantidad) {
+                                conn.rollback();
+                                return false;
+                            }
+                        }
+                    } else {
+                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
+                        String sqlDelete = "DELETE FROM articulo WHERE " + colArticuloId + " IN (" + placeholders + ")";
+                        try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
+                            int index = 1;
+                            for (Integer idArticulo : articulosParaEliminar) {
+                                psDelete.setInt(index++, idArticulo);
+                            }
+                            int eliminadas = psDelete.executeUpdate();
+                            if (eliminadas < cantidad) {
+                                conn.rollback();
+                                return false;
+                            }
                         }
                     }
 

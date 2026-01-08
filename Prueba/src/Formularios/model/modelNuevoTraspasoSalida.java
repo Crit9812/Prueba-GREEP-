@@ -46,21 +46,22 @@ public class modelNuevoTraspasoSalida {
               AND a.lote = ?
               AND a.caducidad = ?
               AND u.nombre = ?
-            ORDER BY de.idDetalleEntrada DESC
-            LIMIT 1
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
 
-            ps.setString(1, idProducto);
-            ps.setString(2, lote != null ? lote : "");
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote != null ? lote : "");
             if (caducidad != null) {
-                ps.setDate(3, java.sql.Date.valueOf(caducidad));
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
             } else {
-                ps.setDate(3, null);
+                ps.setDate(index++, null);
             }
-            ps.setString(4, ubicacionNombre != null ? ubicacionNombre : "");
+            ps.setString(index++, ubicacionNombre != null ? ubicacionNombre : "");
+            index = agregarParametroEstado(ps, conn, index);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -87,20 +88,21 @@ public class modelNuevoTraspasoSalida {
             WHERE de.claveProducto = ?
               AND a.lote = ?
               AND a.caducidad = ?
-            ORDER BY de.idDetalleEntrada DESC
-            LIMIT 1
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
 
-            ps.setString(1, idProducto);
-            ps.setString(2, lote != null ? lote : "");
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote != null ? lote : "");
             if (caducidad != null) {
-                ps.setDate(3, java.sql.Date.valueOf(caducidad));
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
             } else {
-                ps.setDate(3, null);
+                ps.setDate(index++, null);
             }
+            index = agregarParametroEstado(ps, conn, index);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -119,12 +121,14 @@ public class modelNuevoTraspasoSalida {
     }
 
     public boolean existeLote(String lote) {
-        String sql = "SELECT 1 FROM articulo WHERE lote = ? LIMIT 1";
+        String sql = "SELECT 1 FROM articulo WHERE lote = ?";
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
 
-            ps.setString(1, lote);
+            int index = 1;
+            ps.setString(index++, lote);
+            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -135,13 +139,15 @@ public class modelNuevoTraspasoSalida {
     }
 
     public boolean existeLoteConCaducidad(String lote, java.time.LocalDate caducidad) {
-        String sql = "SELECT 1 FROM articulo WHERE lote = ? AND caducidad = ? LIMIT 1";
+        String sql = "SELECT 1 FROM articulo WHERE lote = ? AND caducidad = ?";
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
 
-            ps.setString(1, lote);
-            ps.setDate(2, java.sql.Date.valueOf(caducidad));
+            int index = 1;
+            ps.setString(index++, lote);
+            ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -201,15 +207,16 @@ public class modelNuevoTraspasoSalida {
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE a.lote = ? AND de.claveProducto = ?
               AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-            ORDER BY a.caducidad DESC
-            LIMIT 1
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY a.caducidad DESC LIMIT 1")) {
 
-            ps.setString(1, lote);
-            ps.setString(2, idProducto);
+            int index = 1;
+            ps.setString(index++, lote);
+            ps.setString(index++, idProducto);
+            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     java.sql.Date caducidad = rs.getDate("caducidad");
@@ -251,15 +258,16 @@ public class modelNuevoTraspasoSalida {
             FROM articulo a
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ?
-            LIMIT 1
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
 
-            ps.setString(1, idProducto);
-            ps.setString(2, lote);
-            ps.setString(3, presentacion);
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote);
+            ps.setString(index++, presentacion);
+            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -276,16 +284,17 @@ public class modelNuevoTraspasoSalida {
             FROM articulo a
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ? AND a.factor = ?
-            LIMIT 1
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
 
-            ps.setString(1, idProducto);
-            ps.setString(2, lote);
-            ps.setString(3, presentacion);
-            ps.setInt(4, factor);
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -334,5 +343,40 @@ public class modelNuevoTraspasoSalida {
         public BigDecimal getPrecioTotal() {
             return precioTotal;
         }
+    }
+
+    private String agregarFiltroEstado(String sqlBase, Connection conn) throws Exception {
+        String colEstado = obtenerColumnaEstadoArticulo(conn);
+        StringBuilder sql = new StringBuilder(sqlBase);
+        if (colEstado != null) {
+            sql.append(" AND LOWER(a.").append(colEstado).append(") = ?");
+        }
+        return sql.toString();
+    }
+
+    private int agregarParametroEstado(PreparedStatement ps, Connection conn, int index) throws Exception {
+        String colEstado = obtenerColumnaEstadoArticulo(conn);
+        if (colEstado != null) {
+            ps.setString(index++, "disponible");
+        }
+        return index;
+    }
+
+    private String obtenerColumnaEstadoArticulo(Connection conn) throws Exception {
+        java.sql.DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, "articulo", null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre == null) {
+                    continue;
+                }
+                String limpio = nombre.trim();
+                String lower = limpio.toLowerCase();
+                if ("estado".equals(lower)) {
+                    return limpio;
+                }
+            }
+        }
+        return null;
     }
 }

@@ -120,6 +120,14 @@ public class model {
                 }
             }
 
+            if (!eliminarArticulos) {
+                boolean actualizadoArticulos = actualizarEstadoArticulosPorEntradas(conn, clavesEntrada, "disponible");
+                if (!actualizadoArticulos) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
             boolean actualizado = actualizarEstado(conn, clavesEntrada, colId, colEstado, nuevoEstado);
             if (!actualizado) {
                 conn.rollback();
@@ -179,6 +187,45 @@ public class model {
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
+            for (String clave : claves) {
+                ps.setString(index++, clave);
+            }
+            ps.executeUpdate();
+        }
+
+        return true;
+    }
+
+    private boolean actualizarEstadoArticulosPorEntradas(Connection conn, List<String> clavesEntrada, String nuevoEstado)
+            throws SQLException {
+        List<String> claves = filtrarClaves(clavesEntrada);
+        if (claves.isEmpty()) {
+            return false;
+        }
+
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+
+        String colDetalleId = resolverColumna(columnasDetalle, "id", "idDetalleEntrada", "id_detalle_entrada",
+                "detalle_entrada_id", "detalleEntrada");
+        String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colArticuloDetalle = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+        if (colDetalleId == null || colDetalleEntrada == null || colArticuloDetalle == null || colArticuloEstado == null) {
+            return false;
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(claves.size(), "?"));
+        String sql = "UPDATE articulo a " +
+                "JOIN detalle_Entrada d ON a.`" + colArticuloDetalle + "` = d.`" + colDetalleId + "` " +
+                "SET a.`" + colArticuloEstado + "` = ? " +
+                "WHERE d.`" + colDetalleEntrada + "` IN (" + placeholders + ")";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            ps.setString(index++, nuevoEstado);
             for (String clave : claves) {
                 ps.setString(index++, clave);
             }

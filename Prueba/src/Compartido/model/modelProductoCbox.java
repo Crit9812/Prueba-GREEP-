@@ -36,6 +36,53 @@ public class modelProductoCbox {
         }
     }
 
+    public List<Map<String, String>> obtenerProductosDisponibles() throws SQLException {
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloEstado == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
+                    || colDetalleEntradaProducto == null || colArticuloDetalleSalida == null) {
+                return obtenerTodosProductos();
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT DISTINCT p.id, p.nombre, p.descripcion, p.unidadMedida, ")
+                    .append("m.nombre AS marca, e.nombre AS etiqueta ")
+                    .append("FROM productos p ")
+                    .append("LEFT JOIN marcas m ON m.id = p.marca ")
+                    .append("LEFT JOIN etiquetas e ON e.id = p.etiqueta ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaProducto)
+                    .append("` = p.id ")
+                    .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
+                    .append("` = de.`").append(colDetalleEntradaId).append("` ")
+                    .append("WHERE LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida)
+                    .append("` IS NULL OR a.`").append(colArticuloDetalleSalida).append("` = 0) ")
+                    .append("ORDER BY p.nombre");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, "disponible");
+                try (ResultSet rs = ps.executeQuery()) {
+                    return procesarResultSetProductos(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo productos disponibles: " + e.getMessage());
+            throw e;
+        }
+    }
+
     /**
      * Obtiene todos los productos relacionados con un proveedor específico
      */
@@ -183,6 +230,97 @@ public class modelProductoCbox {
                 return procesarResultSetClaves(rs);
             }
         }
+    }
+
+    public List<Map<String, String>> obtenerClavesAlternasDisponibles() throws SQLException {
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloEstado == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
+                    || colDetalleEntradaProducto == null || colArticuloDetalleSalida == null) {
+                return obtenerTodasClavesAlternas();
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT DISTINCT ca.idAlterno, ca.idProducto, ca.idProveedor, ")
+                    .append("pv.nombre AS nombreProveedor, pr.nombre AS nombreProducto ")
+                    .append("FROM claves ca ")
+                    .append("LEFT JOIN proveedores pv ON pv.id = ca.idProveedor ")
+                    .append("LEFT JOIN productos pr ON pr.id = ca.idProducto ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaProducto)
+                    .append("` = pr.id ")
+                    .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
+                    .append("` = de.`").append(colDetalleEntradaId).append("` ")
+                    .append("WHERE LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida)
+                    .append("` IS NULL OR a.`").append(colArticuloDetalleSalida).append("` = 0) ")
+                    .append("ORDER BY pv.nombre");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, "disponible");
+                try (ResultSet rs = ps.executeQuery()) {
+                    return procesarResultSetClaves(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo claves alternas disponibles: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    private Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
+        Map<String, String> columnas = new HashMap<>();
+        DatabaseMetaData meta = conn.getMetaData();
+
+        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre == null) {
+                    continue;
+                }
+                String limpio = nombre.trim();
+                columnas.put(limpio.toLowerCase(), limpio);
+            }
+        }
+
+        if (columnas.isEmpty()) {
+            try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla.toLowerCase(), null)) {
+                while (rs.next()) {
+                    String nombre = rs.getString("COLUMN_NAME");
+                    if (nombre == null) {
+                        continue;
+                    }
+                    String limpio = nombre.trim();
+                    columnas.put(limpio.toLowerCase(), limpio);
+                }
+            }
+        }
+
+        return columnas;
+    }
+
+    private String resolverColumna(Map<String, String> columnas, String... candidatos) {
+        for (String candidato : candidatos) {
+            if (candidato == null) {
+                continue;
+            }
+            String match = columnas.get(candidato.toLowerCase());
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
     }
 
     /**

@@ -137,6 +137,7 @@ public class model {
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
             String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
             String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             for (traspasoSalida item : items) {
                 Map<String, Object> valoresDetalle = new LinkedHashMap<>();
@@ -202,7 +203,11 @@ public class model {
                                 .append(" = a.")
                                 .append(colArticuloDetalleEntrada);
                     }
-                    sql.append(" SET a.").append(colArticuloDetalleSalida).append(" = ? WHERE 1=1");
+                    sql.append(" SET a.").append(colArticuloDetalleSalida).append(" = ?");
+                    if (colArticuloEstado != null) {
+                        sql.append(", a.").append(colArticuloEstado).append(" = ?");
+                    }
+                    sql.append(" WHERE 1=1");
                     if (colArticuloDetalleSalida != null) {
                         sql.append(" AND (a.").append(colArticuloDetalleSalida).append(" IS NULL OR a.")
                                 .append(colArticuloDetalleSalida).append(" = 0)");
@@ -222,6 +227,9 @@ public class model {
                     if (colArticuloFactor != null) {
                         sql.append(" AND a.").append(colArticuloFactor).append(" = ?");
                     }
+                    if (colArticuloEstado != null) {
+                        sql.append(" AND LOWER(a.").append(colArticuloEstado).append(") = ?");
+                    }
                     if (colDetalleEntradaProducto != null && colDetalleEntradaId != null && colArticuloDetalleEntrada != null) {
                         sql.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
                     }
@@ -230,6 +238,9 @@ public class model {
                     try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                         int index = 1;
                         ps.setObject(index++, idDetalleSalida);
+                        if (colArticuloEstado != null) {
+                            ps.setString(index++, "pendiente");
+                        }
                         if (colArticuloLote != null) {
                             ps.setString(index++, item.getLote());
                         }
@@ -244,6 +255,9 @@ public class model {
                         }
                         if (colArticuloFactor != null) {
                             ps.setInt(index++, item.getFactor());
+                        }
+                        if (colArticuloEstado != null) {
+                            ps.setString(index++, "disponible");
                         }
                         if (colDetalleEntradaProducto != null && colDetalleEntradaId != null
                                 && colArticuloDetalleEntrada != null) {
