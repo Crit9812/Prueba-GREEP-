@@ -111,6 +111,7 @@ public class controllerNuevaVenta {
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
         configurarCascada();
+        configurarSeleccionClaveAlternaPorDefecto();
         configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
         configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
         ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
@@ -744,6 +745,37 @@ public class controllerNuevaVenta {
                 validarCamposDesdeFactor();
             }
         });
+    }
+
+    private void configurarSeleccionClaveAlternaPorDefecto() {
+        if (cbClaveAlterna == null) {
+            return;
+        }
+
+        cbClaveAlterna.getItems().addListener((javafx.collections.ListChangeListener<String>) change -> {
+            if (cbClaveAlterna.getItems().isEmpty()) {
+                return;
+            }
+            Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
+        });
+    }
+
+    private void seleccionarPrimerClaveAlternaDisponible() {
+        if (cbClaveAlterna == null || cbClaveAlterna.getItems().isEmpty()) {
+            return;
+        }
+
+        String primeraClave = cbClaveAlterna.getItems().stream()
+                .filter(item -> item != null && !item.isBlank())
+                .findFirst()
+                .orElse("");
+
+        if (primeraClave.isBlank()) {
+            cbClaveAlterna.setValue("");
+            return;
+        }
+
+        cbClaveAlterna.setValue(primeraClave);
     }
 
     private void actualizarEstadoCascada() {
