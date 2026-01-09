@@ -15,6 +15,7 @@ public class modelProductoCbox {
             SELECT 
                 p.id,
                 p.nombre,
+                p.categoria,
                 p.descripcion,
                 p.unidadMedida,
                 m.nombre AS marca,
@@ -57,7 +58,7 @@ public class modelProductoCbox {
             }
 
             StringBuilder sql = new StringBuilder();
-            sql.append("SELECT DISTINCT p.id, p.nombre, p.descripcion, p.unidadMedida, ")
+            sql.append("SELECT DISTINCT p.id, p.nombre, p.categoria, p.descripcion, p.unidadMedida, ")
                     .append("m.nombre AS marca, e.nombre AS etiqueta ")
                     .append("FROM productos p ")
                     .append("LEFT JOIN marcas m ON m.id = p.marca ")
@@ -91,6 +92,7 @@ public class modelProductoCbox {
             SELECT DISTINCT
                 p.id,
                 p.nombre,
+                p.categoria,
                 p.descripcion,
                 p.unidadMedida,
                 m.nombre AS marca,
@@ -139,6 +141,7 @@ public class modelProductoCbox {
         // Datos básicos
         producto.put("id", rs.getString("id"));
         producto.put("nombre", rs.getString("nombre"));
+        producto.put("categoria", rs.getString("categoria"));
 
         // Datos individuales
         String marca = rs.getString("marca");
@@ -521,6 +524,12 @@ public class modelProductoCbox {
     public String obtenerUnidadMedidaPorId(String id, List<Map<String, String>> productos) {
         return buscarPorId(id, productos)
                 .map(p -> p.get("unidadMedida"))
+                .orElse("");
+    }
+
+    public String obtenerCategoriaPorId(String id, List<Map<String, String>> productos) {
+        return buscarPorId(id, productos)
+                .map(p -> p.get("categoria"))
                 .orElse("");
     }
 }

@@ -202,6 +202,9 @@ public class controllerNuevaVenta {
                 ultimoFactorValidado = "";
                 factorValido = false;
             }
+            if (newVal != null && newVal.equalsIgnoreCase("pz")) {
+                txtFactor.setText("1");
+            }
             presentacionValida = false;
             factorValido = false;
             validarPresentacion();
