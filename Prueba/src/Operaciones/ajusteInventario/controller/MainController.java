@@ -309,6 +309,7 @@ public class MainController {
         if (totalAjuste != null) {
             totalAjuste.setEditable(false);
             totalAjuste.setText("0.00");
+            totalAjuste.setStyle("");
         }
         actualizarTotalAjuste();
     }
@@ -327,6 +328,11 @@ public class MainController {
         }
         BigDecimal total = totalEntradas.subtract(totalSalidas);
         totalAjuste.setText(total.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        if (total.compareTo(BigDecimal.ZERO) < 0) {
+            totalAjuste.setStyle("-fx-text-fill: #d32f2f;");
+        } else {
+            totalAjuste.setStyle("");
+        }
     }
 
     private BigDecimal parseDecimal(String valor) {
