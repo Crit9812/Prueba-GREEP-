@@ -1,7 +1,6 @@
 package Formularios.controller;
 
 import Compartido.controller.productoCboxController;
-import Compartido.helper.AutoCompleteComboBoxListener;
 import Compartido.model.DAO.GenericDAO;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
@@ -1547,22 +1546,13 @@ public class controllerNuevaVenta {
         }
         comboBox.setItems(ubicaciones);
         comboBox.setEditable(false);
-        if (comboBox.isEditable()) {
-            new AutoCompleteComboBoxListener<>(comboBox);
-        }
-
-        if (comboBox.isEditable()) {
-            comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
-                if (!newVal) {
-                    validarTextoUbicacion(comboBox);
-                }
-            });
-        }
+        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarTextoUbicacion(comboBox);
+            }
+        });
 
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (comboBox.isEditable() && newVal != null && !newVal.isBlank()) {
-                comboBox.getEditor().setText(newVal);
-            }
             if (oldVal != null && !oldVal.equals(newVal)) {
                 limpiarCapturasCombo(comboBox);
             }
@@ -1570,7 +1560,10 @@ public class controllerNuevaVenta {
     }
 
     private void validarTextoUbicacion(ComboBox<String> comboBox) {
-        String valor = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
+        String valor = comboBox.getValue();
+        if ((valor == null || valor.isBlank()) && comboBox.getEditor() != null) {
+            valor = comboBox.getEditor().getText();
+        }
         if (valor == null || valor.isBlank()) {
             return;
         }

@@ -156,7 +156,7 @@ public class controllerCompraEmergente {
 
                 // IMPORTANTE: Configurar el combo principal con las ubicaciones cargadas
                 if (comboUbicacion != null) {
-                    comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
+                    comboUbicacion.setItems(ubicaciones);
                 }
 
                 // Si ya existe el manager, actualizar todas las listas
@@ -584,7 +584,7 @@ public class controllerCompraEmergente {
 
         // Limpiar manualmente el combo principal y cantidad como respaldo
         if (comboUbicacion != null) {
-            comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
+            comboUbicacion.setItems(ubicaciones);
             comboUbicacion.setValue(null);
             if (comboUbicacion.getEditor() != null) {
                 comboUbicacion.getEditor().clear();

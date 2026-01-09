@@ -9,7 +9,6 @@ import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import Compartido.helper.AutoCompleteComboBoxListener;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -1638,22 +1637,13 @@ public class controllerNuevoTraspasoSalida {
         }
         comboBox.setItems(ubicaciones);
         comboBox.setEditable(false);
-        if (comboBox.isEditable()) {
-            new AutoCompleteComboBoxListener<>(comboBox);
-        }
-
-        if (comboBox.isEditable()) {
-            comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
-                if (!newVal) {
-                    validarTextoUbicacion(comboBox);
-                }
-            });
-        }
+        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                validarTextoUbicacion(comboBox);
+            }
+        });
 
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (comboBox.isEditable() && newVal != null && !newVal.isBlank()) {
-                comboBox.getEditor().setText(newVal);
-            }
             if (oldVal != null && !oldVal.equals(newVal)) {
                 limpiarCapturasCombo(comboBox);
             }
@@ -1661,7 +1651,10 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void validarTextoUbicacion(ComboBox<String> comboBox) {
-        String valor = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
+        String valor = comboBox.getValue();
+        if ((valor == null || valor.isBlank()) && comboBox.getEditor() != null) {
+            valor = comboBox.getEditor().getText();
+        }
         if (valor == null || valor.isBlank()) {
             return;
         }
