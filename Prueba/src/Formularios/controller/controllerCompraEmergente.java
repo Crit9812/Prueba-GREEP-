@@ -558,6 +558,7 @@ public class controllerCompraEmergente {
 
     private void limpiarFormularioParaNuevo() {
         productoController.limpiarSeleccion();
+        seleccionarClaveAlternaPendiente = false;
         txtDescripcion.clear();
         txtLote.clear();
         dpCaducidad.setValue(null);
@@ -583,6 +584,7 @@ public class controllerCompraEmergente {
 
         // Limpiar manualmente el combo principal y cantidad como respaldo
         if (comboUbicacion != null) {
+            comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
             comboUbicacion.setValue(null);
             if (comboUbicacion.getEditor() != null) {
                 comboUbicacion.getEditor().clear();

@@ -624,6 +624,7 @@ public class controllerNuevoTraspasoSalida {
         limpiarPrecios();
         limpiarValidacionesInventario();
         limpiarUbicacionPrimaria();
+        seleccionarClaveAlternaPendiente = false;
         ubicacionesCapturadas.clear();
         debounceCantidadUbicacion.clear();
         ultimaCantidadUbicacionValidada.clear();

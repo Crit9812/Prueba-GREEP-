@@ -571,6 +571,7 @@ public class controllerNuevaVenta {
 
     private void limpiarFormularioParaNuevo() {
         limpiarValidacionesInventario();
+        seleccionarClaveAlternaPendiente = false;
         cbClaveProducto.setValue(null);
         cbProductoNombre.setValue(null);
         cbClaveAlterna.setValue(null);
@@ -588,6 +589,8 @@ public class controllerNuevaVenta {
         if (checkBoxIVA != null) {
             checkBoxIVA.setSelected(false);
         }
+        ubicacionesCapturadas.clear();
+        debounceCantidadUbicacion.clear();
         limpiarFilasAdicionales();
         Platform.runLater(() -> cbClaveProducto.requestFocus());
     }
@@ -605,6 +608,8 @@ public class controllerNuevaVenta {
         if (contenedorUbicaciones == null) {
             return;
         }
+        ubicacionesCapturadas.clear();
+        debounceCantidadUbicacion.clear();
         while (contenedorUbicaciones.getChildren().size() > 1) {
             contenedorUbicaciones.getChildren().remove(contenedorUbicaciones.getChildren().size() - 1);
         }
