@@ -613,7 +613,9 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void limpiarFormularioParaNuevo() {
-        productoController.limpiarSeleccion();
+        if (productoController != null) {
+            productoController.limpiarSeleccion();
+        }
         txtDescripcion.clear();
         txtLote.clear();
         dpCaducidad.setValue(null);
@@ -1640,14 +1642,16 @@ public class controllerNuevoTraspasoSalida {
             new AutoCompleteComboBoxListener<>(comboBox);
         }
 
-        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                validarTextoUbicacion(comboBox);
-            }
-        });
+        if (comboBox.isEditable()) {
+            comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                if (!newVal) {
+                    validarTextoUbicacion(comboBox);
+                }
+            });
+        }
 
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && !newVal.isBlank()) {
+            if (comboBox.isEditable() && newVal != null && !newVal.isBlank()) {
                 comboBox.getEditor().setText(newVal);
             }
             if (oldVal != null && !oldVal.equals(newVal)) {

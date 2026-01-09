@@ -572,17 +572,8 @@ public class controllerNuevaVenta {
     private void limpiarFormularioParaNuevo() {
         limpiarValidacionesInventario();
         seleccionarClaveAlternaPendiente = false;
-        cbClaveProducto.setValue(null);
-        cbProductoNombre.setValue(null);
-        cbClaveAlterna.setValue(null);
-        if (cbClaveProducto.getEditor() != null) {
-            cbClaveProducto.getEditor().clear();
-        }
-        if (cbProductoNombre.getEditor() != null) {
-            cbProductoNombre.getEditor().clear();
-        }
-        if (cbClaveAlterna.getEditor() != null) {
-            cbClaveAlterna.getEditor().clear();
+        if (productoController != null) {
+            productoController.limpiarSeleccion();
         }
         limpiarFormularioDependiente();
         txtPrecioSalida.clear();
@@ -1560,14 +1551,16 @@ public class controllerNuevaVenta {
             new AutoCompleteComboBoxListener<>(comboBox);
         }
 
-        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                validarTextoUbicacion(comboBox);
-            }
-        });
+        if (comboBox.isEditable()) {
+            comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                if (!newVal) {
+                    validarTextoUbicacion(comboBox);
+                }
+            });
+        }
 
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && !newVal.isBlank()) {
+            if (comboBox.isEditable() && newVal != null && !newVal.isBlank()) {
                 comboBox.getEditor().setText(newVal);
             }
             if (oldVal != null && !oldVal.equals(newVal)) {
