@@ -56,6 +56,7 @@ public class controllerCompraEmergente {
     @FXML private TextField txtPrecioTotal;
     @FXML private Button btnGuardar;
     @FXML private Button btnLimpiar;
+    @FXML private Label lblTitulo;
 
     private UbicacionManager ubicacionManager;
     private static final int MAX_FILAS = 10;
@@ -77,9 +78,13 @@ public class controllerCompraEmergente {
     private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ISO_LOCAL_DATE;
     private String ultimoIdProductoDescripcion = "";
     private boolean seleccionarClaveAlternaPendiente = false;
+    private String tituloFormulario = "Compra";
 
     @FXML
     public void initialize() {
+        if (lblTitulo != null) {
+            lblTitulo.setText(tituloFormulario);
+        }
         productoController = new productoCboxController();
         if (proveedorId != null && !proveedorId.isBlank()) {
             productoController.inicializarConProveedor(cbClaveProducto, cbProductoNombre, cbClaveAlterna, proveedorId);
@@ -119,6 +124,16 @@ public class controllerCompraEmergente {
 
     public void setMainController(MainController mainController) {
         this.mainController = mainController;
+    }
+
+    public void setTituloFormulario(String tituloFormulario) {
+        if (tituloFormulario == null || tituloFormulario.isBlank()) {
+            return;
+        }
+        this.tituloFormulario = tituloFormulario;
+        if (lblTitulo != null) {
+            lblTitulo.setText(tituloFormulario);
+        }
     }
 
     public void setProveedorSeleccionado(String proveedorId, String proveedorNombre) {

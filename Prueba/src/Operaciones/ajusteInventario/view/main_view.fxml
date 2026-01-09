@@ -44,7 +44,7 @@
 
                             <Region fx:id="expansor"/>
 
-                           <Button fx:id="btnAgregar" styleClass="botones" onMouseClicked="#formularioNuevoCliente">
+                           <Button fx:id="btnAgregar" styleClass="botones" onMouseClicked="#abrirFormularioAgregar">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image><Image url="@/img/agregar.png"/></image>
@@ -55,8 +55,12 @@
                                 </HBox.margin>
                             </Button>
                             <Label fx:id="lblAgregar" text="Agregar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
 
-                            <Button fx:id="btnQuitar" styleClass="botones" onMouseClicked="#formularioNuevoCliente">
+                            <Button fx:id="btnQuitar" styleClass="botones" onMouseClicked="#abrirFormularioQuitar">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image><Image url="@/img/quitar.png"/></image>
@@ -82,18 +86,33 @@
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
                             <columns>
                                 <TableColumn fx:id="colSelect" prefWidth="70" />
+                                <TableColumn fx:id="colTipo" text="Tipo" prefWidth="140" />
                                 <TableColumn fx:id="colClaveProduct" text="Clave del producto" prefWidth="70" />
                                 <TableColumn fx:id="colProducto" text="Producto" prefWidth="250" />
                                 <TableColumn fx:id="colDescripcionProducto" text="Descripcion" prefWidth="250" />
+                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="250" />
                                 <TableColumn fx:id="colLote" text="Lote" prefWidth="250" />
                                 <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="360" />
                                 <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="360" />
+                                <TableColumn fx:id="colNota" text="Nota" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioUnitario" text="Precio unitario" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioIva" text="Precio con IVA" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioBruto" text="Precio bruto" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioTotaal" text="Precio total" prefWidth="360" />
                             </columns>
                         </TableView>
+                        <HBox alignment="CENTER_RIGHT">
+                            <Label fx:id="lblTotal" text="Total:" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <TextField fx:id="totalAjuste"
+                                       editable="false"
+                                       styleClass="factura"
+                                       promptText="Total">
+                            </TextField>
+                        </HBox>
                     </VBox>
                     <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
                         <Button fx:id="botonConfirmar" styleClass="botonConfirmar"> Confirmar </Button>
