@@ -55,6 +55,18 @@
                                 </HBox.margin>
                             </Button>
                             <Label fx:id="lblAgregar" text="Agregar" styleClass="labels">
+
+                            <Button fx:id="btnQuitar" styleClass="botones" onMouseClicked="#formularioNuevoCliente">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image><Image url="@/img/quitar.png"/></image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblQuitar" text="Quitar" styleClass="labels">
                                 <HBox.margin>
                                     <Insets  top="0" right="40" bottom="0" left="10"/>
                                 </HBox.margin>
