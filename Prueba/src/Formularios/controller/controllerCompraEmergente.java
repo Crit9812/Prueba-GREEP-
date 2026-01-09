@@ -75,6 +75,8 @@ public class controllerCompraEmergente {
     private boolean inicializado = false;
     private compra itemParaEditar;
     private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ISO_LOCAL_DATE;
+    private String ultimoIdProductoDescripcion = "";
+    private boolean seleccionarClaveAlternaPendiente = false;
 
     @FXML
     public void initialize() {
@@ -93,6 +95,7 @@ public class controllerCompraEmergente {
         cargarUbicacionesDesdeBD();
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
+        configurarSeleccionClaveAlternaPorDefecto();
 
         ubicacionManager = new UbicacionManager(
                 contenedorUbicaciones,
@@ -177,12 +180,14 @@ public class controllerCompraEmergente {
         cbClaveProducto.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
@@ -196,6 +201,41 @@ public class controllerCompraEmergente {
         if (btnLimpiar != null) {
             btnLimpiar.setOnAction(e -> limpiarFormularioParaNuevo());
         }
+    }
+
+    private void configurarSeleccionClaveAlternaPorDefecto() {
+        if (cbClaveAlterna == null) {
+            return;
+        }
+
+        cbClaveAlterna.getItems().addListener((javafx.collections.ListChangeListener<String>) change -> {
+            if (cbClaveAlterna.getItems().isEmpty()) {
+                return;
+            }
+            if (!seleccionarClaveAlternaPendiente) {
+                return;
+            }
+            seleccionarClaveAlternaPendiente = false;
+            Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
+        });
+    }
+
+    private void seleccionarPrimerClaveAlternaDisponible() {
+        if (cbClaveAlterna == null || cbClaveAlterna.getItems().isEmpty()) {
+            return;
+        }
+
+        String primeraClave = cbClaveAlterna.getItems().stream()
+                .filter(item -> item != null && !item.isBlank())
+                .findFirst()
+                .orElse("");
+
+        if (primeraClave.isBlank()) {
+            cbClaveAlterna.setValue("");
+            return;
+        }
+
+        cbClaveAlterna.setValue(primeraClave);
     }
 
     private void configurarLimpiezaPorCampoVacio() {
@@ -305,8 +345,13 @@ public class controllerCompraEmergente {
     }
 
     private void actualizarDescripcionDesdeProducto() {
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto != null && idProducto.equals(ultimoIdProductoDescripcion)) {
+            return;
+        }
         String descripcion = productoController.getDescripcionSeleccionada();
         txtDescripcion.setText(descripcion);
+        ultimoIdProductoDescripcion = idProducto != null ? idProducto : "";
     }
 
     // Metodo para actualizar la clave alterna desde el formulario de claves
@@ -513,6 +558,7 @@ public class controllerCompraEmergente {
 
     private void limpiarFormularioParaNuevo() {
         productoController.limpiarSeleccion();
+        seleccionarClaveAlternaPendiente = false;
         txtDescripcion.clear();
         txtLote.clear();
         dpCaducidad.setValue(null);
@@ -538,6 +584,7 @@ public class controllerCompraEmergente {
 
         // Limpiar manualmente el combo principal y cantidad como respaldo
         if (comboUbicacion != null) {
+            comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
             comboUbicacion.setValue(null);
             if (comboUbicacion.getEditor() != null) {
                 comboUbicacion.getEditor().clear();

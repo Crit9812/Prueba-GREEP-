@@ -95,6 +95,7 @@ public class controllerNuevaVenta {
     private final Map<TextField, String> ultimaCantidadUbicacionValidada = new HashMap<>();
     private final Map<ComboBox<String>, List<UbicacionCompra>> ubicacionesCapturadas = new HashMap<>();
     private boolean inicializado = false;
+    private boolean seleccionarClaveAlternaPendiente = false;
 
     @FXML
     public void initialize() {
@@ -111,6 +112,7 @@ public class controllerNuevaVenta {
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
         configurarCascada();
+        configurarSeleccionClaveAlternaPorDefecto();
         configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
         configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
         ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
@@ -159,6 +161,7 @@ public class controllerNuevaVenta {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
                 actualizarEstadoCascada();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
@@ -167,6 +170,7 @@ public class controllerNuevaVenta {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
                 actualizarEstadoCascada();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
@@ -567,23 +571,17 @@ public class controllerNuevaVenta {
 
     private void limpiarFormularioParaNuevo() {
         limpiarValidacionesInventario();
-        cbClaveProducto.setValue(null);
-        cbProductoNombre.setValue(null);
-        cbClaveAlterna.setValue(null);
-        if (cbClaveProducto.getEditor() != null) {
-            cbClaveProducto.getEditor().clear();
-        }
-        if (cbProductoNombre.getEditor() != null) {
-            cbProductoNombre.getEditor().clear();
-        }
-        if (cbClaveAlterna.getEditor() != null) {
-            cbClaveAlterna.getEditor().clear();
+        seleccionarClaveAlternaPendiente = false;
+        if (productoController != null) {
+            productoController.limpiarSeleccion();
         }
         limpiarFormularioDependiente();
         txtPrecioSalida.clear();
         if (checkBoxIVA != null) {
             checkBoxIVA.setSelected(false);
         }
+        ubicacionesCapturadas.clear();
+        debounceCantidadUbicacion.clear();
         limpiarFilasAdicionales();
         Platform.runLater(() -> cbClaveProducto.requestFocus());
     }
@@ -601,6 +599,8 @@ public class controllerNuevaVenta {
         if (contenedorUbicaciones == null) {
             return;
         }
+        ubicacionesCapturadas.clear();
+        debounceCantidadUbicacion.clear();
         while (contenedorUbicaciones.getChildren().size() > 1) {
             contenedorUbicaciones.getChildren().remove(contenedorUbicaciones.getChildren().size() - 1);
         }
@@ -744,6 +744,41 @@ public class controllerNuevaVenta {
                 validarCamposDesdeFactor();
             }
         });
+    }
+
+    private void configurarSeleccionClaveAlternaPorDefecto() {
+        if (cbClaveAlterna == null) {
+            return;
+        }
+
+        cbClaveAlterna.getItems().addListener((javafx.collections.ListChangeListener<String>) change -> {
+            if (cbClaveAlterna.getItems().isEmpty()) {
+                return;
+            }
+            if (!seleccionarClaveAlternaPendiente) {
+                return;
+            }
+            seleccionarClaveAlternaPendiente = false;
+            Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
+        });
+    }
+
+    private void seleccionarPrimerClaveAlternaDisponible() {
+        if (cbClaveAlterna == null || cbClaveAlterna.getItems().isEmpty()) {
+            return;
+        }
+
+        String primeraClave = cbClaveAlterna.getItems().stream()
+                .filter(item -> item != null && !item.isBlank())
+                .findFirst()
+                .orElse("");
+
+        if (primeraClave.isBlank()) {
+            cbClaveAlterna.setValue("");
+            return;
+        }
+
+        cbClaveAlterna.setValue(primeraClave);
     }
 
     private void actualizarEstadoCascada() {
@@ -1121,26 +1156,65 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe completar las características del producto antes de la cantidad.");
             return;
         }
-        cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponibleDetalle(
-                idProducto, lote, caducidad, presentacion, factor, ubicacion);
-        if (cantidadDisponibleUbicacion <= 0) {
-            campoCantidad.clear();
-            mostrarAlerta("Advertencia",
-                    "No hay existencia en esa ubicación con las características indicadas.");
-            return;
-        }
-        int cantidad = parseEntero(texto);
-        if (cantidad <= 0) {
-            campoCantidad.clear();
-            mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
-            return;
-        }
-        if (cantidad > cantidadDisponibleUbicacion) {
-            campoCantidad.clear();
-            mostrarAlerta("Advertencia", "La cantidad supera la disponible en esa ubicación.");
-            return;
-        }
-        registrarCantidadUbicacion(combo, cantidad);
+        String idProductoSnapshot = idProducto;
+        String loteSnapshot = lote;
+        String presentacionSnapshot = presentacion;
+        int factorSnapshot = factor;
+        java.time.LocalDate caducidadSnapshot = caducidad;
+        String ubicacionSnapshot = ubicacion;
+        String cantidadTextoSnapshot = texto;
+
+        javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Integer call() {
+                return modelo.obtenerCantidadDisponibleDetalle(
+                        idProductoSnapshot, loteSnapshot, caducidadSnapshot, presentacionSnapshot, factorSnapshot,
+                        ubicacionSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String idProductoActual = productoController.getIdSeleccionado();
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String presentacionActual = cbPresentacion.getValue();
+                int factorActual = parseEntero(txtFactor.getText());
+                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
+                String ubicacionActual = combo.getValue() != null ? combo.getValue().trim() : "";
+                String cantidadActual = campoCantidad.getText() != null ? campoCantidad.getText().trim() : "";
+                if (!idProductoSnapshot.equals(idProductoActual)
+                        || !loteSnapshot.equals(loteActual)
+                        || !presentacionSnapshot.equals(presentacionActual)
+                        || factorSnapshot != factorActual
+                        || (caducidadSnapshot != null && !caducidadSnapshot.equals(caducidadActual))
+                        || !ubicacionSnapshot.equals(ubicacionActual)
+                        || !cantidadTextoSnapshot.equals(cantidadActual)) {
+                    return;
+                }
+                cantidadDisponibleUbicacion = getValue();
+                if (cantidadDisponibleUbicacion <= 0) {
+                    campoCantidad.clear();
+                    mostrarAlerta("Advertencia",
+                            "No hay existencia en esa ubicación con las características indicadas.");
+                    return;
+                }
+                int cantidad = parseEntero(cantidadActual);
+                if (cantidad <= 0) {
+                    campoCantidad.clear();
+                    mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
+                    return;
+                }
+                if (cantidad > cantidadDisponibleUbicacion) {
+                    campoCantidad.clear();
+                    mostrarAlerta("Advertencia", "La cantidad supera la disponible en esa ubicación.");
+                    return;
+                }
+                registrarCantidadUbicacion(combo, cantidad);
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void programarValidacionLote(String nuevoValor) {
@@ -1329,17 +1403,42 @@ public class controllerNuevaVenta {
             presentacionValida = false;
             return;
         }
-        boolean existe = modelo.existePresentacionParaProductoLote(idProducto, lote, presentacion);
-        if (!existe) {
-            presentacionValida = false;
-            cbPresentacion.setValue(null);
-            mostrarAlertaSinEspera("Advertencia",
-                    "La presentación no existe para el lote y producto seleccionados.");
-        } else {
-            presentacionValida = true;
-            ultimaPresentacionValidada = presentacion;
-        }
-        factorValido = false;
+        String presentacionSnapshot = presentacion;
+        String loteSnapshot = lote;
+        String idProductoSnapshot = idProducto;
+        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Boolean call() {
+                return modelo.existePresentacionParaProductoLote(idProductoSnapshot, loteSnapshot, presentacionSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String presentacionActual = cbPresentacion.getValue();
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String idProductoActual = productoController.getIdSeleccionado();
+                if (!presentacionSnapshot.equals(presentacionActual)
+                        || !loteSnapshot.equals(loteActual)
+                        || !idProductoSnapshot.equals(idProductoActual)) {
+                    return;
+                }
+                boolean existe = getValue();
+                if (!existe) {
+                    presentacionValida = false;
+                    cbPresentacion.setValue(null);
+                    mostrarAlertaSinEspera("Advertencia",
+                            "La presentación no existe para el lote y producto seleccionados.");
+                } else {
+                    presentacionValida = true;
+                    ultimaPresentacionValidada = presentacionSnapshot;
+                }
+                factorValido = false;
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void validarFactorCompleto(String factorTexto) {
@@ -1355,11 +1454,6 @@ public class controllerNuevaVenta {
         validarPresentacion();
         if (!presentacionValida) {
             factorValido = false;
-            if (!factorTexto.isBlank()) {
-                txtFactor.clear();
-                mostrarAlertaSinEspera("Advertencia",
-                        "La presentación no es válida para el lote y la cantidad capturados.");
-            }
             return;
         }
         if (!presentacion.equals(ultimaPresentacionValidada)) {
@@ -1385,15 +1479,45 @@ public class controllerNuevaVenta {
             factorValido = false;
             return;
         }
-        boolean existe = modelo.existeFactorParaProductoLotePresentacion(idProducto, lote, presentacion, factor);
-        if (!existe) {
-            factorValido = false;
-            txtFactor.clear();
-            mostrarAlertaSinEspera("Advertencia",
-                    "El factor no corresponde con la presentación y lote seleccionados.");
-        } else {
-            factorValido = true;
-        }
+        String presentacionSnapshot = presentacion;
+        String loteSnapshot = lote;
+        String idProductoSnapshot = idProducto;
+        int factorSnapshot = factor;
+        String factorTextoSnapshot = factorTexto;
+        javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Boolean call() {
+                return modelo.existeFactorParaProductoLotePresentacion(
+                        idProductoSnapshot, loteSnapshot, presentacionSnapshot, factorSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String presentacionActual = cbPresentacion.getValue();
+                String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
+                String idProductoActual = productoController.getIdSeleccionado();
+                String factorActual = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+                if (!presentacionSnapshot.equals(presentacionActual)
+                        || !loteSnapshot.equals(loteActual)
+                        || !idProductoSnapshot.equals(idProductoActual)
+                        || !factorTextoSnapshot.equals(factorActual)) {
+                    return;
+                }
+                boolean existe = getValue();
+                if (!existe) {
+                    factorValido = false;
+                    txtFactor.clear();
+                    mostrarAlertaSinEspera("Advertencia",
+                            "El factor no corresponde con la presentación y lote seleccionados.");
+                } else {
+                    factorValido = true;
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private boolean datosCompletosParaPrecioEntrada() {
@@ -1427,14 +1551,16 @@ public class controllerNuevaVenta {
             new AutoCompleteComboBoxListener<>(comboBox);
         }
 
-        comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                validarTextoUbicacion(comboBox);
-            }
-        });
+        if (comboBox.isEditable()) {
+            comboBox.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                if (!newVal) {
+                    validarTextoUbicacion(comboBox);
+                }
+            });
+        }
 
         comboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && !newVal.isBlank()) {
+            if (comboBox.isEditable() && newVal != null && !newVal.isBlank()) {
                 comboBox.getEditor().setText(newVal);
             }
             if (oldVal != null && !oldVal.equals(newVal)) {
