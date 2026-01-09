@@ -55,6 +55,10 @@
                                 </HBox.margin>
                             </Button>
                             <Label fx:id="lblAgregar" text="Agregar" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
 
                             <Button fx:id="btnQuitar" styleClass="botones" onMouseClicked="#formularioNuevoCliente">
                                 <graphic>
