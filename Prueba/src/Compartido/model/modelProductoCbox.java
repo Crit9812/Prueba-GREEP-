@@ -334,6 +334,7 @@ public class modelProductoCbox {
             SELECT 
                 p.id,
                 p.nombre,
+                COALESCE(p.categoria, '') AS categoria,
                 p.descripcion,
                 p.unidadMedida,
                 m.nombre AS marca,
@@ -372,6 +373,7 @@ public class modelProductoCbox {
             SELECT 
                 p.id,
                 p.nombre,
+                COALESCE(p.categoria, '') AS categoria,
                 p.descripcion,
                 p.unidadMedida,
                 m.nombre AS marca,
