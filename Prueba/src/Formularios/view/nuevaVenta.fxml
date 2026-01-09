@@ -12,7 +12,7 @@
 
     <!-- Título -->
     <top>
-        <Label text="Venta"
+        <Label fx:id="lblTitulo" text="Venta"
                style="-fx-font-size: 22px; -fx-font-weight: bold;"
                BorderPane.alignment="CENTER"/>
     </top>

@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.KeyCode;
@@ -61,6 +62,7 @@ public class controllerNuevaVenta {
     @FXML private TextField txtPrecioTotal;
     @FXML private Button btnGuardar;
     @FXML private Button btnLimpiar;
+    @FXML private Label lblTitulo;
 
     private int contadorFilas = 1;
     private static final int MAX_FILAS = 10;
@@ -96,9 +98,13 @@ public class controllerNuevaVenta {
     private final Map<ComboBox<String>, List<UbicacionCompra>> ubicacionesCapturadas = new HashMap<>();
     private boolean inicializado = false;
     private boolean seleccionarClaveAlternaPendiente = false;
+    private String tituloFormulario = "Venta";
 
     @FXML
     public void initialize() {
+        if (lblTitulo != null) {
+            lblTitulo.setText(tituloFormulario);
+        }
         productoController = new productoCboxController();
         productoController.inicializarDisponibles(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
 
@@ -1878,6 +1884,16 @@ public class controllerNuevaVenta {
 
     public void setMainController(Operaciones.venta.controller.MainController mainController) {
         this.mainController = mainController;
+    }
+
+    public void setTituloFormulario(String tituloFormulario) {
+        if (tituloFormulario == null || tituloFormulario.isBlank()) {
+            return;
+        }
+        this.tituloFormulario = tituloFormulario;
+        if (lblTitulo != null) {
+            lblTitulo.setText(tituloFormulario);
+        }
     }
 
     public void setItemParaEditar(traspasoSalida item) {

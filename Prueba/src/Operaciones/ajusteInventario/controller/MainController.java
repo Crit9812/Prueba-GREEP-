@@ -350,6 +350,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
             Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
             controlador.setItemsCompra(itemsEntrada);
+            controlador.setTituloFormulario("Agregar");
             loader.setController(controlador);
 
             Pane formulario = loader.load();
@@ -371,6 +372,7 @@ public class MainController {
     public void abrirFormularioQuitar() {
         Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
         controlador.setItemsVenta(itemsSalida);
+        controlador.setTituloFormulario("Quitar");
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml", controlador, "Quitar");
     }
 
