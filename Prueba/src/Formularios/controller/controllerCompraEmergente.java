@@ -899,7 +899,7 @@ public class controllerCompraEmergente {
             return false;
         }
         String categoriaNormalizada = categoria.trim().toLowerCase();
-        return "reactivo".equals(categoriaNormalizada) || "reactivos".equals(categoriaNormalizada);
+        return categoriaNormalizada.startsWith("reactiv");
     }
 
     private void configurarCaducidadDesdeTexto(String caducidad) {

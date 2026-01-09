@@ -15,7 +15,7 @@ public class modelProductoCbox {
             SELECT 
                 p.id,
                 p.nombre,
-                p.categoria,
+                COALESCE(p.categoria, '') AS categoria,
                 p.descripcion,
                 p.unidadMedida,
                 m.nombre AS marca,
@@ -58,7 +58,7 @@ public class modelProductoCbox {
             }
 
             StringBuilder sql = new StringBuilder();
-            sql.append("SELECT DISTINCT p.id, p.nombre, p.categoria, p.descripcion, p.unidadMedida, ")
+            sql.append("SELECT DISTINCT p.id, p.nombre, COALESCE(p.categoria, '') AS categoria, p.descripcion, p.unidadMedida, ")
                     .append("m.nombre AS marca, e.nombre AS etiqueta ")
                     .append("FROM productos p ")
                     .append("LEFT JOIN marcas m ON m.id = p.marca ")
@@ -92,7 +92,7 @@ public class modelProductoCbox {
             SELECT DISTINCT
                 p.id,
                 p.nombre,
-                p.categoria,
+                COALESCE(p.categoria, '') AS categoria,
                 p.descripcion,
                 p.unidadMedida,
                 m.nombre AS marca,
