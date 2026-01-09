@@ -76,6 +76,7 @@ public class controllerCompraEmergente {
     private compra itemParaEditar;
     private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ISO_LOCAL_DATE;
     private String ultimoIdProductoDescripcion = "";
+    private boolean seleccionarClaveAlternaPendiente = false;
 
     @FXML
     public void initialize() {
@@ -179,12 +180,14 @@ public class controllerCompraEmergente {
         cbClaveProducto.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
@@ -209,6 +212,10 @@ public class controllerCompraEmergente {
             if (cbClaveAlterna.getItems().isEmpty()) {
                 return;
             }
+            if (!seleccionarClaveAlternaPendiente) {
+                return;
+            }
+            seleccionarClaveAlternaPendiente = false;
             Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
         });
     }

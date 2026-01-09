@@ -89,6 +89,7 @@ public class controllerNuevoTraspasoSalida {
     private final Map<TextField, PauseTransition> debounceCantidadUbicacion = new HashMap<>();
     private final Map<TextField, String> ultimaCantidadUbicacionValidada = new HashMap<>();
     private final Map<ComboBox<String>, List<UbicacionCompra>> ubicacionesCapturadas = new HashMap<>();
+    private boolean seleccionarClaveAlternaPendiente = false;
 
     @FXML
     public void initialize() {
@@ -148,6 +149,7 @@ public class controllerNuevoTraspasoSalida {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
                 actualizarEstadoCascada();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
@@ -156,6 +158,7 @@ public class controllerNuevoTraspasoSalida {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
                 actualizarEstadoCascada();
+                seleccionarClaveAlternaPendiente = true;
             }
         });
 
@@ -837,6 +840,10 @@ public class controllerNuevoTraspasoSalida {
             if (cbClaveAlterna.getItems().isEmpty()) {
                 return;
             }
+            if (!seleccionarClaveAlternaPendiente) {
+                return;
+            }
+            seleccionarClaveAlternaPendiente = false;
             Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
         });
     }
@@ -1534,11 +1541,6 @@ public class controllerNuevoTraspasoSalida {
         validarPresentacion();
         if (!presentacionValida) {
             factorValido = false;
-            if (!factorTexto.isBlank()) {
-                txtFactor.clear();
-                mostrarAlertaSinEspera("Advertencia",
-                        "La presentación no es válida para el lote y la cantidad capturados.");
-            }
             return;
         }
         if (!presentacion.equals(ultimaPresentacionValidada)) {
