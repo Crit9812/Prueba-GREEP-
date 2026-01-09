@@ -133,7 +133,7 @@
                     <!-- Subtitulo -->
                     <HBox spacing="20">
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Subtitulo:"/>
+                            <Label text="Nota:"/>
                             <TextField fx:id="txtNota" style="-fx-min-height: 40;"/>
                         </VBox>
                     </HBox>
