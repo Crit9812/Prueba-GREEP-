@@ -27,3 +27,20 @@
 .botonAgregarUbi:hover {
     -fx-background-color: #444;
 }
+
+.modo-tabs .tab-header-area .tab-header-background {
+    -fx-background-color: white;
+}
+
+.modo-tabs .tab {
+    -fx-padding: 8 18 8 18;
+    -fx-font-size: 14px;
+}
+
+.modo-tabs .tab:selected {
+    -fx-background-color: #000000;
+}
+
+.modo-tabs .tab:selected .tab-label {
+    -fx-text-fill: white;
+}

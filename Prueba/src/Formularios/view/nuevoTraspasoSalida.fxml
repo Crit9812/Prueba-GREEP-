@@ -62,7 +62,7 @@
                         </VBox>
                     </HBox>
 
-                    <TabPane fx:id="tabPaneModo" tabClosingPolicy="UNAVAILABLE">
+                    <TabPane fx:id="tabPaneModo" tabClosingPolicy="UNAVAILABLE" styleClass="modo-tabs">
                         <tabs>
                             <Tab fx:id="tabNormal" text="Normal">
                                 <content>
