@@ -66,7 +66,7 @@
                         <tabs>
                             <Tab fx:id="tabNormal" text="Normal">
                                 <content>
-                                    <VBox spacing="15">
+                                    <VBox spacing="15" style="-fx-padding: 10 0 0 0;">
                                         <!-- Lote, Caducidad, Cantidad -->
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
@@ -148,7 +148,7 @@
                             </Tab>
                             <Tab fx:id="tabRapido" text="Rápido">
                                 <content>
-                                    <VBox spacing="15">
+                                    <VBox spacing="15" style="-fx-padding: 10 0 0 0;">
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Cantidad:"/>
