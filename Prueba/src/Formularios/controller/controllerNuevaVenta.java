@@ -823,21 +823,41 @@ public class controllerNuevaVenta {
             totalesPorUbicacion.merge(ubicacion, asignacion.cantidad, Integer::sum);
         }
 
-        StringBuilder resumen = new StringBuilder();
+        VBox contenido = new VBox(10);
+        contenido.setFillWidth(true);
+        contenido.setAlignment(Pos.TOP_LEFT);
+
+        VBox encabezado = new VBox(4);
+        encabezado.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #f0f0f0; -fx-border-color: #cccccc;");
+        Label tituloUbicacion = new Label("Ubicación (Total)");
+        tituloUbicacion.setStyle("-fx-font-weight: bold;");
+        Label tituloLotes = new Label("Lotes");
+        tituloLotes.setStyle("-fx-font-weight: bold;");
+        encabezado.getChildren().addAll(tituloUbicacion, tituloLotes);
+        contenido.getChildren().add(encabezado);
+
         for (Map.Entry<String, Map<String, Integer>> entry : lotesPorUbicacion.entrySet()) {
             String ubicacion = entry.getKey();
             int total = totalesPorUbicacion.getOrDefault(ubicacion, 0);
-            resumen.append("Ubicación ").append(ubicacion).append(": ").append(total).append("\n");
+            VBox fila = new VBox(4);
+            fila.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #000000;");
+
+            Label ubicacionLabel = new Label("Ubicación " + ubicacion + ": " + total);
+            ubicacionLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
+            VBox lotesBox = new VBox(2);
             for (Map.Entry<String, Integer> loteEntry : entry.getValue().entrySet()) {
-                resumen.append("  - Lote ").append(loteEntry.getKey()).append(": ")
-                        .append(loteEntry.getValue()).append("\n");
+                Label loteLabel = new Label("Lote " + loteEntry.getKey() + ": " + loteEntry.getValue());
+                loteLabel.setStyle("-fx-text-fill: #ffffff;");
+                lotesBox.getChildren().add(loteLabel);
             }
+            fila.getChildren().addAll(ubicacionLabel, lotesBox);
+            contenido.getChildren().add(fila);
         }
 
         Alert resumenAlert = new Alert(AlertType.INFORMATION);
         resumenAlert.setTitle("Ubicaciones sugeridas");
         resumenAlert.setHeaderText("Primeras ubicaciones encontradas");
-        resumenAlert.setContentText(resumen.toString().trim());
+        resumenAlert.getDialogPane().setContent(contenido);
         Optional<javafx.scene.control.ButtonType> respuesta = resumenAlert.showAndWait();
         return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
     }
