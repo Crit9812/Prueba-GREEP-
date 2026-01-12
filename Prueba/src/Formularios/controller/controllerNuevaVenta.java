@@ -904,9 +904,11 @@ public class controllerNuevaVenta {
             }
         }
 
-        Alert resumenAlert = new Alert(AlertType.INFORMATION);
+        Alert resumenAlert = new Alert(AlertType.CONFIRMATION);
         resumenAlert.setTitle("Ubicaciones sugeridas");
         resumenAlert.setHeaderText("Primeras ubicaciones encontradas");
+        resumenAlert.setContentText("Presiona Aceptar para continuar o Cancelar para volver al formulario.");
+        resumenAlert.getButtonTypes().setAll(javafx.scene.control.ButtonType.OK, javafx.scene.control.ButtonType.CANCEL);
         resumenAlert.getDialogPane().setContent(contenido);
         Optional<javafx.scene.control.ButtonType> respuesta = resumenAlert.showAndWait();
         return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
