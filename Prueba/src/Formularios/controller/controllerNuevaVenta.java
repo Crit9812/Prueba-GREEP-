@@ -74,6 +74,8 @@ public class controllerNuevaVenta {
     @FXML private Tab tabNormal;
     @FXML private Tab tabRapido;
     @FXML private TextField txtCantidadRapida;
+    @FXML private TextField txtPrecioEntradaRapida;
+    @FXML private TextField txtPrecioEntradaIvaRapida;
     @FXML private TextField txtPrecioSalidaRapida;
     @FXML private CheckBox checkBoxIVARapida;
     @FXML private TextField txtPrecioIVARapida;
@@ -192,6 +194,7 @@ public class controllerNuevaVenta {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
+                cargarPrecioRapidoDesdeUltimaEntrada();
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
@@ -202,6 +205,7 @@ public class controllerNuevaVenta {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
+                cargarPrecioRapidoDesdeUltimaEntrada();
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
@@ -212,6 +216,7 @@ public class controllerNuevaVenta {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
+                cargarPrecioRapidoDesdeUltimaEntrada();
                 actualizarEstadoCascada();
             }
             actualizarImagenProducto();
@@ -333,6 +338,12 @@ public class controllerNuevaVenta {
         if (txtCantidadRapida != null) {
             txtCantidadRapida.clear();
         }
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.clear();
+        }
         if (txtPrecioSalidaRapida != null) {
             txtPrecioSalidaRapida.clear();
         }
@@ -388,6 +399,89 @@ public class controllerNuevaVenta {
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
+    }
+
+    private void cargarPrecioRapidoDesdeUltimaEntrada() {
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            limpiarPreciosRapidos();
+            return;
+        }
+        String idSnapshot = idProducto;
+        javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
+                return modelo.obtenerPreciosProductoUltimaEntrada(idSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String idActual = productoController.getIdSeleccionado();
+                if (!idSnapshot.equals(idActual)) {
+                    return;
+                }
+                Optional<modelNuevoTraspasoSalida.PreciosProducto> resultado = getValue();
+                if (resultado.isPresent()) {
+                    aplicarPreciosRapidos(resultado.get());
+                } else {
+                    limpiarPreciosRapidos();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                limpiarPreciosRapidos();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void aplicarPreciosRapidos(modelNuevoTraspasoSalida.PreciosProducto precios) {
+        if (precios == null) {
+            limpiarPreciosRapidos();
+            return;
+        }
+        BigDecimal precioEntradaRapida = precios.getPrecioUnitario() != null
+                ? precios.getPrecioUnitario()
+                : BigDecimal.ZERO;
+        BigDecimal precioEntradaIvaRapida = precios.getPrecioIva() != null
+                ? precios.getPrecioIva()
+                : BigDecimal.ZERO;
+
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.setText(formatearDecimal(precioEntradaRapida));
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.setText(formatearDecimal(precioEntradaIvaRapida));
+        }
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.setText(formatearDecimal(precioEntradaRapida));
+        }
+        recalcularPreciosRapido();
+    }
+
+    private void limpiarPreciosRapidos() {
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.clear();
+        }
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.clear();
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.clear();
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.clear();
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.clear();
+        }
     }
 
     private void aplicarPrecioEntrada(modelNuevoTraspasoSalida.PreciosProducto precios) {
@@ -729,21 +823,41 @@ public class controllerNuevaVenta {
             totalesPorUbicacion.merge(ubicacion, asignacion.cantidad, Integer::sum);
         }
 
-        StringBuilder resumen = new StringBuilder();
+        VBox contenido = new VBox(10);
+        contenido.setFillWidth(true);
+        contenido.setAlignment(Pos.TOP_LEFT);
+
+        VBox encabezado = new VBox(4);
+        encabezado.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #f0f0f0; -fx-border-color: #cccccc;");
+        Label tituloUbicacion = new Label("Ubicación (Total)");
+        tituloUbicacion.setStyle("-fx-font-weight: bold;");
+        Label tituloLotes = new Label("Lotes");
+        tituloLotes.setStyle("-fx-font-weight: bold;");
+        encabezado.getChildren().addAll(tituloUbicacion, tituloLotes);
+        contenido.getChildren().add(encabezado);
+
         for (Map.Entry<String, Map<String, Integer>> entry : lotesPorUbicacion.entrySet()) {
             String ubicacion = entry.getKey();
             int total = totalesPorUbicacion.getOrDefault(ubicacion, 0);
-            resumen.append("Ubicación ").append(ubicacion).append(": ").append(total).append("\n");
+            VBox fila = new VBox(4);
+            fila.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #000000;");
+
+            Label ubicacionLabel = new Label("Ubicación " + ubicacion + ": " + total);
+            ubicacionLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
+            VBox lotesBox = new VBox(2);
             for (Map.Entry<String, Integer> loteEntry : entry.getValue().entrySet()) {
-                resumen.append("  - Lote ").append(loteEntry.getKey()).append(": ")
-                        .append(loteEntry.getValue()).append("\n");
+                Label loteLabel = new Label("Lote " + loteEntry.getKey() + ": " + loteEntry.getValue());
+                loteLabel.setStyle("-fx-text-fill: #ffffff;");
+                lotesBox.getChildren().add(loteLabel);
             }
+            fila.getChildren().addAll(ubicacionLabel, lotesBox);
+            contenido.getChildren().add(fila);
         }
 
         Alert resumenAlert = new Alert(AlertType.INFORMATION);
         resumenAlert.setTitle("Ubicaciones sugeridas");
         resumenAlert.setHeaderText("Primeras ubicaciones encontradas");
-        resumenAlert.setContentText(resumen.toString().trim());
+        resumenAlert.getDialogPane().setContent(contenido);
         Optional<javafx.scene.control.ButtonType> respuesta = resumenAlert.showAndWait();
         return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
     }
@@ -2204,6 +2318,12 @@ public class controllerNuevaVenta {
         txtPrecioEntrada.setEditable(false);
         if (txtPrecioEntradaIva != null) {
             txtPrecioEntradaIva.setEditable(false);
+        }
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.setEditable(false);
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.setEditable(false);
         }
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);
