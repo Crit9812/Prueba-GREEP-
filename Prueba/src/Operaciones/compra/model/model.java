@@ -69,6 +69,61 @@ public class model {
         return null;
     }
 
+    public java.util.Optional<BigDecimal> obtenerPrecioEntradaUltimoProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return java.util.Optional.empty();
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+
+            String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+            String colDetalleProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto", "producto_id");
+            String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+            String colPrecioEntrada = resolverColumna(columnasDetalle, "precioUnitario", "precioEntrada", "precio_entrada", "costoEntrada");
+
+            String colEntradaId = resolverColumna(columnasEntradas, "id", "idEntrada", "entrada_id");
+            String colEntradaFecha = resolverColumna(columnasEntradas, "fechaEntrada", "fecha", "fecha_entrada", "created_at");
+            String colEntradaHora = resolverColumna(columnasEntradas, "horaEntrada", "hora", "hora_entrada");
+
+            if (colDetalleId == null || colDetalleProducto == null || colDetalleEntrada == null || colPrecioEntrada == null
+                    || colEntradaId == null) {
+                return java.util.Optional.empty();
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT d.`").append(colPrecioEntrada).append("` AS precioEntrada ")
+                    .append("FROM detalle_Entrada d ")
+                    .append("JOIN entradas e ON e.`").append(colEntradaId).append("` = d.`").append(colDetalleEntrada).append("` ")
+                    .append("WHERE d.`").append(colDetalleProducto).append("` = ? ");
+
+            List<String> orden = new ArrayList<>();
+            if (colEntradaFecha != null) {
+                orden.add("e.`" + colEntradaFecha + "` DESC");
+            }
+            if (colEntradaHora != null) {
+                orden.add("e.`" + colEntradaHora + "` DESC");
+            }
+            orden.add("d.`" + colDetalleId + "` DESC");
+            sql.append("ORDER BY ").append(String.join(", ", orden)).append(" LIMIT 1");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, idProducto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        BigDecimal precioEntrada = rs.getBigDecimal("precioEntrada");
+                        return java.util.Optional.of(precioEntrada != null ? precioEntrada : BigDecimal.ZERO);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return java.util.Optional.empty();
+    }
+
     public boolean registrarCompra(String idProveedor, String factura, String comentario, List<compra> items) {
         if (items == null || items.isEmpty()) {
             return false;

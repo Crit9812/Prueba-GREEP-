@@ -42,6 +42,7 @@ public class modelNuevoTraspasoSalida {
             FROM detalle_Entrada de
             JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
             JOIN ubicaciones u ON u.id = a.ubicacion
+            JOIN entradas e ON e.idEntrada = de.claveEntrada
             WHERE de.claveProducto = ?
               AND a.lote = ?
               AND a.caducidad = ?
@@ -50,7 +51,7 @@ public class modelNuevoTraspasoSalida {
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
-                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+                     + " ORDER BY e.fechaEntrada DESC, e.horaEntrada DESC, de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, idProducto);
@@ -85,6 +86,7 @@ public class modelNuevoTraspasoSalida {
             SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
             FROM detalle_Entrada de
             JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            JOIN entradas e ON e.idEntrada = de.claveEntrada
             WHERE de.claveProducto = ?
               AND a.lote = ?
               AND a.caducidad = ?
@@ -92,7 +94,7 @@ public class modelNuevoTraspasoSalida {
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
-                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+                     + " ORDER BY e.fechaEntrada DESC, e.horaEntrada DESC, de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, idProducto);
@@ -447,7 +449,25 @@ public class modelNuevoTraspasoSalida {
         String colEstado = obtenerColumnaEstadoArticulo(conn);
         StringBuilder sql = new StringBuilder(sqlBase);
         if (colEstado != null) {
-            sql.append(" AND LOWER(a.").append(colEstado).append(") = ?");
+            String filtro = "LOWER(a." + colEstado + ") = ?";
+            String sqlLower = sqlBase.toLowerCase();
+            int insertPos = sql.length();
+            int groupPos = sqlLower.indexOf(" group by ");
+            int orderPos = sqlLower.indexOf(" order by ");
+            if (groupPos >= 0 && orderPos >= 0) {
+                insertPos = Math.min(groupPos, orderPos);
+            } else if (groupPos >= 0) {
+                insertPos = groupPos;
+            } else if (orderPos >= 0) {
+                insertPos = orderPos;
+            }
+            boolean tieneWhere = sqlLower.contains(" where ");
+            String condicion = (tieneWhere ? " AND " : " WHERE ") + filtro + " ";
+            if (insertPos < sql.length()) {
+                sql.insert(insertPos, condicion);
+            } else {
+                sql.append(condicion);
+            }
         }
         return sql.toString();
     }

@@ -209,6 +209,7 @@ public class controllerCompraEmergente {
                 seleccionarClaveAlternaPendiente = true;
             }
             actualizarImagenProducto();
+            cargarPrecioEntradaUltimoProducto();
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -217,6 +218,7 @@ public class controllerCompraEmergente {
                 seleccionarClaveAlternaPendiente = true;
             }
             actualizarImagenProducto();
+            cargarPrecioEntradaUltimoProducto();
         });
 
         cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -224,6 +226,7 @@ public class controllerCompraEmergente {
                 actualizarDescripcionDesdeProducto();
             }
             actualizarImagenProducto();
+            cargarPrecioEntradaUltimoProducto();
         });
 
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -431,6 +434,38 @@ public class controllerCompraEmergente {
         String descripcion = productoController.getDescripcionSeleccionada();
         txtDescripcion.setText(descripcion);
         ultimoIdProductoDescripcion = idProducto != null ? idProducto : "";
+    }
+
+    private void cargarPrecioEntradaUltimoProducto() {
+        if (itemParaEditar != null) {
+            return;
+        }
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            return;
+        }
+
+        Task<java.util.Optional<BigDecimal>> task = new Task<>() {
+            @Override
+            protected java.util.Optional<BigDecimal> call() {
+                return modeloCompras.obtenerPrecioEntradaUltimoProducto(idProducto);
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.Optional<BigDecimal> resultado = getValue();
+                resultado.ifPresent(precio -> {
+                    if (precio != null) {
+                        txtPrecioEntrada.setText(formatearDecimal(precio));
+                        recalcularPrecios();
+                    }
+                });
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     // Metodo para actualizar la clave alterna desde el formulario de claves
@@ -933,6 +968,13 @@ public class controllerCompraEmergente {
         txtPrecioIVA.setText(resultado.getPrecioConIvaFormateado());
         txtPrecioBruto.setText(resultado.getPrecioBrutoFormateado());
         txtPrecioTotal.setText(resultado.getPrecioTotalFormateado());
+    }
+
+    private String formatearDecimal(BigDecimal valor) {
+        if (valor == null) {
+            return "0.00";
+        }
+        return valor.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     private String obtenerCaducidadTexto() {
