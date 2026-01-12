@@ -680,7 +680,22 @@ public class controllerNuevoTraspasoSalida {
             return;
         }
 
-        List<traspasoSalida> itemsGenerados = construirItemsRapidosTraspaso(clave, nombre, descripcion, cantidad);
+        List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles =
+                modelo.obtenerDisponibilidadesRapidas(clave, "pz", 1);
+        List<AsignacionRapida> asignaciones = construirAsignacionesRapidas(disponibles, cantidad);
+        if (asignaciones.isEmpty()) {
+            mostrarAlerta("Error", "No se pudo distribuir la cantidad solicitada con la disponibilidad actual.");
+            return;
+        }
+        if (!confirmarRevisionUbicacionesRapidas()) {
+            return;
+        }
+        if (!mostrarResumenUbicacionesRapidas(asignaciones)) {
+            return;
+        }
+        mostrarAlerta("Aviso", "Revisión de ubicaciones confirmada.");
+
+        List<traspasoSalida> itemsGenerados = construirItemsRapidosTraspaso(clave, nombre, descripcion, asignaciones);
         if (itemsGenerados.isEmpty()) {
             mostrarAlerta("Error", "No se pudo distribuir la cantidad solicitada con la disponibilidad actual.");
             return;
@@ -712,19 +727,15 @@ public class controllerNuevoTraspasoSalida {
         limpiarFormularioParaNuevo();
     }
 
-    private List<traspasoSalida> construirItemsRapidosTraspaso(String clave, String nombre, String descripcion,
-                                                               int cantidad) {
-        List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles =
-                modelo.obtenerDisponibilidadesRapidas(clave, "pz", 1);
-        List<traspasoSalida> resultado = new ArrayList<>();
-        if (disponibles.isEmpty()) {
-            return resultado;
+    private List<AsignacionRapida> construirAsignacionesRapidas(
+            List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles,
+            int cantidad
+    ) {
+        if (disponibles == null || disponibles.isEmpty()) {
+            return List.of();
         }
-
-        Map<LoteCaducidadKey, List<UbicacionCompra>> ubicacionesPorLote = new java.util.LinkedHashMap<>();
-        Map<LoteCaducidadKey, Integer> cantidadesPorLote = new java.util.LinkedHashMap<>();
+        List<AsignacionRapida> resultado = new ArrayList<>();
         int restante = cantidad;
-
         for (modelNuevoTraspasoSalida.DisponibilidadRapida disp : disponibles) {
             if (restante <= 0) {
                 break;
@@ -733,15 +744,82 @@ public class controllerNuevoTraspasoSalida {
             if (asignar <= 0) {
                 continue;
             }
-            LoteCaducidadKey key = new LoteCaducidadKey(disp.getLote(), disp.getCaducidad());
-            ubicacionesPorLote.computeIfAbsent(key, k -> new ArrayList<>())
-                    .add(new UbicacionCompra(disp.getUbicacion(), asignar));
-            cantidadesPorLote.merge(key, asignar, Integer::sum);
+            resultado.add(new AsignacionRapida(disp.getUbicacion(), disp.getLote(), disp.getCaducidad(), asignar));
             restante -= asignar;
         }
-
         if (restante > 0) {
             return List.of();
+        }
+        return resultado;
+    }
+
+    private boolean confirmarRevisionUbicacionesRapidas() {
+        Alert confirmacion = new Alert(AlertType.CONFIRMATION);
+        confirmacion.setTitle("Revisión de ubicaciones");
+        confirmacion.setHeaderText("Revisa bien las ubicaciones de donde se sacan los productos.");
+        confirmacion.setContentText("Presiona Aceptar para continuar o Cancelar para detener el guardado.");
+        Optional<javafx.scene.control.ButtonType> respuesta = confirmacion.showAndWait();
+        return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
+    }
+
+    private boolean mostrarResumenUbicacionesRapidas(List<AsignacionRapida> asignaciones) {
+        if (asignaciones == null || asignaciones.isEmpty()) {
+            return false;
+        }
+        Map<String, Map<String, Integer>> lotesPorUbicacion = new java.util.LinkedHashMap<>();
+        Map<String, Integer> totalesPorUbicacion = new java.util.LinkedHashMap<>();
+        for (AsignacionRapida asignacion : asignaciones) {
+            if (asignacion == null) {
+                continue;
+            }
+            String ubicacion = asignacion.ubicacion != null ? asignacion.ubicacion : "";
+            String lote = asignacion.lote != null && !asignacion.lote.isBlank() ? asignacion.lote : "Sin lote";
+            lotesPorUbicacion.computeIfAbsent(ubicacion, k -> new java.util.LinkedHashMap<>())
+                    .merge(lote, asignacion.cantidad, Integer::sum);
+            totalesPorUbicacion.merge(ubicacion, asignacion.cantidad, Integer::sum);
+        }
+
+        StringBuilder resumen = new StringBuilder();
+        for (Map.Entry<String, Map<String, Integer>> entry : lotesPorUbicacion.entrySet()) {
+            String ubicacion = entry.getKey();
+            int total = totalesPorUbicacion.getOrDefault(ubicacion, 0);
+            resumen.append("Ubicación ").append(ubicacion).append(": ").append(total).append("\n");
+            for (Map.Entry<String, Integer> loteEntry : entry.getValue().entrySet()) {
+                resumen.append("  - Lote ").append(loteEntry.getKey()).append(": ")
+                        .append(loteEntry.getValue()).append("\n");
+            }
+        }
+
+        Alert resumenAlert = new Alert(AlertType.INFORMATION);
+        resumenAlert.setTitle("Ubicaciones sugeridas");
+        resumenAlert.setHeaderText("Primeras ubicaciones encontradas");
+        resumenAlert.setContentText(resumen.toString().trim());
+        Optional<javafx.scene.control.ButtonType> respuesta = resumenAlert.showAndWait();
+        return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
+    }
+
+    private List<traspasoSalida> construirItemsRapidosTraspaso(
+            String clave,
+            String nombre,
+            String descripcion,
+            List<AsignacionRapida> asignaciones
+    ) {
+        List<traspasoSalida> resultado = new ArrayList<>();
+        if (asignaciones == null || asignaciones.isEmpty()) {
+            return resultado;
+        }
+
+        Map<LoteCaducidadKey, List<UbicacionCompra>> ubicacionesPorLote = new java.util.LinkedHashMap<>();
+        Map<LoteCaducidadKey, Integer> cantidadesPorLote = new java.util.LinkedHashMap<>();
+
+        for (AsignacionRapida asignacion : asignaciones) {
+            if (asignacion == null || asignacion.cantidad <= 0) {
+                continue;
+            }
+            LoteCaducidadKey key = new LoteCaducidadKey(asignacion.lote, asignacion.caducidad);
+            ubicacionesPorLote.computeIfAbsent(key, k -> new ArrayList<>())
+                    .add(new UbicacionCompra(asignacion.ubicacion, asignacion.cantidad));
+            cantidadesPorLote.merge(key, asignacion.cantidad, Integer::sum);
         }
 
         for (Map.Entry<LoteCaducidadKey, List<UbicacionCompra>> entry : ubicacionesPorLote.entrySet()) {
@@ -770,6 +848,20 @@ public class controllerNuevoTraspasoSalida {
         }
 
         return resultado;
+    }
+
+    private static class AsignacionRapida {
+        private final String ubicacion;
+        private final String lote;
+        private final java.time.LocalDate caducidad;
+        private final int cantidad;
+
+        private AsignacionRapida(String ubicacion, String lote, java.time.LocalDate caducidad, int cantidad) {
+            this.ubicacion = ubicacion;
+            this.lote = lote != null ? lote : "";
+            this.caducidad = caducidad;
+            this.cantidad = cantidad;
+        }
     }
 
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
