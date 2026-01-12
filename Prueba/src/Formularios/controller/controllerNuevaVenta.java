@@ -799,6 +799,7 @@ public class controllerNuevaVenta {
         Alert alerta = new Alert(AlertType.WARNING);
         alerta.setTitle("Advertencia de pérdida");
         alerta.setHeaderText("El precio de salida es menor al precio de entrada.");
+        alerta.getButtonTypes().setAll(javafx.scene.control.ButtonType.OK, javafx.scene.control.ButtonType.CANCEL);
         VBox contenido = new VBox(6);
         Label mensaje = new Label("Puede haber posibles pérdidas con este precio.");
         Label perdidaLabel = new Label("Pérdida estimada: " + formatearDecimal(perdidaTotal));
