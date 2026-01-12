@@ -7,6 +7,7 @@ import Operaciones.compra.controller.MainController;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.compra.model.compra;
 import Operaciones.compra.model.model;
+import conexion.conexionFTP;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,12 +20,15 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.concurrent.Task;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -32,7 +36,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class controllerCompraEmergente {
 
@@ -42,6 +48,7 @@ public class controllerCompraEmergente {
     @FXML private ComboBox<String> cbClaveAlterna;
     @FXML private ComboBox<String> cbProductoNombre;
     @FXML private TextField txtDescripcion;
+    @FXML private ImageView previewImage;
     @FXML private TextField txtLote;
     @FXML private DatePicker dpCaducidad;
     @FXML private TextField txtCantidad;
@@ -79,6 +86,7 @@ public class controllerCompraEmergente {
     private String ultimoIdProductoDescripcion = "";
     private boolean seleccionarClaveAlternaPendiente = false;
     private String tituloFormulario = "Compra";
+    private final Map<String, Image> cacheImagenes = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -200,6 +208,7 @@ public class controllerCompraEmergente {
                 actualizarDescripcionDesdeProducto();
                 seleccionarClaveAlternaPendiente = true;
             }
+            actualizarImagenProducto();
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -207,12 +216,14 @@ public class controllerCompraEmergente {
                 actualizarDescripcionDesdeProducto();
                 seleccionarClaveAlternaPendiente = true;
             }
+            actualizarImagenProducto();
         });
 
         cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
             }
+            actualizarImagenProducto();
         });
 
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -289,6 +300,46 @@ public class controllerCompraEmergente {
     private void limpiarSeleccionProducto() {
         productoController.limpiarSeleccion();
         txtDescripcion.clear();
+        limpiarImagenProducto();
+    }
+
+    private void limpiarImagenProducto() {
+        if (previewImage != null) {
+            previewImage.setImage(null);
+        }
+    }
+
+    private void actualizarImagenProducto() {
+        if (previewImage == null || productoController == null) {
+            return;
+        }
+
+        previewImage.setImage(null);
+
+        String urlImagen = productoController.getUrlImagenSeleccionada();
+        if (urlImagen == null || urlImagen.isBlank()) {
+            return;
+        }
+
+        if (cacheImagenes.containsKey(urlImagen)) {
+            previewImage.setImage(cacheImagenes.get(urlImagen));
+            return;
+        }
+
+        Task<Image> task = new Task<>() {
+            @Override
+            protected Image call() throws Exception {
+                conexionFTP ftp = new conexionFTP();
+                return ftp.getImageFromFTP(urlImagen);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            Image img = task.getValue();
+            cacheImagenes.put(urlImagen, img);
+            previewImage.setImage(img);
+        });
+        task.setOnFailed(e -> previewImage.setImage(null));
+        new Thread(task).start();
     }
 
     private void configurarCalculoPrecios() {
@@ -593,6 +644,7 @@ public class controllerCompraEmergente {
         productoController.limpiarSeleccion();
         seleccionarClaveAlternaPendiente = false;
         txtDescripcion.clear();
+        limpiarImagenProducto();
         txtLote.clear();
         dpCaducidad.setValue(null);
         txtCantidad.clear();
