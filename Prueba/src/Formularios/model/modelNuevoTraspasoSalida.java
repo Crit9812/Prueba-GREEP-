@@ -304,6 +304,104 @@ public class modelNuevoTraspasoSalida {
         }
     }
 
+    public int obtenerCantidadDisponibleProductoPresentacionFactor(String idProducto, String presentacion, int factor) {
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+
+        return 0;
+    }
+
+    public List<DisponibilidadRapida> obtenerDisponibilidadesRapidas(String idProducto, String presentacion, int factor) {
+        List<DisponibilidadRapida> resultado = new ArrayList<>();
+        String sql = """
+            SELECT a.lote, a.caducidad, u.nombre AS ubicacion, COUNT(*) AS total
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            JOIN ubicaciones u ON u.id = a.ubicacion
+            WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+            GROUP BY a.lote, a.caducidad, u.nombre
+            ORDER BY a.caducidad ASC, a.lote ASC
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String lote = rs.getString("lote");
+                    java.sql.Date caducidad = rs.getDate("caducidad");
+                    String ubicacion = rs.getString("ubicacion");
+                    int total = rs.getInt("total");
+                    java.time.LocalDate caducidadLocal = caducidad != null ? caducidad.toLocalDate() : null;
+                    resultado.add(new DisponibilidadRapida(lote, caducidadLocal, ubicacion, total));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resultado;
+    }
+
+    public static class DisponibilidadRapida {
+        private final String lote;
+        private final java.time.LocalDate caducidad;
+        private final String ubicacion;
+        private final int total;
+
+        public DisponibilidadRapida(String lote, java.time.LocalDate caducidad, String ubicacion, int total) {
+            this.lote = lote != null ? lote : "";
+            this.caducidad = caducidad;
+            this.ubicacion = ubicacion != null ? ubicacion : "";
+            this.total = total;
+        }
+
+        public String getLote() {
+            return lote;
+        }
+
+        public java.time.LocalDate getCaducidad() {
+            return caducidad;
+        }
+
+        public String getUbicacion() {
+            return ubicacion;
+        }
+
+        public int getTotal() {
+            return total;
+        }
+    }
+
 
     private BigDecimal obtenerDecimal(ResultSet rs, String columna) {
         try {

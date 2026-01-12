@@ -63,7 +63,7 @@
                             <Button fx:id="btnQuitar" styleClass="botones" onMouseClicked="#abrirFormularioQuitar">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
-                                        <image><Image url="@/img/quitar.png"/></image>
+                                        <image><Image url="@/img/quitar1.png"/></image>
                                     </ImageView>
                                 </graphic>
                                 <HBox.margin>

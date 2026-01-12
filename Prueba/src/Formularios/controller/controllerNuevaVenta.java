@@ -19,6 +19,8 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.KeyCode;
@@ -63,6 +65,15 @@ public class controllerNuevaVenta {
     @FXML private Button btnGuardar;
     @FXML private Button btnLimpiar;
     @FXML private Label lblTitulo;
+    @FXML private TabPane tabPaneModo;
+    @FXML private Tab tabNormal;
+    @FXML private Tab tabRapido;
+    @FXML private TextField txtCantidadRapida;
+    @FXML private TextField txtPrecioSalidaRapida;
+    @FXML private CheckBox checkBoxIVARapida;
+    @FXML private TextField txtPrecioIVARapida;
+    @FXML private TextField txtPrecioBrutoRapida;
+    @FXML private TextField txtPrecioTotalRapida;
 
     private int contadorFilas = 1;
     private static final int MAX_FILAS = 10;
@@ -90,6 +101,7 @@ public class controllerNuevaVenta {
     private static final Duration DEBOUNCE_TIEMPO = Duration.millis(300);
     private final PauseTransition loteDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition factorDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
+    private final PauseTransition cantidadRapidaDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private String ultimoLoteValidado = "";
     private String ultimoFactorValidado = "";
     private String ultimaPresentacionValidada = "";
@@ -99,6 +111,7 @@ public class controllerNuevaVenta {
     private boolean inicializado = false;
     private boolean seleccionarClaveAlternaPendiente = false;
     private String tituloFormulario = "Venta";
+    private boolean cantidadRapidaValida = false;
 
     @FXML
     public void initialize() {
@@ -118,6 +131,7 @@ public class controllerNuevaVenta {
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
         configurarCascada();
+        configurarModoRapido();
         configurarSeleccionClaveAlternaPorDefecto();
         configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
         configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
@@ -126,6 +140,12 @@ public class controllerNuevaVenta {
         inicializado = true;
 
         if (itemParaEditar != null) {
+            if (tabRapido != null) {
+                tabRapido.setDisable(true);
+                if (tabPaneModo != null && tabNormal != null) {
+                    tabPaneModo.getSelectionModel().select(tabNormal);
+                }
+            }
             cargarItemParaEditar();
         }
 
@@ -264,6 +284,24 @@ public class controllerNuevaVenta {
         if (txtNota != null) {
             txtNota.clear();
         }
+        if (txtCantidadRapida != null) {
+            txtCantidadRapida.clear();
+        }
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.clear();
+        }
+        if (checkBoxIVARapida != null) {
+            checkBoxIVARapida.setSelected(false);
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.clear();
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.clear();
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.clear();
+        }
     }
 
     private void actualizarDescripcionDesdeProducto() {
@@ -334,6 +372,10 @@ public class controllerNuevaVenta {
     }
 
     private void guardarItem() {
+        if (esModoRapido()) {
+            guardarItemRapido();
+            return;
+        }
         String clave = productoController.getIdSeleccionado();
         String nombre = productoController.getNombreSeleccionado();
         String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
@@ -480,6 +522,158 @@ public class controllerNuevaVenta {
             mostrarAlertaSinEspera("Éxito", "Producto agregado a la venta.");
             limpiarFormularioParaNuevo();
         }
+    }
+
+    private void guardarItemRapido() {
+        if (itemParaEditar != null) {
+            mostrarAlerta("Advertencia", "La edición está disponible solo en el modo normal.");
+            return;
+        }
+        String clave = productoController.getIdSeleccionado();
+        String nombre = productoController.getNombreSeleccionado();
+        String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
+        String cantidadTexto = txtCantidadRapida != null && txtCantidadRapida.getText() != null
+                ? txtCantidadRapida.getText().trim()
+                : "";
+        String precioSalida = txtPrecioSalidaRapida != null && txtPrecioSalidaRapida.getText() != null
+                ? txtPrecioSalidaRapida.getText().trim()
+                : "";
+        String precioIva = txtPrecioIVARapida != null && txtPrecioIVARapida.getText() != null
+                ? txtPrecioIVARapida.getText().trim()
+                : "";
+        String precioBruto = txtPrecioBrutoRapida != null && txtPrecioBrutoRapida.getText() != null
+                ? txtPrecioBrutoRapida.getText().trim()
+                : "";
+        String precioTotal = txtPrecioTotalRapida != null && txtPrecioTotalRapida.getText() != null
+                ? txtPrecioTotalRapida.getText().trim()
+                : "";
+
+        if (clave == null || clave.isBlank()
+                || nombre == null || nombre.isBlank()
+                || descripcion.isBlank()
+                || cantidadTexto.isBlank()
+                || precioSalida.isBlank()
+                || precioIva.isBlank()
+                || precioBruto.isBlank()
+                || precioTotal.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar.");
+            return;
+        }
+
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(cantidadTexto);
+            if (cantidad <= 0) {
+                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            mostrarAlerta("Error", "La cantidad debe ser un número válido.");
+            return;
+        }
+
+        int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(clave, "pz", 1);
+        if (cantidad > disponible) {
+            mostrarAlerta("Advertencia",
+                    "La cantidad supera la disponible para la presentación pz con factor 1.");
+            return;
+        }
+
+        if (itemsVenta == null) {
+            mostrarAlerta("Error", "No se pudo registrar la venta en la tabla.");
+            return;
+        }
+
+        List<traspasoSalida> itemsGenerados = construirItemsRapidosVenta(clave, nombre, descripcion, cantidad);
+        if (itemsGenerados.isEmpty()) {
+            mostrarAlerta("Error", "No se pudo distribuir la cantidad solicitada con la disponibilidad actual.");
+            return;
+        }
+
+        BigDecimal precioSalidaDecimal = parseDecimal(precioSalida);
+        BigDecimal precioIvaDecimal = parseDecimal(precioIva);
+        for (traspasoSalida item : itemsGenerados) {
+            if (existeProductoLoteEnVenta(clave, item.getLote())) {
+                mostrarAlerta("Advertencia",
+                        "Ya se agregó este producto con el mismo lote. Finaliza la venta para poder repetirlo.");
+                return;
+            }
+            int cantidadItem = item.getCantidad();
+            BigDecimal brutoItem = precioSalidaDecimal.multiply(BigDecimal.valueOf(cantidadItem));
+            BigDecimal totalItem = precioIvaDecimal.multiply(BigDecimal.valueOf(cantidadItem));
+            item.setPrecioEntrada(formatearDecimal(precioSalidaDecimal));
+            item.setPrecioIva(formatearDecimal(precioIvaDecimal));
+            item.setPrecioBruto(formatearDecimal(brutoItem));
+            item.setPrecioTotal(formatearDecimal(totalItem));
+            itemsVenta.add(item);
+        }
+
+        if (mainController != null) {
+            mainController.refrescarTabla();
+        }
+
+        mostrarAlertaSinEspera("Éxito", "Producto agregado a la venta.");
+        limpiarFormularioParaNuevo();
+    }
+
+    private List<traspasoSalida> construirItemsRapidosVenta(String clave, String nombre, String descripcion, int cantidad) {
+        List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles =
+                modelo.obtenerDisponibilidadesRapidas(clave, "pz", 1);
+        List<traspasoSalida> resultado = new ArrayList<>();
+        if (disponibles.isEmpty()) {
+            return resultado;
+        }
+
+        Map<LoteCaducidadKey, List<UbicacionCompra>> ubicacionesPorLote = new java.util.LinkedHashMap<>();
+        Map<LoteCaducidadKey, Integer> cantidadesPorLote = new java.util.LinkedHashMap<>();
+        int restante = cantidad;
+
+        for (modelNuevoTraspasoSalida.DisponibilidadRapida disp : disponibles) {
+            if (restante <= 0) {
+                break;
+            }
+            int asignar = Math.min(restante, disp.getTotal());
+            if (asignar <= 0) {
+                continue;
+            }
+            LoteCaducidadKey key = new LoteCaducidadKey(disp.getLote(), disp.getCaducidad());
+            ubicacionesPorLote.computeIfAbsent(key, k -> new ArrayList<>())
+                    .add(new UbicacionCompra(disp.getUbicacion(), asignar));
+            cantidadesPorLote.merge(key, asignar, Integer::sum);
+            restante -= asignar;
+        }
+
+        if (restante > 0) {
+            return List.of();
+        }
+
+        for (Map.Entry<LoteCaducidadKey, List<UbicacionCompra>> entry : ubicacionesPorLote.entrySet()) {
+            LoteCaducidadKey key = entry.getKey();
+            int cantidadItem = cantidadesPorLote.getOrDefault(key, 0);
+            if (cantidadItem <= 0) {
+                continue;
+            }
+            String caducidad = key.caducidad != null ? key.caducidad.toString() : "";
+            traspasoSalida item = new traspasoSalida(
+                    clave,
+                    nombre,
+                    descripcion,
+                    key.lote,
+                    caducidad,
+                    cantidadItem,
+                    "pz",
+                    1,
+                    entry.getValue(),
+                    "",
+                    "",
+                    "",
+                    ""
+            );
+            item.setNota("");
+            resultado.add(item);
+        }
+
+        return resultado;
     }
 
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
@@ -690,6 +884,45 @@ public class controllerNuevaVenta {
         txtPrecioTotal.setText(formatearDecimal(precioTotal));
     }
 
+    private void recalcularPreciosRapido() {
+        if (txtCantidadRapida == null || txtPrecioSalidaRapida == null) {
+            return;
+        }
+        int cantidad = parseEntero(txtCantidadRapida.getText());
+        if (cantidad <= 0) {
+            if (txtPrecioBrutoRapida != null) {
+                txtPrecioBrutoRapida.clear();
+            }
+            if (txtPrecioTotalRapida != null) {
+                txtPrecioTotalRapida.clear();
+            }
+            if (txtPrecioIVARapida != null) {
+                txtPrecioIVARapida.clear();
+            }
+            return;
+        }
+
+        BigDecimal precioSalida = parseDecimal(txtPrecioSalidaRapida.getText());
+        BigDecimal precioConIva = precioSalida;
+        if (checkBoxIVARapida != null && checkBoxIVARapida.isSelected()) {
+            BigDecimal iva = precioSalida.multiply(IVA_TASA);
+            precioConIva = precioSalida.add(iva);
+        }
+
+        BigDecimal precioBruto = precioSalida.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioTotal = precioConIva.multiply(BigDecimal.valueOf(cantidad));
+
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.setText(formatearDecimal(precioConIva));
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.setText(formatearDecimal(precioBruto));
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.setText(formatearDecimal(precioTotal));
+        }
+    }
+
     private void actualizarPreciosPorUbicaciones() {
         recalcularPrecios();
     }
@@ -753,6 +986,23 @@ public class controllerNuevaVenta {
                 validarCamposDesdeFactor();
             }
         });
+    }
+
+    private void configurarModoRapido() {
+        if (tabPaneModo != null) {
+            tabPaneModo.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+                if (newTab == tabRapido) {
+                    recalcularPreciosRapido();
+                } else {
+                    recalcularPrecios();
+                }
+            });
+        }
+    }
+
+    private boolean esModoRapido() {
+        return tabPaneModo != null && tabRapido != null
+                && tabPaneModo.getSelectionModel().getSelectedItem() == tabRapido;
     }
 
     private void configurarSeleccionClaveAlternaPorDefecto() {
@@ -1248,6 +1498,78 @@ public class controllerNuevaVenta {
         loteDebounce.playFromStart();
     }
 
+    private void programarValidacionCantidadRapida() {
+        if (txtCantidadRapida == null) {
+            return;
+        }
+        cantidadRapidaDebounce.stop();
+        String nuevoValor = txtCantidadRapida.getText();
+        if (nuevoValor == null || nuevoValor.isBlank()) {
+            cantidadRapidaValida = false;
+            return;
+        }
+        cantidadRapidaDebounce.setOnFinished(event -> validarCantidadRapidaDisponible());
+        cantidadRapidaDebounce.playFromStart();
+    }
+
+    private void validarCantidadRapidaDisponible() {
+        if (txtCantidadRapida == null) {
+            return;
+        }
+        String cantidadTexto = txtCantidadRapida.getText() != null ? txtCantidadRapida.getText().trim() : "";
+        if (cantidadTexto.isBlank()) {
+            cantidadRapidaValida = false;
+            return;
+        }
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(cantidadTexto);
+        } catch (NumberFormatException e) {
+            cantidadRapidaValida = false;
+            mostrarAlertaSinEspera("Advertencia", "La cantidad debe ser un número válido.");
+            return;
+        }
+        if (cantidad <= 0) {
+            cantidadRapidaValida = false;
+            mostrarAlertaSinEspera("Advertencia", "La cantidad debe ser mayor a 0.");
+            return;
+        }
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            cantidadRapidaValida = false;
+            mostrarAlertaSinEspera("Advertencia", "Seleccione un producto antes de la cantidad.");
+            return;
+        }
+        String idSnapshot = idProducto;
+        int cantidadSnapshot = cantidad;
+        javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Integer call() {
+                return modelo.obtenerCantidadDisponibleProductoPresentacionFactor(idSnapshot, "pz", 1);
+            }
+
+            @Override
+            protected void succeeded() {
+                String textoActual = txtCantidadRapida.getText() != null ? txtCantidadRapida.getText().trim() : "";
+                if (!textoActual.equals(String.valueOf(cantidadSnapshot))) {
+                    return;
+                }
+                int disponible = getValue() != null ? getValue() : 0;
+                if (cantidadSnapshot > disponible) {
+                    cantidadRapidaValida = false;
+                    mostrarAlertaSinEspera("Advertencia",
+                            "La cantidad supera la disponible para la presentación pz con factor 1.");
+                } else {
+                    cantidadRapidaValida = true;
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
     private void programarValidacionCantidadUbicacion(TextField campoCantidad, ComboBox<String> combo) {
         PauseTransition debounce = debounceCantidadUbicacion.computeIfAbsent(campoCantidad,
                 key -> new PauseTransition(DEBOUNCE_TIEMPO));
@@ -1544,6 +1866,7 @@ public class controllerNuevaVenta {
         ubicacionValidada = false;
         cantidadDisponibleUbicacion = 0;
         cantidadTotalValida = false;
+        cantidadRapidaValida = false;
         ultimoLoteValidado = "";
         ultimoFactorValidado = "";
         ultimaPresentacionValidada = "";
@@ -1718,6 +2041,21 @@ public class controllerNuevaVenta {
             checkBoxIVA.selectedProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
         }
 
+        if (txtCantidadRapida != null) {
+            txtCantidadRapida.textProperty().addListener((obs, oldVal, newVal) -> {
+                programarValidacionCantidadRapida();
+                recalcularPreciosRapido();
+            });
+        }
+
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.textProperty().addListener((obs, oldVal, newVal) -> recalcularPreciosRapido());
+        }
+
+        if (checkBoxIVARapida != null) {
+            checkBoxIVARapida.selectedProperty().addListener((obs, oldVal, newVal) -> recalcularPreciosRapido());
+        }
+
         txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
             programarValidacionFactor(newVal);
         });
@@ -1731,6 +2069,15 @@ public class controllerNuevaVenta {
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);
         txtPrecioTotal.setEditable(false);
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.setEditable(false);
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.setEditable(false);
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.setEditable(false);
+        }
     }
 
     private void configurarManejoEnter() {
@@ -1802,6 +2149,9 @@ public class controllerNuevaVenta {
         validarNumerosEnteros(txtCantidad);
         validarNumerosEnteros(txtFactor);
         validarNumerosEnteros(txtCantidadUbicacion);
+        if (txtCantidadRapida != null) {
+            validarNumerosEnteros(txtCantidadRapida);
+        }
     }
 
     private void validarNumerosEnteros(TextField campo) {
@@ -1965,6 +2315,34 @@ public class controllerNuevaVenta {
                 combo.getEditor().setText(ubicacion.getUbicacion());
             }
             campoCantidad.setText(String.valueOf(ubicacion.getCantidad()));
+        }
+    }
+
+    private static class LoteCaducidadKey {
+        private final String lote;
+        private final java.time.LocalDate caducidad;
+
+        private LoteCaducidadKey(String lote, java.time.LocalDate caducidad) {
+            this.lote = lote != null ? lote : "";
+            this.caducidad = caducidad;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            LoteCaducidadKey other = (LoteCaducidadKey) obj;
+            return java.util.Objects.equals(lote, other.lote)
+                    && java.util.Objects.equals(caducidad, other.caducidad);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(lote, caducidad);
         }
     }
 
