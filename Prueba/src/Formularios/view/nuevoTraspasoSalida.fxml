@@ -3,6 +3,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.geometry.*?>
+<?import javafx.scene.image.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             xmlns="http://javafx.com/javafx"
@@ -29,36 +30,34 @@
                       style="-fx-padding: 20; -fx-background-color: white;">
 
                     <!-- Ingresar producto -->
-                    <HBox>
-                        <VBox spacing="5">
+                    <HBox spacing="20">
+                        <!-- Recuadro de imagen estático -->
+                        <StackPane fx:id="contenedorImagen" style="-fx-border-color: #bbb; -fx-border-width: 2;">
+                            <ImageView fx:id="previewImage" preserveRatio="true"/>
+                        </StackPane>
+
+                        <VBox spacing="10" HBox.hgrow="ALWAYS">
                             <Label text="Ingresar producto por:"/>
-                            <HBox spacing="10">
-                                <VBox spacing="5">
-                                    <Label text="Clave producto:"/>
-                                    <ComboBox fx:id="cbClaveProducto" prefWidth="150" maxWidth="150"/>
-                                </VBox>
 
-                                <VBox spacing="5">
-                                    <Label text="Clave alterna:"/>
-                                    <ComboBox fx:id="cbClaveAlterna" prefWidth="150" maxWidth="150"/>
-                                </VBox>
-                            </HBox>
-                        </VBox>
-                    </HBox>
+                            <VBox spacing="5">
+                                <Label text="Clave producto:"/>
+                                <ComboBox fx:id="cbClaveProducto" prefWidth="150" maxWidth="150"/>
+                            </VBox>
 
-                    <!-- Producto -->
-                    <HBox spacing="20">
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Producto:"/>
-                            <ComboBox fx:id="cbProductoNombre"/>
-                        </VBox>
-                    </HBox>
+                            <VBox spacing="5">
+                                <Label text="Clave alterna:"/>
+                                <ComboBox fx:id="cbClaveAlterna" prefWidth="150" maxWidth="150"/>
+                            </VBox>
 
-                    <!-- Descripción -->
-                    <HBox spacing="20">
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Descripción:"/>
-                            <TextField fx:id="txtDescripcion" style="-fx-min-height: 40;"/>
+                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                <Label text="Producto:"/>
+                                <ComboBox fx:id="cbProductoNombre"/>
+                            </VBox>
+
+                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                <Label text="Descripción:"/>
+                                <TextField fx:id="txtDescripcion" style="-fx-min-height: 40;"/>
+                            </VBox>
                         </VBox>
                     </HBox>
 

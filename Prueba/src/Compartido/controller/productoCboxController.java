@@ -72,6 +72,21 @@ public class productoCboxController {
         inicializarBase(cbId, cbNombre, cbClaveAlterna);
     }
 
+    public String getUrlImagenSeleccionada() {
+        String id = getIdSeleccionado();
+        if (id == null || id.isBlank() || productos == null) {
+            return null;
+        }
+
+        for (Map<String, String> producto : productos) {
+            if (id.equals(producto.get("id"))) {
+                return producto.get("urlImagen");
+            }
+        }
+
+        return null;
+    }
+
     private void inicializarBase(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna) {
         this.cbProductoId = cbId;
         this.cbProductoNombre = cbNombre;

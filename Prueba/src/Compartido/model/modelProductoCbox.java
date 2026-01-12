@@ -17,6 +17,7 @@ public class modelProductoCbox {
                 p.nombre,
                 COALESCE(p.categoria, '') AS categoria,
                 p.descripcion,
+                p.urlImagen,
                 p.unidadMedida,
                 m.nombre AS marca,
                 e.nombre AS etiqueta
@@ -58,7 +59,8 @@ public class modelProductoCbox {
             }
 
             StringBuilder sql = new StringBuilder();
-            sql.append("SELECT DISTINCT p.id, p.nombre, COALESCE(p.categoria, '') AS categoria, p.descripcion, p.unidadMedida, ")
+            sql.append("SELECT DISTINCT p.id, p.nombre, COALESCE(p.categoria, '') AS categoria, p.descripcion, ")
+                    .append("p.urlImagen, p.unidadMedida, ")
                     .append("m.nombre AS marca, e.nombre AS etiqueta ")
                     .append("FROM productos p ")
                     .append("LEFT JOIN marcas m ON m.id = p.marca ")
@@ -94,6 +96,7 @@ public class modelProductoCbox {
                 p.nombre,
                 COALESCE(p.categoria, '') AS categoria,
                 p.descripcion,
+                p.urlImagen,
                 p.unidadMedida,
                 m.nombre AS marca,
                 e.nombre AS etiqueta
@@ -153,6 +156,7 @@ public class modelProductoCbox {
         producto.put("etiqueta", etiqueta != null ? etiqueta : "");
         producto.put("unidadMedida", unidadMedida != null ? unidadMedida : "");
         producto.put("descripcion", construirDescripcion(marca, etiqueta, unidadMedida, descripcionOriginal));
+        producto.put("urlImagen", rs.getString("urlImagen"));
 
         return producto;
     }
