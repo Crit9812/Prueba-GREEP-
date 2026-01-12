@@ -11,27 +11,33 @@ public class modelProductoCbox {
      * Obtiene todos los productos de la base de datos
      */
     public List<Map<String, String>> obtenerTodosProductos() throws SQLException {
-        String sql = """
-            SELECT 
-                p.id,
-                p.nombre,
-                COALESCE(p.categoria, '') AS categoria,
-                p.descripcion,
-                p.urlImagen,
-                p.unidadMedida,
-                m.nombre AS marca,
-                e.nombre AS etiqueta
-            FROM productos p
-            LEFT JOIN marcas m ON m.id = p.marca
-            LEFT JOIN etiquetas e ON e.id = p.etiqueta
-            ORDER BY p.nombre
-        """;
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
+            String colUrlImagen = resolverColumna(columnasProductos, "urlImagen");
+            String urlImagenSelect = colUrlImagen != null
+                    ? "p." + colUrlImagen + " AS urlImagen"
+                    : "'' AS urlImagen";
 
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+            String sql = """
+                SELECT 
+                    p.id,
+                    p.nombre,
+                    COALESCE(p.categoria, '') AS categoria,
+                    p.descripcion,
+                    %s,
+                    p.unidadMedida,
+                    m.nombre AS marca,
+                    e.nombre AS etiqueta
+                FROM productos p
+                LEFT JOIN marcas m ON m.id = p.marca
+                LEFT JOIN etiquetas e ON e.id = p.etiqueta
+                ORDER BY p.nombre
+            """.formatted(urlImagenSelect);
 
-            return procesarResultSetProductos(rs);
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                return procesarResultSetProductos(rs);
+            }
         } catch (SQLException e) {
             System.err.println("Error obteniendo productos: " + e.getMessage());
             throw e;
@@ -40,9 +46,14 @@ public class modelProductoCbox {
 
     public List<Map<String, String>> obtenerProductosDisponibles() throws SQLException {
         try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
 
+            String colUrlImagen = resolverColumna(columnasProductos, "urlImagen");
+            String urlImagenSelect = colUrlImagen != null
+                    ? "p." + colUrlImagen + " AS urlImagen"
+                    : "'' AS urlImagen";
             String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
             String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
                     "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
@@ -60,7 +71,7 @@ public class modelProductoCbox {
 
             StringBuilder sql = new StringBuilder();
             sql.append("SELECT DISTINCT p.id, p.nombre, COALESCE(p.categoria, '') AS categoria, p.descripcion, ")
-                    .append("p.urlImagen, p.unidadMedida, ")
+                    .append(urlImagenSelect).append(", p.unidadMedida, ")
                     .append("m.nombre AS marca, e.nombre AS etiqueta ")
                     .append("FROM productos p ")
                     .append("LEFT JOIN marcas m ON m.id = p.marca ")
@@ -90,29 +101,9 @@ public class modelProductoCbox {
      * Obtiene todos los productos relacionados con un proveedor específico
      */
     public List<Map<String, String>> obtenerProductosPorProveedor(String idProveedor) throws SQLException {
-        String sql = """
-            SELECT DISTINCT
-                p.id,
-                p.nombre,
-                COALESCE(p.categoria, '') AS categoria,
-                p.descripcion,
-                p.urlImagen,
-                p.unidadMedida,
-                m.nombre AS marca,
-                e.nombre AS etiqueta
-            FROM productos p
-            JOIN claves c ON c.idProducto = p.id
-            LEFT JOIN marcas m ON m.id = p.marca
-            LEFT JOIN etiquetas e ON e.id = p.etiqueta
-            WHERE c.idProveedor = ?
-            ORDER BY p.nombre
-        """;
-
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+             PreparedStatement ps = conn.prepareStatement(buildSqlProductosPorProveedor(conn))) {
             ps.setString(1, idProveedor);
-
             try (ResultSet rs = ps.executeQuery()) {
                 return procesarResultSetProductos(rs);
             }
@@ -334,28 +325,8 @@ public class modelProductoCbox {
      * Busca un producto por su clave alterna
      */
     public Optional<Map<String, String>> buscarPorClaveAlterna(String idAlterno) throws SQLException {
-        String sql = """
-            SELECT 
-                p.id,
-                p.nombre,
-                COALESCE(p.categoria, '') AS categoria,
-                p.descripcion,
-                p.unidadMedida,
-                m.nombre AS marca,
-                e.nombre AS etiqueta,
-                ca.idAlterno,
-                ca.idProveedor,
-                pv.nombre AS nombreProveedor
-            FROM claves ca
-            JOIN productos p ON p.id = ca.idProducto
-            LEFT JOIN marcas m ON m.id = p.marca
-            LEFT JOIN etiquetas e ON e.id = p.etiqueta
-            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            WHERE ca.idAlterno = ?
-        """;
-
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(buildSqlClaveAlterna(conn, false))) {
 
             ps.setString(1, idAlterno);
 
@@ -373,28 +344,8 @@ public class modelProductoCbox {
      * Busca un producto por su clave alterna y proveedor
      */
     public Optional<Map<String, String>> buscarPorClaveAlterna(String idAlterno, String idProveedor) throws SQLException {
-        String sql = """
-            SELECT 
-                p.id,
-                p.nombre,
-                COALESCE(p.categoria, '') AS categoria,
-                p.descripcion,
-                p.unidadMedida,
-                m.nombre AS marca,
-                e.nombre AS etiqueta,
-                ca.idAlterno,
-                ca.idProveedor,
-                pv.nombre AS nombreProveedor
-            FROM claves ca
-            JOIN productos p ON p.id = ca.idProducto
-            LEFT JOIN marcas m ON m.id = p.marca
-            LEFT JOIN etiquetas e ON e.id = p.etiqueta
-            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            WHERE ca.idAlterno = ? AND ca.idProveedor = ?
-        """;
-
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(buildSqlClaveAlterna(conn, true))) {
 
             ps.setString(1, idAlterno);
             ps.setString(2, idProveedor);
@@ -421,6 +372,61 @@ public class modelProductoCbox {
         producto.put("nombreProveedor", rs.getString("nombreProveedor"));
 
         return producto;
+    }
+
+    private String buildSqlProductosPorProveedor(Connection conn) throws SQLException {
+        String urlImagenSelect = obtenerSelectUrlImagen(conn, "p");
+        return """
+            SELECT DISTINCT
+                p.id,
+                p.nombre,
+                COALESCE(p.categoria, '') AS categoria,
+                p.descripcion,
+                %s,
+                p.unidadMedida,
+                m.nombre AS marca,
+                e.nombre AS etiqueta
+            FROM productos p
+            JOIN claves c ON c.idProducto = p.id
+            LEFT JOIN marcas m ON m.id = p.marca
+            LEFT JOIN etiquetas e ON e.id = p.etiqueta
+            WHERE c.idProveedor = ?
+            ORDER BY p.nombre
+        """.formatted(urlImagenSelect);
+    }
+
+    private String buildSqlClaveAlterna(Connection conn, boolean filtrarProveedor) throws SQLException {
+        String urlImagenSelect = obtenerSelectUrlImagen(conn, "p");
+        String filtroProveedor = filtrarProveedor ? " AND ca.idProveedor = ?" : "";
+        return """
+            SELECT 
+                p.id,
+                p.nombre,
+                COALESCE(p.categoria, '') AS categoria,
+                p.descripcion,
+                %s,
+                p.unidadMedida,
+                m.nombre AS marca,
+                e.nombre AS etiqueta,
+                ca.idAlterno,
+                ca.idProveedor,
+                pv.nombre AS nombreProveedor
+            FROM claves ca
+            JOIN productos p ON p.id = ca.idProducto
+            LEFT JOIN marcas m ON m.id = p.marca
+            LEFT JOIN etiquetas e ON e.id = p.etiqueta
+            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
+            WHERE ca.idAlterno = ?%s
+        """.formatted(urlImagenSelect, filtroProveedor);
+    }
+
+    private String obtenerSelectUrlImagen(Connection conn, String aliasTabla) throws SQLException {
+        Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
+        String colUrlImagen = resolverColumna(columnasProductos, "urlImagen");
+        if (colUrlImagen == null) {
+            return "'' AS urlImagen";
+        }
+        return aliasTabla + "." + colUrlImagen + " AS urlImagen";
     }
 
     /**

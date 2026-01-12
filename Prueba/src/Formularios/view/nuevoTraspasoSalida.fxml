@@ -32,8 +32,11 @@
                     <!-- Ingresar producto -->
                     <HBox spacing="20">
                         <!-- Recuadro de imagen estático -->
-                        <StackPane fx:id="contenedorImagen" style="-fx-border-color: #bbb; -fx-border-width: 2;">
-                            <ImageView fx:id="previewImage" preserveRatio="true"/>
+                        <StackPane fx:id="contenedorImagen" prefWidth="130" prefHeight="130"
+                                   minWidth="130" minHeight="130"
+                                   maxWidth="130" maxHeight="130"
+                                   style="-fx-border-color: #bbb; -fx-border-width: 2;">
+                            <ImageView fx:id="previewImage" fitWidth="120" fitHeight="120" preserveRatio="true"/>
                         </StackPane>
 
                         <VBox spacing="10" HBox.hgrow="ALWAYS">
@@ -53,11 +56,14 @@
                                 <Label text="Producto:"/>
                                 <ComboBox fx:id="cbProductoNombre"/>
                             </VBox>
+                        </VBox>
+                    </HBox>
 
-                            <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                <Label text="Descripción:"/>
-                                <TextField fx:id="txtDescripcion" style="-fx-min-height: 40;"/>
-                            </VBox>
+                    <!-- Descripción -->
+                    <HBox spacing="20">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Descripción:"/>
+                            <TextField fx:id="txtDescripcion" style="-fx-min-height: 40;"/>
                         </VBox>
                     </HBox>
 
