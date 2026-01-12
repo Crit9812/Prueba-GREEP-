@@ -379,6 +379,7 @@ public class MainController {
         Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
         controlador.setItemsVenta(itemsSalida);
         controlador.setTituloFormulario("Quitar");
+        controlador.setModoSoloNormal(true);
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml", controlador, "Quitar");
     }
 
