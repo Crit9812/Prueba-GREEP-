@@ -622,6 +622,12 @@ public class productoCboxController {
                 modelProductoCbox.obtenerUnidadMedidaPorId(id, productos) : "";
     }
 
+    public String getCategoriaSeleccionada() {
+        String id = getIdSeleccionado();
+        return (id != null && productos != null) ?
+                modelProductoCbox.obtenerCategoriaPorId(id, productos) : "";
+    }
+
     public boolean validarSeleccion() {
         String id = getIdSeleccionado();
         String nombre = getNombreSeleccionado();

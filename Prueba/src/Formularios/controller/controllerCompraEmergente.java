@@ -155,6 +155,9 @@ public class controllerCompraEmergente {
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
         cbPresentacion.setValue("pz");
+        if (txtFactor != null) {
+            txtFactor.setText("1");
+        }
     }
 
     private void cargarUbicacionesDesdeBD() {
@@ -209,6 +212,16 @@ public class controllerCompraEmergente {
         cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
+            }
+        });
+
+        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal.equalsIgnoreCase("pz")) {
+                txtFactor.setText("1");
+                return;
+            }
+            if (oldVal != null && oldVal.equalsIgnoreCase("pz") && "1".equals(txtFactor.getText())) {
+                txtFactor.clear();
             }
         });
 
@@ -437,6 +450,11 @@ public class controllerCompraEmergente {
 
         if (!validacion.isValido()) {
             mostrarAlerta("Advertencia", validacion.getMensaje());
+            return;
+        }
+
+        if (esProductoReactivo() && (caducidad == null || caducidad.isBlank())) {
+            mostrarAlerta("Advertencia", "La caducidad es forzosa para los reactivos.");
             return;
         }
 
@@ -870,6 +888,18 @@ public class controllerCompraEmergente {
             return "";
         }
         return dpCaducidad.getValue().format(FECHA_FORMATO);
+    }
+
+    private boolean esProductoReactivo() {
+        if (productoController == null) {
+            return false;
+        }
+        String categoria = productoController.getCategoriaSeleccionada();
+        if (categoria == null) {
+            return false;
+        }
+        String categoriaNormalizada = categoria.trim().toLowerCase();
+        return categoriaNormalizada.startsWith("reactiv");
     }
 
     private void configurarCaducidadDesdeTexto(String caducidad) {
