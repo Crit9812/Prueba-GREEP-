@@ -883,7 +883,7 @@ public class controllerNuevaVenta {
             HBox filaUbicacion = new HBox(10);
             filaUbicacion.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #000000;");
             filaUbicacion.setAlignment(Pos.CENTER_LEFT);
-            Label ubicacionLabel = new Label("Ubicación " + ubicacion);
+            Label ubicacionLabel = new Label("Ubicación " + ubicacion + ":");
             ubicacionLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
             Label totalLabel = new Label(String.valueOf(total));
             totalLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
