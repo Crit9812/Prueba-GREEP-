@@ -166,6 +166,7 @@ public class controllerNuevoTraspasoSalida {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
+                cargarPreciosRapidosDesdeUltimaEntrada();
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
@@ -176,6 +177,7 @@ public class controllerNuevoTraspasoSalida {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
+                cargarPreciosRapidosDesdeUltimaEntrada();
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
@@ -186,6 +188,7 @@ public class controllerNuevoTraspasoSalida {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPreciosDesdeProducto();
+                cargarPreciosRapidosDesdeUltimaEntrada();
                 actualizarEstadoCascada();
             }
             actualizarImagenProducto();
@@ -355,6 +358,12 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);
         txtPrecioTotal.setEditable(false);
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.setEditable(false);
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.setEditable(false);
+        }
         if (txtPrecioBrutoRapida != null) {
             txtPrecioBrutoRapida.setEditable(false);
         }
@@ -490,6 +499,80 @@ public class controllerNuevoTraspasoSalida {
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
+    }
+
+    private void cargarPreciosRapidosDesdeUltimaEntrada() {
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            limpiarPreciosRapidos();
+            return;
+        }
+        String idSnapshot = idProducto;
+        javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
+                return modelo.obtenerPreciosProductoUltimaEntrada(idSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String idActual = productoController.getIdSeleccionado();
+                if (!idSnapshot.equals(idActual)) {
+                    return;
+                }
+                Optional<modelNuevoTraspasoSalida.PreciosProducto> resultado = getValue();
+                if (resultado.isPresent()) {
+                    aplicarPreciosRapidos(resultado.get());
+                } else {
+                    limpiarPreciosRapidos();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                limpiarPreciosRapidos();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void aplicarPreciosRapidos(modelNuevoTraspasoSalida.PreciosProducto precios) {
+        if (precios == null) {
+            limpiarPreciosRapidos();
+            return;
+        }
+        BigDecimal precioEntradaRapida = precios.getPrecioUnitario() != null
+                ? precios.getPrecioUnitario()
+                : BigDecimal.ZERO;
+        BigDecimal precioIvaRapida = precios.getPrecioIva() != null
+                ? precios.getPrecioIva()
+                : BigDecimal.ZERO;
+
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.setText(formatearDecimal(precioEntradaRapida));
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.setText(formatearDecimal(precioIvaRapida));
+        }
+        recalcularPreciosRapido();
+    }
+
+    private void limpiarPreciosRapidos() {
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.clear();
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.clear();
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.clear();
+        }
     }
 
     private void aplicarPrecios(modelNuevoTraspasoSalida.PreciosProducto precios) {

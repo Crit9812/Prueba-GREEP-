@@ -74,6 +74,8 @@ public class controllerNuevaVenta {
     @FXML private Tab tabNormal;
     @FXML private Tab tabRapido;
     @FXML private TextField txtCantidadRapida;
+    @FXML private TextField txtPrecioEntradaRapida;
+    @FXML private TextField txtPrecioEntradaIvaRapida;
     @FXML private TextField txtPrecioSalidaRapida;
     @FXML private CheckBox checkBoxIVARapida;
     @FXML private TextField txtPrecioIVARapida;
@@ -192,6 +194,7 @@ public class controllerNuevaVenta {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
+                cargarPrecioRapidoDesdeUltimaEntrada();
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
@@ -202,6 +205,7 @@ public class controllerNuevaVenta {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
+                cargarPrecioRapidoDesdeUltimaEntrada();
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
@@ -212,6 +216,7 @@ public class controllerNuevaVenta {
             if (newVal != null) {
                 actualizarDescripcionDesdeProducto();
                 cargarPrecioEntradaDesdeProducto();
+                cargarPrecioRapidoDesdeUltimaEntrada();
                 actualizarEstadoCascada();
             }
             actualizarImagenProducto();
@@ -333,6 +338,12 @@ public class controllerNuevaVenta {
         if (txtCantidadRapida != null) {
             txtCantidadRapida.clear();
         }
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.clear();
+        }
         if (txtPrecioSalidaRapida != null) {
             txtPrecioSalidaRapida.clear();
         }
@@ -388,6 +399,89 @@ public class controllerNuevaVenta {
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
+    }
+
+    private void cargarPrecioRapidoDesdeUltimaEntrada() {
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            limpiarPreciosRapidos();
+            return;
+        }
+        String idSnapshot = idProducto;
+        javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
+                return modelo.obtenerPreciosProductoUltimaEntrada(idSnapshot);
+            }
+
+            @Override
+            protected void succeeded() {
+                String idActual = productoController.getIdSeleccionado();
+                if (!idSnapshot.equals(idActual)) {
+                    return;
+                }
+                Optional<modelNuevoTraspasoSalida.PreciosProducto> resultado = getValue();
+                if (resultado.isPresent()) {
+                    aplicarPreciosRapidos(resultado.get());
+                } else {
+                    limpiarPreciosRapidos();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                limpiarPreciosRapidos();
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void aplicarPreciosRapidos(modelNuevoTraspasoSalida.PreciosProducto precios) {
+        if (precios == null) {
+            limpiarPreciosRapidos();
+            return;
+        }
+        BigDecimal precioEntradaRapida = precios.getPrecioUnitario() != null
+                ? precios.getPrecioUnitario()
+                : BigDecimal.ZERO;
+        BigDecimal precioEntradaIvaRapida = precios.getPrecioIva() != null
+                ? precios.getPrecioIva()
+                : BigDecimal.ZERO;
+
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.setText(formatearDecimal(precioEntradaRapida));
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.setText(formatearDecimal(precioEntradaIvaRapida));
+        }
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.setText(formatearDecimal(precioEntradaRapida));
+        }
+        recalcularPreciosRapido();
+    }
+
+    private void limpiarPreciosRapidos() {
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.clear();
+        }
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.clear();
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.clear();
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.clear();
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.clear();
+        }
     }
 
     private void aplicarPrecioEntrada(modelNuevoTraspasoSalida.PreciosProducto precios) {
@@ -2204,6 +2298,12 @@ public class controllerNuevaVenta {
         txtPrecioEntrada.setEditable(false);
         if (txtPrecioEntradaIva != null) {
             txtPrecioEntradaIva.setEditable(false);
+        }
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.setEditable(false);
+        }
+        if (txtPrecioEntradaIvaRapida != null) {
+            txtPrecioEntradaIvaRapida.setEditable(false);
         }
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);

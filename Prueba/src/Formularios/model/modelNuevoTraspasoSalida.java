@@ -122,6 +122,39 @@ public class modelNuevoTraspasoSalida {
         return Optional.empty();
     }
 
+    public Optional<PreciosProducto> obtenerPreciosProductoUltimaEntrada(String idProducto) {
+        String sql = """
+            SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
+            FROM detalle_Entrada de
+            JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            JOIN entradas e ON e.idEntrada = de.claveEntrada
+            WHERE de.claveProducto = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY e.fechaEntrada DESC, e.horaEntrada DESC, de.idDetalleEntrada DESC LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            index = agregarParametroEstado(ps, conn, index);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal precioUnitario = obtenerDecimal(rs, "precioUnitario");
+                    BigDecimal precioIva = obtenerDecimal(rs, "precioIVA");
+                    BigDecimal precioBruto = obtenerDecimal(rs, "precioBrutoTotal");
+                    BigDecimal precioTotal = obtenerDecimal(rs, "precioTotal");
+                    return Optional.of(new PreciosProducto(precioUnitario, precioIva, precioBruto, precioTotal));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
     public boolean existeLote(String lote) {
         String sql = "SELECT 1 FROM articulo WHERE lote = ?";
 
