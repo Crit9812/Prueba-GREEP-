@@ -42,6 +42,7 @@ public class modelNuevoTraspasoSalida {
             FROM detalle_Entrada de
             JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
             JOIN ubicaciones u ON u.id = a.ubicacion
+            JOIN entradas e ON e.idEntrada = de.claveEntrada
             WHERE de.claveProducto = ?
               AND a.lote = ?
               AND a.caducidad = ?
@@ -50,7 +51,7 @@ public class modelNuevoTraspasoSalida {
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
-                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+                     + " ORDER BY e.fechaEntrada DESC, e.horaEntrada DESC, de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, idProducto);
@@ -85,6 +86,7 @@ public class modelNuevoTraspasoSalida {
             SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
             FROM detalle_Entrada de
             JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            JOIN entradas e ON e.idEntrada = de.claveEntrada
             WHERE de.claveProducto = ?
               AND a.lote = ?
               AND a.caducidad = ?
@@ -92,7 +94,7 @@ public class modelNuevoTraspasoSalida {
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
-                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+                     + " ORDER BY e.fechaEntrada DESC, e.horaEntrada DESC, de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, idProducto);
