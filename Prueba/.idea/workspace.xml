@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Modificaciones de consultas agregadas">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,7 +105,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "Pruebas",
+    "git-widget-placeholder": "#48 on codex/add-tabs-for-normal-and-qui…forms",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -391,7 +393,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767978981310</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Modificaciones de consultas agregadas">
+      <option name="closed" value="true" />
+      <created>1767980482972</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1767980482973</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -423,7 +433,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/codex/add-validation-to-sale-and-transfer-forms" />
+                        <option value="origin/Pruebas" />
                       </list>
                     </value>
                   </entry>

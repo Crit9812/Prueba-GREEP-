@@ -33,8 +33,8 @@
 }
 
 .modo-tabs .tab {
-    -fx-padding: 8 18 8 18;
-    -fx-font-size: 14px;
+    -fx-padding: 5 18 5 18;
+    -fx-font-size: 12px;
 }
 
 .modo-tabs .tab:selected {
