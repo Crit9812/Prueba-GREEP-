@@ -447,7 +447,25 @@ public class modelNuevoTraspasoSalida {
         String colEstado = obtenerColumnaEstadoArticulo(conn);
         StringBuilder sql = new StringBuilder(sqlBase);
         if (colEstado != null) {
-            sql.append(" AND LOWER(a.").append(colEstado).append(") = ?");
+            String filtro = "LOWER(a." + colEstado + ") = ?";
+            String sqlLower = sqlBase.toLowerCase();
+            int insertPos = sql.length();
+            int groupPos = sqlLower.indexOf(" group by ");
+            int orderPos = sqlLower.indexOf(" order by ");
+            if (groupPos >= 0 && orderPos >= 0) {
+                insertPos = Math.min(groupPos, orderPos);
+            } else if (groupPos >= 0) {
+                insertPos = groupPos;
+            } else if (orderPos >= 0) {
+                insertPos = orderPos;
+            }
+            boolean tieneWhere = sqlLower.contains(" where ");
+            String condicion = (tieneWhere ? " AND " : " WHERE ") + filtro + " ";
+            if (insertPos < sql.length()) {
+                sql.insert(insertPos, condicion);
+            } else {
+                sql.append(condicion);
+            }
         }
         return sql.toString();
     }
