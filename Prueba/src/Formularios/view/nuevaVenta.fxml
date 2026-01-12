@@ -32,11 +32,11 @@
                     <!-- Ingresar producto -->
                     <HBox spacing="20">
                         <!-- Recuadro de imagen estático -->
-                        <StackPane fx:id="contenedorImagen" prefWidth="130" prefHeight="130"
-                                   minWidth="130" minHeight="130"
-                                   maxWidth="130" maxHeight="130"
+                        <StackPane fx:id="contenedorImagen" prefWidth="180" prefHeight="190"
+                                   minWidth="180" minHeight="190"
+                                   maxWidth="180" maxHeight="190"
                                    style="-fx-border-color: #bbb; -fx-border-width: 2;">
-                            <ImageView fx:id="previewImage" fitWidth="120" fitHeight="120" preserveRatio="true"/>
+                            <ImageView fx:id="previewImage" fitWidth="170" fitHeight="180" preserveRatio="true"/>
                         </StackPane>
 
                         <VBox spacing="10" HBox.hgrow="ALWAYS">
@@ -71,7 +71,7 @@
                         <tabs>
                             <Tab fx:id="tabNormal" text="Normal">
                                 <content>
-                                    <VBox spacing="15" style="-fx-padding: 10 0 0 0;">
+                                    <VBox spacing="55" style="-fx-padding: 25 0 0 0;">
                                         <!-- Lote, Caducidad, Cantidad -->
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
@@ -176,7 +176,7 @@
                             </Tab>
                             <Tab fx:id="tabRapido" text="Rápido">
                                 <content>
-                                    <VBox spacing="15" style="-fx-padding: 10 0 0 0;">
+                                    <VBox spacing="55" style="-fx-padding: 25 0 0 0;">
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Cantidad:"/>
