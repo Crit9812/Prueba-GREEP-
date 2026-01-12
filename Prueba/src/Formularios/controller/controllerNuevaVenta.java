@@ -712,6 +712,10 @@ public class controllerNuevaVenta {
             return;
         }
 
+        if (!confirmarPerdidaRapidaSiAplica(cantidad)) {
+            return;
+        }
+
         int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(clave, "pz", 1);
         if (cantidad > disponible) {
             mostrarAlerta("Advertencia",
@@ -769,6 +773,40 @@ public class controllerNuevaVenta {
 
         mostrarAlertaSinEspera("Éxito", "Producto agregado a la venta.");
         limpiarFormularioParaNuevo();
+    }
+
+    private boolean confirmarPerdidaRapidaSiAplica(int cantidad) {
+        if (txtPrecioEntradaRapida == null || txtPrecioSalidaRapida == null) {
+            return true;
+        }
+        String precioEntradaTexto = txtPrecioEntradaRapida.getText() != null
+                ? txtPrecioEntradaRapida.getText().trim()
+                : "";
+        String precioSalidaTexto = txtPrecioSalidaRapida.getText() != null
+                ? txtPrecioSalidaRapida.getText().trim()
+                : "";
+        if (precioEntradaTexto.isBlank() || precioSalidaTexto.isBlank()) {
+            return true;
+        }
+        BigDecimal precioEntrada = parseDecimal(precioEntradaTexto);
+        BigDecimal precioSalida = parseDecimal(precioSalidaTexto);
+        if (precioSalida.compareTo(precioEntrada) >= 0) {
+            return true;
+        }
+        BigDecimal perdidaUnit = precioEntrada.subtract(precioSalida);
+        BigDecimal perdidaTotal = perdidaUnit.multiply(BigDecimal.valueOf(cantidad));
+
+        Alert alerta = new Alert(AlertType.WARNING);
+        alerta.setTitle("Advertencia de pérdida");
+        alerta.setHeaderText("El precio de salida es menor al precio de entrada.");
+        VBox contenido = new VBox(6);
+        Label mensaje = new Label("Puede haber posibles pérdidas con este precio.");
+        Label perdidaLabel = new Label("Pérdida estimada: " + formatearDecimal(perdidaTotal));
+        perdidaLabel.setStyle("-fx-text-fill: #d9534f; -fx-font-weight: bold;");
+        contenido.getChildren().addAll(mensaje, perdidaLabel);
+        alerta.getDialogPane().setContent(contenido);
+        Optional<javafx.scene.control.ButtonType> respuesta = alerta.showAndWait();
+        return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
     }
 
     private List<AsignacionRapida> construirAsignacionesRapidas(
