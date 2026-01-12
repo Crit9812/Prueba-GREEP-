@@ -712,6 +712,10 @@ public class controllerNuevaVenta {
             return;
         }
 
+        if (!confirmarPerdidaRapidaSiAplica(cantidad)) {
+            return;
+        }
+
         int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(clave, "pz", 1);
         if (cantidad > disponible) {
             mostrarAlerta("Advertencia",
@@ -771,6 +775,41 @@ public class controllerNuevaVenta {
         limpiarFormularioParaNuevo();
     }
 
+    private boolean confirmarPerdidaRapidaSiAplica(int cantidad) {
+        if (txtPrecioEntradaRapida == null || txtPrecioSalidaRapida == null) {
+            return true;
+        }
+        String precioEntradaTexto = txtPrecioEntradaRapida.getText() != null
+                ? txtPrecioEntradaRapida.getText().trim()
+                : "";
+        String precioSalidaTexto = txtPrecioSalidaRapida.getText() != null
+                ? txtPrecioSalidaRapida.getText().trim()
+                : "";
+        if (precioEntradaTexto.isBlank() || precioSalidaTexto.isBlank()) {
+            return true;
+        }
+        BigDecimal precioEntrada = parseDecimal(precioEntradaTexto);
+        BigDecimal precioSalida = parseDecimal(precioSalidaTexto);
+        if (precioSalida.compareTo(precioEntrada) >= 0) {
+            return true;
+        }
+        BigDecimal perdidaUnit = precioEntrada.subtract(precioSalida);
+        BigDecimal perdidaTotal = perdidaUnit.multiply(BigDecimal.valueOf(cantidad));
+
+        Alert alerta = new Alert(AlertType.WARNING);
+        alerta.setTitle("Advertencia de pérdida");
+        alerta.setHeaderText("El precio de salida es menor al precio de entrada.");
+        alerta.getButtonTypes().setAll(javafx.scene.control.ButtonType.OK, javafx.scene.control.ButtonType.CANCEL);
+        VBox contenido = new VBox(6);
+        Label mensaje = new Label("Puede haber posibles pérdidas con este precio.");
+        Label perdidaLabel = new Label("Pérdida estimada: " + formatearDecimal(perdidaTotal));
+        perdidaLabel.setStyle("-fx-text-fill: #d9534f; -fx-font-weight: bold;");
+        contenido.getChildren().addAll(mensaje, perdidaLabel);
+        alerta.getDialogPane().setContent(contenido);
+        Optional<javafx.scene.control.ButtonType> respuesta = alerta.showAndWait();
+        return respuesta.isPresent() && respuesta.get() == javafx.scene.control.ButtonType.OK;
+    }
+
     private List<AsignacionRapida> construirAsignacionesRapidas(
             List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles,
             int cantidad
@@ -827,31 +866,42 @@ public class controllerNuevaVenta {
         contenido.setFillWidth(true);
         contenido.setAlignment(Pos.TOP_LEFT);
 
-        VBox encabezado = new VBox(4);
+        HBox encabezado = new HBox(10);
         encabezado.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #f0f0f0; -fx-border-color: #cccccc;");
-        Label tituloUbicacion = new Label("Ubicación (Total)");
+        encabezado.setAlignment(Pos.CENTER_LEFT);
+        Label tituloUbicacion = new Label("Lote / Ubicación");
         tituloUbicacion.setStyle("-fx-font-weight: bold;");
-        Label tituloLotes = new Label("Lotes");
-        tituloLotes.setStyle("-fx-font-weight: bold;");
-        encabezado.getChildren().addAll(tituloUbicacion, tituloLotes);
+        Label tituloCantidad = new Label("Cantidad");
+        tituloCantidad.setStyle("-fx-font-weight: bold;");
+        HBox.setHgrow(tituloUbicacion, Priority.ALWAYS);
+        encabezado.getChildren().addAll(tituloUbicacion, tituloCantidad);
         contenido.getChildren().add(encabezado);
 
         for (Map.Entry<String, Map<String, Integer>> entry : lotesPorUbicacion.entrySet()) {
             String ubicacion = entry.getKey();
             int total = totalesPorUbicacion.getOrDefault(ubicacion, 0);
-            VBox fila = new VBox(4);
-            fila.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #000000;");
-
-            Label ubicacionLabel = new Label("Ubicación " + ubicacion + ": " + total);
+            HBox filaUbicacion = new HBox(10);
+            filaUbicacion.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #000000;");
+            filaUbicacion.setAlignment(Pos.CENTER_LEFT);
+            Label ubicacionLabel = new Label("Ubicación " + ubicacion + ":");
             ubicacionLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
-            VBox lotesBox = new VBox(2);
+            Label totalLabel = new Label(String.valueOf(total));
+            totalLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
+            HBox.setHgrow(ubicacionLabel, Priority.ALWAYS);
+            filaUbicacion.getChildren().addAll(ubicacionLabel, totalLabel);
+            contenido.getChildren().add(filaUbicacion);
+
             for (Map.Entry<String, Integer> loteEntry : entry.getValue().entrySet()) {
-                Label loteLabel = new Label("Lote " + loteEntry.getKey() + ": " + loteEntry.getValue());
-                loteLabel.setStyle("-fx-text-fill: #ffffff;");
-                lotesBox.getChildren().add(loteLabel);
+                HBox filaLote = new HBox(10);
+                filaLote.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #ffffff; "
+                        + "-fx-border-color: #cccccc; -fx-border-width: 1;");
+                filaLote.setAlignment(Pos.CENTER_LEFT);
+                Label loteLabel = new Label("Lote " + loteEntry.getKey() + ":");
+                Label cantidadLabel = new Label(String.valueOf(loteEntry.getValue()));
+                HBox.setHgrow(loteLabel, Priority.ALWAYS);
+                filaLote.getChildren().addAll(loteLabel, cantidadLabel);
+                contenido.getChildren().add(filaLote);
             }
-            fila.getChildren().addAll(ubicacionLabel, lotesBox);
-            contenido.getChildren().add(fila);
         }
 
         Alert resumenAlert = new Alert(AlertType.INFORMATION);
