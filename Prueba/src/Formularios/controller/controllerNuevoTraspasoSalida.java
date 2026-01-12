@@ -19,6 +19,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.KeyCode;
@@ -57,6 +59,14 @@ public class controllerNuevoTraspasoSalida {
     @FXML private TextField txtPrecioTotal;
     @FXML private Button btnGuardar;
     @FXML private Button btnLimpiar;
+    @FXML private TabPane tabPaneModo;
+    @FXML private Tab tabNormal;
+    @FXML private Tab tabRapido;
+    @FXML private TextField txtCantidadRapida;
+    @FXML private TextField txtPrecioEntradaRapida;
+    @FXML private TextField txtPrecioIVARapida;
+    @FXML private TextField txtPrecioBrutoRapida;
+    @FXML private TextField txtPrecioTotalRapida;
 
     private int contadorFilas = 1;
     private static final int MAX_FILAS = 10;
@@ -83,6 +93,7 @@ public class controllerNuevoTraspasoSalida {
     private static final Duration DEBOUNCE_TIEMPO = Duration.millis(300);
     private final PauseTransition loteDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private final PauseTransition factorDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
+    private final PauseTransition cantidadRapidaDebounce = new PauseTransition(DEBOUNCE_TIEMPO);
     private String ultimoLoteValidado = "";
     private String ultimoFactorValidado = "";
     private String ultimaPresentacionValidada = "";
@@ -90,6 +101,7 @@ public class controllerNuevoTraspasoSalida {
     private final Map<TextField, String> ultimaCantidadUbicacionValidada = new HashMap<>();
     private final Map<ComboBox<String>, List<UbicacionCompra>> ubicacionesCapturadas = new HashMap<>();
     private boolean seleccionarClaveAlternaPendiente = false;
+    private boolean cantidadRapidaValida = false;
 
     @FXML
     public void initialize() {
@@ -106,6 +118,7 @@ public class controllerNuevoTraspasoSalida {
         configurarLimpiezaPorCampoVacio();
         configurarManejoEnter();
         configurarCascada();
+        configurarModoRapido();
         configurarSeleccionClaveAlternaPorDefecto();
         configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
         configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
@@ -246,6 +259,21 @@ public class controllerNuevoTraspasoSalida {
         limpiarUbicacionPrimaria();
         cbPresentacion.setValue(null);
         txtFactor.clear();
+        if (txtCantidadRapida != null) {
+            txtCantidadRapida.clear();
+        }
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.clear();
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.clear();
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.clear();
+        }
         actualizarEstadoCascada();
     }
 
@@ -257,6 +285,21 @@ public class controllerNuevoTraspasoSalida {
             actualizarEstadoCascada();
         });
 
+        if (txtCantidadRapida != null) {
+            txtCantidadRapida.textProperty().addListener((obs, oldVal, newVal) -> {
+                programarValidacionCantidadRapida();
+                recalcularPreciosRapido();
+            });
+        }
+
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.textProperty().addListener((obs, oldVal, newVal) -> recalcularPreciosRapido());
+        }
+
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.textProperty().addListener((obs, oldVal, newVal) -> recalcularPreciosRapido());
+        }
+
         txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
             programarValidacionFactor(newVal);
         });
@@ -267,6 +310,12 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioIVA.setEditable(false);
         txtPrecioBruto.setEditable(false);
         txtPrecioTotal.setEditable(false);
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.setEditable(false);
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.setEditable(false);
+        }
     }
 
     private void configurarManejoEnter() {
@@ -337,6 +386,9 @@ public class controllerNuevoTraspasoSalida {
     private void configurarValidaciones() {
         validarNumerosEnteros(txtCantidad);
         validarNumerosEnteros(txtFactor);
+        if (txtCantidadRapida != null) {
+            validarNumerosEnteros(txtCantidadRapida);
+        }
     }
 
     private void validarNumerosEnteros(TextField campo) {
@@ -418,6 +470,10 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void guardarItem() {
+        if (esModoRapido()) {
+            guardarItemRapido();
+            return;
+        }
         String clave = productoController.getIdSeleccionado();
         String nombre = productoController.getNombreSeleccionado();
         String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
@@ -521,6 +577,154 @@ public class controllerNuevoTraspasoSalida {
 
         mostrarAlertaSinEspera("Éxito", "Producto agregado al traspaso de salida.");
         limpiarFormularioParaNuevo();
+    }
+
+    private void guardarItemRapido() {
+        String clave = productoController.getIdSeleccionado();
+        String nombre = productoController.getNombreSeleccionado();
+        String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
+        String cantidadTexto = txtCantidadRapida != null && txtCantidadRapida.getText() != null
+                ? txtCantidadRapida.getText().trim()
+                : "";
+        String precioEntrada = txtPrecioEntradaRapida != null && txtPrecioEntradaRapida.getText() != null
+                ? txtPrecioEntradaRapida.getText().trim()
+                : "";
+        String precioIva = txtPrecioIVARapida != null && txtPrecioIVARapida.getText() != null
+                ? txtPrecioIVARapida.getText().trim()
+                : "";
+        String precioBruto = txtPrecioBrutoRapida != null && txtPrecioBrutoRapida.getText() != null
+                ? txtPrecioBrutoRapida.getText().trim()
+                : "";
+        String precioTotal = txtPrecioTotalRapida != null && txtPrecioTotalRapida.getText() != null
+                ? txtPrecioTotalRapida.getText().trim()
+                : "";
+
+        if (clave == null || clave.isBlank()
+                || nombre == null || nombre.isBlank()
+                || descripcion.isBlank()
+                || cantidadTexto.isBlank()
+                || precioEntrada.isBlank()
+                || precioIva.isBlank()
+                || precioBruto.isBlank()
+                || precioTotal.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar.");
+            return;
+        }
+
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(cantidadTexto);
+            if (cantidad <= 0) {
+                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            mostrarAlerta("Error", "La cantidad debe ser un número válido.");
+            return;
+        }
+
+        int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(clave, "pz", 1);
+        if (cantidad > disponible) {
+            mostrarAlerta("Advertencia",
+                    "La cantidad supera la disponible para la presentación pz con factor 1.");
+            return;
+        }
+
+        if (itemsTraspaso == null) {
+            mostrarAlerta("Error", "No se pudo registrar el traspaso en la tabla.");
+            return;
+        }
+
+        List<traspasoSalida> itemsGenerados = construirItemsRapidosTraspaso(clave, nombre, descripcion, cantidad);
+        if (itemsGenerados.isEmpty()) {
+            mostrarAlerta("Error", "No se pudo distribuir la cantidad solicitada con la disponibilidad actual.");
+            return;
+        }
+
+        BigDecimal precioEntradaDecimal = parseDecimal(precioEntrada);
+        BigDecimal precioIvaDecimal = parseDecimal(precioIva);
+        for (traspasoSalida item : itemsGenerados) {
+            if (existeProductoLoteEnTraspaso(clave, item.getLote())) {
+                mostrarAlerta("Advertencia",
+                        "Ya se agregó este producto con el mismo lote. Finaliza el traspaso para poder repetirlo.");
+                return;
+            }
+            int cantidadItem = item.getCantidad();
+            BigDecimal brutoItem = precioEntradaDecimal.multiply(BigDecimal.valueOf(cantidadItem));
+            BigDecimal totalItem = precioIvaDecimal.multiply(BigDecimal.valueOf(cantidadItem));
+            item.setPrecioEntrada(formatearDecimal(precioEntradaDecimal));
+            item.setPrecioIva(formatearDecimal(precioIvaDecimal));
+            item.setPrecioBruto(formatearDecimal(brutoItem));
+            item.setPrecioTotal(formatearDecimal(totalItem));
+            itemsTraspaso.add(item);
+        }
+
+        if (mainController != null) {
+            mainController.refrescarTabla();
+        }
+
+        mostrarAlertaSinEspera("Éxito", "Producto agregado al traspaso de salida.");
+        limpiarFormularioParaNuevo();
+    }
+
+    private List<traspasoSalida> construirItemsRapidosTraspaso(String clave, String nombre, String descripcion,
+                                                               int cantidad) {
+        List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles =
+                modelo.obtenerDisponibilidadesRapidas(clave, "pz", 1);
+        List<traspasoSalida> resultado = new ArrayList<>();
+        if (disponibles.isEmpty()) {
+            return resultado;
+        }
+
+        Map<LoteCaducidadKey, List<UbicacionCompra>> ubicacionesPorLote = new java.util.LinkedHashMap<>();
+        Map<LoteCaducidadKey, Integer> cantidadesPorLote = new java.util.LinkedHashMap<>();
+        int restante = cantidad;
+
+        for (modelNuevoTraspasoSalida.DisponibilidadRapida disp : disponibles) {
+            if (restante <= 0) {
+                break;
+            }
+            int asignar = Math.min(restante, disp.getTotal());
+            if (asignar <= 0) {
+                continue;
+            }
+            LoteCaducidadKey key = new LoteCaducidadKey(disp.getLote(), disp.getCaducidad());
+            ubicacionesPorLote.computeIfAbsent(key, k -> new ArrayList<>())
+                    .add(new UbicacionCompra(disp.getUbicacion(), asignar));
+            cantidadesPorLote.merge(key, asignar, Integer::sum);
+            restante -= asignar;
+        }
+
+        if (restante > 0) {
+            return List.of();
+        }
+
+        for (Map.Entry<LoteCaducidadKey, List<UbicacionCompra>> entry : ubicacionesPorLote.entrySet()) {
+            LoteCaducidadKey key = entry.getKey();
+            int cantidadItem = cantidadesPorLote.getOrDefault(key, 0);
+            if (cantidadItem <= 0) {
+                continue;
+            }
+            String caducidad = key.caducidad != null ? key.caducidad.toString() : "";
+            traspasoSalida item = new traspasoSalida(
+                    clave,
+                    nombre,
+                    descripcion,
+                    key.lote,
+                    caducidad,
+                    cantidadItem,
+                    "pz",
+                    1,
+                    entry.getValue(),
+                    "",
+                    "",
+                    "",
+                    ""
+            );
+            resultado.add(item);
+        }
+
+        return resultado;
     }
 
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
@@ -640,6 +844,22 @@ public class controllerNuevoTraspasoSalida {
         }
         contadorFilas = 1;
         limpiarComboUbicacion(comboUbicacion);
+
+        if (txtCantidadRapida != null) {
+            txtCantidadRapida.clear();
+        }
+        if (txtPrecioEntradaRapida != null) {
+            txtPrecioEntradaRapida.clear();
+        }
+        if (txtPrecioIVARapida != null) {
+            txtPrecioIVARapida.clear();
+        }
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.clear();
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.clear();
+        }
 
         cbClaveProducto.requestFocus();
         actualizarEstadoCascada();
@@ -767,6 +987,39 @@ public class controllerNuevoTraspasoSalida {
         txtPrecioTotal.setText(formatearDecimal(precioTotal));
     }
 
+    private void recalcularPreciosRapido() {
+        if (txtCantidadRapida == null) {
+            return;
+        }
+        int cantidad = parseEntero(txtCantidadRapida.getText());
+        if (cantidad <= 0) {
+            if (txtPrecioBrutoRapida != null) {
+                txtPrecioBrutoRapida.clear();
+            }
+            if (txtPrecioTotalRapida != null) {
+                txtPrecioTotalRapida.clear();
+            }
+            return;
+        }
+
+        BigDecimal precioEntrada = parseDecimal(txtPrecioEntradaRapida != null
+                ? txtPrecioEntradaRapida.getText()
+                : null);
+        BigDecimal precioIva = parseDecimal(txtPrecioIVARapida != null
+                ? txtPrecioIVARapida.getText()
+                : null);
+
+        BigDecimal precioBruto = precioEntrada.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal precioTotal = precioIva.multiply(BigDecimal.valueOf(cantidad));
+
+        if (txtPrecioBrutoRapida != null) {
+            txtPrecioBrutoRapida.setText(formatearDecimal(precioBruto));
+        }
+        if (txtPrecioTotalRapida != null) {
+            txtPrecioTotalRapida.setText(formatearDecimal(precioTotal));
+        }
+    }
+
     private void actualizarPreciosPorUbicaciones() {
         cargarPreciosDesdeProducto();
     }
@@ -776,6 +1029,17 @@ public class controllerNuevoTraspasoSalida {
             return Integer.parseInt(texto);
         } catch (Exception e) {
             return 0;
+        }
+    }
+
+    private BigDecimal parseDecimal(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(texto.trim());
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
         }
     }
 
@@ -835,6 +1099,23 @@ public class controllerNuevoTraspasoSalida {
                 validarCamposDesdeFactor();
             }
         });
+    }
+
+    private void configurarModoRapido() {
+        if (tabPaneModo != null) {
+            tabPaneModo.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+                if (newTab == tabRapido) {
+                    recalcularPreciosRapido();
+                } else {
+                    recalcularPrecios();
+                }
+            });
+        }
+    }
+
+    private boolean esModoRapido() {
+        return tabPaneModo != null && tabRapido != null
+                && tabPaneModo.getSelectionModel().getSelectedItem() == tabRapido;
     }
 
     private void configurarSeleccionClaveAlternaPorDefecto() {
@@ -1332,6 +1613,78 @@ public class controllerNuevoTraspasoSalida {
         loteDebounce.playFromStart();
     }
 
+    private void programarValidacionCantidadRapida() {
+        if (txtCantidadRapida == null) {
+            return;
+        }
+        cantidadRapidaDebounce.stop();
+        String nuevoValor = txtCantidadRapida.getText();
+        if (nuevoValor == null || nuevoValor.isBlank()) {
+            cantidadRapidaValida = false;
+            return;
+        }
+        cantidadRapidaDebounce.setOnFinished(event -> validarCantidadRapidaDisponible());
+        cantidadRapidaDebounce.playFromStart();
+    }
+
+    private void validarCantidadRapidaDisponible() {
+        if (txtCantidadRapida == null) {
+            return;
+        }
+        String cantidadTexto = txtCantidadRapida.getText() != null ? txtCantidadRapida.getText().trim() : "";
+        if (cantidadTexto.isBlank()) {
+            cantidadRapidaValida = false;
+            return;
+        }
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(cantidadTexto);
+        } catch (NumberFormatException e) {
+            cantidadRapidaValida = false;
+            mostrarAlertaSinEspera("Advertencia", "La cantidad debe ser un número válido.");
+            return;
+        }
+        if (cantidad <= 0) {
+            cantidadRapidaValida = false;
+            mostrarAlertaSinEspera("Advertencia", "La cantidad debe ser mayor a 0.");
+            return;
+        }
+        String idProducto = productoController.getIdSeleccionado();
+        if (idProducto == null || idProducto.isBlank()) {
+            cantidadRapidaValida = false;
+            mostrarAlertaSinEspera("Advertencia", "Seleccione un producto antes de la cantidad.");
+            return;
+        }
+        String idSnapshot = idProducto;
+        int cantidadSnapshot = cantidad;
+        javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Integer call() {
+                return modelo.obtenerCantidadDisponibleProductoPresentacionFactor(idSnapshot, "pz", 1);
+            }
+
+            @Override
+            protected void succeeded() {
+                String textoActual = txtCantidadRapida.getText() != null ? txtCantidadRapida.getText().trim() : "";
+                if (!textoActual.equals(String.valueOf(cantidadSnapshot))) {
+                    return;
+                }
+                int disponible = getValue() != null ? getValue() : 0;
+                if (cantidadSnapshot > disponible) {
+                    cantidadRapidaValida = false;
+                    mostrarAlertaSinEspera("Advertencia",
+                            "La cantidad supera la disponible para la presentación pz con factor 1.");
+                } else {
+                    cantidadRapidaValida = true;
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
     private void programarValidacionCantidadUbicacion(TextField campoCantidad, ComboBox<String> combo) {
         PauseTransition debounce = debounceCantidadUbicacion.computeIfAbsent(campoCantidad,
                 key -> new PauseTransition(DEBOUNCE_TIEMPO));
@@ -1629,6 +1982,7 @@ public class controllerNuevoTraspasoSalida {
         ubicacionValidada = false;
         cantidadDisponibleUbicacion = 0;
         cantidadTotalValida = false;
+        cantidadRapidaValida = false;
         ultimoLoteValidado = "";
         ultimoFactorValidado = "";
         ultimaPresentacionValidada = "";
@@ -1776,5 +2130,33 @@ public class controllerNuevoTraspasoSalida {
             }
         }
         return false;
+    }
+
+    private static class LoteCaducidadKey {
+        private final String lote;
+        private final java.time.LocalDate caducidad;
+
+        private LoteCaducidadKey(String lote, java.time.LocalDate caducidad) {
+            this.lote = lote != null ? lote : "";
+            this.caducidad = caducidad;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            LoteCaducidadKey other = (LoteCaducidadKey) obj;
+            return java.util.Objects.equals(lote, other.lote)
+                    && java.util.Objects.equals(caducidad, other.caducidad);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(lote, caducidad);
+        }
     }
 }
