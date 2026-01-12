@@ -896,7 +896,7 @@ public class controllerNuevoTraspasoSalida {
                 filaLote.setStyle("-fx-padding: 6 8 6 8; -fx-background-color: #ffffff; "
                         + "-fx-border-color: #cccccc; -fx-border-width: 1;");
                 filaLote.setAlignment(Pos.CENTER_LEFT);
-                Label loteLabel = new Label("Lote " + loteEntry.getKey());
+                Label loteLabel = new Label("Lote " + loteEntry.getKey() + ":");
                 Label cantidadLabel = new Label(String.valueOf(loteEntry.getValue()));
                 HBox.setHgrow(loteLabel, Priority.ALWAYS);
                 filaLote.getChildren().addAll(loteLabel, cantidadLabel);
