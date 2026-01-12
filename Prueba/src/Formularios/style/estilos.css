@@ -32,6 +32,10 @@
     -fx-background-color: white;
 }
 
+.modo-tabs .tab-header-area {
+    -fx-translate-x: -8;
+}
+
 .modo-tabs .tab {
     -fx-padding: 5 18 5 18;
     -fx-font-size: 12px;

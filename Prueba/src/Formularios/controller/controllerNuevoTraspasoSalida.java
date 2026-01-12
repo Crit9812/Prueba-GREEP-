@@ -5,6 +5,7 @@ import Compartido.model.DAO.GenericDAO;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoSalida.model.traspasoSalida;
+import conexion.conexionFTP;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -14,6 +15,8 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -47,6 +50,7 @@ public class controllerNuevoTraspasoSalida {
     @FXML private ComboBox<String> cbClaveAlterna;
     @FXML private ComboBox<String> cbProductoNombre;
     @FXML private TextField txtDescripcion;
+    @FXML private ImageView previewImage;
     @FXML private TextField txtLote;
     @FXML private DatePicker dpCaducidad;
     @FXML private TextField txtCantidad;
@@ -102,6 +106,7 @@ public class controllerNuevoTraspasoSalida {
     private final Map<ComboBox<String>, List<UbicacionCompra>> ubicacionesCapturadas = new HashMap<>();
     private boolean seleccionarClaveAlternaPendiente = false;
     private boolean cantidadRapidaValida = false;
+    private final Map<String, Image> cacheImagenes = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -164,6 +169,7 @@ public class controllerNuevoTraspasoSalida {
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
+            actualizarImagenProducto();
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -173,6 +179,7 @@ public class controllerNuevoTraspasoSalida {
                 actualizarEstadoCascada();
                 seleccionarClaveAlternaPendiente = true;
             }
+            actualizarImagenProducto();
         });
 
         cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -181,6 +188,7 @@ public class controllerNuevoTraspasoSalida {
                 cargarPreciosDesdeProducto();
                 actualizarEstadoCascada();
             }
+            actualizarImagenProducto();
         });
 
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -249,6 +257,43 @@ public class controllerNuevoTraspasoSalida {
                 }
             }
         });
+    }
+
+    private void actualizarImagenProducto() {
+        if (previewImage == null) {
+            return;
+        }
+
+        previewImage.setImage(null);
+
+        if (productoController == null) {
+            return;
+        }
+
+        String urlImagen = productoController.getUrlImagenSeleccionada();
+        if (urlImagen == null || urlImagen.isBlank()) {
+            return;
+        }
+
+        if (cacheImagenes.containsKey(urlImagen)) {
+            previewImage.setImage(cacheImagenes.get(urlImagen));
+            return;
+        }
+
+        Task<Image> task = new Task<>() {
+            @Override
+            protected Image call() throws Exception {
+                conexionFTP ftp = new conexionFTP();
+                return ftp.getImageFromFTP(urlImagen);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            Image img = task.getValue();
+            cacheImagenes.put(urlImagen, img);
+            previewImage.setImage(img);
+        });
+        task.setOnFailed(e -> previewImage.setImage(null));
+        new Thread(task).start();
     }
 
     private void limpiarSeleccionProducto() {
