@@ -2,6 +2,7 @@ package Operaciones.ajusteInventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Operaciones.ajusteInventario.model.model;
 import Operaciones.compra.model.compra;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.fxml.FXML;
@@ -32,6 +33,7 @@ public class MainController {
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
+    @FXML private HBox contenedorComentario;
     @FXML private TableView<Object> contenidoTabla;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
@@ -39,6 +41,7 @@ public class MainController {
     @FXML private Label lblAgregar;
     @FXML private Region expansor;
     @FXML private TextField totalAjuste;
+    @FXML private TextField comentario;
     @FXML private CheckBox miCheckBox;
 
     @FXML private encabezadoController paneNavbarController;
@@ -62,6 +65,7 @@ public class MainController {
     private final ObservableList<traspasoSalida> itemsSalida = FXCollections.observableArrayList();
     private final ObservableList<Object> itemsAjuste = FXCollections.observableArrayList();
     private boolean actualizandoSeleccionTodo = false;
+    private final model ajusteModel = new model();
 
     @FXML
     public void initialize() {
@@ -112,7 +116,20 @@ public class MainController {
             // Tabla
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-            contenedorBtnConfirmar.maxWidthProperty().bind(contenedor.widthProperty().multiply(0.95));
+
+            // Comentario
+            if (contenedorComentario != null) {
+                contenedorComentario.maxWidthProperty().bind(contenedor.widthProperty());
+            }
+            if (comentario != null) {
+                HBox.setHgrow(comentario, Priority.ALWAYS);
+                comentario.setMaxWidth(Double.MAX_VALUE);
+            }
+
+            // Botón confirmar
+            contenedorBtnConfirmar.setMinWidth(Region.USE_PREF_SIZE);
+            contenedorBtnConfirmar.setMaxWidth(Region.USE_PREF_SIZE);
+            HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Ajuste de Inventario", "#ffffff");
 
@@ -436,6 +453,30 @@ public class MainController {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    @FXML
+    public void guardarAjuste() {
+        if (itemsEntrada.isEmpty() && itemsSalida.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay ajustes para registrar.");
+            return;
+        }
+
+        String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
+        boolean registrado = ajusteModel.registrarAjuste(itemsEntrada, itemsSalida, comentarioTexto);
+        if (registrado) {
+            mostrarAlerta("Éxito", "Ajuste registrado correctamente.");
+            itemsEntrada.clear();
+            itemsSalida.clear();
+            itemsAjuste.clear();
+            if (comentario != null) {
+                comentario.clear();
+            }
+            actualizarTotalAjuste();
+            actualizarSeleccionTodo();
+        } else {
+            mostrarAlerta("Error", "No se pudo registrar el ajuste.");
+        }
     }
 
     private boolean confirmarEliminacion() {
