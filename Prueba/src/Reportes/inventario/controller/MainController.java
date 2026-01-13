@@ -2,14 +2,24 @@ package Reportes.inventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Reportes.inventario.model.ItemInventario;
+import conexion.Conexion;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.application.Platform;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class MainController {
 
@@ -29,9 +39,21 @@ public class MainController {
     @FXML private Label lblDescargar;
 
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
+    @FXML private TableView<ItemInventario> contenidoTabla;
+    @FXML private TableColumn<ItemInventario, String> colClaveProducto;
+    @FXML private TableColumn<ItemInventario, String> colProducto;
+    @FXML private TableColumn<ItemInventario, String> colMarca;
+    @FXML private TableColumn<ItemInventario, String> colCategoria;
+    @FXML private TableColumn<ItemInventario, String> colMaterial;
+    @FXML private TableColumn<ItemInventario, String> colUnidad;
+    @FXML private TableColumn<ItemInventario, String> colPresentacion;
+    @FXML private TableColumn<ItemInventario, String> colFactor;
+    @FXML private TableColumn<ItemInventario, String> colDescripcion;
+    @FXML private TableColumn<ItemInventario, String> colInventarioMinimo;
 
     @FXML private encabezadoController paneNavbarController;
+
+    private final ObservableList<ItemInventario> itemsInventario = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
@@ -85,7 +107,84 @@ public class MainController {
 
             paneNavbarController.setTitulo("Inventario", "#ffffff");
 
+            configurarColumnasTabla();
+            cargarInventarioDisponible();
         });
     }
 
+    private void configurarColumnasTabla() {
+        colClaveProducto.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
+        colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
+        colMarca.setCellValueFactory(new PropertyValueFactory<>("marca"));
+        colCategoria.setCellValueFactory(new PropertyValueFactory<>("categoria"));
+        colMaterial.setCellValueFactory(new PropertyValueFactory<>("material"));
+        colUnidad.setCellValueFactory(new PropertyValueFactory<>("unidadMedida"));
+        colPresentacion.setCellValueFactory(new PropertyValueFactory<>("presentacion"));
+        colFactor.setCellValueFactory(new PropertyValueFactory<>("factor"));
+        colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
+        colInventarioMinimo.setCellValueFactory(new PropertyValueFactory<>("inventarioMinimo"));
+
+        TableColumn<ItemInventario, ?>[] columnas = new TableColumn[] {
+                colClaveProducto,
+                colProducto,
+                colMarca,
+                colCategoria,
+                colMaterial,
+                colUnidad,
+                colPresentacion,
+                colFactor,
+                colDescripcion,
+                colInventarioMinimo
+        };
+        for (TableColumn<ItemInventario, ?> col : columnas) {
+            col.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setItems(itemsInventario);
+    }
+
+    private void cargarInventarioDisponible() {
+        String sql = """
+                SELECT
+                    p.id AS claveProducto,
+                    p.nombre AS producto,
+                    m.nombre AS marca,
+                    p.categoria AS categoria,
+                    p.material AS material,
+                    p.unidadMedida AS unidadMedida,
+                    a.presentacion AS presentacion,
+                    a.factor AS factor,
+                    p.descripcion AS descripcion,
+                    p.inventarioMin AS inventarioMinimo
+                FROM articulo a
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN marcas m ON p.marca = m.id
+                WHERE a.Estado = 'disponible'
+                """;
+
+        itemsInventario.clear();
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                itemsInventario.add(new ItemInventario(
+                        rs.getString("claveProducto"),
+                        rs.getString("producto"),
+                        rs.getString("marca"),
+                        rs.getString("categoria"),
+                        rs.getString("material"),
+                        rs.getString("unidadMedida"),
+                        rs.getString("presentacion"),
+                        rs.getString("factor"),
+                        rs.getString("descripcion"),
+                        rs.getString("inventarioMinimo")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
