@@ -261,23 +261,17 @@ public class MainController {
     private void actualizarOpcionesFiltro(boolean detallado) {
         List<String> opciones = new ArrayList<>();
         opciones.add("ID");
-        if (!detallado) {
-            opciones.add("Cantidad");
-        }
         opciones.add("Producto");
         opciones.add("Marca");
         opciones.add("Categoría");
         opciones.add("Material");
         opciones.add("Unidad");
         opciones.add("Presentación");
-        opciones.add("Factor");
         if (detallado) {
             opciones.add("Lote");
             opciones.add("Caducidad");
             opciones.add("Ubicación");
         }
-        opciones.add("Descripción");
-        opciones.add("Inventario mínimo");
 
         comboFiltro.getItems().setAll(opciones);
         limpiarFiltrosNoDisponibles(new LinkedHashSet<>(opciones));
@@ -321,12 +315,13 @@ public class MainController {
     }
 
     private Node crearChipFiltro(Filtro filtro) {
-        HBox chip = new HBox(6);
-        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        HBox chip = new HBox(8);
+        chip.setAlignment(javafx.geometry.Pos.CENTER);
+        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 14; -fx-padding: 6 10;");
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
-        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12pt;");
         Button quitar = new Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;");
+        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 12pt;");
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
@@ -376,8 +371,6 @@ public class MainController {
         switch (campo) {
             case "ID":
                 return item.getClaveProducto();
-            case "Cantidad":
-                return item.getCantidad();
             case "Producto":
                 return item.getProducto();
             case "Marca":
@@ -390,18 +383,12 @@ public class MainController {
                 return item.getUnidadMedida();
             case "Presentación":
                 return item.getPresentacion();
-            case "Factor":
-                return item.getFactor();
             case "Lote":
                 return item.getLote();
             case "Caducidad":
                 return item.getCaducidad();
             case "Ubicación":
                 return item.getUbicacion();
-            case "Descripción":
-                return item.getDescripcion();
-            case "Inventario mínimo":
-                return item.getInventarioMinimo();
             default:
                 return "";
         }
