@@ -141,7 +141,7 @@
                         </HBox>
                         <HBox fx:id="contenedorFiltros" spacing="10">
                             <HBox.margin>
-                                <Insets left="50" top="10" bottom="0"/>
+                                <Insets left="60" top="10" bottom="0"/>
                             </HBox.margin>
                         </HBox>
                     </VBox>

@@ -321,7 +321,7 @@ public class MainController {
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
         texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
         Button quitar = new Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 12pt;");
+        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 14pt;");
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
