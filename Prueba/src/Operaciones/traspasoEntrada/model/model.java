@@ -15,6 +15,102 @@ import java.util.Map;
 
 public class model {
 
+    // Clase interna para representar los detalles de una entrada
+    public static class DetalleEntrada {
+        private String claveProducto;
+        private String producto;
+        private String cantidad;
+        private String precioUnitario;
+        private String precioTotal;
+
+        public DetalleEntrada(String claveProducto, String producto, String cantidad, String precioUnitario, String precioTotal) {
+            this.claveProducto = claveProducto;
+            this.producto = producto;
+            this.cantidad = cantidad;
+            this.precioUnitario = precioUnitario;
+            this.precioTotal = precioTotal;
+        }
+
+        public String getClaveProducto() { return claveProducto; }
+        public String getProducto() { return producto; }
+        public String getCantidad() { return cantidad; }
+        public String getPrecioUnitario() { return precioUnitario; }
+        public String getPrecioTotal() { return precioTotal; }
+    }
+
+    public String obtenerNombreProducto(String claveProducto) {
+        String nombreProducto = "";
+        String marca = "";
+        String presentacion = "";
+        String compuesto = "";
+
+        if (claveProducto == null || claveProducto.trim().isEmpty()) {
+            return claveProducto; // Devolver la clave si está vacía
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            // Obtener columnas de la tabla productos
+            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
+
+            // Buscar las columnas necesarias
+            String colClaveProducto = resolverColumna(columnasProductos, "id", "claveProducto", "clave_producto", "producto_id");
+            String colNombre = resolverColumna(columnasProductos, "nombre", "nombreProducto", "producto_nombre", "descripcion");
+            String colMarca = resolverColumna(columnasProductos, "marca", "idMarca", "marca_id");
+            String colPresentacion = resolverColumna(columnasProductos, "presentacion", "unidadMedida", "unidad_medida", "presentation");
+
+            // Verificar que las columnas necesarias existen
+            if (colClaveProducto == null || colNombre == null) {
+                System.err.println("No se pudieron encontrar las columnas necesarias en productos");
+                return claveProducto; // Devolver la clave si no encuentra columnas
+            }
+
+            String sql = "SELECT " +
+                    "`" + colNombre + "` AS nombre, " +
+                    (colMarca != null ? "`" + colMarca + "` AS marca, " : "NULL AS marca, ") +
+                    (colPresentacion != null ? "`" + colPresentacion + "` AS presentacion " : "NULL AS presentacion ") +
+                    "FROM `productos` " +
+                    "WHERE `" + colClaveProducto + "` = ? " +
+                    "LIMIT 1";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, claveProducto);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        nombreProducto = formato(rs.getObject("nombre"));
+                        marca = formato(rs.getObject("marca"));
+                        presentacion = formato(rs.getObject("presentacion"));
+
+                        // Construir el compuesto
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(nombreProducto);
+
+                        if (marca != null && !marca.isEmpty()) {
+                            sb.append(" - ").append(marca);
+                        }
+
+                        if (presentacion != null && !presentacion.isEmpty()) {
+                            sb.append(" (").append(presentacion).append(")");
+                        }
+
+                        compuesto = sb.toString();
+
+                    } else {
+                        compuesto = claveProducto; // Devolver la clave como nombre
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error al obtener información del producto '" + claveProducto + "': " + e.getMessage());
+            e.printStackTrace();
+            // En caso de error, devolver la clave del producto
+            compuesto = claveProducto;
+        }
+
+        return compuesto.isEmpty() ? claveProducto : compuesto;
+    }
+
     public ObservableList<traspasoEntrada> obtenerPendientes() {
         ObservableList<traspasoEntrada> lista = FXCollections.observableArrayList();
 
@@ -93,6 +189,78 @@ public class model {
         }
 
         return lista;
+    }
+
+    // Método para obtener detalles de una entrada específica
+    public List<DetalleEntrada> obtenerDetallesEntrada(String claveEntrada) {
+        List<DetalleEntrada> detalles = new ArrayList<>();
+
+        if (claveEntrada == null || claveEntrada.trim().isEmpty()) {
+            return detalles;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            // Obtener columnas de detalle_Entrada
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+
+            // Buscar las columnas necesarias
+            String colClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+            String colClaveProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "producto_id", "clave_producto");
+            String colCantidad = resolverColumna(columnasDetalle, "cantidad", "qty", "quantity");
+            String colPrecioUnitario = resolverColumna(columnasDetalle, "precioUnitario", "unitario", "precio_unitario", "unit_price");
+            String colPrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total", "total", "precio_final", "final_price");
+
+            // Verificar que todas las columnas necesarias existen
+            if (colClaveEntrada == null || colClaveProducto == null || colCantidad == null ||
+                    colPrecioUnitario == null || colPrecioTotal == null) {
+                System.err.println("No se pudieron encontrar todas las columnas necesarias en detalle_Entrada");
+                return detalles;
+            }
+
+            String sql = "SELECT " +
+                    "`" + colClaveProducto + "` AS claveProducto, " +
+                    "`" + colCantidad + "` AS cantidad, " +
+                    "`" + colPrecioUnitario + "` AS precioUnitario, " +
+                    "`" + colPrecioTotal + "` AS precioTotal " +
+                    "FROM `detalle_Entrada` " +
+                    "WHERE `" + colClaveEntrada + "` = ? " +
+                    "ORDER BY `" + colClaveProducto + "`";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, claveEntrada);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    int contador = 0;
+                    while (rs.next()) {
+                        String claveProd = formato(rs.getObject("claveProducto"));
+                        String cantidad = formato(rs.getObject("cantidad"));
+                        String precioUnitario = formato(rs.getObject("precioUnitario"));
+                        String precioTotal = formato(rs.getObject("precioTotal"));
+
+                        // DEBUG: Imprimir lo que se obtuvo de la base de datos
+                        System.out.println("Detalle " + (++contador) + " para entrada " + claveEntrada +
+                                ": ClaveProducto=" + claveProd +
+                                ", Cantidad=" + cantidad +
+                                ", PrecioUnitario=" + precioUnitario +
+                                ", PrecioTotal=" + precioTotal);
+
+                        // Obtener el nombre del producto usando el método existente
+                        String nombreProducto = obtenerNombreProducto(claveProd);
+
+
+                        // Ahora sí, crear el DetalleEntrada con los 5 parámetros
+                        detalles.add(new DetalleEntrada(claveProd, nombreProducto, cantidad, precioUnitario, precioTotal));
+                    }
+
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error al obtener detalles de la entrada: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return detalles;
     }
 
     public boolean actualizarEstadoEntradas(List<String> clavesEntrada, String nuevoEstadoEntrada, String nuevoEstadoArticulos) {
@@ -270,4 +438,6 @@ public class model {
         }
         return null;
     }
+
+
 }

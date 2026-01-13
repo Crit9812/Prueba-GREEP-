@@ -62,6 +62,7 @@
                         </padding>
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTable">
                             <columns>
+                                <TableColumn fx:id="colDesplegar"  prefWidth="70" />
                                 <TableColumn fx:id="colSelect" prefWidth="70" />
                                 <TableColumn fx:id="colClaveEntrada" text="Clave" prefWidth="70" />
                                 <TableColumn fx:id="colFecha" text="Fecha" prefWidth="250" />
