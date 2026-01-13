@@ -420,6 +420,10 @@ public class MainController {
             return;
         }
 
+        if (!confirmarEliminacion()) {
+            return;
+        }
+
         itemsEntrada.removeIf(compra::isSeleccionado);
         itemsSalida.removeIf(traspasoSalida::isSeleccionado);
         refrescarTabla();
@@ -432,6 +436,19 @@ public class MainController {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    private boolean confirmarEliminacion() {
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro de borrar los elementos seleccionados?");
+
+        ButtonType botonAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alerta.getButtonTypes().setAll(botonAceptar, botonCancelar);
+
+        return alerta.showAndWait().orElse(botonCancelar) == botonAceptar;
     }
 
     private void actualizarSeleccionTodo() {
