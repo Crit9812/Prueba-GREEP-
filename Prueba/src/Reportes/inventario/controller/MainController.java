@@ -2,6 +2,7 @@ package Reportes.inventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.helper.SelectorColumnasPopup;
 import Reportes.inventario.model.ItemInventario;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -9,17 +10,23 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MainController {
 
@@ -60,6 +67,8 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<ItemInventario> itemsInventario = FXCollections.observableArrayList();
+    private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadResumen = new HashMap<>();
+    private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadDetallado = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -161,18 +170,71 @@ public class MainController {
     }
 
     private void configurarInventarioDetallado() {
-        actualizarVisibilidadColumnas(chkInventarioDetallado.isSelected());
+        aplicarVisibilidadModo(chkInventarioDetallado.isSelected());
         chkInventarioDetallado.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            actualizarVisibilidadColumnas(newVal);
+            guardarVisibilidadModo(oldVal);
+            aplicarVisibilidadModo(newVal);
             cargarInventarioDisponible(newVal);
         });
     }
 
-    private void actualizarVisibilidadColumnas(boolean detallado) {
-        colCantidad.setVisible(!detallado);
-        colLote.setVisible(detallado);
-        colCaducidad.setVisible(detallado);
-        colUbicacion.setVisible(detallado);
+    private void guardarVisibilidadModo(boolean detallado) {
+        Map<TableColumn<ItemInventario, ?>, Boolean> destino =
+                detallado ? visibilidadDetallado : visibilidadResumen;
+        for (TableColumn<ItemInventario, ?> columna : obtenerColumnasModo(detallado)) {
+            destino.put(columna, columna.isVisible());
+        }
+    }
+
+    private void aplicarVisibilidadModo(boolean detallado) {
+        for (TableColumn<ItemInventario, ?> columna : obtenerColumnasModo(!detallado)) {
+            columna.setVisible(false);
+        }
+
+        Map<TableColumn<ItemInventario, ?>, Boolean> estado =
+                detallado ? visibilidadDetallado : visibilidadResumen;
+        for (TableColumn<ItemInventario, ?> columna : obtenerColumnasModo(detallado)) {
+            columna.setVisible(estado.getOrDefault(columna, true));
+        }
+    }
+
+    private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
+        List<TableColumn<ItemInventario, ?>> columnas = new ArrayList<>();
+        columnas.add(colClaveProducto);
+        if (!detallado) {
+            columnas.add(colCantidad);
+        }
+        columnas.add(colProducto);
+        columnas.add(colMarca);
+        columnas.add(colCategoria);
+        columnas.add(colMaterial);
+        columnas.add(colUnidad);
+        columnas.add(colPresentacion);
+        columnas.add(colFactor);
+        if (detallado) {
+            columnas.add(colLote);
+            columnas.add(colCaducidad);
+            columnas.add(colUbicacion);
+        }
+        columnas.add(colDescripcion);
+        columnas.add(colInventarioMinimo);
+        return columnas;
+    }
+
+    @FXML
+    private void mostrarSelectorColumnas(MouseEvent event) {
+        boolean detallado = chkInventarioDetallado.isSelected();
+        List<TableColumn<ItemInventario, ?>> columnas = obtenerColumnasModo(detallado);
+        Map<TableColumn<ItemInventario, ?>, Boolean> estado =
+                detallado ? visibilidadDetallado : visibilidadResumen;
+
+        SelectorColumnasPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
+                columnas, seleccion -> {
+                    for (Map.Entry<TableColumn<ItemInventario, ?>, Boolean> entry : seleccion.entrySet()) {
+                        entry.getKey().setVisible(entry.getValue());
+                    }
+                    estado.putAll(seleccion);
+                });
     }
 
     private void cargarInventarioDisponible(boolean detallado) {
