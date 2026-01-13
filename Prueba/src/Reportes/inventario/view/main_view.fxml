@@ -95,7 +95,7 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <CheckBox fx:id="chkInventarioDetallado">
+                            <CheckBox fx:id="chkInventarioDetallado" styleClass="custom-check">
                                 <HBox.margin>
                                     <Insets left="10" right="40"/>
                                 </HBox.margin>
