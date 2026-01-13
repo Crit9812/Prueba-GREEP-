@@ -2,6 +2,7 @@ package Operaciones.ajusteInventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Operaciones.ajusteInventario.model.model;
 import Operaciones.compra.model.compra;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.fxml.FXML;
@@ -32,6 +33,7 @@ public class MainController {
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
+    @FXML private HBox contenedorComentario;
     @FXML private TableView<Object> contenidoTabla;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
@@ -39,6 +41,7 @@ public class MainController {
     @FXML private Label lblAgregar;
     @FXML private Region expansor;
     @FXML private TextField totalAjuste;
+    @FXML private TextField comentario;
     @FXML private CheckBox miCheckBox;
 
     @FXML private encabezadoController paneNavbarController;
@@ -61,6 +64,8 @@ public class MainController {
     private final ObservableList<compra> itemsEntrada = FXCollections.observableArrayList();
     private final ObservableList<traspasoSalida> itemsSalida = FXCollections.observableArrayList();
     private final ObservableList<Object> itemsAjuste = FXCollections.observableArrayList();
+    private boolean actualizandoSeleccionTodo = false;
+    private final model ajusteModel = new model();
 
     @FXML
     public void initialize() {
@@ -111,13 +116,27 @@ public class MainController {
             // Tabla
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-            contenedorBtnConfirmar.maxWidthProperty().bind(contenedor.widthProperty().multiply(0.95));
+
+            // Comentario
+            if (contenedorComentario != null) {
+                contenedorComentario.maxWidthProperty().bind(contenedor.widthProperty());
+            }
+            if (comentario != null) {
+                HBox.setHgrow(comentario, Priority.ALWAYS);
+                comentario.setMaxWidth(Double.MAX_VALUE);
+            }
+
+            // Botón confirmar
+            contenedorBtnConfirmar.setMinWidth(Region.USE_PREF_SIZE);
+            contenedorBtnConfirmar.setMaxWidth(Region.USE_PREF_SIZE);
+            HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Ajuste de Inventario", "#ffffff");
 
         });
         configurarTabla();
         configurarListeners();
+        configurarSeleccionTodo();
         configurarTotalAjuste();
     }
 
@@ -280,6 +299,7 @@ public class MainController {
                 if (change.wasAdded()) {
                     for (compra item : change.getAddedSubList()) {
                         item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalAjuste());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
                     }
                 }
             }
@@ -291,11 +311,31 @@ public class MainController {
                 if (change.wasAdded()) {
                     for (traspasoSalida item : change.getAddedSubList()) {
                         item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalAjuste());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
                     }
                 }
             }
             refrescarTabla();
         });
+    }
+
+    private void configurarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccionTodo) {
+                return;
+            }
+            for (compra item : itemsEntrada) {
+                item.setSeleccionado(newVal);
+            }
+            for (traspasoSalida item : itemsSalida) {
+                item.setSeleccionado(newVal);
+            }
+            contenidoTabla.refresh();
+        });
+        actualizarSeleccionTodo();
     }
 
     public void refrescarTabla() {
@@ -383,11 +423,88 @@ public class MainController {
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml", controlador, "Quitar");
     }
 
+    @FXML
+    public void eliminarSeleccionados() {
+        if (itemsEntrada.isEmpty() && itemsSalida.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+
+        boolean algunSeleccionado = itemsEntrada.stream().anyMatch(compra::isSeleccionado)
+                || itemsSalida.stream().anyMatch(traspasoSalida::isSeleccionado);
+        if (!algunSeleccionado) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
+
+        if (!confirmarEliminacion()) {
+            return;
+        }
+
+        itemsEntrada.removeIf(compra::isSeleccionado);
+        itemsSalida.removeIf(traspasoSalida::isSeleccionado);
+        refrescarTabla();
+        actualizarSeleccionTodo();
+    }
+
     private void mostrarAlerta(String titulo, String mensaje) {
         Alert alerta = new Alert(Alert.AlertType.INFORMATION);
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    @FXML
+    public void guardarAjuste() {
+        if (itemsEntrada.isEmpty() && itemsSalida.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay ajustes para registrar.");
+            return;
+        }
+
+        String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
+        boolean registrado = ajusteModel.registrarAjuste(itemsEntrada, itemsSalida, comentarioTexto);
+        if (registrado) {
+            mostrarAlerta("Éxito", "Ajuste registrado correctamente.");
+            itemsEntrada.clear();
+            itemsSalida.clear();
+            itemsAjuste.clear();
+            if (comentario != null) {
+                comentario.clear();
+            }
+            actualizarTotalAjuste();
+            actualizarSeleccionTodo();
+        } else {
+            mostrarAlerta("Error", "No se pudo registrar el ajuste.");
+        }
+    }
+
+    private boolean confirmarEliminacion() {
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro de borrar los elementos seleccionados?");
+
+        ButtonType botonAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alerta.getButtonTypes().setAll(botonAceptar, botonCancelar);
+
+        return alerta.showAndWait().orElse(botonCancelar) == botonAceptar;
+    }
+
+    private void actualizarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        try {
+            actualizandoSeleccionTodo = true;
+            boolean hayItems = !itemsEntrada.isEmpty() || !itemsSalida.isEmpty();
+            boolean seleccionado = hayItems
+                    && itemsEntrada.stream().allMatch(compra::isSeleccionado)
+                    && itemsSalida.stream().allMatch(traspasoSalida::isSeleccionado);
+            miCheckBox.setSelected(seleccionado);
+        } finally {
+            actualizandoSeleccionTodo = false;
+        }
     }
 }
