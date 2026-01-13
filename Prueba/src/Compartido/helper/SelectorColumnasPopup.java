@@ -54,6 +54,24 @@ public class SelectorColumnasPopup {
             lista.getChildren().add(checkBox);
         }
 
+        CheckBox seleccionarTodo = new CheckBox("Seleccionar todo");
+        seleccionarTodo.setStyle("-fx-font-size: 11pt; -fx-text-fill: black;");
+        boolean todosSeleccionados = checks.values().stream().allMatch(CheckBox::isSelected);
+        seleccionarTodo.setSelected(todosSeleccionados);
+        seleccionarTodo.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            for (CheckBox checkBox : checks.values()) {
+                checkBox.setSelected(newVal);
+            }
+        });
+        for (CheckBox checkBox : checks.values()) {
+            checkBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+                boolean allSelected = checks.values().stream().allMatch(CheckBox::isSelected);
+                if (seleccionarTodo.isSelected() != allSelected) {
+                    seleccionarTodo.setSelected(allSelected);
+                }
+            });
+        }
+
         Button confirmar = new Button("Confirmar");
         confirmar.setStyle("-fx-background-color: #000000; -fx-text-fill: white; -fx-cursor: hand; "
                 + "-fx-padding: 5 12;");
@@ -71,7 +89,7 @@ public class SelectorColumnasPopup {
         HBox acciones = new HBox(expansor, confirmar);
         acciones.setAlignment(Pos.CENTER_RIGHT);
 
-        contenedor.getChildren().addAll(titulo, lista, acciones);
+        contenedor.getChildren().addAll(titulo, seleccionarTodo, lista, acciones);
         popup.getContent().add(contenedor);
         popup.show(owner, screenX, screenY);
     }
