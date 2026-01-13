@@ -315,13 +315,13 @@ public class MainController {
     }
 
     private Node crearChipFiltro(Filtro filtro) {
-        HBox chip = new HBox(8);
+        HBox chip = new HBox(6);
         chip.setAlignment(javafx.geometry.Pos.CENTER);
-        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 14; -fx-padding: 6 10;");
+        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
         texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
         Button quitar = new Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 14pt;");
+        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
