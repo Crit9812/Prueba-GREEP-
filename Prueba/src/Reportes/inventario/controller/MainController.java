@@ -287,7 +287,11 @@ public class MainController {
                 break;
         }
 
-        if ("desc".equalsIgnoreCase(direccionOrden)) {
+        if ("cantidad".equalsIgnoreCase(criterioOrden)) {
+            if ("asc".equalsIgnoreCase(direccionOrden)) {
+                comparator = comparator.reversed();
+            }
+        } else if ("desc".equalsIgnoreCase(direccionOrden)) {
             comparator = comparator.reversed();
         }
 
