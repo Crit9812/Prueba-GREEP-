@@ -19,12 +19,19 @@ import java.util.function.Consumer;
 
 public class SelectorColumnasPopup {
 
+    private static Popup popupActivo;
+
     public static <T> void mostrar(Node owner, double screenX, double screenY,
                                    List<TableColumn<T, ?>> columnas,
                                    Consumer<Map<TableColumn<T, ?>, Boolean>> onConfirm) {
+        if (popupActivo != null && popupActivo.isShowing()) {
+            return;
+        }
         Popup popup = new Popup();
+        popupActivo = popup;
         popup.setAutoHide(true);
         popup.setHideOnEscape(true);
+        popup.setOnHidden(event -> popupActivo = null);
 
         VBox contenedor = new VBox(10);
         contenedor.setStyle("-fx-background-color: white; -fx-border-color: #333; -fx-border-width: 1px; "
