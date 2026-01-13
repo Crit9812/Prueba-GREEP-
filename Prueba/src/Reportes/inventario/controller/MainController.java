@@ -33,6 +33,7 @@ public class MainController {
     @FXML private Label lblOrdenar;
     @FXML private Label lblImportar;
     @FXML private Label lblExportar;
+    @FXML private Region expansorDetalles;
 
     @FXML private Region expansor;
     @FXML private Label lblVista;
@@ -103,6 +104,8 @@ public class MainController {
             lblOrdenar.setMinWidth(Region.USE_PREF_SIZE);
             lblImportar.setMinWidth(Region.USE_PREF_SIZE);
             lblExportar.setMinWidth(Region.USE_PREF_SIZE);
+            HBox.setHgrow(expansorDetalles, Priority.ALWAYS);
+            expansorDetalles.setMinWidth(10);
             lblVista.setMinWidth(Region.USE_PREF_SIZE);
             lblDescargar.setMinWidth(Region.USE_PREF_SIZE);
 

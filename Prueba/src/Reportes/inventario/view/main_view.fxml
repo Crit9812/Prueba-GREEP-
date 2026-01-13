@@ -89,6 +89,17 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <Region fx:id="expansorDetalles"/>
+                            <Label text="Inventario detallado" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <CheckBox fx:id="chkInventarioDetallado">
+                                <HBox.margin>
+                                    <Insets left="10" right="40"/>
+                                </HBox.margin>
+                            </CheckBox>
                         </HBox>
 
                         <!-- Fila 2 -->
@@ -132,19 +143,6 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <VBox alignment="CENTER">
-                                <HBox alignment="CENTER">
-                                    <Label text="Inventario detallado" styleClass="labels">
-                                        <HBox.margin>
-                                            <Insets left="10"/>
-                                        </HBox.margin>
-                                    </Label>
-                                </HBox>
-                                <CheckBox fx:id="chkInventarioDetallado"/>
-                                <HBox.margin>
-                                    <Insets left="20"/>
-                                </HBox.margin>
-                            </VBox>
                             <Button styleClass="botones">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
