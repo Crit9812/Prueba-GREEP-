@@ -48,3 +48,18 @@
 .modo-tabs .tab:selected .tab-label {
     -fx-text-fill: white;
 }
+
+.modo-tabs-sin-header .tab-header-area {
+    -fx-max-height: 0;
+    -fx-min-height: 0;
+    -fx-pref-height: 0;
+    visibility: hidden;
+}
+
+.modo-tabs-sin-header .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.modo-tabs-sin-header .tab-content-area {
+    -fx-padding: 0;
+}

@@ -120,6 +120,7 @@ public class controllerNuevaVenta {
     private String tituloFormulario = "Venta";
     private boolean cantidadRapidaValida = false;
     private final Map<String, Image> cacheImagenes = new HashMap<>();
+    private boolean modoSoloNormal = false;
 
     @FXML
     public void initialize() {
@@ -140,6 +141,7 @@ public class controllerNuevaVenta {
         configurarManejoEnter();
         configurarCascada();
         configurarModoRapido();
+        aplicarModoSoloNormal();
         configurarSeleccionClaveAlternaPorDefecto();
         configurarCampoCantidadUbicacion(txtCantidadUbicacion, comboUbicacion);
         configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
@@ -158,6 +160,25 @@ public class controllerNuevaVenta {
         }
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
+    }
+
+    private void aplicarModoSoloNormal() {
+        if (!modoSoloNormal || tabPaneModo == null) {
+            return;
+        }
+
+        if (tabRapido != null) {
+            tabPaneModo.getTabs().remove(tabRapido);
+        }
+        if (tabNormal != null) {
+            tabPaneModo.getSelectionModel().select(tabNormal);
+        }
+        tabPaneModo.getStyleClass().add("modo-tabs-sin-header");
+    }
+
+    public void setModoSoloNormal(boolean modoSoloNormal) {
+        this.modoSoloNormal = modoSoloNormal;
+        aplicarModoSoloNormal();
     }
 
     private void configurarPresentaciones() {
