@@ -73,7 +73,12 @@
                                 </HBox.margin>
                             </Label>
                             <Region fx:id="expansorDetalles"/>
-                            <CheckBox fx:id="chkInventarioDetallado" text="Inventario detallado" styleClass="custom-check">
+                            <Label fx:id="lblInventarioDetallado" text="Inventario detallado" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <CheckBox fx:id="chkInventarioDetallado" styleClass="custom-check">
                                 <HBox.margin>
                                     <Insets left="10" right="40"/>
                                 </HBox.margin>
