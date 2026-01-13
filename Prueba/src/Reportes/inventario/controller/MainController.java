@@ -2,6 +2,7 @@ package Reportes.inventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Reportes.inventario.model.ItemInventario;
@@ -12,6 +13,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
@@ -41,7 +43,6 @@ public class MainController {
 
     @FXML private Label lblQuitar;
     @FXML private Label lblOrdenar;
-    @FXML private Label lblImportar;
     @FXML private Label lblExportar;
     @FXML private Region expansorDetalles;
 
@@ -116,7 +117,6 @@ public class MainController {
             expansor.setMinWidth(10);
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
             lblOrdenar.setMinWidth(Region.USE_PREF_SIZE);
-            lblImportar.setMinWidth(Region.USE_PREF_SIZE);
             lblExportar.setMinWidth(Region.USE_PREF_SIZE);
             HBox.setHgrow(expansorDetalles, Priority.ALWAYS);
             expansorDetalles.setMinWidth(10);
@@ -240,6 +240,41 @@ public class MainController {
                     }
                     estado.putAll(seleccion);
                 });
+    }
+
+    @FXML
+    private void exportarExcel() {
+        if (contenidoTabla.getItems().isEmpty()) {
+            mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
+            return;
+        }
+        exportador.exportarTabla(contenidoTabla, "Inventario", "excel");
+    }
+
+    @FXML
+    private void descargarPdf() {
+        if (contenidoTabla.getItems().isEmpty()) {
+            mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
+            return;
+        }
+        exportador.exportarTabla(contenidoTabla, "Inventario", "pdf");
+    }
+
+    @FXML
+    private void vistaPreviaPdf() {
+        if (contenidoTabla.getItems().isEmpty()) {
+            mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
+            return;
+        }
+        exportador.previsualizarPDF(contenidoTabla, "Inventario");
+    }
+
+    private void mostrarAdvertencia(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.WARNING);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 
     @FXML

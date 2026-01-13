@@ -55,24 +55,7 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <Button styleClass="botones">
-                                <graphic>
-                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true" >
-                                        <image>
-                                            <Image url="@/img/importar.png"/>
-                                        </image>
-                                    </ImageView>
-                                </graphic>
-                                <HBox.margin>
-                                    <Insets left="30"/>
-                                </HBox.margin>
-                            </Button>
-                            <Label fx:id="lblImportar" text="Importar" styleClass="labels">
-                                <HBox.margin>
-                                    <Insets left="10"/>
-                                </HBox.margin>
-                            </Label>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#exportarExcel">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -84,7 +67,7 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblExportar" text="Exportar" styleClass="labels">
+                            <Label fx:id="lblExportar" text="Exportar" styleClass="labels" onMouseClicked="#exportarExcel">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
@@ -124,7 +107,7 @@
 
                             <Region fx:id="expansor"/>
 
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#vistaPreviaPdf">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -133,12 +116,12 @@
                                     </ImageView>
                                 </graphic>
                             </Button>
-                            <Label fx:id="lblVista" text="Vista previa" styleClass="labels">
+                            <Label fx:id="lblVista" text="Vista previa" styleClass="labels" onMouseClicked="#vistaPreviaPdf">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#descargarPdf">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -150,7 +133,7 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblDescargar" text="Descargar" styleClass="labels">
+                            <Label fx:id="lblDescargar" text="Descargar" styleClass="labels" onMouseClicked="#descargarPdf">
                                 <HBox.margin>
                                     <Insets  top="0" right="40" bottom="0" left="10"/>
                                 </HBox.margin>

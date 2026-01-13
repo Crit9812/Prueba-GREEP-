@@ -13,6 +13,7 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -58,6 +59,28 @@ public class exportador {
                 e.printStackTrace();
                 mostrarError("Error al exportar: " + e.getMessage());
             }
+        }
+    }
+
+    public static <T> void previsualizarPDF(TableView<T> tabla, String titulo) {
+        if (tabla.getItems().isEmpty()) {
+            mostrarError("No hay datos para exportar.");
+            return;
+        }
+
+        try {
+            File archivo = File.createTempFile(titulo + "-preview-", ".pdf");
+            archivo.deleteOnExit();
+            exportarPDF(tabla, titulo, archivo);
+
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(archivo);
+            } else {
+                mostrarError("No se pudo abrir la previsualización.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarError("Error al generar la previsualización: " + e.getMessage());
         }
     }
 
