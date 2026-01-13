@@ -81,11 +81,11 @@ public class model {
                 for (traspasoSalida item : salidas) {
                     BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
                     BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
-                    totalNeto = totalNeto.add(precioBruto);
+                    totalNeto = totalNeto.subtract(precioBruto);
                     if (precioTotal.compareTo(BigDecimal.ZERO) > 0) {
-                        totalGeneral = totalGeneral.add(precioTotal);
+                        totalGeneral = totalGeneral.subtract(precioTotal);
                     } else {
-                        totalGeneral = totalGeneral.add(precioBruto);
+                        totalGeneral = totalGeneral.subtract(precioBruto);
                     }
                 }
             }
@@ -377,7 +377,7 @@ public class model {
                             psUpdate.setLong(index++, idDetalleSalida);
                         }
                         if (colArticuloEstado != null) {
-                            psUpdate.setString(index++, "vendido");
+                            psUpdate.setString(index++, "ajustado");
                         }
                         for (Integer idArticulo : articulosParaActualizar) {
                             psUpdate.setInt(index++, idArticulo);
