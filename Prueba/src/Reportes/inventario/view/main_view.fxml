@@ -132,6 +132,19 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <VBox alignment="CENTER">
+                                <HBox alignment="CENTER">
+                                    <Label text="Inventario detallado" styleClass="labels">
+                                        <HBox.margin>
+                                            <Insets left="10"/>
+                                        </HBox.margin>
+                                    </Label>
+                                </HBox>
+                                <CheckBox fx:id="chkInventarioDetallado"/>
+                                <HBox.margin>
+                                    <Insets left="20"/>
+                                </HBox.margin>
+                            </VBox>
                             <Button styleClass="botones">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
@@ -167,6 +180,9 @@
                                 <TableColumn fx:id="colUnidad" text="Unidad de medida" prefWidth="140" />
                                 <TableColumn fx:id="colPresentacion" text="Presentación" prefWidth="140" />
                                 <TableColumn fx:id="colFactor" text="Factor" prefWidth="170" />
+                                <TableColumn fx:id="colLote" text="Lote" prefWidth="140" />
+                                <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="140" />
+                                <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="140" />
                                 <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="170" />
                                 <TableColumn fx:id="colInventarioMinimo" text="Inventario mínimo" prefWidth="200" />
                             </columns>

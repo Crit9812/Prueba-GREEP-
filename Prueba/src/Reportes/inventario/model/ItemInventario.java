@@ -13,11 +13,15 @@ public class ItemInventario {
     private final StringProperty unidadMedida = new SimpleStringProperty();
     private final StringProperty presentacion = new SimpleStringProperty();
     private final StringProperty factor = new SimpleStringProperty();
+    private final StringProperty lote = new SimpleStringProperty();
+    private final StringProperty caducidad = new SimpleStringProperty();
+    private final StringProperty ubicacion = new SimpleStringProperty();
     private final StringProperty descripcion = new SimpleStringProperty();
     private final StringProperty inventarioMinimo = new SimpleStringProperty();
 
     public ItemInventario(String claveProducto, String cantidad, String producto, String marca, String categoria,
                           String material, String unidadMedida, String presentacion, String factor,
+                          String lote, String caducidad, String ubicacion,
                           String descripcion, String inventarioMinimo) {
         this.claveProducto.set(claveProducto);
         this.cantidad.set(cantidad);
@@ -28,6 +32,9 @@ public class ItemInventario {
         this.unidadMedida.set(unidadMedida);
         this.presentacion.set(presentacion);
         this.factor.set(factor);
+        this.lote.set(lote);
+        this.caducidad.set(caducidad);
+        this.ubicacion.set(ubicacion);
         this.descripcion.set(descripcion);
         this.inventarioMinimo.set(inventarioMinimo);
     }
@@ -138,6 +145,42 @@ public class ItemInventario {
 
     public void setFactor(String factor) {
         this.factor.set(factor);
+    }
+
+    public String getLote() {
+        return lote.get();
+    }
+
+    public StringProperty loteProperty() {
+        return lote;
+    }
+
+    public void setLote(String lote) {
+        this.lote.set(lote);
+    }
+
+    public String getCaducidad() {
+        return caducidad.get();
+    }
+
+    public StringProperty caducidadProperty() {
+        return caducidad;
+    }
+
+    public void setCaducidad(String caducidad) {
+        this.caducidad.set(caducidad);
+    }
+
+    public String getUbicacion() {
+        return ubicacion.get();
+    }
+
+    public StringProperty ubicacionProperty() {
+        return ubicacion;
+    }
+
+    public void setUbicacion(String ubicacion) {
+        this.ubicacion.set(ubicacion);
     }
 
     public String getDescripcion() {

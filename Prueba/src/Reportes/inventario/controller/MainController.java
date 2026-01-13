@@ -37,6 +37,7 @@ public class MainController {
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
+    @FXML private javafx.scene.control.CheckBox chkInventarioDetallado;
 
     @FXML private VBox contenedorTabla;
     @FXML private TableView<ItemInventario> contenidoTabla;
@@ -49,6 +50,9 @@ public class MainController {
     @FXML private TableColumn<ItemInventario, String> colUnidad;
     @FXML private TableColumn<ItemInventario, String> colPresentacion;
     @FXML private TableColumn<ItemInventario, String> colFactor;
+    @FXML private TableColumn<ItemInventario, String> colLote;
+    @FXML private TableColumn<ItemInventario, String> colCaducidad;
+    @FXML private TableColumn<ItemInventario, String> colUbicacion;
     @FXML private TableColumn<ItemInventario, String> colDescripcion;
     @FXML private TableColumn<ItemInventario, String> colInventarioMinimo;
 
@@ -109,7 +113,8 @@ public class MainController {
             paneNavbarController.setTitulo("Inventario", "#ffffff");
 
             configurarColumnasTabla();
-            cargarInventarioDisponible();
+            configurarInventarioDetallado();
+            cargarInventarioDisponible(false);
         });
     }
 
@@ -123,6 +128,9 @@ public class MainController {
         colUnidad.setCellValueFactory(new PropertyValueFactory<>("unidadMedida"));
         colPresentacion.setCellValueFactory(new PropertyValueFactory<>("presentacion"));
         colFactor.setCellValueFactory(new PropertyValueFactory<>("factor"));
+        colLote.setCellValueFactory(new PropertyValueFactory<>("lote"));
+        colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
+        colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacion"));
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
         colInventarioMinimo.setCellValueFactory(new PropertyValueFactory<>("inventarioMinimo"));
 
@@ -136,6 +144,9 @@ public class MainController {
                 colUnidad,
                 colPresentacion,
                 colFactor,
+                colLote,
+                colCaducidad,
+                colUbicacion,
                 colDescripcion,
                 colInventarioMinimo
         };
@@ -146,8 +157,44 @@ public class MainController {
         contenidoTabla.setItems(itemsInventario);
     }
 
-    private void cargarInventarioDisponible() {
-        String sql = """
+    private void configurarInventarioDetallado() {
+        actualizarVisibilidadColumnas(chkInventarioDetallado.isSelected());
+        chkInventarioDetallado.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            actualizarVisibilidadColumnas(newVal);
+            cargarInventarioDisponible(newVal);
+        });
+    }
+
+    private void actualizarVisibilidadColumnas(boolean detallado) {
+        colCantidad.setVisible(!detallado);
+        colLote.setVisible(detallado);
+        colCaducidad.setVisible(detallado);
+        colUbicacion.setVisible(detallado);
+    }
+
+    private void cargarInventarioDisponible(boolean detallado) {
+        String sql = detallado ? """
+                SELECT
+                    p.id AS claveProducto,
+                    p.nombre AS producto,
+                    m.nombre AS marca,
+                    p.categoria AS categoria,
+                    p.material AS material,
+                    p.unidadMedida AS unidadMedida,
+                    a.presentacion AS presentacion,
+                    a.factor AS factor,
+                    a.lote AS lote,
+                    a.caducidad AS caducidad,
+                    u.nombre AS ubicacion,
+                    p.descripcion AS descripcion,
+                    p.inventarioMin AS inventarioMinimo
+                FROM articulo a
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN marcas m ON p.marca = m.id
+                LEFT JOIN ubicaciones u ON a.ubicacion = u.id
+                WHERE a.Estado = 'disponible'
+                """ : """
                 SELECT
                     p.id AS claveProducto,
                     COUNT(a.idArticulo) AS cantidad,
@@ -187,7 +234,7 @@ public class MainController {
             while (rs.next()) {
                 itemsInventario.add(new ItemInventario(
                         rs.getString("claveProducto"),
-                        rs.getString("cantidad"),
+                        detallado ? "" : rs.getString("cantidad"),
                         rs.getString("producto"),
                         rs.getString("marca"),
                         rs.getString("categoria"),
@@ -195,6 +242,9 @@ public class MainController {
                         rs.getString("unidadMedida"),
                         rs.getString("presentacion"),
                         rs.getString("factor"),
+                        detallado ? rs.getString("lote") : "",
+                        detallado ? rs.getString("caducidad") : "",
+                        detallado ? rs.getString("ubicacion") : "",
                         rs.getString("descripcion"),
                         rs.getString("inventarioMinimo")
                 ));
