@@ -103,10 +103,7 @@ public class exportador {
 
             int pageNumber = 1;
 
-            // ✅ OMITIR SIEMPRE LA PRIMERA COLUMNA
-            List<TableColumn<T, ?>> allColumns = tabla.getColumns().size() > 1
-                    ? tabla.getColumns().subList(1, tabla.getColumns().size())
-                    : List.of();
+            List<TableColumn<T, ?>> allColumns = obtenerColumnasVisibles(tabla);
 
             List<T> dataItems = tabla.getItems();
 
@@ -301,11 +298,11 @@ public class exportador {
 
         Row titleRow = sheet.createRow(0);
         titleRow.createCell(0).setCellValue(titulo);
-        Cell dateCell = titleRow.createCell(tabla.getColumns().size());
+        List<TableColumn<T, ?>> columns = obtenerColumnasVisibles(tabla);
+        Cell dateCell = titleRow.createCell(columns.size());
         dateCell.setCellValue(LocalDateTime.now());
         dateCell.setCellStyle(dateStyle);
 
-        List<TableColumn<T, ?>> columns = tabla.getColumns();
         Row headerRow = sheet.createRow(1);
         for (int i = 0; i < columns.size(); i++) {
             Cell cell = headerRow.createCell(i);
@@ -331,6 +328,16 @@ public class exportador {
             workbook.write(fileOut);
         }
         workbook.close();
+    }
+
+    private static <T> List<TableColumn<T, ?>> obtenerColumnasVisibles(TableView<T> tabla) {
+        List<TableColumn<T, ?>> columnas = new ArrayList<>();
+        for (TableColumn<T, ?> col : tabla.getColumns()) {
+            if (col.isVisible()) {
+                columnas.add(col);
+            }
+        }
+        return columnas;
     }
 
     private static String truncateText(String text, int maxLength) {
