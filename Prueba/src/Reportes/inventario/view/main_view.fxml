@@ -82,17 +82,17 @@
 
                         <!-- Fila 2 -->
                         <HBox fx:id="fila2">
-                            <TextField text="Filtrar por:" styleClass="textfield">
+                            <ComboBox fx:id="comboFiltro" promptText="Filtrar por" styleClass="textfield">
                                 <HBox.margin>
                                     <Insets left="30"/>
                                 </HBox.margin>
-                            </TextField>
-                            <TextField text="Valor:" styleClass="textfield">
+                            </ComboBox>
+                            <ComboBox fx:id="comboValor" promptText="Valor" styleClass="textfield">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
-                            </TextField>
-                            <Button styleClass="botones">
+                            </ComboBox>
+                            <Button styleClass="botones" onMouseClicked="#agregarFiltro">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -138,6 +138,11 @@
                                     <Insets  top="0" right="40" bottom="0" left="10"/>
                                 </HBox.margin>
                             </Label>
+                        </HBox>
+                        <HBox fx:id="contenedorFiltros" spacing="10">
+                            <HBox.margin>
+                                <Insets left="30" top="10" bottom="0"/>
+                            </HBox.margin>
                         </HBox>
                     </VBox>
 

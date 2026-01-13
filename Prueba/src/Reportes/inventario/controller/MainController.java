@@ -14,6 +14,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
@@ -29,8 +31,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public class MainController {
@@ -50,6 +54,9 @@ public class MainController {
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
     @FXML private javafx.scene.control.CheckBox chkInventarioDetallado;
+    @FXML private ComboBox<String> comboFiltro;
+    @FXML private ComboBox<String> comboValor;
+    @FXML private HBox contenedorFiltros;
 
     @FXML private VBox contenedorTabla;
     @FXML private TableView<ItemInventario> contenidoTabla;
@@ -71,10 +78,12 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<ItemInventario> itemsInventario = FXCollections.observableArrayList();
+    private final ObservableList<ItemInventario> itemsInventarioOriginal = FXCollections.observableArrayList();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadResumen = new HashMap<>();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadDetallado = new HashMap<>();
     private String criterioOrden = "id";
     private String direccionOrden = "asc";
+    private final List<Filtro> filtrosActivos = new ArrayList<>();
 
     @FXML
     public void initialize() {
@@ -131,6 +140,7 @@ public class MainController {
 
             configurarColumnasTabla();
             configurarInventarioDetallado();
+            configurarFiltros();
             cargarInventarioDisponible(false);
         });
     }
@@ -180,6 +190,7 @@ public class MainController {
             guardarVisibilidadModo(oldVal);
             aplicarVisibilidadModo(newVal);
             cargarInventarioDisponible(newVal);
+            actualizarOpcionesFiltro(newVal);
         });
     }
 
@@ -240,6 +251,160 @@ public class MainController {
                     }
                     estado.putAll(seleccion);
                 });
+    }
+
+    private void configurarFiltros() {
+        actualizarOpcionesFiltro(chkInventarioDetallado.isSelected());
+        comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> actualizarValoresFiltro(newVal));
+    }
+
+    private void actualizarOpcionesFiltro(boolean detallado) {
+        List<String> opciones = new ArrayList<>();
+        opciones.add("ID");
+        if (!detallado) {
+            opciones.add("Cantidad");
+        }
+        opciones.add("Producto");
+        opciones.add("Marca");
+        opciones.add("Categoría");
+        opciones.add("Material");
+        opciones.add("Unidad");
+        opciones.add("Presentación");
+        opciones.add("Factor");
+        if (detallado) {
+            opciones.add("Lote");
+            opciones.add("Caducidad");
+            opciones.add("Ubicación");
+        }
+        opciones.add("Descripción");
+        opciones.add("Inventario mínimo");
+
+        comboFiltro.getItems().setAll(opciones);
+        limpiarFiltrosNoDisponibles(new LinkedHashSet<>(opciones));
+    }
+
+    private void actualizarValoresFiltro(String campo) {
+        comboValor.getItems().clear();
+        comboValor.setValue(null);
+        if (campo == null || campo.isBlank()) {
+            return;
+        }
+        Set<String> valores = new LinkedHashSet<>();
+        for (ItemInventario item : itemsInventarioOriginal) {
+            String valor = obtenerValorCampo(item, campo);
+            if (valor != null && !valor.isBlank()) {
+                valores.add(valor);
+            }
+        }
+        comboValor.getItems().setAll(valores);
+    }
+
+    @FXML
+    private void agregarFiltro() {
+        String campo = comboFiltro.getValue();
+        String valor = comboValor.getValue();
+        if (campo == null || valor == null) {
+            return;
+        }
+        if (filtrosActivos.size() >= 3) {
+            return;
+        }
+        for (Filtro filtro : filtrosActivos) {
+            if (filtro.campo.equals(campo)) {
+                return;
+            }
+        }
+        Filtro filtro = new Filtro(campo, valor);
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+        aplicarFiltros();
+    }
+
+    private Node crearChipFiltro(Filtro filtro) {
+        HBox chip = new HBox(6);
+        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        Label texto = new Label(filtro.campo + ": " + filtro.valor);
+        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        Button quitar = new Button("x");
+        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;");
+        quitar.setOnAction(event -> {
+            filtrosActivos.remove(filtro);
+            contenedorFiltros.getChildren().remove(chip);
+            aplicarFiltros();
+        });
+        chip.getChildren().addAll(texto, quitar);
+        return chip;
+    }
+
+    private void limpiarFiltrosNoDisponibles(Set<String> opcionesValidas) {
+        List<Filtro> filtrosRemover = new ArrayList<>();
+        for (Filtro filtro : filtrosActivos) {
+            if (!opcionesValidas.contains(filtro.campo)) {
+                filtrosRemover.add(filtro);
+            }
+        }
+        for (Filtro filtro : filtrosRemover) {
+            filtrosActivos.remove(filtro);
+            contenedorFiltros.getChildren().removeIf(node ->
+                    node instanceof HBox && node.getChildren().stream()
+                            .anyMatch(child -> child instanceof Label &&
+                                    ((Label) child).getText().startsWith(filtro.campo + ":")));
+        }
+        aplicarFiltros();
+    }
+
+    private void aplicarFiltros() {
+        List<ItemInventario> filtrados = new ArrayList<>();
+        for (ItemInventario item : itemsInventarioOriginal) {
+            boolean coincide = true;
+            for (Filtro filtro : filtrosActivos) {
+                String valor = obtenerValorCampo(item, filtro.campo);
+                if (valor == null || !valor.equals(filtro.valor)) {
+                    coincide = false;
+                    break;
+                }
+            }
+            if (coincide) {
+                filtrados.add(item);
+            }
+        }
+        itemsInventario.setAll(filtrados);
+        aplicarOrdenamiento();
+    }
+
+    private String obtenerValorCampo(ItemInventario item, String campo) {
+        switch (campo) {
+            case "ID":
+                return item.getClaveProducto();
+            case "Cantidad":
+                return item.getCantidad();
+            case "Producto":
+                return item.getProducto();
+            case "Marca":
+                return item.getMarca();
+            case "Categoría":
+                return item.getCategoria();
+            case "Material":
+                return item.getMaterial();
+            case "Unidad":
+                return item.getUnidadMedida();
+            case "Presentación":
+                return item.getPresentacion();
+            case "Factor":
+                return item.getFactor();
+            case "Lote":
+                return item.getLote();
+            case "Caducidad":
+                return item.getCaducidad();
+            case "Ubicación":
+                return item.getUbicacion();
+            case "Descripción":
+                return item.getDescripcion();
+            case "Inventario mínimo":
+                return item.getInventarioMinimo();
+            default:
+                return "";
+        }
     }
 
     @FXML
@@ -386,14 +551,14 @@ public class MainController {
                     p.inventarioMin
                 """;
 
-        itemsInventario.clear();
+        itemsInventarioOriginal.clear();
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                itemsInventario.add(new ItemInventario(
+                itemsInventarioOriginal.add(new ItemInventario(
                         rs.getString("claveProducto"),
                         detallado ? "" : rs.getString("cantidad"),
                         rs.getString("producto"),
@@ -412,6 +577,18 @@ public class MainController {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+        actualizarValoresFiltro(comboFiltro.getValue());
+        aplicarFiltros();
+    }
+
+    private static class Filtro {
+        private final String campo;
+        private final String valor;
+
+        private Filtro(String campo, String valor) {
+            this.campo = campo;
+            this.valor = valor;
         }
     }
 }
