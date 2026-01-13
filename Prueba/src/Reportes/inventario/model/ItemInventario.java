@@ -5,6 +5,7 @@ import javafx.beans.property.StringProperty;
 
 public class ItemInventario {
     private final StringProperty claveProducto = new SimpleStringProperty();
+    private final StringProperty cantidad = new SimpleStringProperty();
     private final StringProperty producto = new SimpleStringProperty();
     private final StringProperty marca = new SimpleStringProperty();
     private final StringProperty categoria = new SimpleStringProperty();
@@ -15,10 +16,11 @@ public class ItemInventario {
     private final StringProperty descripcion = new SimpleStringProperty();
     private final StringProperty inventarioMinimo = new SimpleStringProperty();
 
-    public ItemInventario(String claveProducto, String producto, String marca, String categoria,
+    public ItemInventario(String claveProducto, String cantidad, String producto, String marca, String categoria,
                           String material, String unidadMedida, String presentacion, String factor,
                           String descripcion, String inventarioMinimo) {
         this.claveProducto.set(claveProducto);
+        this.cantidad.set(cantidad);
         this.producto.set(producto);
         this.marca.set(marca);
         this.categoria.set(categoria);
@@ -40,6 +42,18 @@ public class ItemInventario {
 
     public void setClaveProducto(String claveProducto) {
         this.claveProducto.set(claveProducto);
+    }
+
+    public String getCantidad() {
+        return cantidad.get();
+    }
+
+    public StringProperty cantidadProperty() {
+        return cantidad;
+    }
+
+    public void setCantidad(String cantidad) {
+        this.cantidad.set(cantidad);
     }
 
     public String getProducto() {

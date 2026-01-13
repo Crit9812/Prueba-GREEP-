@@ -159,6 +159,7 @@
                         <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
                             <columns>
                                 <TableColumn fx:id="colClaveProducto" text="ID" />
+                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="120" />
                                 <TableColumn fx:id="colProducto" text="Producto" prefWidth="200" />
                                 <TableColumn fx:id="colMarca" text="Marca" prefWidth="200"  />
                                 <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="140" />

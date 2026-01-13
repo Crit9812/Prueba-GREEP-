@@ -41,6 +41,7 @@ public class MainController {
     @FXML private VBox contenedorTabla;
     @FXML private TableView<ItemInventario> contenidoTabla;
     @FXML private TableColumn<ItemInventario, String> colClaveProducto;
+    @FXML private TableColumn<ItemInventario, String> colCantidad;
     @FXML private TableColumn<ItemInventario, String> colProducto;
     @FXML private TableColumn<ItemInventario, String> colMarca;
     @FXML private TableColumn<ItemInventario, String> colCategoria;
@@ -114,6 +115,7 @@ public class MainController {
 
     private void configurarColumnasTabla() {
         colClaveProducto.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
+        colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
         colMarca.setCellValueFactory(new PropertyValueFactory<>("marca"));
         colCategoria.setCellValueFactory(new PropertyValueFactory<>("categoria"));
@@ -126,6 +128,7 @@ public class MainController {
 
         TableColumn<ItemInventario, ?>[] columnas = new TableColumn[] {
                 colClaveProducto,
+                colCantidad,
                 colProducto,
                 colMarca,
                 colCategoria,
@@ -147,6 +150,7 @@ public class MainController {
         String sql = """
                 SELECT
                     p.id AS claveProducto,
+                    COUNT(a.idArticulo) AS cantidad,
                     p.nombre AS producto,
                     m.nombre AS marca,
                     p.categoria AS categoria,
@@ -161,6 +165,17 @@ public class MainController {
                 INNER JOIN productos p ON de.claveProducto = p.id
                 LEFT JOIN marcas m ON p.marca = m.id
                 WHERE a.Estado = 'disponible'
+                GROUP BY
+                    p.id,
+                    p.nombre,
+                    m.nombre,
+                    p.categoria,
+                    p.material,
+                    p.unidadMedida,
+                    a.presentacion,
+                    a.factor,
+                    p.descripcion,
+                    p.inventarioMin
                 """;
 
         itemsInventario.clear();
@@ -172,6 +187,7 @@ public class MainController {
             while (rs.next()) {
                 itemsInventario.add(new ItemInventario(
                         rs.getString("claveProducto"),
+                        rs.getString("cantidad"),
                         rs.getString("producto"),
                         rs.getString("marca"),
                         rs.getString("categoria"),
