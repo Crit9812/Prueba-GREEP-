@@ -346,7 +346,7 @@ public class MainController {
         for (Filtro filtro : filtrosRemover) {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().removeIf(node ->
-                    node instanceof HBox && node.getChildren().stream()
+                    node instanceof HBox && ((HBox) node).getChildren().stream()
                             .anyMatch(child -> child instanceof Label &&
                                     ((Label) child).getText().startsWith(filtro.campo + ":")));
         }
