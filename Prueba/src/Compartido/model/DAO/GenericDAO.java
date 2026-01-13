@@ -400,8 +400,6 @@ public class GenericDAO<T> {
         try {
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
-            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
-
             String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
                     "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
             String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
@@ -413,15 +411,9 @@ public class GenericDAO<T> {
                     "id_detalle_entrada");
             String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
                     "id_producto", "producto_id");
-            String colDetalleEntradaEntrada = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada",
-                    "id_entrada", "entrada_id");
-
-            String colEntradaId = resolverColumna(columnasEntradas, "id", "idEntrada", "entrada_id");
-            String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
 
             if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
-                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null || colDetalleEntradaEntrada == null
-                    || colEntradaId == null || colEntradaEstado == null) {
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
                 return new ValidacionDisponibilidadSalida(false, 0);
             }
 
@@ -435,28 +427,21 @@ public class GenericDAO<T> {
 
             String sql = """
                 SELECT
-                    SUM(CASE WHEN LOWER(e.`%s`) = ? OR LOWER(e.`%s`) = ? THEN 1 ELSE 0 END) AS completados,
+                    COUNT(*) AS total_articulos,
                     SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS disponibles
                 FROM articulo a
                 JOIN detalle_Entrada de ON de.`%s` = a.`%s`
-                JOIN entradas e ON e.`%s` = de.`%s`
                 WHERE a.`%s` = ? AND de.`%s` = ?
             """.formatted(
-                    colEntradaEstado,
-                    colEntradaEstado,
                     disponibleCond,
                     colDetalleEntradaId,
                     colArticuloDetalleEntrada,
-                    colEntradaId,
-                    colDetalleEntradaEntrada,
                     colArticuloLote,
                     colDetalleEntradaProducto
             );
 
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 int index = 1;
-                ps.setString(index++, "completado");
-                ps.setString(index++, "disponible");
                 if (colArticuloEstado != null) {
                     ps.setString(index++, "disponible");
                 }
@@ -465,7 +450,7 @@ public class GenericDAO<T> {
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        int completados = rs.getInt("completados");
+                        int completados = rs.getInt("total_articulos");
                         int disponibles = rs.getInt("disponibles");
                         return new ValidacionDisponibilidadSalida(completados > 0, disponibles);
                     }
