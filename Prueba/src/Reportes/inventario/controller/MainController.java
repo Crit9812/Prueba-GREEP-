@@ -3,6 +3,7 @@ package Reportes.inventario.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.helper.SelectorColumnasPopup;
+import Compartido.helper.SelectorOrdenPopup;
 import Reportes.inventario.model.ItemInventario;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -24,9 +25,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class MainController {
 
@@ -69,6 +72,8 @@ public class MainController {
     private final ObservableList<ItemInventario> itemsInventario = FXCollections.observableArrayList();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadResumen = new HashMap<>();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadDetallado = new HashMap<>();
+    private String criterioOrden = "id";
+    private String direccionOrden = "asc";
 
     @FXML
     public void initialize() {
@@ -235,6 +240,58 @@ public class MainController {
                     }
                     estado.putAll(seleccion);
                 });
+    }
+
+    @FXML
+    private void mostrarOrdenPopup(MouseEvent event) {
+        boolean detallado = chkInventarioDetallado.isSelected();
+        List<String> criterios = new ArrayList<>();
+        criterios.add("id");
+        if (!detallado) {
+            criterios.add("cantidad");
+        }
+        criterios.add("producto");
+
+        SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
+                criterios, criterioOrden, direccionOrden, seleccion -> {
+                    criterioOrden = seleccion.getCriterio();
+                    direccionOrden = seleccion.getDireccion();
+                    aplicarOrdenamiento();
+                });
+    }
+
+    private void aplicarOrdenamiento() {
+        Comparator<ItemInventario> comparator = null;
+        Function<ItemInventario, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
+
+        switch (criterioOrden) {
+            case "cantidad":
+                comparator = Comparator.comparingInt(item -> {
+                    String valor = item.getCantidad();
+                    if (valor == null || valor.isBlank()) {
+                        return 0;
+                    }
+                    try {
+                        return Integer.parseInt(valor);
+                    } catch (NumberFormatException e) {
+                        return 0;
+                    }
+                });
+                break;
+            case "producto":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getProducto()));
+                break;
+            case "id":
+            default:
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveProducto()));
+                break;
+        }
+
+        if ("desc".equalsIgnoreCase(direccionOrden)) {
+            comparator = comparator.reversed();
+        }
+
+        FXCollections.sort(itemsInventario, comparator);
     }
 
     private void cargarInventarioDisponible(boolean detallado) {

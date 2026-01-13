@@ -38,7 +38,7 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#mostrarOrdenPopup">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -50,7 +50,7 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblOrdenar" text="Ordenar" styleClass="labels">
+                            <Label fx:id="lblOrdenar" text="Ordenar" styleClass="labels" onMouseClicked="#mostrarOrdenPopup">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
