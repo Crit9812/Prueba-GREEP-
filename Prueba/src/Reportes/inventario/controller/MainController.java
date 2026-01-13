@@ -262,7 +262,7 @@ public class MainController {
 
     private void aplicarOrdenamiento() {
         Comparator<ItemInventario> comparator = null;
-        Function<ItemInventario, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
+        Function<String, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
 
         switch (criterioOrden) {
             case "cantidad":
