@@ -319,7 +319,7 @@ public class MainController {
         chip.setAlignment(javafx.geometry.Pos.CENTER);
         chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 14; -fx-padding: 6 10;");
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
-        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12pt;");
+        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11pt;");
         Button quitar = new Button("x");
         quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 12pt;");
         quitar.setOnAction(event -> {
