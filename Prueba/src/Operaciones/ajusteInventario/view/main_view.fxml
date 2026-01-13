@@ -26,7 +26,7 @@
                                     <Insets left="25"/>
                                 </HBox.margin>
                             </CheckBox>
-                            <Button fx:id="btnEliminar" styleClass="botones">
+                            <Button fx:id="btnEliminar" styleClass="botones" onMouseClicked="#eliminarSeleccionados">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image><Image url="@/img/eliminar.png"/></image>

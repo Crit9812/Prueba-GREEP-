@@ -61,6 +61,7 @@ public class MainController {
     private final ObservableList<compra> itemsEntrada = FXCollections.observableArrayList();
     private final ObservableList<traspasoSalida> itemsSalida = FXCollections.observableArrayList();
     private final ObservableList<Object> itemsAjuste = FXCollections.observableArrayList();
+    private boolean actualizandoSeleccionTodo = false;
 
     @FXML
     public void initialize() {
@@ -118,6 +119,7 @@ public class MainController {
         });
         configurarTabla();
         configurarListeners();
+        configurarSeleccionTodo();
         configurarTotalAjuste();
     }
 
@@ -280,6 +282,7 @@ public class MainController {
                 if (change.wasAdded()) {
                     for (compra item : change.getAddedSubList()) {
                         item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalAjuste());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
                     }
                 }
             }
@@ -291,11 +294,31 @@ public class MainController {
                 if (change.wasAdded()) {
                     for (traspasoSalida item : change.getAddedSubList()) {
                         item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalAjuste());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
                     }
                 }
             }
             refrescarTabla();
         });
+    }
+
+    private void configurarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccionTodo) {
+                return;
+            }
+            for (compra item : itemsEntrada) {
+                item.setSeleccionado(newVal);
+            }
+            for (traspasoSalida item : itemsSalida) {
+                item.setSeleccionado(newVal);
+            }
+            contenidoTabla.refresh();
+        });
+        actualizarSeleccionTodo();
     }
 
     public void refrescarTabla() {
@@ -383,11 +406,47 @@ public class MainController {
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml", controlador, "Quitar");
     }
 
+    @FXML
+    public void eliminarSeleccionados() {
+        if (itemsEntrada.isEmpty() && itemsSalida.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+
+        boolean algunSeleccionado = itemsEntrada.stream().anyMatch(compra::isSeleccionado)
+                || itemsSalida.stream().anyMatch(traspasoSalida::isSeleccionado);
+        if (!algunSeleccionado) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
+
+        itemsEntrada.removeIf(compra::isSeleccionado);
+        itemsSalida.removeIf(traspasoSalida::isSeleccionado);
+        refrescarTabla();
+        actualizarSeleccionTodo();
+    }
+
     private void mostrarAlerta(String titulo, String mensaje) {
         Alert alerta = new Alert(Alert.AlertType.INFORMATION);
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    private void actualizarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        try {
+            actualizandoSeleccionTodo = true;
+            boolean hayItems = !itemsEntrada.isEmpty() || !itemsSalida.isEmpty();
+            boolean seleccionado = hayItems
+                    && itemsEntrada.stream().allMatch(compra::isSeleccionado)
+                    && itemsSalida.stream().allMatch(traspasoSalida::isSeleccionado);
+            miCheckBox.setSelected(seleccionado);
+        } finally {
+            actualizandoSeleccionTodo = false;
+        }
     }
 }
