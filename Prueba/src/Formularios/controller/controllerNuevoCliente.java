@@ -239,16 +239,16 @@ public class controllerNuevoCliente {
                 String coloniasBody = enviarSolicitud(coloniasUrl);
 
                 ResultadoCp resultado = new ResultadoCp();
-                resultado.pais = extraerCampo(infoBody, "pais");
-                resultado.estado = extraerCampo(infoBody, "estado");
-                resultado.ciudad = extraerCampo(infoBody, "ciudad");
-                resultado.localidad = extraerCampo(infoBody, "localidad");
+                resultado.pais = extraerCampoEnRespuesta(infoBody, "pais");
+                resultado.estado = extraerCampoEnRespuesta(infoBody, "estado");
+                resultado.ciudad = extraerCampoEnRespuesta(infoBody, "ciudad");
+                resultado.localidad = extraerCampoEnRespuesta(infoBody, "localidad");
                 if (resultado.localidad == null || resultado.localidad.isBlank()) {
-                    resultado.localidad = extraerCampo(infoBody, "municipio");
+                    resultado.localidad = extraerCampoEnRespuesta(infoBody, "municipio");
                 }
-                resultado.colonias = extraerLista(coloniasBody, "colonia");
+                resultado.colonias = extraerListaEnRespuesta(coloniasBody, "colonia");
                 if (resultado.colonias.isEmpty()) {
-                    String coloniaDirecta = extraerCampo(infoBody, "colonia");
+                    String coloniaDirecta = extraerCampoEnRespuesta(infoBody, "colonia");
                     if (coloniaDirecta != null && !coloniaDirecta.isBlank()) {
                         resultado.colonias.add(coloniaDirecta);
                     }
@@ -301,35 +301,139 @@ public class controllerNuevoCliente {
         return valor == null ? "" : valor;
     }
 
-    private String extraerCampo(String json, String campo) {
+    private String extraerCampoEnRespuesta(String json, String campo) {
         if (json == null || json.isBlank()) {
             return "";
         }
+        String respuesta = extraerBloqueRespuesta(json);
+        String contenido = respuesta == null || respuesta.isBlank() ? json : respuesta;
         Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(json);
+        Matcher matcher = pattern.matcher(contenido);
         if (matcher.find()) {
-            return matcher.group(1);
+            return desescapeJson(matcher.group(1));
         }
         return "";
     }
 
-    private List<String> extraerLista(String json, String campo) {
+    private List<String> extraerListaEnRespuesta(String json, String campo) {
         if (json == null || json.isBlank()) {
             return new ArrayList<>();
         }
+        String respuesta = extraerBloqueRespuesta(json);
+        String contenido = respuesta == null || respuesta.isBlank() ? json : respuesta;
         Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\\[(.*?)\\]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(json);
+        Matcher matcher = pattern.matcher(contenido);
         if (!matcher.find()) {
-            return new ArrayList<>();
+            return extraerListaDesdeObjetos(contenido, campo);
         }
-        String contenido = matcher.group(1);
+        String listaContenido = matcher.group(1);
         Pattern itemPattern = Pattern.compile("\"(.*?)\"");
-        Matcher itemMatcher = itemPattern.matcher(contenido);
+        Matcher itemMatcher = itemPattern.matcher(listaContenido);
         List<String> items = new ArrayList<>();
         while (itemMatcher.find()) {
-            items.add(itemMatcher.group(1));
+            items.add(descapeJson(itemMatcher.group(1)));
         }
         return items;
+    }
+
+    private String extraerBloqueRespuesta(String json) {
+        int idx = json.indexOf("\"response\"");
+        if (idx == -1) {
+            return "";
+        }
+        int start = json.indexOf('{', idx);
+        if (start == -1) {
+            start = json.indexOf('[', idx);
+        }
+        if (start == -1) {
+            return "";
+        }
+        char open = json.charAt(start);
+        char close = open == '{' ? '}' : ']';
+        int depth = 0;
+        for (int i = start; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == open) {
+                depth++;
+            } else if (c == close) {
+                depth--;
+                if (depth == 0) {
+                    return json.substring(start, i + 1);
+                }
+            }
+        }
+        return "";
+    }
+
+    private List<String> extraerListaDesdeObjetos(String json, String campo) {
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(json);
+        List<String> items = new ArrayList<>();
+        while (matcher.find()) {
+            items.add(descapeJson(matcher.group(1)));
+        }
+        return items;
+    }
+
+    private String desescapeJson(String valor) {
+        if (valor == null || valor.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < valor.length(); i++) {
+            char c = valor.charAt(i);
+            if (c == '\\' && i + 1 < valor.length()) {
+                char next = valor.charAt(i + 1);
+                if (next == 'u' && i + 5 < valor.length()) {
+                    String hex = valor.substring(i + 2, i + 6);
+                    try {
+                        sb.append((char) Integer.parseInt(hex, 16));
+                        i += 5;
+                        continue;
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else {
+                    switch (next) {
+                        case '"':
+                            sb.append('"');
+                            i++;
+                            continue;
+                        case '\\':
+                            sb.append('\\');
+                            i++;
+                            continue;
+                        case '/':
+                            sb.append('/');
+                            i++;
+                            continue;
+                        case 'b':
+                            sb.append('\b');
+                            i++;
+                            continue;
+                        case 'f':
+                            sb.append('\f');
+                            i++;
+                            continue;
+                        case 'n':
+                            sb.append('\n');
+                            i++;
+                            continue;
+                        case 'r':
+                            sb.append('\r');
+                            i++;
+                            continue;
+                        case 't':
+                            sb.append('\t');
+                            i++;
+                            continue;
+                        default:
+                            break;
+                    }
+                }
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     private static class ResultadoCp {
