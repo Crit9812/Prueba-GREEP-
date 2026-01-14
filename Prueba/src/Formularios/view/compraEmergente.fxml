@@ -73,7 +73,7 @@
 
                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                 <Label text="Producto:"/>
-                                <ComboBox fx:id="cbProductoNombre" prefWidth="210" maxWidth="21ō0"/>
+                                <ComboBox fx:id="cbProductoNombre" prefWidth="210" maxWidth="210"/>
                             </VBox>
                         </VBox>
                     </HBox>
