@@ -765,8 +765,8 @@ public class controllerCompraEmergente {
             txtCantidadUbicacion.clear();
         }
 
-        cbClaveProducto.requestFocus();
-        reforzarLimpiezaCombosProducto();
+        //cbClaveProducto.requestFocus();
+        //reforzarLimpiezaCombosProducto();
     }
 
     private void limpiarCombosProducto() {
