@@ -331,7 +331,7 @@ public class controllerNuevoCliente {
         Matcher itemMatcher = itemPattern.matcher(listaContenido);
         List<String> items = new ArrayList<>();
         while (itemMatcher.find()) {
-            items.add(descapeJson(itemMatcher.group(1)));
+            items.add(desescapeJson(itemMatcher.group(1)));
         }
         return items;
     }
@@ -370,7 +370,7 @@ public class controllerNuevoCliente {
         Matcher matcher = pattern.matcher(json);
         List<String> items = new ArrayList<>();
         while (matcher.find()) {
-            items.add(descapeJson(matcher.group(1)));
+            items.add(desescapeJson(matcher.group(1)));
         }
         return items;
     }
