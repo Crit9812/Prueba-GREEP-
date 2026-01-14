@@ -107,6 +107,9 @@ public class controllerNuevoTraspasoSalida {
     private boolean seleccionarClaveAlternaPendiente = false;
     private boolean cantidadRapidaValida = false;
     private final Map<String, Image> cacheImagenes = new HashMap<>();
+    private traspasoSalida itemParaEditar;
+    private boolean modoEdicion = false;
+    private boolean inicializado = false;
 
     @FXML
     public void initialize() {
@@ -129,7 +132,149 @@ public class controllerNuevoTraspasoSalida {
         configurarComboUbicacion(comboUbicacion, txtCantidadUbicacion);
         ubicacionesCapturadas.put(comboUbicacion, new ArrayList<>());
 
+        inicializado = true;  // AGREGAR ESTA LÍNEA
+
+        // Si hay item para editar, cargarlo
+        if (itemParaEditar != null) {
+            cargarItemParaEditar();
+        }
+
         Platform.runLater(() -> cbClaveProducto.requestFocus());
+    }
+
+    private void cargarItemParaEditar() {
+        if (itemParaEditar == null) {
+            return;
+        }
+
+        // Cargar datos del item en los campos del formulario
+        cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
+        cbProductoNombre.setValue(itemParaEditar.getProducto());
+        txtDescripcion.setText(itemParaEditar.getDescripcion());
+
+        txtLote.setText(itemParaEditar.getLote());
+
+        // Configurar caducidad
+        if (itemParaEditar.getCaducidad() != null && !itemParaEditar.getCaducidad().isBlank()) {
+            try {
+                dpCaducidad.setValue(java.time.LocalDate.parse(itemParaEditar.getCaducidad()));
+            } catch (Exception e) {
+                dpCaducidad.setValue(null);
+            }
+        }
+
+        txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
+        cbPresentacion.setValue(itemParaEditar.getPresentacion());
+        txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
+
+        // Cargar precios
+        txtPrecioEntrada.setText(itemParaEditar.getPrecioEntrada());
+        txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
+        txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
+        txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
+
+        // Cargar ubicaciones
+        cargarUbicacionesParaEdicion(itemParaEditar.getUbicaciones());
+
+        // Actualizar validaciones
+        loteValidado = true;
+        caducidadValidada = true;
+        presentacionValida = true;
+        factorValido = true;
+        cantidadTotalValida = true;
+
+        // Actualizar imagen del producto
+        actualizarImagenProducto();
+
+        // Establecer foco
+        Platform.runLater(() -> txtLote.requestFocus());
+    }
+    private void cargarUbicacionesParaEdicion(List<UbicacionCompra> ubicacionesLista) {
+        if (ubicacionesLista == null || ubicacionesLista.isEmpty()) {
+            return;
+        }
+
+        // Limpiar ubicaciones existentes
+        while (contenedorUbicaciones.getChildren().size() > 1) {
+            contenedorUbicaciones.getChildren().remove(1);
+        }
+        contadorFilas = 1;
+
+        // Cargar primera ubicación en el combo principal
+        if (!ubicacionesLista.isEmpty()) {
+            UbicacionCompra primeraUbicacion = ubicacionesLista.get(0);
+            comboUbicacion.setValue(primeraUbicacion.getUbicacion());
+            txtCantidadUbicacion.setText(String.valueOf(primeraUbicacion.getCantidad()));
+
+            // Registrar en el mapa de ubicaciones capturadas
+            List<UbicacionCompra> lista = new ArrayList<>();
+            lista.add(primeraUbicacion);
+            ubicacionesCapturadas.put(comboUbicacion, lista);
+        }
+
+        // Cargar ubicaciones restantes
+        for (int i = 1; i < ubicacionesLista.size(); i++) {
+            UbicacionCompra ubicacion = ubicacionesLista.get(i);
+            agregarUbicacionParaEdicion(ubicacion);
+        }
+    }
+
+    private void agregarUbicacionParaEdicion(UbicacionCompra ubicacion) {
+        if (contadorFilas >= MAX_FILAS) {
+            return;
+        }
+
+        HBox nuevaFila = new HBox(20);
+
+        VBox vboxUbicacion = new VBox(5);
+        Label lblUbicacion = new Label("Ubicación:");
+        ComboBox<String> nuevoCombo = new ComboBox<>(this.ubicaciones);
+        nuevoCombo.setEditable(false);
+        nuevoCombo.setPromptText("Selecciona una ubicación");
+        configurarAutocompletadoUbicacion(nuevoCombo);
+        configurarComboUbicacion(nuevoCombo, txtCantidad);
+        vboxUbicacion.getChildren().addAll(lblUbicacion, nuevoCombo);
+        HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
+
+        VBox vboxCantidad = new VBox(5);
+        Label lblCantidad = new Label("Cantidad en ubicación:");
+        TextField txtCantidad = new TextField();
+        configurarCampoCantidadUbicacion(txtCantidad, nuevoCombo);
+        vboxCantidad.getChildren().addAll(lblCantidad, txtCantidad);
+        HBox.setHgrow(vboxCantidad, Priority.ALWAYS);
+
+        VBox vboxBoton = new VBox(5);
+        Button botonEliminar = new Button();
+        String styleV = "-fx-background-color: #d3d3d3; -fx-border-color: #999; -fx-font-weight: bold; -fx-cursor: hand; -fx-border-radius: 5; -fx-max-width: 25; -fx-max-height: 25; -fx-background-radius: 5; -fx-text-fill: black;";
+        botonEliminar.setStyle(styleV);
+        botonEliminar.setText("-");
+        vboxBoton.setAlignment(Pos.BOTTOM_CENTER);
+        vboxBoton.getChildren().addAll(botonEliminar);
+        HBox.setHgrow(vboxBoton, Priority.ALWAYS);
+        botonEliminar.setOnAction(this::manejarEliminar);
+
+        nuevaFila.getChildren().addAll(vboxUbicacion, vboxCantidad, vboxBoton);
+        contenedorUbicaciones.getChildren().add(nuevaFila);
+
+        // Establecer valores
+        nuevoCombo.setValue(ubicacion.getUbicacion());
+        txtCantidad.setText(String.valueOf(ubicacion.getCantidad()));
+
+        // Registrar en el mapa de ubicaciones capturadas
+        List<UbicacionCompra> lista = new ArrayList<>();
+        lista.add(ubicacion);
+        ubicacionesCapturadas.put(nuevoCombo, lista);
+
+        contadorFilas++;
+    }
+
+    public void setItemParaEditar(traspasoSalida item) {
+        this.itemParaEditar = item;
+        this.modoEdicion = true;
+
+        if (itemParaEditar != null && inicializado) {
+            cargarItemParaEditar();
+        }
     }
 
     private void configurarPresentaciones() {
@@ -597,7 +742,119 @@ public class controllerNuevoTraspasoSalida {
         precioIvaBase = BigDecimal.ZERO;
     }
 
+    private void guardarItemEditado() {
+        // Validar que todos los campos estén completos
+        String clave = productoController.getIdSeleccionado();
+        String nombre = productoController.getNombreSeleccionado();
+        String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
+        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        String presentacion = cbPresentacion.getValue();
+        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+        String precioEntrada = txtPrecioEntrada.getText() != null ? txtPrecioEntrada.getText().trim() : "";
+        String precioIva = txtPrecioIVA.getText() != null ? txtPrecioIVA.getText().trim() : "";
+        String precioBruto = txtPrecioBruto.getText() != null ? txtPrecioBruto.getText().trim() : "";
+        String precioTotal = txtPrecioTotal.getText() != null ? txtPrecioTotal.getText().trim() : "";
+
+        // Validaciones (igual que en guardarItem normal)
+        if (clave == null || clave.isBlank()
+                || nombre == null || nombre.isBlank()
+                || descripcion.isBlank()
+                || lote.isBlank()
+                || caducidad == null
+                || cantidadTexto.isBlank()
+                || presentacion == null || presentacion.isBlank()
+                || factorTexto.isBlank()
+                || precioEntrada.isBlank()
+                || precioIva.isBlank()
+                || precioBruto.isBlank()
+                || precioTotal.isBlank()) {
+            mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar.");
+            return;
+        }
+
+        int cantidad;
+        int factor;
+        try {
+            cantidad = Integer.parseInt(cantidadTexto);
+            if (cantidad <= 0) {
+                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            mostrarAlerta("Error", "La cantidad debe ser un número válido.");
+            return;
+        }
+
+        try {
+            factor = Integer.parseInt(factorTexto);
+            if (factor <= 0) {
+                mostrarAlerta("Advertencia", "El factor debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            mostrarAlerta("Error", "El factor debe ser un número válido.");
+            return;
+        }
+
+        List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
+        if (ubicacionesSeleccionadas.isEmpty()) {
+            mostrarAlerta("Advertencia", "Debe capturar las ubicaciones con cantidad.");
+            return;
+        }
+
+        // Verificar si el lote cambió y si ya existe
+        if (!lote.equals(itemParaEditar.getLote())) {
+            if (existeProductoLoteEnTraspaso(clave, lote)) {
+                mostrarAlerta("Advertencia",
+                        "Ya se agregó este producto con el mismo lote. Finaliza el traspaso para poder repetirlo.");
+                return;
+            }
+        }
+
+        if (tieneUbicacionesDuplicadas(ubicacionesSeleccionadas)) {
+            mostrarAlerta("Advertencia", "No se puede seleccionar la misma ubicación más de una vez.");
+            return;
+        }
+
+        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
+                .mapToInt(UbicacionCompra::getCantidad)
+                .sum();
+        if (sumaUbicaciones != cantidad) {
+            mostrarAlerta("Advertencia", "La suma de cantidades por ubicación debe ser igual a la cantidad total.");
+            return;
+        }
+
+        // Actualizar el item existente
+        itemParaEditar.setClaveProducto(clave);
+        itemParaEditar.setProducto(nombre);
+        itemParaEditar.setDescripcion(descripcion);
+        itemParaEditar.setLote(lote);
+        itemParaEditar.setCaducidad(caducidad.toString());
+        itemParaEditar.setCantidad(cantidad);
+        itemParaEditar.setPresentacion(presentacion);
+        itemParaEditar.setFactor(factor);
+        itemParaEditar.setUbicaciones(ubicacionesSeleccionadas);
+        itemParaEditar.setPrecioEntrada(precioEntrada);
+        itemParaEditar.setPrecioIva(precioIva);
+        itemParaEditar.setPrecioBruto(precioBruto);
+        itemParaEditar.setPrecioTotal(precioTotal);
+
+        // Refrescar la tabla
+        if (mainController != null) {
+            mainController.refrescarTabla();
+        }
+
+        mostrarAlertaSinEspera("Éxito", "Producto actualizado en el traspaso de salida.");
+        cerrarFormulario();
+    }
+
     private void guardarItem() {
+        if (modoEdicion && itemParaEditar != null) {
+            guardarItemEditado();
+            return;
+        }
         if (esModoRapido()) {
             guardarItemRapido();
             return;
@@ -1073,6 +1330,9 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void limpiarFormularioParaNuevo() {
+        modoEdicion = false;
+        itemParaEditar = null;
+
         if (productoController != null) {
             productoController.limpiarSeleccion();
         }

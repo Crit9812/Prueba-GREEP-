@@ -34,7 +34,7 @@ public class controllerNuevoPedido {
 
     // Lista de presentaciones disponibles
     private ObservableList<String> presentaciones = FXCollections.observableArrayList(
-            "Pieza", "Caja", "Paquete", "Rollo", "Litro", "Kilogramo", "Metro", "Unidad"
+            "Pieza", "Caja", "Bolsa", "Paquete"
     );
 
     @FXML
@@ -61,6 +61,34 @@ public class controllerNuevoPedido {
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
         cbPresentacion.setValue("Pieza"); // Valor por defecto
+        txtFactor.setText("1"); // Establecer factor inicial como 1
+
+        // 🔥 NUEVO: Agregar listener para cambiar automáticamente el factor cuando se selecciona "Pieza"
+        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.trim().isEmpty()) {
+                String presentacion = newVal.trim();
+
+                // Si se selecciona "Pieza", establecer factor como 1
+                if (presentacion.equalsIgnoreCase("Pieza")) {
+                    txtFactor.setText("1");
+                }
+                // Si se cambia a otra presentación que NO sea "Pieza"
+                else {
+                    // Verificar si el factor actual es "1" (valor por defecto de Pieza)
+                    String factorActual = txtFactor.getText().trim();
+                    if (factorActual.equals("1") || factorActual.equals("1.0")) {
+                        txtFactor.clear();
+                    }
+                }
+            }
+            // Si se borra la presentación
+            else if (newVal == null || newVal.trim().isEmpty()) {
+                // Mantener el factor actual si existe
+                if (txtFactor.getText().trim().isEmpty()) {
+                    txtFactor.setText("1");
+                }
+            }
+        });
     }
 
     public void setItemsPedido(ObservableList<itemPedido> itemsPedido) {
@@ -246,9 +274,6 @@ public class controllerNuevoPedido {
         }
     }
 
-    /**
-     * 🔥 NUEVO: Método para cargar un item existente para editar
-     */
     public void cargarItemParaEditar(itemPedido item) {
         if (item == null) return;
 
@@ -286,37 +311,13 @@ public class controllerNuevoPedido {
         // Resetear modo edición
         modoEdicion = false;
         itemEnEdicion = null;
-
-        // Limpiar campos
         productoController.limpiarSeleccion();
         txtCantidad.clear();
         txtDescripcion.clear();
         cbPresentacion.setValue("Pieza");
-        txtFactor.clear();
-
-        // Restaurar texto del botón si estaba en modo edición
+        txtFactor.setText("1");
         btnGuardar.setText("Guardar");
-
-        // Enfocar el primer campo
         cbClaveProducto.requestFocus();
-
-        // Mostrar mensaje indicativo
-        mostrarMensajeStatus("Formulario listo para agregar otro producto");
-    }
-
-    private void mostrarMensajeStatus(String mensaje) {
-        String textoOriginal = btnGuardar.getText();
-        btnGuardar.setText("✓ " + mensaje);
-
-        // Restaurar después de 2 segundos
-        new Thread(() -> {
-            try {
-                Thread.sleep(2000);
-                Platform.runLater(() -> btnGuardar.setText(textoOriginal));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }).start();
     }
 
     private void mostrarAlertaSinEspera(String titulo, String mensaje) {
@@ -351,7 +352,7 @@ public class controllerNuevoPedido {
         txtCantidad.clear();
         txtDescripcion.clear();
         cbPresentacion.setValue("Pieza");
-        txtFactor.clear();
+        txtFactor.setText("1");
         cbClaveProducto.requestFocus();
         btnGuardar.setText("Guardar");
     }

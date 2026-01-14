@@ -113,7 +113,6 @@
                         </HBox>
                     </VBox>
 
-                    <!-- COMENTARIO (SEPARADO DEL TOTAL) -->
                     <HBox fx:id="contenedorComentario"
                           spacing="8"
                           alignment="CENTER_LEFT">

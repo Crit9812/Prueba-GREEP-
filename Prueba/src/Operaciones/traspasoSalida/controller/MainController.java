@@ -216,19 +216,29 @@ public class MainController {
 
     @FXML
     public void abrirTraspasoSalida() {
+        abrirFormularioTraspaso(null);
+    }
+
+    private void abrirFormularioTraspaso(traspasoSalida itemParaEditar) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoTraspasoSalida.fxml"));
             Formularios.controller.controllerNuevoTraspasoSalida controlador =
                     new Formularios.controller.controllerNuevoTraspasoSalida();
             controlador.setItemsTraspaso(itemsTraspaso);
             controlador.setMainController(this);
+
+            // Pasar el item para editar si existe
+            if (itemParaEditar != null) {
+                controlador.setItemParaEditar(itemParaEditar);
+            }
+
             loader.setController(controlador);
 
             Pane formulario = loader.load();
 
             Stage stage = new Stage();
             stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setTitle("Traspaso de salida");
+            stage.setTitle(itemParaEditar != null ? "Editar Traspaso" : "Traspaso de salida");
             stage.setScene(new javafx.scene.Scene(formulario));
             stage.initOwner(root.getScene().getWindow());
             stage.setResizable(false);
@@ -272,6 +282,17 @@ public class MainController {
         for (TableColumn<traspasoSalida, ?> col : columnas) {
             col.setStyle("-fx-alignment: CENTER;");
         }
+
+        // AGREGAR ESTE CÓDIGO PARA EL DOBLE CLIC (EXACTAMENTE IGUAL AL DE VENTA)
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<traspasoSalida> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirFormularioTraspaso(row.getItem());
+                }
+            });
+            return row;
+        });
 
         contenidoTabla.setEditable(true);
         miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {

@@ -147,6 +147,10 @@ public class SelectorOrdenPopup {
                 return "Cantidad";
             case "producto":
                 return "Producto";
+            case "fecha":
+                return "Fecha";
+            case "sucursal":
+                return "Sucursal";
             case "id":
             default:
                 return "ID";

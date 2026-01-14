@@ -1,6 +1,12 @@
 package Operaciones.traspasoEntrada.controller;
 
-// Agrega estas importaciones si no existen
+
+import Compartido.helper.SelectorOrdenPopup;
+import javafx.collections.transformation.SortedList;
+import javafx.scene.Node;
+import javafx.scene.input.MouseEvent;
+import java.util.Comparator;
+import java.util.function.Function;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 import javafx.application.Platform;
@@ -61,9 +67,11 @@ public class MainController {
     @FXML private TableColumn<traspasoEntrada, String> colHora;
     @FXML private TableColumn<traspasoEntrada, String> colTotal;
     @FXML private TableColumn<traspasoEntrada, String> colNombreSucural;
-
     @FXML private encabezadoController paneNavbarController;
 
+    private String criterioOrden = "id"; // id, fecha, sucursal
+    private String direccionOrden = "asc";
+    private final ObservableList<traspasoEntrada> entradasTraspasoOriginal = FXCollections.observableArrayList();
     private final ObservableList<traspasoEntrada> entradasTraspaso = FXCollections.observableArrayList();
     private final model modeloTraspaso = new model();
     private Image flechaDerechaImage; // Imagen de flecha derecha
@@ -127,6 +135,7 @@ public class MainController {
 
             configurarTabla();
             cargarTabla();
+            aplicarOrdenamiento();
         });
     }
 
@@ -243,6 +252,12 @@ public class MainController {
         );
 
         if (actualizado) {
+            // Actualizar la lista original quitando la entrada procesada
+            entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
+
+            // Actualizar la tabla manteniendo el orden
+            actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
+
             // No mostrar alerta aquí, ya se mostró en el controllerUbicacionTraspaso
             // Solo proceder con el siguiente traspaso automáticamente
 
@@ -275,35 +290,6 @@ public class MainController {
                     });
                     pause.play();
                 }
-            });
-        }
-    }
-
-    private void actualizarEntradaIndividual(String claveEntrada, String nuevoEstadoEntrada, String nuevoEstadoArticulos) {
-        // Crear una lista con solo esta entrada
-        List<String> clavesIndividual = new ArrayList<>();
-        clavesIndividual.add(claveEntrada);
-
-        // Actualizar esta entrada específica en la base de datos
-        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(
-                clavesIndividual,
-                nuevoEstadoEntrada,
-                nuevoEstadoArticulos
-        );
-
-        if (actualizado) {
-            // Actualizar la tabla solo para esta entrada
-            actualizarTablaDespuesDeUbicaciones();
-
-            // Mostrar mensaje de éxito para esta entrada específica
-            Platform.runLater(() -> {
-                mostrarAlerta(Alert.AlertType.INFORMATION, "Ubicaciones asignadas",
-                        "Se asignaron ubicaciones para el traspaso: " + claveEntrada);
-            });
-        } else {
-            Platform.runLater(() -> {
-                mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                        "No se pudo actualizar el estado del traspaso: " + claveEntrada);
             });
         }
     }
@@ -544,7 +530,6 @@ public class MainController {
                 );
                 filaDetalle.setNombreSucursal(detalle.getPrecioTotal()); // Precio total real
 
-
                 filaDetalle.setSeleccionado(false);
                 filasDetalle.add(filaDetalle);
             }
@@ -552,26 +537,11 @@ public class MainController {
             // Guardar las filas de detalle en el mapa
             detallesPorEntrada.put(claveEntrada, filasDetalle);
 
-            // Encontrar la fila padre
-            traspasoEntrada padre = null;
-            for (traspasoEntrada entrada : entradasTraspaso) {
-                if (entrada.getClaveEntrada().equals(claveEntrada) && !esFilaDetalle(entrada) && !esEncabezadoDetalle(entrada)) {
-                    padre = entrada;
-                    break;
-                }
-            }
+            // Marcar como desplegada
+            filasDesplegadas.put(claveEntrada, true);
 
-            if (padre != null) {
-                // Encontrar el índice de la fila padre
-                int parentIndex = entradasTraspaso.indexOf(padre);
-
-                if (parentIndex != -1) {
-                    // Insertar todas las filas (encabezado + detalles) después de la fila padre
-                    for (int i = 0; i < filasDetalle.size(); i++) {
-                        entradasTraspaso.add(parentIndex + 1 + i, filasDetalle.get(i));
-                    }
-                }
-            }
+            // Actualizar la tabla manteniendo el orden
+            actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
         }
     }
 
@@ -581,15 +551,78 @@ public class MainController {
         if (filasDetalle != null) {
             entradasTraspaso.removeAll(filasDetalle);
         }
+        // Marcar como contraída
+        filasDesplegadas.put(claveEntrada, false);
     }
 
     private void cargarTabla() {
-        // Limpiar estados de filas desplegadas
         filasDesplegadas.clear();
         detallesPorEntrada.clear();
+        List<traspasoEntrada> datos = modeloTraspaso.obtenerPendientes();
+        entradasTraspasoOriginal.setAll(datos);
+        entradasTraspaso.setAll(datos);
+        aplicarOrdenamiento();
+    }
 
-        // Cargar datos
-        entradasTraspaso.setAll(modeloTraspaso.obtenerPendientes());
+    private void aplicarOrdenamiento() {
+        List<traspasoEntrada> listaOrdenada = new ArrayList<>(entradasTraspasoOriginal);
+        Comparator<traspasoEntrada> comparator = null;
+        Function<String, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
+
+        switch (criterioOrden) {
+            case "fecha":
+                comparator = Comparator.comparing(item -> {
+                    String fecha = item.getFecha();
+                    if (fecha == null || fecha.isBlank()) {
+                        return "";
+                    }
+                    return fecha;
+                });
+                break;
+            case "sucursal":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getNombreSucursal()));
+                break;
+            case "id":
+            default:
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveEntrada()));
+                break;
+        }
+        if ("desc".equalsIgnoreCase(direccionOrden)) {
+            comparator = comparator.reversed();
+        }
+        listaOrdenada.sort(comparator);
+        actualizarTablaConOrdenamiento(listaOrdenada);
+    }
+
+    private void actualizarTablaConOrdenamiento(List<traspasoEntrada> listaOrdenada) {
+        entradasTraspaso.clear();
+        for (traspasoEntrada entrada : listaOrdenada) {
+            entradasTraspaso.add(entrada);
+            String clave = entrada.getClaveEntrada();
+            if (filasDesplegadas.containsKey(clave) && filasDesplegadas.get(clave)) {
+                List<traspasoEntrada> detalles = detallesPorEntrada.get(clave);
+                if (detalles != null) {
+                    entradasTraspaso.addAll(detalles);
+                }
+            }
+        }
+        contenidoTabla.refresh();
+    }
+
+    @FXML
+    private void mostrarOrdenPopup(MouseEvent event) {
+        // Lista de criterios de ordenamiento disponibles
+        List<String> criterios = new ArrayList<>();
+        criterios.add("id");           // Clave de entrada
+        criterios.add("fecha");        // Fecha
+        criterios.add("sucursal");     // Nombre de sucursal
+
+        SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
+                criterios, criterioOrden, direccionOrden, seleccion -> {
+                    criterioOrden = seleccion.getCriterio();
+                    direccionOrden = seleccion.getDireccion();
+                    aplicarOrdenamiento();
+                });
     }
 
     private void configurarCellFactories() {
@@ -808,7 +841,6 @@ public class MainController {
         });
     }
 
-    // Método auxiliar para obtener la clave padre de un detalle
     private String obtenerClavePadre(String claveDetalle) {
         if (claveDetalle == null) return null;
 
@@ -894,7 +926,12 @@ public class MainController {
         );
 
         if (actualizado) {
-            cargarTabla();
+            // Eliminar las entradas actualizadas de la lista original
+            entradasTraspasoOriginal.removeIf(e -> claves.contains(e.getClaveEntrada()));
+
+            // Actualizar la tabla manteniendo el orden
+            actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
+
             miCheckBox.setSelected(false);
 
             // MODIFICACIÓN: Mensaje específico según la acción
@@ -928,6 +965,5 @@ public class MainController {
         alerta.setContentText(mensaje);
         alerta.showAndWait();
     }
-
 
 }

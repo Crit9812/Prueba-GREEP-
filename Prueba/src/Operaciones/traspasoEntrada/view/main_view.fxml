@@ -38,7 +38,7 @@
 
                             <Region fx:id="expansor"/>
 
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#mostrarOrdenPopup">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="20" preserveRatio="true">
                                         <image>
@@ -56,19 +56,47 @@
                     </VBox>
 
                     <!-- TABLA -->
+                    <!-- TABLA -->
                     <VBox fx:id="contenedorTabla"  styleClass="tabla" alignment="CENTER">
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTable">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <placeholder>
+                                <Label text="No hay resultados que mostrar" styleClass="placeholder-label"/>
+                            </placeholder>
                             <columns>
-                                <TableColumn fx:id="colDesplegar"  prefWidth="70" />
-                                <TableColumn fx:id="colSelect" prefWidth="70" />
-                                <TableColumn fx:id="colClaveEntrada" text="Clave" prefWidth="70" />
-                                <TableColumn fx:id="colFecha" text="Fecha" prefWidth="250" />
-                                <TableColumn fx:id="colHora" text="Hora" prefWidth="250" />
-                                <TableColumn fx:id="colTotal" text="Total" prefWidth="250" />
-                                <TableColumn fx:id="colNombreSucural" text="Nombre de sucursal" prefWidth="360" />
+                                <!-- Columnas con tamaño fijo -->
+                                <TableColumn fx:id="colDesplegar"
+                                             prefWidth="70"
+                                             minWidth="70"
+                                             maxWidth="70"
+                                             resizable="false" />
+                                <TableColumn fx:id="colSelect"
+                                             prefWidth="70"
+                                             minWidth="70"
+                                             maxWidth="70"
+                                             resizable="false" />
+                                <TableColumn fx:id="colClaveEntrada" text="Clave"
+                                             prefWidth="70"
+                                             minWidth="70"
+                                             maxWidth="70"
+                                             resizable="false" />
+                                <TableColumn fx:id="colFecha" text="Fecha" />
+                                <TableColumn fx:id="colHora" text="Hora"
+                                             prefWidth="130"
+                                             minWidth="130"
+                                             maxWidth="130"
+                                             resizable="false" />
+                                <TableColumn fx:id="colTotal" text="Total"
+                                             prefWidth="150"
+                                             minWidth="150"
+                                             maxWidth="150"
+                                             resizable="false" />
+                                <TableColumn fx:id="colNombreSucural" text="Nombre de sucursal"/>
                             </columns>
                         </TableView>
                     </VBox>
