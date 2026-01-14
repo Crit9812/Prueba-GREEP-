@@ -525,6 +525,13 @@ public class controllerCompraEmergente {
             return;
         }
 
+        String mensajeCampos = validarCamposObligatorios(clave, nombre, claveAlterna, descripcion, lote,
+                cantidadTexto, presentacion, factor, precioEntrada, precioIVA, precioBruto, precioTotal);
+        if (mensajeCampos != null) {
+            mostrarAlerta("Advertencia", mensajeCampos);
+            return;
+        }
+
         // 2. Validar datos del formulario usando el helper
         List<UbicacionCompra> ubicacionesSeleccionadas = ubicacionManager.obtenerUbicaciones();
 
@@ -606,6 +613,49 @@ public class controllerCompraEmergente {
 
             limpiarFormularioParaNuevo();
         }
+    }
+
+    private String validarCamposObligatorios(String clave, String nombre, String claveAlterna, String descripcion,
+                                             String lote, String cantidad, String presentacion, String factor,
+                                             String precioEntrada, String precioIva, String precioBruto,
+                                             String precioTotal) {
+        if (esVacio(clave) || esVacio(nombre) || esVacio(claveAlterna) || esVacio(descripcion)
+                || esVacio(lote) || esVacio(cantidad) || esVacio(presentacion) || esVacio(factor)
+                || esVacio(precioEntrada) || esVacio(precioIva) || esVacio(precioBruto)
+                || esVacio(precioTotal)) {
+            return "Debe completar todos los campos obligatorios (excepto caducidad y nota).";
+        }
+
+        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
+            if (!(nodo instanceof HBox)) {
+                continue;
+            }
+            HBox fila = (HBox) nodo;
+            if (fila.getChildren().size() < 2) {
+                continue;
+            }
+            VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
+            VBox vboxCantidad = (VBox) fila.getChildren().get(1);
+            ComboBox<?> combo = (ComboBox<?>) vboxUbicacion.getChildren().stream()
+                    .filter(ComboBox.class::isInstance)
+                    .findFirst()
+                    .orElse(null);
+            TextField campoCantidad = (TextField) vboxCantidad.getChildren().stream()
+                    .filter(TextField.class::isInstance)
+                    .findFirst()
+                    .orElse(null);
+            String ubicacion = combo != null ? combo.getEditor().getText() : "";
+            String cantidadUbicacion = campoCantidad != null ? campoCantidad.getText() : "";
+            if (esVacio(ubicacion) || esVacio(cantidadUbicacion)) {
+                return "Debe completar todas las ubicaciones y cantidades.";
+            }
+        }
+
+        return null;
+    }
+
+    private boolean esVacio(String valor) {
+        return valor == null || valor.isBlank();
     }
 
     private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
