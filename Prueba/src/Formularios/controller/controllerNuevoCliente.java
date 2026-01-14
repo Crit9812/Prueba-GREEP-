@@ -232,30 +232,20 @@ public class controllerNuevoCliente {
         Task<ResultadoCp> task = new Task<>() {
             @Override
             protected ResultadoCp call() throws Exception {
-                String infoUrl = "https://api.copomex.com/query/info_cp/" + cp + "?token=pruebas";
-                String coloniasUrl = "https://api.copomex.com/query/get_colonia_por_cp/" + cp + "?token=pruebas";
+                String infoUrl = "https://api-sepomex.hckdrk.mx/query/info_cp/" + cp;
+                String coloniasUrl = "https://api-sepomex.hckdrk.mx/query/get_colonia_por_cp/" + cp;
 
                 String infoBody = enviarSolicitud(infoUrl);
                 String coloniasBody = enviarSolicitud(coloniasUrl);
 
-                if (respuestaConError(infoBody)) {
-                    return new ResultadoCp();
-                }
-
                 ResultadoCp resultado = new ResultadoCp();
-                resultado.pais = extraerCampoEnRespuesta(infoBody, "pais");
-                resultado.estado = extraerCampoEnRespuesta(infoBody, "estado");
-                resultado.ciudad = extraerCampoEnRespuesta(infoBody, "ciudad");
-                resultado.localidad = extraerCampoEnRespuesta(infoBody, "localidad");
-                if (resultado.localidad == null || resultado.localidad.isBlank()) {
-                    resultado.localidad = extraerCampoEnRespuesta(infoBody, "municipio");
-                }
-                resultado.colonias = extraerListaEnRespuesta(coloniasBody, "colonia");
+                resultado.pais = extraerValorPrincipal(infoBody, "pais");
+                resultado.estado = extraerValorPrincipal(infoBody, "estado");
+                resultado.ciudad = extraerValorPrincipal(infoBody, "ciudad");
+                resultado.localidad = extraerValorPrincipal(infoBody, "municipio");
+                resultado.colonias = extraerAsentamientos(infoBody);
                 if (resultado.colonias.isEmpty()) {
-                    String coloniaDirecta = extraerCampoEnRespuesta(infoBody, "colonia");
-                    if (coloniaDirecta != null && !coloniaDirecta.isBlank()) {
-                        resultado.colonias.add(coloniaDirecta);
-                    }
+                    resultado.colonias = extraerListadoResponse(coloniasBody);
                 }
                 resultado.cp = cp;
                 return resultado;
@@ -305,155 +295,93 @@ public class controllerNuevoCliente {
         return valor == null ? "" : valor;
     }
 
-    private String extraerCampoEnRespuesta(String json, String campo) {
-        if (json == null || json.isBlank()) {
+    private String extraerValorPrincipal(String json, String campo) {
+        String responseArray = extraerResponseArray(json);
+        if (responseArray.isBlank()) {
             return "";
         }
-        String respuesta = extraerBloqueRespuesta(json);
-        String contenido = respuesta == null || respuesta.isBlank() ? json : respuesta;
-        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(contenido);
-        if (matcher.find()) {
-            return desescapeJson(matcher.group(1));
+        String primerObjeto = extraerPrimerObjeto(responseArray);
+        if (primerObjeto.isBlank()) {
+            return "";
         }
-        return "";
+        return extraerCampo(primerObjeto, campo);
     }
 
-    private List<String> extraerListaEnRespuesta(String json, String campo) {
-        if (json == null || json.isBlank()) {
+    private List<String> extraerAsentamientos(String json) {
+        String responseArray = extraerResponseArray(json);
+        if (responseArray.isBlank()) {
             return new ArrayList<>();
         }
-        String respuesta = extraerBloqueRespuesta(json);
-        String contenido = respuesta == null || respuesta.isBlank() ? json : respuesta;
-        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\\[(.*?)\\]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(contenido);
-        if (!matcher.find()) {
-            return extraerListaDesdeObjetos(contenido, campo);
-        }
-        String listaContenido = matcher.group(1);
-        Pattern itemPattern = Pattern.compile("\"(.*?)\"");
-        Matcher itemMatcher = itemPattern.matcher(listaContenido);
-        List<String> items = new ArrayList<>();
-        while (itemMatcher.find()) {
-            items.add(desescapeJson(itemMatcher.group(1)));
-        }
-        return items;
+        return extraerListaCampos(responseArray, "asentamiento");
     }
 
-    private String extraerBloqueRespuesta(String json) {
-        int idx = json.indexOf("\"response\"");
-        if (idx == -1) {
-            return "";
+    private List<String> extraerListadoResponse(String json) {
+        String responseArray = extraerResponseArray(json);
+        if (responseArray.isBlank()) {
+            return new ArrayList<>();
         }
-        int start = json.indexOf('{', idx);
-        if (start == -1) {
-            start = json.indexOf('[', idx);
-        }
-        if (start == -1) {
-            return "";
-        }
-        return extraerEstructura(json, start);
+        return extraerListaStrings(responseArray);
     }
 
-    private List<String> extraerListaDesdeObjetos(String json, String campo) {
-        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(json);
-        List<String> items = new ArrayList<>();
-        while (matcher.find()) {
-            items.add(desescapeJson(matcher.group(1)));
-        }
-        return items;
-    }
-
-    private String desescapeJson(String valor) {
-        if (valor == null || valor.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < valor.length(); i++) {
-            char c = valor.charAt(i);
-            if (c == '\\' && i + 1 < valor.length()) {
-                char next = valor.charAt(i + 1);
-                if (next == 'u' && i + 5 < valor.length()) {
-                    String hex = valor.substring(i + 2, i + 6);
-                    try {
-                        sb.append((char) Integer.parseInt(hex, 16));
-                        i += 5;
-                        continue;
-                    } catch (NumberFormatException ignored) {
-                    }
-                } else {
-                    switch (next) {
-                        case '"':
-                            sb.append('"');
-                            i++;
-                            continue;
-                        case '\\':
-                            sb.append('\\');
-                            i++;
-                            continue;
-                        case '/':
-                            sb.append('/');
-                            i++;
-                            continue;
-                        case 'b':
-                            sb.append('\b');
-                            i++;
-                            continue;
-                        case 'f':
-                            sb.append('\f');
-                            i++;
-                            continue;
-                        case 'n':
-                            sb.append('\n');
-                            i++;
-                            continue;
-                        case 'r':
-                            sb.append('\r');
-                            i++;
-                            continue;
-                        case 't':
-                            sb.append('\t');
-                            i++;
-                            continue;
-                        default:
-                            break;
-                    }
-                }
-            }
-            sb.append(c);
-        }
-        return sb.toString();
-    }
-
-    private boolean respuestaConError(String json) {
+    private String extraerResponseArray(String json) {
         if (json == null || json.isBlank()) {
-            return true;
+            return "";
         }
-        Pattern pattern = Pattern.compile("\"error\"\\s*:\\s*(true|false|\"true\"|\"false\")", Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile("\"response\"\\s*:\\s*\\[(.*?)]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Matcher matcher = pattern.matcher(json);
         if (matcher.find()) {
-            return "true".equalsIgnoreCase(matcher.group(1).replace("\"", ""));
+            return matcher.group(1);
         }
-        return false;
+        return "";
     }
 
-    private String extraerEstructura(String json, int start) {
-        char open = json.charAt(start);
-        char close = open == '{' ? '}' : ']';
+    private String extraerPrimerObjeto(String jsonArrayContent) {
+        int start = jsonArrayContent.indexOf('{');
+        if (start == -1) {
+            return "";
+        }
         int depth = 0;
-        for (int i = start; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == open) {
+        for (int i = start; i < jsonArrayContent.length(); i++) {
+            char c = jsonArrayContent.charAt(i);
+            if (c == '{') {
                 depth++;
-            } else if (c == close) {
+            } else if (c == '}') {
                 depth--;
                 if (depth == 0) {
-                    return json.substring(start, i + 1);
+                    return jsonArrayContent.substring(start, i + 1);
                 }
             }
         }
         return "";
+    }
+
+    private String extraerCampo(String json, String campo) {
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return "";
+    }
+
+    private List<String> extraerListaCampos(String jsonArrayContent, String campo) {
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(jsonArrayContent);
+        List<String> items = new ArrayList<>();
+        while (matcher.find()) {
+            items.add(matcher.group(1));
+        }
+        return items;
+    }
+
+    private List<String> extraerListaStrings(String jsonArrayContent) {
+        Pattern pattern = Pattern.compile("\"(.*?)\"");
+        Matcher matcher = pattern.matcher(jsonArrayContent);
+        List<String> items = new ArrayList<>();
+        while (matcher.find()) {
+            items.add(matcher.group(1));
+        }
+        return items;
     }
 
     private static class ResultadoCp {
