@@ -12,9 +12,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -352,10 +350,6 @@ public class controllerNuevoCliente {
             start = json.indexOf('[', idx);
         }
         if (start == -1) {
-            String decodificado = decodificarRespuestaString(json);
-            if (decodificado != null && !decodificado.isBlank()) {
-                return decodificado.trim();
-            }
             return "";
         }
         return extraerEstructura(json, start);
@@ -442,39 +436,6 @@ public class controllerNuevoCliente {
             return "true".equalsIgnoreCase(matcher.group(1).replace("\"", ""));
         }
         return false;
-    }
-
-    private String decodificarRespuestaString(String json) {
-        Pattern pattern = Pattern.compile("\"response\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(json);
-        if (!matcher.find()) {
-            return "";
-        }
-        String codificado = desescapeJson(matcher.group(1));
-        String decodificado = decodificarBase64(codificado);
-        if (decodificado == null || decodificado.isBlank()) {
-            return "";
-        }
-        String limpio = decodificado.trim();
-        if (limpio.startsWith("{") || limpio.startsWith("[")) {
-            return limpio;
-        }
-        return "";
-    }
-
-    private String decodificarBase64(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return "";
-        }
-        String base = valor.trim();
-        int padding = (4 - (base.length() % 4)) % 4;
-        base = base + "=".repeat(padding);
-        try {
-            byte[] decoded = Base64.getDecoder().decode(base);
-            return new String(decoded, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException e) {
-            return "";
-        }
     }
 
     private String extraerEstructura(String json, int start) {
