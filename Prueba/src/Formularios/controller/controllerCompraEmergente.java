@@ -984,7 +984,7 @@ public class controllerCompraEmergente {
         Button btnEliminar = new Button("-");
         btnEliminar.setMinWidth(30);
         btnEliminar.setPrefWidth(30);
-        btnEliminar.setStyleClass("botonAgregarUbi");
+        btnEliminar.getStyleClass().setAll("botonAgregarUbi");
         VBox vboxBoton = new VBox(5);
         vboxBoton.getChildren().addAll(new Pane(), btnEliminar);
 
