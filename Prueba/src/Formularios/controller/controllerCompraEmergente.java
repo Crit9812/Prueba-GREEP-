@@ -728,6 +728,7 @@ public class controllerCompraEmergente {
     private void limpiarFormularioParaNuevo() {
         productoController.limpiarSeleccion();
         seleccionarClaveAlternaPendiente = false;
+        limpiarCombosProducto();
         txtDescripcion.clear();
         limpiarImagenProducto();
         txtLote.clear();
@@ -765,6 +766,23 @@ public class controllerCompraEmergente {
         }
 
         cbClaveProducto.requestFocus();
+    }
+
+    private void limpiarCombosProducto() {
+        limpiarCombo(cbClaveProducto);
+        limpiarCombo(cbProductoNombre);
+        limpiarCombo(cbClaveAlterna);
+    }
+
+    private void limpiarCombo(ComboBox<String> comboBox) {
+        if (comboBox == null) {
+            return;
+        }
+        comboBox.setValue(null);
+        comboBox.getSelectionModel().clearSelection();
+        if (comboBox.getEditor() != null) {
+            comboBox.getEditor().clear();
+        }
     }
 
     @FXML
