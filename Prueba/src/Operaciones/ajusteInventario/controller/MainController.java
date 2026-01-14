@@ -114,7 +114,7 @@ public class MainController {
 
 
             // Tabla
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.77));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             // Comentario
@@ -140,10 +140,70 @@ public class MainController {
         configurarTotalAjuste();
     }
 
+    private void abrirFormularioEdicion(Object item) {
+        try {
+            if (item instanceof compra) {
+                // Para items de entrada
+                abrirFormularioEdicionEntrada((compra) item);
+            } else if (item instanceof traspasoSalida) {
+                // Para items de salida
+                abrirFormularioEdicionSalida((traspasoSalida) item);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de edición.");
+        }
+    }
+
+    private void abrirFormularioEdicionEntrada(compra itemParaEditar) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
+            Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
+            controlador.setItemsCompra(itemsEntrada);
+            controlador.setTituloFormulario("Editar Entrada");
+            controlador.setItemParaEditar(itemParaEditar); // Esto es importante para modo edición
+            loader.setController(controlador);
+
+            Pane formulario = loader.load();
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Editar Entrada");
+            stage.setScene(new javafx.scene.Scene(formulario));
+            stage.initOwner(root.getScene().getWindow());
+            stage.setResizable(false);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de edición.");
+        }
+    }
+
+    private void abrirFormularioEdicionSalida(traspasoSalida itemParaEditar) {
+        try {
+            Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
+            controlador.setItemsVenta(itemsSalida);
+            controlador.setTituloFormulario("Editar Salida");
+            controlador.setModoSoloNormal(true);
+            controlador.setItemParaEditar(itemParaEditar); // Asegúrate de que este método exista en controllerNuevaVenta
+
+            // Llamar al formulario de nueva venta en modo edición
+            controllerFormularios.controllerFormulario.llamarFormulario(
+                    "/Formularios/view/nuevaVenta.fxml",
+                    controlador,
+                    "Editar Salida"
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de edición.");
+        }
+    }
+
     private void configurarTabla() {
         contenidoTabla.setItems(itemsAjuste);
         contenidoTabla.setEditable(true);
 
+        // Configurar columna de selección (CheckBox)
         colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<Object, Boolean>, ObservableValue<Boolean>>() {
             @Override
             public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<Object, Boolean> param) {
@@ -160,6 +220,7 @@ public class MainController {
         colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
         colSelect.setEditable(true);
 
+        // Configurar columna Tipo
         colTipo.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -171,6 +232,7 @@ public class MainController {
             return new SimpleStringProperty("");
         });
 
+        // Configurar columna Clave Producto
         colClaveProduct.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -181,6 +243,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Producto
         colProducto.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -191,6 +255,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Descripción Producto
         colDescripcionProducto.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -201,6 +267,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Cantidad
         colCantidad.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -211,6 +279,8 @@ public class MainController {
             }
             return new SimpleIntegerProperty(0);
         });
+
+        // Configurar columna Lote
         colLote.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -221,6 +291,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Caducidad
         colCaducidad.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -231,6 +303,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Ubicación
         colUbicacion.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -241,6 +315,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Nota
         colNota.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -251,6 +327,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Precio Unitario
         colPrecioUnitario.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -261,6 +339,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Precio IVA
         colPrecioIva.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -271,6 +351,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Precio Bruto
         colPrecioBruto.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -281,6 +363,8 @@ public class MainController {
             }
             return new SimpleStringProperty("");
         });
+
+        // Configurar columna Precio Total
         colPrecioTotaal.setCellValueFactory(param -> {
             Object item = param.getValue();
             if (item instanceof compra) {
@@ -290,6 +374,28 @@ public class MainController {
                 return ((traspasoSalida) item).precioTotalProperty();
             }
             return new SimpleStringProperty("");
+        });
+
+        // Configurar alineación central para todas las columnas
+        TableColumn<Object, ?>[] columnas = new TableColumn[]{
+                colSelect, colTipo, colClaveProduct, colProducto, colDescripcionProducto,
+                colCantidad, colLote, colCaducidad, colUbicacion, colNota,
+                colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+        };
+
+        for (TableColumn<Object, ?> col : columnas) {
+            col.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setRowFactory(table -> {
+            TableRow<Object> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    Object item = row.getItem();
+                    abrirFormularioEdicion(item);
+                }
+            });
+            return row;
         });
     }
 

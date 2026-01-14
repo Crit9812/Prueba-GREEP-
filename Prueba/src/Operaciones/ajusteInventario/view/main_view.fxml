@@ -81,7 +81,7 @@
                     <!-- TABLA -->
                     <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
                         <padding>
-                            <Insets left="40" right="40"/>
+                            <Insets left="40" right="40" top="30"/>
                         </padding>
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
                             <columns>

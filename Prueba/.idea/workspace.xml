@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Quitar alerta extra en venta y traspaso de salida">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correccion en el formulario de compra, dos botones agregados">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/compraEmergente.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/compraEmergente.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,7 +107,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#49 on Pruebas",
+    "git-widget-placeholder": "#60 on codex/corregir-validacion-del-for…mpras",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -416,7 +419,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768238289449</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="Correccion en el formulario de compra, dos botones agregados">
+      <option name="closed" value="true" />
+      <created>1768401024940</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1768401024940</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -487,7 +498,8 @@
     <MESSAGE value="Venta finalizada, y nose que mas" />
     <MESSAGE value="Modificacione en proveedores, compra y ventas" />
     <MESSAGE value="Modificaciones de consultas agregadas" />
-    <option name="LAST_COMMIT_MESSAGE" value="Modificaciones de consultas agregadas" />
+    <MESSAGE value="Correccion en el formulario de compra, dos botones agregados" />
+    <option name="LAST_COMMIT_MESSAGE" value="Correccion en el formulario de compra, dos botones agregados" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
