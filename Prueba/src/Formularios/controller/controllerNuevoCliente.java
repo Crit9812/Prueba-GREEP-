@@ -2,9 +2,22 @@ package Formularios.controller;
 
 import Formularios.model.modelNuevoCliente;
 import Consultas.clientes.model.cliente;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class controllerNuevoCliente {
 
@@ -18,7 +31,7 @@ public class controllerNuevoCliente {
     @FXML private TextField txtEstado;
     @FXML private TextField txtLocalidad;
     @FXML private TextField txtCiudad;
-    @FXML private TextField txtColonia;
+    @FXML private ComboBox<String> cmbColonia;
     @FXML private TextField txtDomicilio;
     @FXML private TextField txtNoExt;
     @FXML private TextField txtNoInt;
@@ -31,6 +44,8 @@ public class controllerNuevoCliente {
 
     private final modelNuevoCliente model = new modelNuevoCliente();
     private Runnable onSaved = null;
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private String ultimoCpConsultado = "";
 
     @FXML
     private void initialize() {
@@ -46,12 +61,13 @@ public class controllerNuevoCliente {
         setEnterAction(txtEstado);
         setEnterAction(txtLocalidad);
         setEnterAction(txtCiudad);
-        setEnterAction(txtColonia);
         setEnterAction(txtDomicilio);
         setEnterAction(txtNoExt);
         setEnterAction(txtNoInt);
         setEnterAction(txtCorreoElectronico);
         setEnterAction(txtTelefono);
+
+        configurarAutocompletadoCP();
     }
 
     private void setEnterAction(TextField field) {
@@ -76,7 +92,8 @@ public class controllerNuevoCliente {
         txtEstado.setText(c.getEstado());
         txtLocalidad.setText(c.getLocalidad());
         txtCiudad.setText(c.getCiudad());
-        txtColonia.setText(c.getColonia());
+        cmbColonia.getItems().setAll(c.getColonia());
+        cmbColonia.getSelectionModel().select(c.getColonia());
         txtDomicilio.setText(c.getDomicilio());
         txtNoExt.setText(String.valueOf(c.getNumeroExt()));
         txtNoInt.setText(String.valueOf(c.getNumeroInt()));
@@ -114,7 +131,7 @@ public class controllerNuevoCliente {
             c.setEstado(txtEstado.getText());
             c.setLocalidad(txtLocalidad.getText());
             c.setCiudad(txtCiudad.getText());
-            c.setColonia(txtColonia.getText());
+            c.setColonia(cmbColonia.getValue());
             c.setDomicilio(txtDomicilio.getText());
             c.setNumeroExt(Integer.parseInt(txtNoExt.getText()));
             c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
@@ -177,5 +194,150 @@ public class controllerNuevoCliente {
     // Añade este método a la clase controllerNuevoCliente (después de setOnSaved)
     public String getNombreCliente() {
         return txtNombre.getText().trim();
+    }
+
+    private void configurarAutocompletadoCP() {
+        txtPais.setEditable(false);
+        txtEstado.setEditable(false);
+        txtLocalidad.setEditable(false);
+        txtCiudad.setEditable(false);
+        cmbColonia.setDisable(true);
+
+        txtCP.textProperty().addListener((obs, oldVal, newVal) -> {
+            String cp = newVal == null ? "" : newVal.trim();
+            if (!cp.matches("\\d{5}")) {
+                limpiarDatosAutocompletados();
+                return;
+            }
+            if (cp.equals(ultimoCpConsultado)) {
+                return;
+            }
+            ultimoCpConsultado = cp;
+            consultarDatosPorCp(cp);
+        });
+    }
+
+    private void limpiarDatosAutocompletados() {
+        ultimoCpConsultado = "";
+        txtPais.clear();
+        txtEstado.clear();
+        txtLocalidad.clear();
+        txtCiudad.clear();
+        cmbColonia.getItems().clear();
+        cmbColonia.getSelectionModel().clearSelection();
+        cmbColonia.setDisable(true);
+    }
+
+    private void consultarDatosPorCp(String cp) {
+        Task<ResultadoCp> task = new Task<>() {
+            @Override
+            protected ResultadoCp call() throws Exception {
+                String infoUrl = "https://api.copomex.com/query/info_cp/" + cp + "?token=pruebas";
+                String coloniasUrl = "https://api.copomex.com/query/get_colonia_por_cp/" + cp + "?token=pruebas";
+
+                String infoBody = enviarSolicitud(infoUrl);
+                String coloniasBody = enviarSolicitud(coloniasUrl);
+
+                ResultadoCp resultado = new ResultadoCp();
+                resultado.pais = extraerCampo(infoBody, "pais");
+                resultado.estado = extraerCampo(infoBody, "estado");
+                resultado.ciudad = extraerCampo(infoBody, "ciudad");
+                resultado.localidad = extraerCampo(infoBody, "localidad");
+                if (resultado.localidad == null || resultado.localidad.isBlank()) {
+                    resultado.localidad = extraerCampo(infoBody, "municipio");
+                }
+                resultado.colonias = extraerLista(coloniasBody, "colonia");
+                if (resultado.colonias.isEmpty()) {
+                    String coloniaDirecta = extraerCampo(infoBody, "colonia");
+                    if (coloniaDirecta != null && !coloniaDirecta.isBlank()) {
+                        resultado.colonias.add(coloniaDirecta);
+                    }
+                }
+                resultado.cp = cp;
+                return resultado;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            ResultadoCp resultado = task.getValue();
+            if (resultado == null || !cp.equals(txtCP.getText().trim())) {
+                return;
+            }
+            aplicarResultadoCp(resultado);
+        });
+
+        task.setOnFailed(e -> Platform.runLater(this::limpiarDatosAutocompletados));
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private String enviarSolicitud(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
+    }
+
+    private void aplicarResultadoCp(ResultadoCp resultado) {
+        txtPais.setText(valorSeguro(resultado.pais));
+        txtEstado.setText(valorSeguro(resultado.estado));
+        txtLocalidad.setText(valorSeguro(resultado.localidad));
+        txtCiudad.setText(valorSeguro(resultado.ciudad));
+
+        Set<String> coloniasUnicas = new LinkedHashSet<>(resultado.colonias);
+        cmbColonia.getItems().setAll(coloniasUnicas);
+        if (!cmbColonia.getItems().isEmpty()) {
+            cmbColonia.getSelectionModel().select(0);
+            cmbColonia.setDisable(false);
+        } else {
+            cmbColonia.setDisable(true);
+        }
+    }
+
+    private String valorSeguro(String valor) {
+        return valor == null ? "" : valor;
+    }
+
+    private String extraerCampo(String json, String campo) {
+        if (json == null || json.isBlank()) {
+            return "";
+        }
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return "";
+    }
+
+    private List<String> extraerLista(String json, String campo) {
+        if (json == null || json.isBlank()) {
+            return new ArrayList<>();
+        }
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(campo) + "\"\\s*:\\s*\\[(.*?)\\]", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(json);
+        if (!matcher.find()) {
+            return new ArrayList<>();
+        }
+        String contenido = matcher.group(1);
+        Pattern itemPattern = Pattern.compile("\"(.*?)\"");
+        Matcher itemMatcher = itemPattern.matcher(contenido);
+        List<String> items = new ArrayList<>();
+        while (itemMatcher.find()) {
+            items.add(itemMatcher.group(1));
+        }
+        return items;
+    }
+
+    private static class ResultadoCp {
+        private String cp;
+        private String pais;
+        private String estado;
+        private String localidad;
+        private String ciudad;
+        private List<String> colonias = new ArrayList<>();
     }
 }
