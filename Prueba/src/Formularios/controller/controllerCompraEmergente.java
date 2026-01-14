@@ -11,19 +11,15 @@ import conexion.conexionFTP;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
@@ -35,7 +31,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,17 +100,19 @@ public class controllerCompraEmergente {
         configurarValidaciones();
         configurarCalculoPrecios();
         configurarCamposLectura();
-        cargarUbicacionesDesdeBD();
-        configurarLimpiezaPorCampoVacio();
-        configurarManejoEnter();
-        configurarSeleccionClaveAlternaPorDefecto();
+        configurarCombosProducto();
 
         ubicacionManager = new UbicacionManager(
                 contenedorUbicaciones,
                 comboUbicacion,
                 txtCantidadUbicacion,
-                ubicaciones
+                ubicaciones,
+                MAX_FILAS,
+                this::mostrarAlerta,
+                helperCompraEmergente.getValidadorEnteros()
         );
+        cargarUbicacionesDesdeBD();
+        configurarManejoEnter();
 
         inicializado = true;
 
@@ -180,12 +177,6 @@ public class controllerCompraEmergente {
                 List<String> resultados = getValue();
                 ubicaciones.setAll(resultados != null ? resultados : List.of());
 
-                // IMPORTANTE: Configurar el combo principal con las ubicaciones cargadas
-                if (comboUbicacion != null) {
-                    comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
-                }
-
-                // Si ya existe el manager, actualizar todas las listas
                 if (ubicacionManager != null) {
                     ubicacionManager.actualizarListaUbicaciones(ubicaciones);
                 }
@@ -245,57 +236,55 @@ public class controllerCompraEmergente {
         }
     }
 
-    private void configurarSeleccionClaveAlternaPorDefecto() {
+    private void configurarCombosProducto() {
+        configurarLimpiezaCombosProducto();
+        configurarSeleccionClaveAlternaAutomatica();
+    }
+
+    private void configurarSeleccionClaveAlternaAutomatica() {
         if (cbClaveAlterna == null) {
             return;
         }
 
         cbClaveAlterna.getItems().addListener((javafx.collections.ListChangeListener<String>) change -> {
-            if (cbClaveAlterna.getItems().isEmpty()) {
-                return;
-            }
             if (!seleccionarClaveAlternaPendiente) {
                 return;
             }
+            if (cbClaveAlterna.getItems().isEmpty()) {
+                return;
+            }
             seleccionarClaveAlternaPendiente = false;
-            Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
+            Platform.runLater(this::seleccionarClaveAlternaDisponible);
         });
     }
 
-    private void seleccionarPrimerClaveAlternaDisponible() {
-        if (cbClaveAlterna == null || cbClaveAlterna.getItems().isEmpty()) {
-            return;
-        }
-
-        String primeraClave = cbClaveAlterna.getItems().stream()
+    private void seleccionarClaveAlternaDisponible() {
+        String valor = cbClaveAlterna.getItems().stream()
                 .filter(item -> item != null && !item.isBlank())
                 .findFirst()
-                .orElse("");
-
-        if (primeraClave.isBlank()) {
-            cbClaveAlterna.setValue("");
+                .orElse(null);
+        if (valor == null) {
+            cbClaveAlterna.setValue(null);
             return;
         }
-
-        cbClaveAlterna.setValue(primeraClave);
+        cbClaveAlterna.setValue(valor);
     }
 
-    private void configurarLimpiezaPorCampoVacio() {
-        configurarLimpiezaCombo(cbClaveProducto);
-        configurarLimpiezaCombo(cbProductoNombre);
-        configurarLimpiezaCombo(cbClaveAlterna);
+    private void configurarLimpiezaCombosProducto() {
+        configurarAutoLimpiezaCombo(cbClaveProducto);
+        configurarAutoLimpiezaCombo(cbProductoNombre);
+        configurarAutoLimpiezaCombo(cbClaveAlterna);
     }
 
-    private void configurarLimpiezaCombo(ComboBox<String> comboBox) {
-        if (comboBox == null || comboBox.getEditor() == null) {
+    private void configurarAutoLimpiezaCombo(ComboBox<String> comboBox) {
+        if (comboBox == null) {
             return;
         }
-        comboBox.getEditor().focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                String texto = comboBox.getEditor().getText();
-                if (texto == null || texto.isBlank()) {
-                    limpiarSeleccionProducto();
-                }
+        comboBox.setOnHidden(event -> {
+            String valor = comboBox.getValue();
+            String texto = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
+            if ((valor == null || valor.isBlank()) && (texto == null || texto.isBlank())) {
+                limpiarSeleccionProducto();
             }
         });
     }
@@ -406,7 +395,6 @@ public class controllerCompraEmergente {
     private void configurarValidaciones() {
         // Usar los validadores del helper
         configurarValidadorCampo(txtCantidad, "entero");
-        configurarValidadorCampo(txtCantidadUbicacion, "entero");
         configurarValidadorCampo(txtFactor, "decimal");
         configurarValidadorCampo(txtPrecioEntrada, "decimal");
         configurarValidadorCampo(txtPrecioIVA, "decimal");
@@ -626,29 +614,8 @@ public class controllerCompraEmergente {
             return "Debe completar todos los campos obligatorios (excepto caducidad y nota).";
         }
 
-        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
-            if (!(nodo instanceof HBox)) {
-                continue;
-            }
-            HBox fila = (HBox) nodo;
-            if (fila.getChildren().size() < 2) {
-                continue;
-            }
-            VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
-            VBox vboxCantidad = (VBox) fila.getChildren().get(1);
-            ComboBox<?> combo = (ComboBox<?>) vboxUbicacion.getChildren().stream()
-                    .filter(ComboBox.class::isInstance)
-                    .findFirst()
-                    .orElse(null);
-            TextField campoCantidad = (TextField) vboxCantidad.getChildren().stream()
-                    .filter(TextField.class::isInstance)
-                    .findFirst()
-                    .orElse(null);
-            String ubicacion = combo != null ? combo.getEditor().getText() : "";
-            String cantidadUbicacion = campoCantidad != null ? campoCantidad.getText() : "";
-            if (esVacio(ubicacion) || esVacio(cantidadUbicacion)) {
-                return "Debe completar todas las ubicaciones y cantidades.";
-            }
+        if (ubicacionManager != null && ubicacionManager.tieneCamposIncompletos()) {
+            return "Debe completar todas las ubicaciones y cantidades.";
         }
 
         return null;
@@ -656,56 +623,6 @@ public class controllerCompraEmergente {
 
     private boolean esVacio(String valor) {
         return valor == null || valor.isBlank();
-    }
-
-    private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
-        List<UbicacionCompra> resultado = new ArrayList<>();
-
-        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
-            if (!(nodo instanceof HBox)) continue;
-            HBox fila = (HBox) nodo;
-            if (fila.getChildren().size() < 2) continue;
-
-            VBox vboxUbicacion = (VBox) fila.getChildren().get(0);
-            VBox vboxCantidad = (VBox) fila.getChildren().get(1);
-
-            ComboBox<?> combo = null;
-            TextField cantidadField = null;
-
-            for (javafx.scene.Node child : vboxUbicacion.getChildren()) {
-                if (child instanceof ComboBox) {
-                    combo = (ComboBox<?>) child;
-                    break;
-                }
-            }
-
-            for (javafx.scene.Node child : vboxCantidad.getChildren()) {
-                if (child instanceof TextField) {
-                    cantidadField = (TextField) child;
-                    break;
-                }
-            }
-
-            if (combo == null || cantidadField == null) continue;
-
-            String ubicacion = combo.getValue() != null ? combo.getValue().toString() : "";
-            String cantidadTexto = cantidadField.getText();
-
-            if (ubicacion == null || ubicacion.isBlank() || cantidadTexto == null || cantidadTexto.isBlank()) {
-                continue;
-            }
-
-            try {
-                int cantidad = Integer.parseInt(cantidadTexto);
-                if (cantidad > 0) {
-                    resultado.add(new UbicacionCompra(ubicacion, cantidad));
-                }
-            } catch (NumberFormatException ignored) {
-                // Ignorar ubicaciones con cantidad inválida
-            }
-        }
-
-        return resultado;
     }
 
     private boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {
@@ -751,18 +668,6 @@ public class controllerCompraEmergente {
         // Limpiar ubicaciones usando el manager
         if (ubicacionManager != null) {
             ubicacionManager.limpiar();
-        }
-
-        // Limpiar manualmente el combo principal y cantidad como respaldo
-        if (comboUbicacion != null) {
-            comboUbicacion.setItems(FXCollections.observableArrayList(ubicaciones));
-            comboUbicacion.setValue(null);
-            if (comboUbicacion.getEditor() != null) {
-                comboUbicacion.getEditor().clear();
-            }
-        }
-        if (txtCantidadUbicacion != null) {
-            txtCantidadUbicacion.clear();
         }
 
         //cbClaveProducto.requestFocus();
@@ -971,31 +876,16 @@ public class controllerCompraEmergente {
         if (checkBoxIVA != null) {
             checkBoxIVA.setSelected(itemParaEditar.isAplicaIva());
         }
-        //cargarUbicaciones(itemParaEditar.getUbicaciones());
-        ubicacionManager.cargarUbicaciones(itemParaEditar.getUbicaciones());
+        if (ubicacionManager != null) {
+            ubicacionManager.cargarUbicaciones(itemParaEditar.getUbicaciones());
+        }
         recalcularPrecios();
     }
 
-    @FXML private void agregarUbicacion() {ubicacionManager.agregarFilaUbicacion();}
-
-    private void commitirSeleccionCombo(ComboBox<String> comboBox, boolean[] actualizando) {
-        if (comboBox == null || actualizando[0]) {
-            return;
-        }
-        String texto = comboBox.getEditor() != null ? comboBox.getEditor().getText() : null;
-        String seleccion = comboBox.getSelectionModel().getSelectedItem();
-        String valor = (seleccion != null && !seleccion.isBlank()) ? seleccion : texto;
-        if (valor == null || valor.isBlank()) {
-            return;
-        }
-        actualizando[0] = true;
-        try {
-            comboBox.setValue(valor);
-            if (comboBox.getEditor() != null) {
-                comboBox.getEditor().setText(valor);
-            }
-        } finally {
-            actualizando[0] = false;
+    @FXML
+    private void agregarUbicacion() {
+        if (ubicacionManager != null) {
+            ubicacionManager.agregarFilaUbicacion();
         }
     }
 
