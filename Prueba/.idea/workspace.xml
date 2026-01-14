@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correccion en el formulario de compra, dos botones agregados">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/style/estilos.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" afterDir="false" />
-    </list>
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correccion en el formulario de compra, dos botones agregados" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -107,7 +101,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#60 on codex/corregir-validacion-del-for…mpras",
+    "git-widget-placeholder": "#63 on codex/refactor-combobox-logic-in-…-form",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
