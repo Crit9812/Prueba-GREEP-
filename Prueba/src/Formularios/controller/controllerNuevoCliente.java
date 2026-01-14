@@ -1,10 +1,17 @@
 package Formularios.controller;
 
+import Compartido.helper.AutoCompleteComboBoxListener;
+import Compartido.helper.CodigoPostalService;
 import Formularios.model.modelNuevoCliente;
 import Consultas.clientes.model.cliente;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+
+import java.util.Optional;
 
 public class controllerNuevoCliente {
 
@@ -18,7 +25,7 @@ public class controllerNuevoCliente {
     @FXML private TextField txtEstado;
     @FXML private TextField txtLocalidad;
     @FXML private TextField txtCiudad;
-    @FXML private TextField txtColonia;
+    @FXML private ComboBox<String> cbColonia;
     @FXML private TextField txtDomicilio;
     @FXML private TextField txtNoExt;
     @FXML private TextField txtNoInt;
@@ -30,7 +37,9 @@ public class controllerNuevoCliente {
     private int idClienteEdicion = -1;
 
     private final modelNuevoCliente model = new modelNuevoCliente();
+    private final CodigoPostalService codigoPostalService = new CodigoPostalService();
     private Runnable onSaved = null;
+    private String ultimoCpConsultado = "";
 
     @FXML
     private void initialize() {
@@ -46,12 +55,14 @@ public class controllerNuevoCliente {
         setEnterAction(txtEstado);
         setEnterAction(txtLocalidad);
         setEnterAction(txtCiudad);
-        setEnterAction(txtColonia);
         setEnterAction(txtDomicilio);
         setEnterAction(txtNoExt);
         setEnterAction(txtNoInt);
         setEnterAction(txtCorreoElectronico);
         setEnterAction(txtTelefono);
+
+        configurarComboColonia();
+        configurarAutocompletadoCodigoPostal();
     }
 
     private void setEnterAction(TextField field) {
@@ -76,7 +87,7 @@ public class controllerNuevoCliente {
         txtEstado.setText(c.getEstado());
         txtLocalidad.setText(c.getLocalidad());
         txtCiudad.setText(c.getCiudad());
-        txtColonia.setText(c.getColonia());
+        cargarColonia(c.getColonia());
         txtDomicilio.setText(c.getDomicilio());
         txtNoExt.setText(String.valueOf(c.getNumeroExt()));
         txtNoInt.setText(String.valueOf(c.getNumeroInt()));
@@ -114,7 +125,7 @@ public class controllerNuevoCliente {
             c.setEstado(txtEstado.getText());
             c.setLocalidad(txtLocalidad.getText());
             c.setCiudad(txtCiudad.getText());
-            c.setColonia(txtColonia.getText());
+            c.setColonia(obtenerColoniaSeleccionada());
             c.setDomicilio(txtDomicilio.getText());
             c.setNumeroExt(Integer.parseInt(txtNoExt.getText()));
             c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
@@ -177,5 +188,91 @@ public class controllerNuevoCliente {
     // Añade este método a la clase controllerNuevoCliente (después de setOnSaved)
     public String getNombreCliente() {
         return txtNombre.getText().trim();
+    }
+
+    private void configurarComboColonia() {
+        cbColonia.setEditable(true);
+        cbColonia.setItems(FXCollections.observableArrayList());
+        new AutoCompleteComboBoxListener<>(cbColonia);
+    }
+
+    private void configurarAutocompletadoCodigoPostal() {
+        txtCP.textProperty().addListener((obs, anterior, actual) -> {
+            String cp = actual == null ? "" : actual.trim();
+            if (!cp.matches("\\d{5}")) {
+                if (!ultimoCpConsultado.isBlank()) {
+                    limpiarCamposDireccion();
+                }
+                return;
+            }
+            if (cp.equals(ultimoCpConsultado)) {
+                return;
+            }
+            ultimoCpConsultado = cp;
+            buscarInformacionCodigoPostal(cp);
+        });
+    }
+
+    private void buscarInformacionCodigoPostal(String cp) {
+        codigoPostalService.buscarCodigoPostal(cp)
+                .thenAccept(info -> Platform.runLater(() -> aplicarInformacionCodigoPostal(cp, info)));
+    }
+
+    private void aplicarInformacionCodigoPostal(String cp, Optional<CodigoPostalService.CodigoPostalInfo> info) {
+        if (!cp.equals(txtCP.getText().trim())) {
+            return;
+        }
+        if (info.isEmpty()) {
+            return;
+        }
+        CodigoPostalService.CodigoPostalInfo data = info.get();
+        txtPais.setText(data.getPais());
+        txtEstado.setText(data.getEstado());
+        txtLocalidad.setText(data.getLocalidad());
+        txtCiudad.setText(data.getCiudad());
+        actualizarColonias(data.getColonias());
+    }
+
+    private void actualizarColonias(java.util.List<String> colonias) {
+        ObservableList<String> items = FXCollections.observableArrayList(colonias);
+        cbColonia.setItems(items);
+        String seleccionActual = obtenerColoniaSeleccionada();
+        if (seleccionActual != null && items.contains(seleccionActual)) {
+            cbColonia.getSelectionModel().select(seleccionActual);
+            cbColonia.getEditor().setText(seleccionActual);
+        } else if (!items.isEmpty()) {
+            cbColonia.getSelectionModel().selectFirst();
+            cbColonia.getEditor().setText(cbColonia.getSelectionModel().getSelectedItem());
+        }
+    }
+
+    private void cargarColonia(String colonia) {
+        if (colonia == null || colonia.isBlank()) {
+            cbColonia.getSelectionModel().clearSelection();
+            cbColonia.getEditor().clear();
+            return;
+        }
+        cbColonia.setItems(FXCollections.observableArrayList(colonia));
+        cbColonia.getSelectionModel().select(colonia);
+        cbColonia.getEditor().setText(colonia);
+    }
+
+    private String obtenerColoniaSeleccionada() {
+        String seleccion = cbColonia.getSelectionModel().getSelectedItem();
+        if (seleccion != null && !seleccion.isBlank()) {
+            return seleccion;
+        }
+        return cbColonia.getEditor().getText().trim();
+    }
+
+    private void limpiarCamposDireccion() {
+        ultimoCpConsultado = "";
+        txtPais.clear();
+        txtEstado.clear();
+        txtLocalidad.clear();
+        txtCiudad.clear();
+        cbColonia.getSelectionModel().clearSelection();
+        cbColonia.getItems().clear();
+        cbColonia.getEditor().clear();
     }
 }
