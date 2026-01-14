@@ -766,12 +766,17 @@ public class controllerCompraEmergente {
         }
 
         cbClaveProducto.requestFocus();
+        reforzarLimpiezaCombosProducto();
     }
 
     private void limpiarCombosProducto() {
         limpiarCombo(cbClaveProducto);
         limpiarCombo(cbProductoNombre);
         limpiarCombo(cbClaveAlterna);
+    }
+
+    private void reforzarLimpiezaCombosProducto() {
+        Platform.runLater(this::limpiarCombosProducto);
     }
 
     private void limpiarCombo(ComboBox<String> comboBox) {
