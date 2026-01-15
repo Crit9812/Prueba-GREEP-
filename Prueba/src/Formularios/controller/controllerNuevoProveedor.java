@@ -4,9 +4,12 @@ import Consultas.proveedores.model.proveedores;
 import Formularios.model.modelNuevoProveedor;
 import conexion.conexionFTP;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import Compartido.helper.AutoCompleteComboBoxListener;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
@@ -57,7 +60,7 @@ public class controllerNuevoProveedor {
     @FXML private TextField txtRazonSocial;
     @FXML private TextField txtDomicilio;
     @FXML private TextField txtCP;
-    @FXML private TextField txtColonia;
+    @FXML private ComboBox<String> cmbColonia;
     @FXML private TextField txtNoInt;
     @FXML private TextField txtNoExt;
     @FXML private TextField txtCiudad;
@@ -95,7 +98,9 @@ public class controllerNuevoProveedor {
         setEnterAction(txtRazonSocial);
         setEnterAction(txtDomicilio);
         setEnterAction(txtCP);
-        setEnterAction(txtColonia);
+        if (cmbColonia != null && cmbColonia.getEditor() != null) {
+            setEnterAction(cmbColonia.getEditor());
+        }
         setEnterAction(txtNoInt);
         setEnterAction(txtNoExt);
         setEnterAction(txtCiudad);
@@ -125,7 +130,7 @@ public class controllerNuevoProveedor {
         txtRazonSocial.setText(p.getRazonSocial());
         txtDomicilio.setText(p.getDomicilio());
         txtCP.setText(String.valueOf(p.getCp()));
-        txtColonia.setText(p.getColonia());
+        if (cmbColonia != null) cmbColonia.setValue(p.getColonia());
         txtNoInt.setText(String.valueOf(p.getNumeroInt()));
         txtNoExt.setText(String.valueOf(p.getNumeroExt()));
         txtCiudad.setText(p.getCiudad());
@@ -164,7 +169,7 @@ public class controllerNuevoProveedor {
             p.setRazonSocial(txtRazonSocial.getText());
             p.setDomicilio(txtDomicilio.getText());
             p.setCp(Integer.parseInt(txtCP.getText()));
-            p.setColonia(txtColonia.getText());
+            p.setColonia(obtenerColoniaSeleccionada());
             p.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
             p.setNumeroExt(Integer.parseInt(txtNoExt.getText()));
             p.setCiudad(txtCiudad.getText());
@@ -219,7 +224,9 @@ public class controllerNuevoProveedor {
         aplicarFiltro(txtRazonSocial, permitirAlfanumericoConSimbolos(150));
         aplicarFiltro(txtDomicilio, permitirAlfanumericoConSimbolos(180));
         aplicarFiltro(txtCP, permitirNumeros(CP_LONGITUD));
-        aplicarFiltro(txtColonia, permitirTexto(120));
+        if (cmbColonia != null && cmbColonia.getEditor() != null) {
+            aplicarFiltro(cmbColonia.getEditor(), permitirTexto(120));
+        }
         aplicarFiltro(txtNoInt, permitirNumeros(10));
         aplicarFiltro(txtNoExt, permitirNumeros(10));
         aplicarFiltro(txtCorreo, permitirEmail(120));
@@ -347,6 +354,10 @@ public class controllerNuevoProveedor {
         bloquearCampo(txtEstado);
         bloquearCampo(txtLocalidad);
         bloquearCampo(txtCiudad);
+        if (cmbColonia != null) {
+            cmbColonia.setEditable(true);
+            new AutoCompleteComboBoxListener<>(cmbColonia);
+        }
     }
 
     private void bloquearCampo(TextField campo) {
@@ -443,14 +454,26 @@ public class controllerNuevoProveedor {
         if (info.localidad != null) txtLocalidad.setText(info.localidad);
         if (info.ciudad != null) txtCiudad.setText(info.ciudad);
 
-        String seleccion = coloniaPreferida;
-        if (seleccion == null || seleccion.isBlank()) {
-            seleccion = info.colonias.isEmpty() ? null : info.colonias.get(0);
-        }
-        if (seleccion != null && !seleccion.isBlank()) {
-            txtColonia.setText(seleccion);
-        } else if (txtColonia != null) {
-            txtColonia.clear();
+        if (cmbColonia != null) {
+            cmbColonia.setItems(FXCollections.observableArrayList(info.colonias));
+
+            String seleccion = coloniaPreferida;
+            if (seleccion == null || seleccion.isBlank()) {
+                seleccion = info.colonias.isEmpty() ? null : info.colonias.get(0);
+            }
+
+            if (seleccion != null && !seleccion.isBlank()) {
+                if (!info.colonias.contains(seleccion)) {
+                    cmbColonia.getItems().add(seleccion);
+                }
+                cmbColonia.setValue(seleccion);
+                if (cmbColonia.getEditor() != null) {
+                    cmbColonia.getEditor().setText(seleccion);
+                }
+            } else {
+                cmbColonia.setValue(null);
+                if (cmbColonia.getEditor() != null) cmbColonia.getEditor().clear();
+            }
         }
 
         coloniaPendiente = null;
@@ -461,7 +484,20 @@ public class controllerNuevoProveedor {
         if (txtEstado != null) txtEstado.clear();
         if (txtLocalidad != null) txtLocalidad.clear();
         if (txtCiudad != null) txtCiudad.clear();
-        if (txtColonia != null) txtColonia.clear();
+        if (cmbColonia != null) {
+            cmbColonia.setItems(FXCollections.observableArrayList());
+            cmbColonia.setValue(null);
+            if (cmbColonia.getEditor() != null) cmbColonia.getEditor().clear();
+        }
+    }
+
+    private String obtenerColoniaSeleccionada() {
+        if (cmbColonia == null) return "";
+        String valor = cmbColonia.getValue();
+        if ((valor == null || valor.isBlank()) && cmbColonia.getEditor() != null) {
+            valor = cmbColonia.getEditor().getText();
+        }
+        return valor != null ? valor.trim() : "";
     }
 
     private CpInfo buscarEnSepomex(String cp) {
