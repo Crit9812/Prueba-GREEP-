@@ -290,7 +290,7 @@ public class controllerNuevoProveedor {
 
         if (!validarCampoNumerico(txtCP, "Código Postal")) return false;
         if (!validarCampoNumerico(txtNoExt, "Número Exterior")) return false;
-        if (!validarCampoNumerico(txtNoInt, "Número Interior")) return false;
+        if (!validarCampoNumericoOpcional(txtNoInt, "Número Interior")) return false;
         if (!validarCampoNumerico(txtTelefono, "Teléfono")) return false;
 
         String rfc = txtRFC.getText().trim().toUpperCase(Locale.ROOT);
@@ -347,6 +347,13 @@ public class controllerNuevoProveedor {
             return false;
         }
         return true;
+    }
+
+    private boolean validarCampoNumericoOpcional(TextField campo, String nombreCampo) {
+        if (campo == null) return false;
+        String valor = campo.getText();
+        if (valor == null || valor.trim().isEmpty()) return true;
+        return validarCampoNumerico(campo, nombreCampo);
     }
 
     private void configurarCamposAutocompletado() {

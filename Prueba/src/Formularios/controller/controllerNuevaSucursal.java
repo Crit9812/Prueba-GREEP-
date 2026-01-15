@@ -253,7 +253,7 @@ public class controllerNuevaSucursal {
 
         if (!validarCampoNumerico(txtCP, "Código Postal")) return false;
         if (!validarCampoNumerico(txtNumeroExt, "Número Exterior")) return false;
-        if (!validarCampoNumerico(txtNumeroInt, "Número Interior")) return false;
+        if (!validarCampoNumericoOpcional(txtNumeroInt, "Número Interior")) return false;
         if (!validarCampoNumerico(txtTelefono, "Teléfono")) return false;
 
         String cp = txtCP.getText().trim();
@@ -298,6 +298,13 @@ public class controllerNuevaSucursal {
             return false;
         }
         return true;
+    }
+
+    private boolean validarCampoNumericoOpcional(TextField campo, String nombreCampo) {
+        if (campo == null) return false;
+        String valor = campo.getText();
+        if (valor == null || valor.trim().isEmpty()) return true;
+        return validarCampoNumerico(campo, nombreCampo);
     }
 
     private void configurarCamposAutocompletado() {
