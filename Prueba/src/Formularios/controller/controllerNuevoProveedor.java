@@ -156,59 +156,53 @@ public class controllerNuevoProveedor {
 
     @FXML
     public void guardarProveedor() {
-        try {
-            if (!validarFormulario()) return;
-            proveedores p = new proveedores();
+        if (!validarFormulario()) return;
+        proveedores p = new proveedores();
 
-            if (modoEdicion) p.setId(idProveedorEdicion);
+        if (modoEdicion) p.setId(idProveedorEdicion);
 
-            p.setNombre(txtNombre.getText());
-            p.setRepresentante(txtRepresentante.getText());
-            p.setRfc(txtRFC.getText());
-            p.setCurp(txtCURP.getText());
-            p.setRazonSocial(txtRazonSocial.getText());
-            p.setDomicilio(txtDomicilio.getText());
-            p.setCp(Integer.parseInt(txtCP.getText()));
-            p.setColonia(obtenerColoniaSeleccionada());
-            p.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
-            p.setNumeroExt(Integer.parseInt(txtNoExt.getText()));
-            p.setCiudad(txtCiudad.getText());
-            p.setEstado(txtEstado.getText());
-            p.setLocalidad(txtLocalidad.getText());
-            p.setPais(txtPais.getText());
-            p.setCorreo(txtCorreo.getText());
-            p.setTelefono(Integer.parseInt(txtTelefono.getText()));
+        p.setNombre(txtNombre.getText());
+        p.setRepresentante(txtRepresentante.getText());
+        p.setRfc(txtRFC.getText());
+        p.setCurp(txtCURP.getText());
+        p.setRazonSocial(txtRazonSocial.getText());
+        p.setDomicilio(txtDomicilio.getText());
+        p.setCp(Integer.parseInt(txtCP.getText().trim()));
+        p.setColonia(obtenerColoniaSeleccionada());
+        p.setNumeroInt(obtenerNumeroOpcional(txtNoInt));
+        p.setNumeroExt(Integer.parseInt(txtNoExt.getText().trim()));
+        p.setCiudad(txtCiudad.getText());
+        p.setEstado(txtEstado.getText());
+        p.setLocalidad(txtLocalidad.getText());
+        p.setPais(txtPais.getText());
+        p.setCorreo(txtCorreo.getText());
+        p.setTelefono(Long.parseLong(txtTelefono.getText().trim()));
 
-            boolean exito = modoEdicion ?
-                    model.modificarProveedor(p) :
-                    model.agregarProveedor(p);
+        boolean exito = modoEdicion ?
+                model.modificarProveedor(p) :
+                model.agregarProveedor(p);
 
-            if (exito) {
-                String mensaje = modoEdicion ?
-                        "Proveedor actualizado correctamente" :
-                        "Proveedor agregado correctamente";
+        if (exito) {
+            String mensaje = modoEdicion ?
+                    "Proveedor actualizado correctamente" :
+                    "Proveedor agregado correctamente";
 
-                mostrarAlerta(Alert.AlertType.INFORMATION, mensaje);
+            mostrarAlerta(Alert.AlertType.INFORMATION, mensaje);
 
-                // 👉 NUEVO: Ejecutar callback si existe (para notificar al controller principal)
-                if (onSaved != null) {
-                    onSaved.run();
-                }
-
-                // 👉 NUEVO: Cerrar la ventana después de un breve retardo
-                Platform.runLater(() -> {
-                    Stage stage = (Stage) btnGuardar.getScene().getWindow();
-                    stage.close();
-                });
-
-            } else {
-                mostrarAlerta(Alert.AlertType.ERROR,
-                        "Error al guardar proveedor en la BD");
+            // 👉 NUEVO: Ejecutar callback si existe (para notificar al controller principal)
+            if (onSaved != null) {
+                onSaved.run();
             }
 
-        } catch (NumberFormatException e) {
+            // 👉 NUEVO: Cerrar la ventana después de un breve retardo
+            Platform.runLater(() -> {
+                Stage stage = (Stage) btnGuardar.getScene().getWindow();
+                stage.close();
+            });
+
+        } else {
             mostrarAlerta(Alert.AlertType.ERROR,
-                    "Revisa CP, N° Interior, N° Exterior y Teléfono: deben ser numéricos");
+                    "Error al guardar proveedor en la BD");
         }
     }
 
@@ -354,6 +348,13 @@ public class controllerNuevoProveedor {
         String valor = campo.getText();
         if (valor == null || valor.trim().isEmpty()) return true;
         return validarCampoNumerico(campo, nombreCampo);
+    }
+
+    private Integer obtenerNumeroOpcional(TextField campo) {
+        if (campo == null) return 0;
+        String valor = campo.getText();
+        if (valor == null || valor.trim().isEmpty()) return 0;
+        return Integer.parseInt(valor.trim());
     }
 
     private void configurarCamposAutocompletado() {

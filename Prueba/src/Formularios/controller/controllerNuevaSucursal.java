@@ -142,50 +142,42 @@ public class controllerNuevaSucursal {
 
     @FXML
     public void guardarSucursal() {
+        if (!validarFormulario()) return;
 
-        try {
-            if (!validarFormulario()) return;
+        // Crear / editar objeto
+        sucursal s = new sucursal();
+        if (modoEdicion) s.setId(idSucursalEdicion);
 
-            // Crear / editar objeto
-            sucursal s = new sucursal();
-            if (modoEdicion) s.setId(idSucursalEdicion);
+        s.setNombre(txtNombre.getText().trim());
+        s.setDomicilio(txtDomicilio.getText().trim());
+        s.setCp(Integer.parseInt(txtCP.getText().trim()));
+        s.setColonia(obtenerColoniaSeleccionada());
+        s.setNumeroExt(Integer.parseInt(txtNumeroExt.getText().trim()));
+        s.setNumeroInt(obtenerNumeroOpcional(txtNumeroInt));
+        s.setCiudad(txtCiudad.getText().trim());
+        s.setEstado(txtEstado.getText().trim());
+        s.setLocalidad(txtLocalidad.getText().trim());
+        s.setPais(txtPais.getText().trim());
+        s.setCorreo(txtCorreo.getText().trim());
+        s.setTelefono(Long.parseLong(txtTelefono.getText().trim()));
 
-            s.setNombre(txtNombre.getText().trim());
-            s.setDomicilio(txtDomicilio.getText().trim());
-            s.setCp(Integer.parseInt(txtCP.getText().trim()));
-            s.setColonia(obtenerColoniaSeleccionada());
-            s.setNumeroExt(Integer.parseInt(txtNumeroExt.getText().trim()));
-            s.setNumeroInt(txtNumeroInt.getText().trim().isEmpty() ? 0 :
-                    Integer.parseInt(txtNumeroInt.getText().trim()));
-            s.setCiudad(txtCiudad.getText().trim());
-            s.setEstado(txtEstado.getText().trim());
-            s.setLocalidad(txtLocalidad.getText().trim());
-            s.setPais(txtPais.getText().trim());
-            s.setCorreo(txtCorreo.getText().trim());
-            s.setTelefono(Integer.parseInt(txtTelefono.getText().trim()));
+        boolean exito = modoEdicion ?
+                model.modificarSucursal(s) :
+                model.guardarSucursal(s);
 
-            boolean exito = modoEdicion ?
-                    model.modificarSucursal(s) :
-                    model.guardarSucursal(s);
+        if (exito) {
+            mostrarAlerta(Alert.AlertType.INFORMATION,
+                    modoEdicion ? "Sucursal actualizada correctamente"
+                            : "Sucursal agregada correctamente"
+            );
 
-            if (exito) {
-                mostrarAlerta(Alert.AlertType.INFORMATION,
-                        modoEdicion ? "Sucursal actualizada correctamente"
-                                : "Sucursal agregada correctamente"
-                );
+            if (onSaved != null) onSaved.run();
+            Stage stage = (Stage) btnGuardar.getScene().getWindow();
+            stage.close();
 
-                if (onSaved != null) onSaved.run();
-                Stage stage = (Stage) btnGuardar.getScene().getWindow();
-                stage.close();
-
-            } else {
-                mostrarAlerta(Alert.AlertType.ERROR,
-                        "Error al guardar la sucursal en la BD");
-            }
-
-        } catch (NumberFormatException e) {
+        } else {
             mostrarAlerta(Alert.AlertType.ERROR,
-                    "Revisa CP, N° Interior, N° Exterior y Teléfono: deben ser numéricos");
+                    "Error al guardar la sucursal en la BD");
         }
     }
 
@@ -305,6 +297,13 @@ public class controllerNuevaSucursal {
         String valor = campo.getText();
         if (valor == null || valor.trim().isEmpty()) return true;
         return validarCampoNumerico(campo, nombreCampo);
+    }
+
+    private Integer obtenerNumeroOpcional(TextField campo) {
+        if (campo == null) return 0;
+        String valor = campo.getText();
+        if (valor == null || valor.trim().isEmpty()) return 0;
+        return Integer.parseInt(valor.trim());
     }
 
     private void configurarCamposAutocompletado() {
