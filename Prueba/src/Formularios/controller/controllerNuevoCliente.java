@@ -91,7 +91,6 @@ public class controllerNuevoCliente {
 
         modoEdicion = true;
         idClienteEdicion = c.getId();
-
         txtNombre.setText(c.getNombre());
         txtRFC.setText(c.getRfc());
         txtCURP.setText(c.getCurp());

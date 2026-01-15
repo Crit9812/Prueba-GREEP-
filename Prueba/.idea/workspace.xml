@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Conexion a FTP cambiada para adquirir mas archivos">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/helper/SelectorOrdenPopup.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/helper/SelectorOrdenPopup.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoCliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoCliente.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,22 +37,9 @@
         </map>
       </branch-storage>
     </excluded-from-favorite>
-    <favorite-branches>
-      <branch-storage>
-        <map>
-          <entry type="LOCAL">
-            <value>
-              <list>
-                <branch-info repo="$PROJECT_DIR$/.." source="codex/update-purchase-form-with-combo-boxes" />
-              </list>
-            </value>
-          </entry>
-        </map>
-      </branch-storage>
-    </favorite-branches>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
+        <entry key="$PROJECT_DIR$/.." value="codex/actualizar-autocompletado-con-archivo-sepomex" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -103,7 +92,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#68 on codex/actualizar-autocompletado-c…pomex",
+    "git-widget-placeholder": "#49 on Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -455,7 +444,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768487974496</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp">
+      <option name="closed" value="true" />
+      <created>1768499065710</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1768499065710</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -531,7 +528,8 @@
     <MESSAGE value="Agrego cambios de jess, no recuerdo que era" />
     <MESSAGE value="Se agrego API de codigo postal" />
     <MESSAGE value="Conexion a FTP cambiada para adquirir mas archivos" />
-    <option name="LAST_COMMIT_MESSAGE" value="Conexion a FTP cambiada para adquirir mas archivos" />
+    <MESSAGE value="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp" />
+    <option name="LAST_COMMIT_MESSAGE" value="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
