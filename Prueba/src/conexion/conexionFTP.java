@@ -19,9 +19,10 @@ public class conexionFTP {
 
     private String server = "ftp.distribuidoragreep.com.mx";
     private int port = 21;
-    private String user = "inventario@distribuidoragreep.com.mx";
+    private String user = "Inventario@distribuidoragreep.com.mx";
     private String pass = "Greepsa2025.";
-    private String remoteDir = "/"; // Ya estamos directamente en la carpeta de imágenes
+    private String remoteDirImagenes = "/imagenesInventario/"; // Ya estamos directamente en la carpeta de imágenes
+    private String remoteDirExtra = "/ExtraGestorInventario/"; //Archivos extra para el sistema
 
     public boolean uploadFile(File file, String newFileName) {
         FTPClient ftpClient = new FTPClient();
@@ -39,7 +40,7 @@ public class conexionFTP {
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 
             // Cambiar al directorio remoto (ya existe)
-            if (!remoteDir.isEmpty()) ftpClient.changeWorkingDirectory(remoteDir);
+            if (!remoteDirImagenes.isEmpty()) ftpClient.changeWorkingDirectory(remoteDirImagenes);
 
             inputStream = new FileInputStream(file);
             boolean uploaded = ftpClient.storeFile(newFileName, inputStream);
@@ -105,7 +106,7 @@ public class conexionFTP {
             ftpClient.setFileType(FTPClient.BINARY_FILE_TYPE);
 
             // Cambiar al directorio remoto ya existente
-            if (!remoteDir.isEmpty()) ftpClient.changeWorkingDirectory(remoteDir);
+            if (!remoteDirImagenes.isEmpty()) ftpClient.changeWorkingDirectory(remoteDirImagenes);
 
             // Descargar archivo en memoria
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
