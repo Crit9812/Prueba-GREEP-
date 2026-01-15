@@ -130,7 +130,7 @@ public class controllerNuevoCliente {
         txtNoExt.setText(String.valueOf(c.getNumeroExt()));
         txtNoInt.setText(String.valueOf(c.getNumeroInt()));
         txtCorreoElectronico.setText(c.getCorreo());
-        txtTelefono.setText(String.valueOf(c.getTelefono()));
+        txtTelefono.setText(c.getTelefono() == null ? "" : c.getTelefono());
 
         buscarCpSiValido(txtCP.getText());
 
@@ -168,7 +168,7 @@ public class controllerNuevoCliente {
             c.setNumeroExt(Integer.parseInt(txtNoExt.getText()));
             c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
             c.setCorreo(txtCorreoElectronico.getText());
-            c.setTelefono(Integer.parseInt(txtTelefono.getText()));
+            c.setTelefono(txtTelefono.getText().trim());
 
             boolean exito = modoEdicion ?
                     model.modificarCliente(c) :
@@ -199,14 +199,14 @@ public class controllerNuevoCliente {
 
     private void configurarValidaciones() {
         aplicarFiltro(txtNombre, permitirTexto(100));
-        aplicarFiltro(txtRFC, permitirAlfanumericoMayusculas(13));
+        aplicarFiltro(txtRFC, permitirAlfanumericoMayusculas(16));
         aplicarFiltro(txtCURP, permitirAlfanumericoMayusculas(18));
-        aplicarFiltro(txtRazonSocial, permitirAlfanumericoConSimbolos(150));
+        aplicarFiltro(txtRazonSocial, permitirAlfanumericoConSimbolos(100));
         aplicarFiltro(txtCP, permitirNumeros(CP_LONGITUD));
-        aplicarFiltro(txtDomicilio, permitirAlfanumericoConSimbolos(180));
+        aplicarFiltro(txtDomicilio, permitirAlfanumericoConSimbolos(100));
         aplicarFiltro(txtNoExt, permitirNumeros(10));
         aplicarFiltro(txtNoInt, permitirNumeros(10));
-        aplicarFiltro(txtCorreoElectronico, permitirEmail(120));
+        aplicarFiltro(txtCorreoElectronico, permitirEmail(100));
         aplicarFiltro(txtTelefono, permitirNumeros(10));
 
         if (cmbColonia != null && cmbColonia.getEditor() != null) {
