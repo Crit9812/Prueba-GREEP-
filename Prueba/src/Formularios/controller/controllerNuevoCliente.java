@@ -3,50 +3,45 @@ package Formularios.controller;
 import Compartido.helper.AutoCompleteComboBoxListener;
 import Consultas.clientes.model.cliente;
 import Formularios.model.modelNuevoCliente;
+import conexion.conexionFTP;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class controllerNuevoCliente {
 
     private static final int CP_LONGITUD = 5;
 
-    // ✅ TU TOKEN REAL DE COPOMEX:
-    private static final String COPOMEX_TOKEN = "6b65ff9f-78ee-471e-b687-37ca49c48d43";
+    private static final String SEPOMEX_FILE_NAME = "CPdescarga.xls";
 
-    // ✅ Endpoint COPOMEX
-    private static final String CP_API_URL = "https://api.copomex.com/query/info_cp/%s?token=%s";
+    private static final Object SEPOMEX_LOCK = new Object();
+    private static volatile boolean sepomexCargado = false;
+    private static volatile String sepomexErrorCarga = null;
+    private static Map<String, CpInfo> sepomexCache = new HashMap<>();
 
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(8))
-            .build();
-
-    // Para detectar errores de COPOMEX (si los incluye)
-    private static final Pattern P_ERROR_BOOL = Pattern.compile("\"error\"\\s*:\\s*(true|false)");
-    private static final Pattern P_CODIGO_ERROR = Pattern.compile("\"codigo_error\"\\s*:\\s*\"(.*?)\"");
-    private static final Pattern P_MENSAJE = Pattern.compile("\"mensaje\"\\s*:\\s*\"(.*?)\"");
-
-    // Campos dentro de response
-    private static final Pattern P_CAMPO = Pattern.compile("\"%s\"\\s*:\\s*\"(.*?)\"");
-    private static final Pattern P_ASENTAMIENTO = Pattern.compile("\"asentamiento\"\\s*:\\s*\"(.*?)\"");
-    private static final Pattern P_COLONIA = Pattern.compile("\"colonia\"\\s*:\\s*\"(.*?)\"");
-    private static final Pattern P_COLONIAS_ARRAY = Pattern.compile("\"colonias\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
+    private static final String SEPOMEX_CP_HEADER = "d_codigo";
+    private static final String SEPOMEX_COLONIA_HEADER = "d_asenta";
+    private static final String SEPOMEX_MUNICIPIO_HEADER = "d_mnpio";
+    private static final String SEPOMEX_ESTADO_HEADER = "d_estado";
+    private static final String SEPOMEX_CIUDAD_HEADER = "d_ciudad";
 
     @FXML private Label titulo;
     @FXML private TextField txtNombre;
@@ -272,48 +267,17 @@ public class controllerNuevoCliente {
     private void buscarDatosPorCp(String cp, String coloniaPreferida) {
         long solicitudActual = solicitudCpId.incrementAndGet();
 
-        String url = String.format(CP_API_URL, cp, COPOMEX_TOKEN);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(12))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-
-        HTTP_CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
-                .thenAccept(resp -> {
+        CompletableFuture
+                .supplyAsync(() -> buscarEnSepomex(cp))
+                .thenAccept(info -> {
                     if (solicitudCpId.get() != solicitudActual) return;
-
-                    int status = resp.statusCode();
-                    String body = resp.body();
-
-                    if (status != 200) {
-                        Platform.runLater(() -> {
-                            limpiarAutocompletado();
-                            mostrarErrorUnaVez("Error consultando CP (HTTP " + status + ")", extraerDetalleError(body));
-                        });
-                        return;
-                    }
-
-                    // Si COPOMEX incluye error=true
-                    Boolean error = leerBoolean(body, P_ERROR_BOOL);
-                    if (error != null && error) {
-                        Platform.runLater(() -> {
-                            limpiarAutocompletado();
-                            mostrarErrorUnaVez("COPOMEX devolvió un error", extraerDetalleError(body));
-                        });
-                        return;
-                    }
-
-                    CpInfo info = parsearRespuestaCopomex(body);
                     Platform.runLater(() -> aplicarAutocompletado(info, coloniaPreferida));
                 })
                 .exceptionally(ex -> {
                     if (solicitudCpId.get() == solicitudActual) {
                         Platform.runLater(() -> {
                             limpiarAutocompletado();
-                            mostrarErrorUnaVez("Error de red al consultar CP", ex.getMessage());
+                            mostrarErrorUnaVez("Error consultando SEPOMEX", ex.getMessage());
                         });
                     }
                     return null;
@@ -334,21 +298,6 @@ public class controllerNuevoCliente {
 
         String msg = (detalle == null || detalle.isBlank()) ? "" : ("\n\n" + detalle);
         new Alert(Alert.AlertType.INFORMATION, titulo + msg).showAndWait();
-    }
-
-    private String extraerDetalleError(String body) {
-        if (body == null) return "";
-        String codigo = limpiarTextoJson(leerPrimerGrupo(body, P_CODIGO_ERROR));
-        String mensaje = limpiarTextoJson(leerPrimerGrupo(body, P_MENSAJE));
-
-        if ((codigo == null || codigo.isBlank()) && (mensaje == null || mensaje.isBlank())) {
-            return body.length() > 300 ? body.substring(0, 300) + "..." : body;
-        }
-
-        StringBuilder sb = new StringBuilder();
-        if (codigo != null && !codigo.isBlank()) sb.append("Código: ").append(codigo).append("\n");
-        if (mensaje != null && !mensaje.isBlank()) sb.append("Mensaje: ").append(mensaje);
-        return sb.toString().trim();
     }
 
     private void aplicarAutocompletado(CpInfo info, String coloniaPreferida) {
@@ -411,219 +360,132 @@ public class controllerNuevoCliente {
     }
 
     // =========================
-    // ✅ PARSEO COPOMEX (ROBUSTO)
+    // ✅ CARGA SEPOMEX (CPdescarga.xls)
     // =========================
-    private CpInfo parsearRespuestaCopomex(String body) {
-        if (body == null || body.isBlank()) return null;
-
-        // Extrae TODOS los bloques "response" (a veces viene array de objetos, etc.)
-        List<String> responses = extraerTodosLosBloques(body, "response");
-        if (responses.isEmpty()) {
-            // Algunos formatos podrían ser "response": {...} pero igual cae aquí si existe
-            return null;
+    private CpInfo buscarEnSepomex(String cp) {
+        try {
+            cargarSepomexSiNecesario();
+        } catch (IOException e) {
+            sepomexErrorCarga = e.getMessage();
         }
 
-        Set<String> colonias = new LinkedHashSet<>();
-
-        String pais = null;
-        String estado = null;
-        String ciudad = null;
-        String localidad = null;
-
-        for (String resp : responses) {
-            if (resp == null || resp.isBlank()) continue;
-
-            // colonias/asentamientos
-            agregarCoincidencias(colonias, resp, P_ASENTAMIENTO);
-            agregarCoincidencias(colonias, resp, P_COLONIA);
-            agregarColoniasDeArreglo(colonias, resp);
-
-            if (pais == null) pais = obtenerPrimerCampo(resp, "pais");
-            if (estado == null) estado = obtenerPrimerCampo(resp, "estado");
-            if (ciudad == null) ciudad = obtenerPrimerCampo(resp, "ciudad");
-
-            String loc = obtenerPrimerCampo(resp, "localidad");
-            String mun = obtenerPrimerCampo(resp, "municipio");
-
-            if (localidad == null || localidad.isBlank()) {
-                if (loc != null && !loc.isBlank()) localidad = loc;
-                else if (mun != null && !mun.isBlank()) localidad = mun;
-            }
+        if (sepomexErrorCarga != null) {
+            throw new IllegalStateException(sepomexErrorCarga);
         }
 
-        if ((estado == null || estado.isBlank())
-                && (ciudad == null || ciudad.isBlank())
-                && (pais == null || pais.isBlank())
-                && (localidad == null || localidad.isBlank())
-                && colonias.isEmpty()) {
-            return null;
-        }
-
-        return new CpInfo(
-                pais != null ? pais : "México",
-                estado,
-                localidad,
-                ciudad,
-                new ArrayList<>(colonias)
-        );
+        return sepomexCache.get(cp);
     }
 
-    private void agregarCoincidencias(Set<String> destino, String body, Pattern pattern) {
-        Matcher matcher = pattern.matcher(body);
-        while (matcher.find()) {
-            String valor = limpiarTextoJson(matcher.group(1));
-            if (valor != null && !valor.isBlank()) destino.add(valor.trim());
-        }
-    }
+    private void cargarSepomexSiNecesario() throws IOException {
+        if (sepomexCargado || sepomexErrorCarga != null) return;
 
-    private void agregarColoniasDeArreglo(Set<String> destino, String body) {
-        Matcher matcher = P_COLONIAS_ARRAY.matcher(body);
-        if (!matcher.find()) return;
+        synchronized (SEPOMEX_LOCK) {
+            if (sepomexCargado || sepomexErrorCarga != null) return;
 
-        String contenido = matcher.group(1);
-        String[] partes = contenido.split(",");
-
-        for (String parte : partes) {
-            String valor = parte.trim();
-            if (valor.startsWith("\"")) valor = valor.substring(1);
-            if (valor.endsWith("\"")) valor = valor.substring(0, valor.length() - 1);
-
-            valor = limpiarTextoJson(valor);
-            if (valor != null && !valor.isBlank()) destino.add(valor.trim());
-        }
-    }
-
-    private String obtenerPrimerCampo(String body, String campo) {
-        Pattern pattern = Pattern.compile(String.format(P_CAMPO.pattern(), Pattern.quote(campo)));
-        Matcher matcher = pattern.matcher(body);
-        if (matcher.find()) return limpiarTextoJson(matcher.group(1));
-        return null;
-    }
-
-    private Boolean leerBoolean(String body, Pattern p) {
-        Matcher m = p.matcher(body);
-        if (!m.find()) return null;
-        return "true".equalsIgnoreCase(m.group(1));
-    }
-
-    private String leerPrimerGrupo(String body, Pattern p) {
-        Matcher m = p.matcher(body);
-        if (m.find()) return m.group(1);
-        return null;
-    }
-
-    /**
-     * Extrae TODOS los bloques JSON asociados a una clave (ej: "response").
-     * Funciona aunque el JSON raíz sea un array [...] y aunque response sea {} o [].
-     */
-    private List<String> extraerTodosLosBloques(String json, String key) {
-        List<String> out = new ArrayList<>();
-        if (json == null || key == null) return out;
-
-        String needle = "\"" + key + "\"";
-        int from = 0;
-
-        while (true) {
-            int idx = json.indexOf(needle, from);
-            if (idx < 0) break;
-
-            int colon = json.indexOf(':', idx + needle.length());
-            if (colon < 0) break;
-
-            int i = colon + 1;
-            while (i < json.length() && Character.isWhitespace(json.charAt(i))) i++;
-            if (i >= json.length()) break;
-
-            char start = json.charAt(i);
-            if (start != '{' && start != '[') {
-                from = i + 1;
-                continue;
+            conexionFTP ftp = new conexionFTP();
+            byte[] contenido = ftp.getExtraFileBytes(SEPOMEX_FILE_NAME);
+            if (contenido == null || contenido.length == 0) {
+                sepomexErrorCarga = "No se pudo descargar el archivo SEPOMEX desde el FTP.";
+                return;
             }
 
-            String bloque = extraerBloqueBalanceado(json, i, (start == '{') ? '}' : ']');
-            if (bloque != null) out.add(bloque);
+            Map<String, CpInfoBuilder> acumulado = new HashMap<>();
+            DataFormatter formatter = new DataFormatter(Locale.ROOT);
 
-            from = i + 1;
-        }
-
-        return out;
-    }
-
-    private String extraerBloqueBalanceado(String s, int startIdx, char closeChar) {
-        char openChar = (closeChar == '}') ? '{' : '[';
-
-        StringBuilder sb = new StringBuilder();
-        int depth = 0;
-        boolean inString = false;
-        boolean escape = false;
-
-        for (int p = startIdx; p < s.length(); p++) {
-            char ch = s.charAt(p);
-            sb.append(ch);
-
-            if (escape) { escape = false; continue; }
-
-            if (ch == '\\') {
-                if (inString) escape = true;
-                continue;
-            }
-
-            if (ch == '"') {
-                inString = !inString;
-                continue;
-            }
-
-            if (inString) continue;
-
-            if (ch == openChar) depth++;
-            else if (ch == closeChar) {
-                depth--;
-                if (depth == 0) return sb.toString();
-            }
-        }
-
-        return null;
-    }
-
-    private String limpiarTextoJson(String valor) {
-        if (valor == null) return null;
-
-        StringBuilder resultado = new StringBuilder();
-        for (int i = 0; i < valor.length(); i++) {
-            char ch = valor.charAt(i);
-
-            if (ch == '\\' && i + 1 < valor.length()) {
-                char siguiente = valor.charAt(i + 1);
-                switch (siguiente) {
-                    case '"': resultado.append('"'); i++; break;
-                    case '\\': resultado.append('\\'); i++; break;
-                    case '/': resultado.append('/'); i++; break;
-                    case 'b': resultado.append('\b'); i++; break;
-                    case 'f': resultado.append('\f'); i++; break;
-                    case 'n': resultado.append('\n'); i++; break;
-                    case 'r': resultado.append('\r'); i++; break;
-                    case 't': resultado.append('\t'); i++; break;
-                    case 'u':
-                        if (i + 5 < valor.length()) {
-                            String hex = valor.substring(i + 2, i + 6);
-                            try {
-                                resultado.append((char) Integer.parseInt(hex, 16));
-                                i += 5;
-                            } catch (NumberFormatException e) {
-                                resultado.append("\\u").append(hex);
-                                i += 5;
-                            }
-                        }
-                        break;
-                    default:
-                        resultado.append(ch);
-                        break;
+            try (HSSFWorkbook workbook = new HSSFWorkbook(new ByteArrayInputStream(contenido))) {
+                Sheet sheet = workbook.getSheetAt(0);
+                if (sheet == null) {
+                    sepomexErrorCarga = "El archivo SEPOMEX no contiene hojas.";
+                    return;
                 }
-            } else {
-                resultado.append(ch);
+
+                Row headerRow = sheet.getRow(sheet.getFirstRowNum());
+                Map<String, Integer> headers = obtenerHeaders(headerRow, formatter);
+
+                int idxCp = obtenerIndice(headers, SEPOMEX_CP_HEADER, "codigo", "cp");
+                int idxColonia = obtenerIndice(headers, SEPOMEX_COLONIA_HEADER, "asentamiento", "colonia");
+                int idxMunicipio = obtenerIndice(headers, SEPOMEX_MUNICIPIO_HEADER, "municipio");
+                int idxEstado = obtenerIndice(headers, SEPOMEX_ESTADO_HEADER, "estado");
+                int idxCiudad = obtenerIndice(headers, SEPOMEX_CIUDAD_HEADER, "ciudad");
+
+                if (idxCp == -1) idxCp = 0;
+                if (idxColonia == -1) idxColonia = 1;
+                if (idxMunicipio == -1) idxMunicipio = 3;
+                if (idxEstado == -1) idxEstado = 4;
+                if (idxCiudad == -1) idxCiudad = 5;
+
+                int lastRow = sheet.getLastRowNum();
+                for (int i = sheet.getFirstRowNum() + 1; i <= lastRow; i++) {
+                    Row row = sheet.getRow(i);
+                    if (row == null) continue;
+
+                    String cp = normalizarCp(formatter.formatCellValue(row.getCell(idxCp)));
+                    if (cp.isBlank() || cp.length() != CP_LONGITUD) continue;
+
+                    String colonia = limpiarTexto(formatter.formatCellValue(row.getCell(idxColonia)));
+                    String municipio = limpiarTexto(formatter.formatCellValue(row.getCell(idxMunicipio)));
+                    String estado = limpiarTexto(formatter.formatCellValue(row.getCell(idxEstado)));
+                    String ciudad = limpiarTexto(formatter.formatCellValue(row.getCell(idxCiudad)));
+
+                    CpInfoBuilder builder = acumulado.computeIfAbsent(cp, key -> new CpInfoBuilder());
+                    builder.agregarColonia(colonia);
+                    builder.setEstadoSiVacio(estado);
+                    builder.setLocalidadSiVacio(municipio);
+                    builder.setCiudadSiVacio(ciudad);
+                }
+            } catch (IOException e) {
+                sepomexErrorCarga = "No se pudo leer el archivo SEPOMEX.";
+                return;
+            }
+
+            Map<String, CpInfo> nuevoCache = new HashMap<>();
+            for (Map.Entry<String, CpInfoBuilder> entry : acumulado.entrySet()) {
+                nuevoCache.put(entry.getKey(), entry.getValue().build());
+            }
+
+            sepomexCache = nuevoCache;
+            sepomexCargado = true;
+        }
+    }
+
+    private Map<String, Integer> obtenerHeaders(Row headerRow, DataFormatter formatter) {
+        Map<String, Integer> headers = new HashMap<>();
+        if (headerRow == null) return headers;
+
+        short lastCell = headerRow.getLastCellNum();
+        for (short c = 0; c < lastCell; c++) {
+            String header = formatter.formatCellValue(headerRow.getCell(c));
+            if (header == null) continue;
+            String normalizado = header.trim().toLowerCase(Locale.ROOT);
+            if (!normalizado.isBlank()) headers.put(normalizado, (int) c);
+        }
+        return headers;
+    }
+
+    private int obtenerIndice(Map<String, Integer> headers, String... keys) {
+        for (String key : keys) {
+            if (key == null) continue;
+            Integer idx = headers.get(key.toLowerCase(Locale.ROOT));
+            if (idx != null) return idx;
+        }
+        return -1;
+    }
+
+    private String normalizarCp(String valor) {
+        if (valor == null) return "";
+        String limpio = valor.trim();
+        if (limpio.isEmpty()) return "";
+        if (limpio.matches("\\d+")) {
+            if (limpio.length() < CP_LONGITUD) {
+                return String.format("%0" + CP_LONGITUD + "d", Long.parseLong(limpio));
             }
         }
-        return resultado.toString();
+        return limpio;
+    }
+
+    private String limpiarTexto(String valor) {
+        if (valor == null) return "";
+        return valor.trim();
     }
 
     private static class CpInfo {
@@ -639,6 +501,47 @@ public class controllerNuevoCliente {
             this.localidad = localidad;
             this.ciudad = ciudad;
             this.colonias = colonias;
+        }
+    }
+
+    private static class CpInfoBuilder {
+        private String estado;
+        private String localidad;
+        private String ciudad;
+        private final Set<String> colonias = new LinkedHashSet<>();
+
+        private void agregarColonia(String colonia) {
+            if (colonia != null && !colonia.isBlank()) {
+                colonias.add(colonia.trim());
+            }
+        }
+
+        private void setEstadoSiVacio(String valor) {
+            if ((estado == null || estado.isBlank()) && valor != null && !valor.isBlank()) {
+                estado = valor.trim();
+            }
+        }
+
+        private void setLocalidadSiVacio(String valor) {
+            if ((localidad == null || localidad.isBlank()) && valor != null && !valor.isBlank()) {
+                localidad = valor.trim();
+            }
+        }
+
+        private void setCiudadSiVacio(String valor) {
+            if ((ciudad == null || ciudad.isBlank()) && valor != null && !valor.isBlank()) {
+                ciudad = valor.trim();
+            }
+        }
+
+        private CpInfo build() {
+            return new CpInfo(
+                    "México",
+                    estado,
+                    localidad,
+                    ciudad,
+                    new ArrayList<>(colonias)
+            );
         }
     }
 }
