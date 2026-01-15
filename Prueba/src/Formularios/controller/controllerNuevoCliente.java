@@ -9,13 +9,11 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-
 import java.io.ByteArrayInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -30,7 +28,7 @@ public class controllerNuevoCliente {
 
     private static final int CP_LONGITUD = 5;
 
-    private static final String SEPOMEX_FILE_NAME = "CPdescarga.xls";
+    private static final String SEPOMEX_FILE_NAME = "CPdescarga.txt";
 
     private static final Object SEPOMEX_LOCK = new Object();
     private static volatile boolean sepomexCargado = false;
@@ -360,7 +358,7 @@ public class controllerNuevoCliente {
     }
 
     // =========================
-    // ✅ CARGA SEPOMEX (CPdescarga.xls)
+    // ✅ CARGA SEPOMEX (CPdescarga.txt)
     // =========================
     private CpInfo buscarEnSepomex(String cp) {
         try {
@@ -390,18 +388,16 @@ public class controllerNuevoCliente {
             }
 
             Map<String, CpInfoBuilder> acumulado = new HashMap<>();
-            DataFormatter formatter = new DataFormatter(Locale.ROOT);
 
-            try (HSSFWorkbook workbook = new HSSFWorkbook(new ByteArrayInputStream(contenido))) {
-                Sheet sheet = workbook.getSheetAt(0);
-                if (sheet == null) {
-                    sepomexErrorCarga = "El archivo SEPOMEX no contiene hojas.";
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(new ByteArrayInputStream(contenido), StandardCharsets.ISO_8859_1))) {
+                String headerLine = reader.readLine();
+                if (headerLine == null || headerLine.isBlank()) {
+                    sepomexErrorCarga = "El archivo SEPOMEX no contiene encabezados.";
                     return;
                 }
 
-                Row headerRow = sheet.getRow(sheet.getFirstRowNum());
-                Map<String, Integer> headers = obtenerHeaders(headerRow, formatter);
-
+                Map<String, Integer> headers = obtenerHeaders(headerLine);
                 int idxCp = obtenerIndice(headers, SEPOMEX_CP_HEADER, "codigo", "cp");
                 int idxColonia = obtenerIndice(headers, SEPOMEX_COLONIA_HEADER, "asentamiento", "colonia");
                 int idxMunicipio = obtenerIndice(headers, SEPOMEX_MUNICIPIO_HEADER, "municipio");
@@ -414,18 +410,19 @@ public class controllerNuevoCliente {
                 if (idxEstado == -1) idxEstado = 4;
                 if (idxCiudad == -1) idxCiudad = 5;
 
-                int lastRow = sheet.getLastRowNum();
-                for (int i = sheet.getFirstRowNum() + 1; i <= lastRow; i++) {
-                    Row row = sheet.getRow(i);
-                    if (row == null) continue;
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.isBlank()) continue;
+                    String[] campos = line.split("\\|", -1);
 
-                    String cp = normalizarCp(formatter.formatCellValue(row.getCell(idxCp)));
+                    String cp = obtenerCampo(campos, idxCp);
+                    cp = normalizarCp(cp);
                     if (cp.isBlank() || cp.length() != CP_LONGITUD) continue;
 
-                    String colonia = limpiarTexto(formatter.formatCellValue(row.getCell(idxColonia)));
-                    String municipio = limpiarTexto(formatter.formatCellValue(row.getCell(idxMunicipio)));
-                    String estado = limpiarTexto(formatter.formatCellValue(row.getCell(idxEstado)));
-                    String ciudad = limpiarTexto(formatter.formatCellValue(row.getCell(idxCiudad)));
+                    String colonia = limpiarTexto(obtenerCampo(campos, idxColonia));
+                    String municipio = limpiarTexto(obtenerCampo(campos, idxMunicipio));
+                    String estado = limpiarTexto(obtenerCampo(campos, idxEstado));
+                    String ciudad = limpiarTexto(obtenerCampo(campos, idxCiudad));
 
                     CpInfoBuilder builder = acumulado.computeIfAbsent(cp, key -> new CpInfoBuilder());
                     builder.agregarColonia(colonia);
@@ -448,18 +445,21 @@ public class controllerNuevoCliente {
         }
     }
 
-    private Map<String, Integer> obtenerHeaders(Row headerRow, DataFormatter formatter) {
+    private Map<String, Integer> obtenerHeaders(String headerLine) {
         Map<String, Integer> headers = new HashMap<>();
-        if (headerRow == null) return headers;
-
-        short lastCell = headerRow.getLastCellNum();
-        for (short c = 0; c < lastCell; c++) {
-            String header = formatter.formatCellValue(headerRow.getCell(c));
+        String[] parts = headerLine.split("\\|", -1);
+        for (int i = 0; i < parts.length; i++) {
+            String header = parts[i];
             if (header == null) continue;
             String normalizado = header.trim().toLowerCase(Locale.ROOT);
-            if (!normalizado.isBlank()) headers.put(normalizado, (int) c);
+            if (!normalizado.isBlank()) headers.put(normalizado, i);
         }
         return headers;
+    }
+
+    private String obtenerCampo(String[] campos, int indice) {
+        if (indice < 0 || indice >= campos.length) return "";
+        return campos[indice];
     }
 
     private int obtenerIndice(Map<String, Integer> headers, String... keys) {
