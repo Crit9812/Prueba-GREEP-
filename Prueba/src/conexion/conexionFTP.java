@@ -4,15 +4,12 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPReply;
 import javafx.scene.image.Image;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 public class conexionFTP {
@@ -120,6 +117,53 @@ public class conexionFTP {
                 return null;
             }
 
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            try {
+                if (ftpClient.isConnected()) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    public byte[] getExtraFileBytes(String fileName) {
+        if (fileName == null || fileName.isBlank()) return null;
+
+        FTPClient ftpClient = new FTPClient();
+        try {
+            ftpClient.connect(server, port);
+            int replyCode = ftpClient.getReplyCode();
+            if (!FTPReply.isPositiveCompletion(replyCode)) {
+                System.out.println("No se pudo conectar al FTP. Código: " + replyCode);
+                return null;
+            }
+
+            boolean loggedIn = ftpClient.login(user, pass);
+            if (!loggedIn) {
+                System.out.println("Error en login FTP");
+                return null;
+            }
+
+            ftpClient.enterLocalPassiveMode();
+            ftpClient.setFileType(FTPClient.BINARY_FILE_TYPE);
+
+            if (!remoteDirExtra.isEmpty()) ftpClient.changeWorkingDirectory(remoteDirExtra);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            boolean success = ftpClient.retrieveFile(fileName, outputStream);
+
+            if (success) {
+                return outputStream.toByteArray();
+            }
+
+            System.out.println("No se pudo obtener el archivo desde FTP: " + fileName);
+            return null;
         } catch (IOException e) {
             e.printStackTrace();
             return null;

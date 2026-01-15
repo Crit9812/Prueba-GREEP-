@@ -54,7 +54,7 @@ public class cliente {
     private String correo;
 
     @Column(name = "telefono")
-    private Integer telefono;
+    private String telefono;
 
     // 🔹 Constructor sin argumentos requerido por el DAO
     public cliente() {}
@@ -64,7 +64,7 @@ public class cliente {
                    String razonSocial, String domicilio, Integer cp,
                    String colonia, Integer numeroInt, Integer numeroExt,
                    String ciudad, String localidad, String estado,
-                   String pais, String correo, Integer telefono) {
+                   String pais, String correo, String telefono) {
         this.id = id;
         this.nombre = nombre;
         this.rfc = rfc;
@@ -129,6 +129,6 @@ public class cliente {
     public String getCorreo() { return correo; }
     public void setCorreo(String correo) { this.correo = correo; }
 
-    public Integer getTelefono() { return telefono; }
-    public void setTelefono(Integer telefono) { this.telefono = telefono; }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
 }

@@ -59,7 +59,7 @@
 
                 <VBox spacing="5">
                     <Label text="Colonia:"/>
-                    <TextField fx:id="txtColonia" prefWidth="250" maxWidth="250"/>
+                    <ComboBox fx:id="cmbColonia" editable="true" prefWidth="250" maxWidth="250"/>
                 </VBox>
             </HBox>
 
