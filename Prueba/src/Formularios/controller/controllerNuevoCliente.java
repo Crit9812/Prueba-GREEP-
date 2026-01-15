@@ -201,7 +201,7 @@ public class controllerNuevoCliente {
         aplicarFiltro(txtNombre, permitirTexto(100));
         aplicarFiltro(txtRFC, permitirAlfanumericoMayusculas(13));
         aplicarFiltro(txtCURP, permitirAlfanumericoMayusculas(18));
-        aplicarFiltro(txtRazonSocial, permitirTexto(150));
+        aplicarFiltro(txtRazonSocial, permitirAlfanumericoConSimbolos(150));
         aplicarFiltro(txtCP, permitirNumeros(CP_LONGITUD));
         aplicarFiltro(txtDomicilio, permitirAlfanumericoConSimbolos(180));
         aplicarFiltro(txtNoExt, permitirNumeros(10));
