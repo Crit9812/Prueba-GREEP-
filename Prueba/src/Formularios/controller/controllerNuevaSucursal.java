@@ -159,7 +159,7 @@ public class controllerNuevaSucursal {
         s.setLocalidad(txtLocalidad.getText().trim());
         s.setPais(txtPais.getText().trim());
         s.setCorreo(txtCorreo.getText().trim());
-        s.setTelefono(Long.parseLong(txtTelefono.getText().trim()));
+        s.setTelefono(txtTelefono.getText().trim());
 
         boolean exito = modoEdicion ?
                 model.modificarSucursal(s) :

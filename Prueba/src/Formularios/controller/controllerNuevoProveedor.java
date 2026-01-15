@@ -176,7 +176,7 @@ public class controllerNuevoProveedor {
         p.setLocalidad(txtLocalidad.getText());
         p.setPais(txtPais.getText());
         p.setCorreo(txtCorreo.getText());
-        p.setTelefono(Long.parseLong(txtTelefono.getText().trim()));
+        p.setTelefono(txtTelefono.getText().trim());
 
         boolean exito = modoEdicion ?
                 model.modificarProveedor(p) :

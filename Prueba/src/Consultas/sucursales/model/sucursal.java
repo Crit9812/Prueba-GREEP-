@@ -45,14 +45,14 @@ public class sucursal {
     private String correo;
 
     @Column(name = "telefono")
-    private Long telefono;
+    private String telefono;
 
     public sucursal() {}
 
     public sucursal(Integer id, String nombre, String domicilio, Integer cp,
                     String colonia, Integer numeroInt, Integer numeroExt,
                     String ciudad, String estado, String localidad,
-                    String pais, String correo, Long telefono) {
+                    String pais, String correo, String telefono) {
 
         this.id = id;
         this.nombre = nombre;
@@ -105,6 +105,6 @@ public class sucursal {
     public String getCorreo() { return correo; }
     public void setCorreo(String correo) { this.correo = correo; }
 
-    public Long getTelefono() { return telefono; }
-    public void setTelefono(Long telefono) { this.telefono = telefono; }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
 }
