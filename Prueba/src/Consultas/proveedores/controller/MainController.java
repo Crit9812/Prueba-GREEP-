@@ -139,6 +139,14 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         proveedores seleccionado = getTableView().getItems().get(getIndex());
+                        int disponibles = proveedorModel.contarArticulosDisponibles(seleccionado.getId());
+                        if (disponibles > 0) {
+                            new Alert(Alert.AlertType.ERROR,
+                                    "No se puede eliminar el proveedor porque tiene " + disponibles
+                                            + " artículo(s) disponible(s)."
+                            ).showAndWait();
+                            return;
+                        }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                         alerta.setTitle("Confirmar eliminación");
                         alerta.setHeaderText(null);

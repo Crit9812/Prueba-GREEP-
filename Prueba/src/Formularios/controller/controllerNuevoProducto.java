@@ -4,6 +4,7 @@ import Consultas.producto.model.producto;
 import Consultas.producto.model.etiqueta;
 import Consultas.producto.model.marca;
 import Consultas.producto.model.model;
+import Consultas.clasificacion.model.unidades_Medida;
 import Formularios.model.modelNuevoProducto;
 import conexion.conexionFTP;
 import javafx.collections.FXCollections;
@@ -25,7 +26,7 @@ public class controllerNuevoProducto {
     @FXML private ComboBox<String> cmbCategoria;
     @FXML private ComboBox<marca> cmbMarca;
     @FXML private TextField txtMaterial;
-    @FXML private TextField txtUnidadMedida;
+    @FXML private ComboBox<unidades_Medida> cmbUnidadMedida;
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtInventarioMin;
     @FXML private Button btnGuardar;
@@ -63,11 +64,13 @@ public class controllerNuevoProducto {
         cmbCategoria.setEditable(false); // solo elegir
         cmbMarca.setEditable(true);      // puede escribir
         cmbEtiqueta.setEditable(true);   // puede escribir
+        cmbUnidadMedida.setEditable(true);
 
         // Cargar datos
         cargarCategorias();
         cargarMarcas();
         cargarEtiquetas();
+        cargarUnidadesMedida();
 
         // Configurar cómo mostrar las etiquetas y marcas en los ComboBox
         configurarComboBoxes();
@@ -116,6 +119,22 @@ public class controllerNuevoProducto {
                         .orElse(null);
             }
         });
+
+        // Configurar ComboBox de Unidad de Medida
+        cmbUnidadMedida.setConverter(new StringConverter<unidades_Medida>() {
+            @Override
+            public String toString(unidades_Medida unidad) {
+                return unidad == null ? "" : unidad.getNombre();
+            }
+
+            @Override
+            public unidades_Medida fromString(String string) {
+                return cmbUnidadMedida.getItems().stream()
+                        .filter(u -> u.getNombre().equalsIgnoreCase(string))
+                        .findFirst()
+                        .orElse(null);
+            }
+        });
     }
 
     private void cargarCategorias() {
@@ -136,6 +155,13 @@ public class controllerNuevoProducto {
     private void cargarEtiquetas() {
         ObservableList<etiqueta> etiquetas = modeloConsulta.obtenerListaEtiquetas();
         cmbEtiqueta.setItems(etiquetas);
+    }
+
+    private void cargarUnidadesMedida() {
+        ObservableList<unidades_Medida> unidades = FXCollections.observableArrayList(
+                modeloFormulario.obtenerUnidadesMedida()
+        );
+        cmbUnidadMedida.setItems(unidades);
     }
 
     @FXML
@@ -169,7 +195,6 @@ public class controllerNuevoProducto {
         txtNombre.setText(p.getNombreProducto());
         cmbCategoria.getSelectionModel().select(p.getCategoria());
         txtMaterial.setText(p.getMaterial());
-        txtUnidadMedida.setText(p.getUnidadMedida());
         txtDescripcion.setText(p.getDescripcion());
         txtInventarioMin.setText(String.valueOf(p.getInventarioMin()));
 
@@ -186,6 +211,15 @@ public class controllerNuevoProducto {
             marca marca = modeloFormulario.obtenerMarcaPorId(p.getMarca());
             if (marca != null) {
                 cmbMarca.getSelectionModel().select(marca);
+            }
+        }
+
+        if (p.getUnidadMedida() != null && !p.getUnidadMedida().isEmpty()) {
+            unidades_Medida unidad = modeloFormulario.obtenerUnidadMedidaPorId(p.getUnidadMedida());
+            if (unidad != null) {
+                cmbUnidadMedida.getSelectionModel().select(unidad);
+            } else {
+                cmbUnidadMedida.getEditor().setText(p.getUnidadMedida());
             }
         }
 
@@ -240,7 +274,15 @@ public class controllerNuevoProducto {
             if (categoria == null) categoria = "";
 
             String material = txtMaterial.getText().trim();
-            String unidadMedida = txtUnidadMedida.getText().trim();
+            String unidadMedidaId = "";
+            String unidadTexto = cmbUnidadMedida.getEditor().getText().trim();
+            if (!unidadTexto.isEmpty()) {
+                unidadMedidaId = modeloFormulario.crearOActualizarUnidadMedida(unidadTexto);
+                if (unidadMedidaId == null) {
+                    mostrarError("Error al procesar la unidad de medida");
+                    return;
+                }
+            }
             String descripcion = txtDescripcion.getText().trim();
 
             int inventarioMin = 0;
@@ -304,7 +346,7 @@ public class controllerNuevoProducto {
             p.setEtiqueta(etiquetaId);
             p.setMarca(marcaId);
             p.setMaterial(material);
-            p.setUnidadMedida(unidadMedida);
+            p.setUnidadMedida(unidadMedidaId);
             p.setDescripcion(descripcion);
             p.setInventarioMin(inventarioMin);
             p.setUrlImagen(nombreImagen);
@@ -326,6 +368,7 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
+                cargarUnidadesMedida();
 
                 // Ejecutar callback para refrescar la tabla principal
                 if (onSaved != null) onSaved.run();
@@ -352,6 +395,7 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
+                cargarUnidadesMedida();
 
                 // Ejecutar callback para refrescar la tabla principal
                 if (onSaved != null) onSaved.run();
