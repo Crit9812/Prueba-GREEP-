@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import java.io.ByteArrayInputStream;
 import java.io.BufferedReader;
@@ -23,6 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 
 public class controllerNuevoCliente {
 
@@ -40,6 +43,10 @@ public class controllerNuevoCliente {
     private static final String SEPOMEX_MUNICIPIO_HEADER = "d_mnpio";
     private static final String SEPOMEX_ESTADO_HEADER = "d_estado";
     private static final String SEPOMEX_CIUDAD_HEADER = "d_ciudad";
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern RFC_PATTERN = Pattern.compile("^[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}$");
+    private static final Pattern CURP_PATTERN = Pattern.compile("^[A-Z][AEIOUX][A-Z]{2}\\d{2}(0[1-9]|1[0-2])"
+            + "(0[1-9]|[12]\\d|3[01])[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\\d$");
 
     @FXML private Label titulo;
     @FXML private TextField txtNombre;
@@ -78,6 +85,7 @@ public class controllerNuevoCliente {
         btnGuardar.setOnAction(e -> guardarCliente());
         configurarCamposAutocompletado();
         configurarAutocompletadoCp();
+        configurarValidaciones();
 
         setEnterAction(txtNombre);
         setEnterAction(txtRFC);
@@ -140,7 +148,7 @@ public class controllerNuevoCliente {
     @FXML
     public void guardarCliente() {
 
-        if (!validarNumericos()) return;
+        if (!validarFormulario()) return;
 
         try {
             cliente c = new cliente();
@@ -167,10 +175,10 @@ public class controllerNuevoCliente {
                     model.agregarCliente(c);
 
             if (exito) {
-                new Alert(Alert.AlertType.INFORMATION,
+                mostrarAlerta(Alert.AlertType.INFORMATION,
                         modoEdicion ? "Cliente actualizado correctamente" :
                                 "Cliente agregado correctamente"
-                ).showAndWait();
+                );
 
                 if (onSaved != null) onSaved.run();
 
@@ -180,14 +188,77 @@ public class controllerNuevoCliente {
                 });
 
             } else {
-                new Alert(Alert.AlertType.ERROR, "No se pudo guardar el cliente.").showAndWait();
+                mostrarAlerta(Alert.AlertType.ERROR, "No se pudo guardar el cliente.");
             }
 
         } catch (Exception e) {
-            new Alert(Alert.AlertType.ERROR,
-                    "Ocurrió un error inesperado al guardar el cliente."
-            ).showAndWait();
+            mostrarAlerta(Alert.AlertType.ERROR,
+                    "Ocurrió un error inesperado al guardar el cliente.");
         }
+    }
+
+    private void configurarValidaciones() {
+        aplicarFiltro(txtNombre, permitirTexto(100));
+        aplicarFiltro(txtRFC, permitirAlfanumericoMayusculas(13));
+        aplicarFiltro(txtCURP, permitirAlfanumericoMayusculas(18));
+        aplicarFiltro(txtRazonSocial, permitirTexto(150));
+        aplicarFiltro(txtCP, permitirNumeros(CP_LONGITUD));
+        aplicarFiltro(txtDomicilio, permitirAlfanumericoConSimbolos(180));
+        aplicarFiltro(txtNoExt, permitirNumeros(10));
+        aplicarFiltro(txtNoInt, permitirNumeros(10));
+        aplicarFiltro(txtCorreoElectronico, permitirEmail(120));
+        aplicarFiltro(txtTelefono, permitirNumeros(10));
+
+        if (cmbColonia != null && cmbColonia.getEditor() != null) {
+            aplicarFiltro(cmbColonia.getEditor(), permitirTexto(120));
+        }
+    }
+
+    private void aplicarFiltro(TextField field, UnaryOperator<TextFormatter.Change> filter) {
+        if (field == null) return;
+        field.setTextFormatter(new TextFormatter<>(filter));
+    }
+
+    private UnaryOperator<TextFormatter.Change> permitirNumeros(int maxLength) {
+        return change -> {
+            String nuevo = change.getControlNewText();
+            if (!nuevo.matches("\\d*")) return null;
+            return nuevo.length() <= maxLength ? change : null;
+        };
+    }
+
+    private UnaryOperator<TextFormatter.Change> permitirAlfanumericoMayusculas(int maxLength) {
+        return change -> {
+            String nuevo = change.getControlNewText().toUpperCase(Locale.ROOT);
+            if (!nuevo.matches("[A-Z0-9Ñ&]*")) return null;
+            if (nuevo.length() > maxLength) return null;
+            change.setText(change.getText().toUpperCase(Locale.ROOT));
+            return change;
+        };
+    }
+
+    private UnaryOperator<TextFormatter.Change> permitirTexto(int maxLength) {
+        return change -> {
+            String nuevo = change.getControlNewText();
+            if (!nuevo.matches("[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\\s'.-]*")) return null;
+            return nuevo.length() <= maxLength ? change : null;
+        };
+    }
+
+    private UnaryOperator<TextFormatter.Change> permitirAlfanumericoConSimbolos(int maxLength) {
+        return change -> {
+            String nuevo = change.getControlNewText();
+            if (!nuevo.matches("[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\\s#.,'/-]*")) return null;
+            return nuevo.length() <= maxLength ? change : null;
+        };
+    }
+
+    private UnaryOperator<TextFormatter.Change> permitirEmail(int maxLength) {
+        return change -> {
+            String nuevo = change.getControlNewText();
+            if (!nuevo.matches("[A-Za-z0-9._%+\\-@]*")) return null;
+            return nuevo.length() <= maxLength ? change : null;
+        };
     }
 
     private boolean validarNumericos() {
@@ -197,12 +268,65 @@ public class controllerNuevoCliente {
                 validarCampoNumerico(txtTelefono, "Teléfono");
     }
 
+    private boolean validarFormulario() {
+        if (!validarCampoObligatorio(txtNombre, "Nombre")) return false;
+        if (!validarCampoObligatorio(txtRFC, "RFC")) return false;
+        if (!validarCampoObligatorio(txtCP, "Código Postal")) return false;
+        if (!validarCampoObligatorio(txtDomicilio, "Domicilio")) return false;
+        if (!validarCampoObligatorio(txtNoExt, "Número Exterior")) return false;
+        if (!validarCampoObligatorio(txtTelefono, "Teléfono")) return false;
+
+        if (!validarNumericos()) return false;
+
+        String rfc = txtRFC.getText().trim().toUpperCase(Locale.ROOT);
+        if (!RFC_PATTERN.matcher(rfc).matches()) {
+            mostrarAlerta(Alert.AlertType.ERROR, "El RFC no tiene un formato válido.");
+            return false;
+        }
+
+        String curp = txtCURP.getText().trim().toUpperCase(Locale.ROOT);
+        if (!curp.isBlank() && !CURP_PATTERN.matcher(curp).matches()) {
+            mostrarAlerta(Alert.AlertType.ERROR, "La CURP no tiene un formato válido.");
+            return false;
+        }
+
+        String cp = txtCP.getText().trim();
+        if (cp.length() != CP_LONGITUD) {
+            mostrarAlerta(Alert.AlertType.ERROR, "El código postal debe tener 5 dígitos.");
+            return false;
+        }
+
+        String correo = txtCorreoElectronico.getText().trim();
+        if (!correo.isBlank() && !EMAIL_PATTERN.matcher(correo).matches()) {
+            mostrarAlerta(Alert.AlertType.ERROR, "El correo electrónico no tiene un formato válido.");
+            return false;
+        }
+
+        String telefono = txtTelefono.getText().trim();
+        if (!telefono.isBlank() && telefono.length() != 10) {
+            mostrarAlerta(Alert.AlertType.ERROR, "El teléfono debe tener 10 dígitos.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validarCampoObligatorio(TextField campo, String nombreCampo) {
+        if (campo == null) return false;
+        if (campo.getText() == null || campo.getText().trim().isEmpty()) {
+            mostrarAlerta(Alert.AlertType.ERROR,
+                    "El campo '" + nombreCampo + "' es obligatorio.");
+            campo.requestFocus();
+            return false;
+        }
+        return true;
+    }
+
     private boolean validarCampoNumerico(TextField campo, String nombreCampo) {
         if (campo == null) return false;
         if (!campo.getText().matches("\\d+")) {
-            new Alert(Alert.AlertType.ERROR,
-                    "El campo '" + nombreCampo + "' debe contener solo números."
-            ).showAndWait();
+            mostrarAlerta(Alert.AlertType.ERROR,
+                    "El campo '" + nombreCampo + "' debe contener solo números.");
             campo.requestFocus();
             campo.selectAll();
             return false;
@@ -287,7 +411,7 @@ public class controllerNuevoCliente {
         avisoErrorMostrado = true;
 
         String msg = (detalle == null || detalle.isBlank()) ? "Sin detalle." : detalle;
-        new Alert(Alert.AlertType.ERROR, titulo + "\n\n" + msg).showAndWait();
+        mostrarAlerta(Alert.AlertType.ERROR, titulo + "\n\n" + msg);
     }
 
     private void mostrarInfoUnaVez(String titulo, String detalle) {
@@ -295,7 +419,19 @@ public class controllerNuevoCliente {
         avisoInfoMostrado = true;
 
         String msg = (detalle == null || detalle.isBlank()) ? "" : ("\n\n" + detalle);
-        new Alert(Alert.AlertType.INFORMATION, titulo + msg).showAndWait();
+        mostrarAlerta(Alert.AlertType.INFORMATION, titulo + msg);
+    }
+
+    private void mostrarAlerta(Alert.AlertType type, String mensaje) {
+        Alert alert = new Alert(type, mensaje);
+        Stage stage = btnGuardar != null && btnGuardar.getScene() != null
+                ? (Stage) btnGuardar.getScene().getWindow()
+                : null;
+        if (stage != null) {
+            alert.initOwner(stage);
+            alert.initModality(Modality.WINDOW_MODAL);
+        }
+        alert.showAndWait();
     }
 
     private void aplicarAutocompletado(CpInfo info, String coloniaPreferida) {
