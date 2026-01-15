@@ -1,8 +1,11 @@
 package Consultas.producto.model;
 
 import Compartido.model.DAO.GenericDAO;
+import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -38,6 +41,20 @@ public class model {
     public ObservableList<producto> busquedaMultipleProductos(String textoBusqueda) {
         ArrayList<producto> lista = productoDAO.buscarMultiple("id", "nombre", textoBusqueda);
         return FXCollections.observableArrayList(lista);
+    }
+
+    public int contarArticulosDisponibles(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return 0;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarArticulosDisponiblesPorProducto(conn, idProducto);
+        } catch (Exception e) {
+            System.out.println("Error en contarArticulosDisponibles: " + e.getMessage());
+        }
+
+        return 0;
     }
 
     // Metodo para buscar un producto por su ID

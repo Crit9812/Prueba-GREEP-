@@ -130,6 +130,14 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         sucursal seleccionado = getTableView().getItems().get(getIndex());
+                        int pendientes = sucursalModel.contarArticulosPendientes(seleccionado.getId());
+                        if (pendientes > 0) {
+                            new Alert(Alert.AlertType.ERROR,
+                                    "No se puede eliminar la sucursal porque tiene " + pendientes
+                                            + " artículo(s) pendiente(s) vinculados."
+                            ).showAndWait();
+                            return;
+                        }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                         alerta.setTitle("Confirmar eliminación");
                         alerta.setHeaderText(null);

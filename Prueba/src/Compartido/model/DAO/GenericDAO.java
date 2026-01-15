@@ -730,6 +730,289 @@ public class GenericDAO<T> {
         return 0;
     }
 
+    public static int contarArticulosDisponiblesPorProducto(Connection conn, String idProducto) {
+        return contarArticulosDisponiblesPorProductoProveedor(conn, idProducto, null);
+    }
+
+    public static int contarArticulosDisponiblesPorProveedor(Connection conn, String idProveedor) {
+        return contarArticulosDisponiblesPorProductoProveedor(conn, null, idProveedor);
+    }
+
+    public static int contarArticulosDisponiblesPorProductoProveedor(Connection conn, String idProducto,
+                                                                      String idProveedor) {
+        if (conn == null || (idProducto == null && idProveedor == null)) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+            String colDetalleEntradaEntrada = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada",
+                    "id_entrada", "entrada_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colDetalleEntradaId == null) {
+                return 0;
+            }
+
+            Map<String, String> columnasEntradas = null;
+            String colEntradaId = null;
+            String colEntradaProveedor = null;
+
+            if (idProveedor != null) {
+                columnasEntradas = obtenerColumnas(conn, "entradas");
+                colEntradaId = resolverColumna(columnasEntradas, "idEntrada", "id", "id_entrada", "entrada_id");
+                colEntradaProveedor = resolverColumna(columnasEntradas, "idRemitente", "idProveedor", "id_proveedor",
+                        "proveedor", "proveedor_id");
+                if (colEntradaId == null || colEntradaProveedor == null || colDetalleEntradaEntrada == null) {
+                    return 0;
+                }
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ");
+
+            if (idProveedor != null) {
+                sql.append("JOIN entradas e ON e.`").append(colEntradaId).append("` = de.`")
+                        .append(colDetalleEntradaEntrada).append("` ");
+            }
+
+            sql.append("WHERE 1=1 ");
+            if (idProducto != null) {
+                if (colDetalleEntradaProducto == null) {
+                    return 0;
+                }
+                sql.append("AND de.`").append(colDetalleEntradaProducto).append("` = ? ");
+            }
+            if (idProveedor != null) {
+                sql.append("AND e.`").append(colEntradaProveedor).append("` = ? ");
+            }
+            sql.append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0) ");
+            if (colArticuloEstado != null) {
+                sql.append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                if (idProducto != null) {
+                    ps.setString(index++, idProducto);
+                }
+                if (idProveedor != null) {
+                    ps.setString(index++, idProveedor);
+                }
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarArticulosDisponiblesPorProductoProveedor: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarArticulosDisponiblesPorMarca(Connection conn, int marcaId) {
+        return contarArticulosDisponiblesPorCampoProducto(conn, marcaId,
+                "marca", "idMarca", "id_marca", "marca_id");
+    }
+
+    public static int contarArticulosDisponiblesPorEtiqueta(Connection conn, int etiquetaId) {
+        return contarArticulosDisponiblesPorCampoProducto(conn, etiquetaId,
+                "etiqueta", "idEtiqueta", "id_etiqueta", "etiqueta_id");
+    }
+
+    public static int contarArticulosDisponiblesPorUnidadMedida(Connection conn, int umId) {
+        return contarArticulosDisponiblesPorCampoProducto(conn, umId,
+                "unidadMedida", "unidad_Medida", "unidad_medida", "idUnidadMedida", "id_unidad_medida");
+    }
+
+    public static int contarArticulosDisponiblesPorUbicacion(Connection conn, int ubicacionId) {
+        if (conn == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            if (colArticuloDetalleSalida == null || colArticuloUbicacion == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("WHERE a.`").append(colArticuloUbicacion).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0) ");
+            if (colArticuloEstado != null) {
+                sql.append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setInt(1, ubicacionId);
+                if (colArticuloEstado != null) {
+                    ps.setString(2, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarArticulosDisponiblesPorUbicacion: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarArticulosPendientesPorSucursal(Connection conn, String idSucursal) {
+        if (conn == null || idSucursal == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleSalida = obtenerColumnas(conn, "detalle_Salida");
+            Map<String, String> columnasSalidas = obtenerColumnas(conn, "salidas");
+
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleSalidaId = resolverColumna(columnasDetalleSalida, "idDetalleSalida", "id",
+                    "id_detalle_salida");
+            String colDetalleSalidaSalida = resolverColumna(columnasDetalleSalida, "claveSalida", "idSalida",
+                    "id_salida", "salida_id");
+
+            String colSalidaId = resolverColumna(columnasSalidas, "idSalida", "id", "id_salida", "salida_id");
+            String colSalidaSucursal = resolverColumna(columnasSalidas, "idDestinatario", "destinatario", "idSucursal",
+                    "id_sucursal", "sucursal", "sucursal_id");
+
+            if (colArticuloDetalleSalida == null || colDetalleSalidaId == null || colDetalleSalidaSalida == null
+                    || colSalidaId == null || colSalidaSucursal == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Salida ds ON ds.`").append(colDetalleSalidaId)
+                    .append("` = a.`").append(colArticuloDetalleSalida).append("` ")
+                    .append("JOIN salidas s ON s.`").append(colSalidaId).append("` = ds.`")
+                    .append(colDetalleSalidaSalida).append("` ")
+                    .append("WHERE s.`").append(colSalidaSucursal).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NOT NULL AND a.`")
+                    .append(colArticuloDetalleSalida).append("` <> 0) ");
+            if (colArticuloEstado != null) {
+                sql.append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, idSucursal);
+                if (colArticuloEstado != null) {
+                    ps.setString(2, "pendiente");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarArticulosPendientesPorSucursal: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    private static int contarArticulosDisponiblesPorCampoProducto(Connection conn, Object valor,
+                                                                  String... candidatosProducto) {
+        if (conn == null || valor == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            String colProductoId = resolverColumna(columnasProductos, "id", "idProducto", "id_producto",
+                    "producto_id");
+            String colProductoFiltro = resolverColumna(columnasProductos, candidatosProducto);
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colDetalleEntradaId == null
+                    || colDetalleEntradaProducto == null || colProductoId == null || colProductoFiltro == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("JOIN productos p ON p.`").append(colProductoId).append("` = de.`")
+                    .append(colDetalleEntradaProducto).append("` ")
+                    .append("WHERE p.`").append(colProductoFiltro).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0) ");
+            if (colArticuloEstado != null) {
+                sql.append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setObject(1, valor);
+                if (colArticuloEstado != null) {
+                    ps.setString(2, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarArticulosDisponiblesPorCampoProducto: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
     private static Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
         Map<String, String> columnas = new HashMap<>();
         DatabaseMetaData meta = conn.getMetaData();

@@ -419,6 +419,7 @@ public class MainController {
     // ================== ELIMINAR ==================
     private TableCell<marcas, Void> crearBotonEliminarMarca() {
         return crearBotonEliminar(
+                m -> model.contarArticulosDisponiblesPorMarca(m.getId()),
                 m -> model.contarProductosPorMarca(m.getId()),
                 m -> {
                     if (model.eliminarMarca(m.getId())) {
@@ -436,6 +437,7 @@ public class MainController {
 
     private TableCell<etiquetas, Void> crearBotonEliminarEtiqueta() {
         return crearBotonEliminar(
+                e -> model.contarArticulosDisponiblesPorEtiqueta(e.getId()),
                 e -> model.contarProductosPorEtiqueta(e.getId()),
                 e -> {
                     if (model.eliminarEtiqueta(e.getId())) {
@@ -453,6 +455,7 @@ public class MainController {
 
     private TableCell<ubicaciones, Void> crearBotonEliminarUbicacion() {
         return crearBotonEliminar(
+                u -> model.contarArticulosDisponiblesPorUbicacion(u.getId()),
                 u -> model.contarProductosPorUbicacion(u.getId()),
                 u -> {
                     if (model.eliminarUbicacion(u.getId())) {
@@ -470,6 +473,7 @@ public class MainController {
 
     private TableCell<unidades_Medida, Void> crearBotonEliminarUM() {
         return crearBotonEliminar(
+                u -> model.contarArticulosDisponiblesPorUM(u.getId()),
                 u -> model.contarProductosPorUM(u.getId()),
                 u -> {
                     if (model.eliminarUM(u.getId())) {
@@ -486,6 +490,7 @@ public class MainController {
     }
 
     private <T> TableCell<T, Void> crearBotonEliminar(
+            Function<T, Integer> contarDisponibles,
             Function<T, Integer> contar,
             Consumer<T> eliminar,
             Function<T, String> obtenerNombre,
@@ -499,6 +504,12 @@ public class MainController {
             {
                 btn.setOnAction(e -> {
                     T item = getTableView().getItems().get(getIndex());
+                    int disponibles = contarDisponibles.apply(item);
+                    if (disponibles > 0) {
+                        mostrarError("No se puede eliminar la " + tipo + " porque tiene " + disponibles
+                                + " artículo(s) disponible(s) vinculados.");
+                        return;
+                    }
                     int vinculados = contar.apply(item);
                     String nombre = obtenerNombre.apply(item);
 
