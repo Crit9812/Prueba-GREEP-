@@ -5,16 +5,19 @@ import Consultas.producto.model.etiqueta;
 import Consultas.producto.model.marca;
 import Consultas.producto.model.modelEtiqueta;
 import Consultas.producto.model.modelMarca;
+import Consultas.clasificacion.model.unidades_Medida;
 import Compartido.model.DAO.GenericDAO;
 
 public class modelNuevoProducto {
 
     private GenericDAO<producto> productoDAO;
+    private GenericDAO<unidades_Medida> unidadMedidaDAO;
     private modelEtiqueta modelEtiqueta;
     private modelMarca modelMarca;
 
     public modelNuevoProducto() {
         this.productoDAO = new GenericDAO<>(producto.class);
+        this.unidadMedidaDAO = new GenericDAO<>(unidades_Medida.class);
         this.modelEtiqueta = new modelEtiqueta();
         this.modelMarca = new modelMarca();
     }
@@ -120,5 +123,49 @@ public class modelNuevoProducto {
     // Metodo para obtener marca por ID
     public marca obtenerMarcaPorId(String id) {
         return modelMarca.buscarPorId(id);
+    }
+
+    public java.util.ArrayList<unidades_Medida> obtenerUnidadesMedida() {
+        return unidadMedidaDAO.obtenerTodos();
+    }
+
+    public unidades_Medida obtenerUnidadMedidaPorId(String id) {
+        if (id == null) {
+            return null;
+        }
+        for (unidades_Medida unidad : obtenerUnidadesMedida()) {
+            if (unidad.getId() != null && unidad.getId().toString().equals(id)) {
+                return unidad;
+            }
+        }
+        return null;
+    }
+
+    public String crearOActualizarUnidadMedida(String nombre) {
+        unidades_Medida unidadExistente = buscarUnidadMedidaPorNombreInsensible(nombre);
+
+        if (unidadExistente != null) {
+            if (!unidadExistente.getNombre().equals(nombre)) {
+                unidadExistente.setNombre(nombre);
+                unidadMedidaDAO.actualizar(unidadExistente);
+            }
+            return unidadExistente.getId() != null ? unidadExistente.getId().toString() : null;
+        }
+
+        unidades_Medida nuevaUnidad = new unidades_Medida();
+        nuevaUnidad.setNombre(nombre);
+        if (unidadMedidaDAO.insertar(nuevaUnidad)) {
+            return nuevaUnidad.getId() != null ? nuevaUnidad.getId().toString() : null;
+        }
+        return null;
+    }
+
+    private unidades_Medida buscarUnidadMedidaPorNombreInsensible(String nombre) {
+        for (unidades_Medida u : obtenerUnidadesMedida()) {
+            if (u.getNombre() != null && u.getNombre().equalsIgnoreCase(nombre)) {
+                return u;
+            }
+        }
+        return null;
     }
 }
