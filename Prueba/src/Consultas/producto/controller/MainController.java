@@ -333,6 +333,9 @@ public class MainController {
             stage.setTitle("Nuevo producto");
             stage.setScene(new Scene(root));
             stage.showAndWait();
+            if (ctrl.isProductoCreado()) {
+                preloadDatosUltraRapido();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
