@@ -252,6 +252,7 @@ public class MainController {
         alerta.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (productoModel.eliminarProducto(p.getIdProducto())) {
+                    eliminarImagenProducto(p.getUrlImagen());
                     contenidoTabla.getItems().remove(p);
                     new Alert(Alert.AlertType.INFORMATION, "Producto eliminado correctamente").showAndWait();
                 } else {
@@ -259,6 +260,17 @@ public class MainController {
                 }
             }
         });
+    }
+
+    private void eliminarImagenProducto(String urlImagen) {
+        if (urlImagen == null || urlImagen.isBlank()) return;
+
+        conexionFTP ftp = new conexionFTP();
+        boolean imagenEliminada = ftp.deleteImageFromFTP(urlImagen);
+        cacheImagenes.remove(urlImagen);
+        if (!imagenEliminada) {
+            new Alert(Alert.AlertType.WARNING, "El producto se eliminó, pero no se pudo borrar la imagen del servidor.").showAndWait();
+        }
     }
 
     // Mtodo para buscar un producto por su ID

@@ -132,6 +132,45 @@ public class conexionFTP {
         }
     }
 
+    public boolean deleteImageFromFTP(String fileName) {
+        if (fileName == null || fileName.isBlank()) return false;
+
+        FTPClient ftpClient = new FTPClient();
+        try {
+            ftpClient.connect(server, port);
+            int replyCode = ftpClient.getReplyCode();
+            if (!FTPReply.isPositiveCompletion(replyCode)) {
+                System.out.println("No se pudo conectar al FTP. Código: " + replyCode);
+                return false;
+            }
+
+            boolean loggedIn = ftpClient.login(user, pass);
+            if (!loggedIn) {
+                System.out.println("Error en login FTP");
+                return false;
+            }
+
+            ftpClient.enterLocalPassiveMode();
+            ftpClient.setFileType(FTPClient.BINARY_FILE_TYPE);
+
+            if (!remoteDirImagenes.isEmpty()) ftpClient.changeWorkingDirectory(remoteDirImagenes);
+
+            return ftpClient.deleteFile(fileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            try {
+                if (ftpClient.isConnected()) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
     public byte[] getExtraFileBytes(String fileName) {
         if (fileName == null || fileName.isBlank()) return null;
 
