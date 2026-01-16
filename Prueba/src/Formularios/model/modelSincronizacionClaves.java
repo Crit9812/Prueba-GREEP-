@@ -33,6 +33,30 @@ public class modelSincronizacionClaves {
     private static final String COL_CLAVE_CATALOGO = "idAlterno";
     private static final String COL_CLAVE_PROVEEDOR = "idProveedor";
     private static final String COL_CLAVE_GREEP = "idProducto";
+    private static final String COL_CLAVE_ESTADO = "estado";
+
+    public static class DetalleClave {
+        private final String idAlterno;
+        private final Integer proveedorId;
+        private final String proveedorNombre;
+        private final String productoId;
+        private final String productoNombre;
+
+        public DetalleClave(String idAlterno, Integer proveedorId, String proveedorNombre,
+                            String productoId, String productoNombre) {
+            this.idAlterno = idAlterno;
+            this.proveedorId = proveedorId;
+            this.proveedorNombre = proveedorNombre;
+            this.productoId = productoId;
+            this.productoNombre = productoNombre;
+        }
+
+        public String getIdAlterno() { return idAlterno; }
+        public Integer getProveedorId() { return proveedorId; }
+        public String getProveedorNombre() { return proveedorNombre; }
+        public String getProductoId() { return productoId; }
+        public String getProductoNombre() { return productoNombre; }
+    }
 
     /**
      * Devuelve lista de proveedores: cada Map contiene keys "id" (Integer) y "nombre" (String)
@@ -102,6 +126,38 @@ public class modelSincronizacionClaves {
             }
         }
         return out;
+    }
+
+    public Optional<DetalleClave> obtenerDetalleClaveAlterna(String idAlterno) throws SQLException {
+        if (idAlterno == null || idAlterno.isBlank()) {
+            return Optional.empty();
+        }
+        String sql = "SELECT c.`" + COL_CLAVE_CATALOGO + "` AS idAlterno, " +
+                "c.`" + COL_CLAVE_PROVEEDOR + "` AS provId, " +
+                "c.`" + COL_CLAVE_GREEP + "` AS prodId, " +
+                "p.`" + COL_PROVEEDOR_NOMBRE + "` AS provNombre, " +
+                "pr.`" + COL_PRODUCTO_NOMBRE + "` AS prodNombre " +
+                "FROM " + TABLA_CLAVES + " c " +
+                "LEFT JOIN " + TABLA_PROVEEDORES + " p ON p.`" + COL_PROVEEDOR_ID + "` = c.`" + COL_CLAVE_PROVEEDOR + "` " +
+                "LEFT JOIN " + TABLA_PRODUCTOS + " pr ON pr.`" + COL_PRODUCTO_ID + "` = c.`" + COL_CLAVE_GREEP + "` " +
+                "WHERE c.`" + COL_CLAVE_CATALOGO + "` = ? LIMIT 1";
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idAlterno);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Integer provId = rs.getObject("provId") != null ? rs.getInt("provId") : null;
+                    return Optional.of(new DetalleClave(
+                            rs.getString("idAlterno"),
+                            provId,
+                            rs.getString("provNombre"),
+                            rs.getString("prodId"),
+                            rs.getString("prodNombre")
+                    ));
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -178,7 +234,7 @@ public class modelSincronizacionClaves {
                         } else {
                             // INSERT
                             String ins = "INSERT INTO " + TABLA_CLAVES +
-                                    " (`" + COL_CLAVE_CATALOGO + "`, `" + COL_CLAVE_PROVEEDOR + "`, `" + COL_CLAVE_GREEP + "`) VALUES (?, ?, ?)";
+                                    " (`" + COL_CLAVE_CATALOGO + "`, `" + COL_CLAVE_PROVEEDOR + "`, `" + COL_CLAVE_GREEP + "`, `" + COL_CLAVE_ESTADO + "`) VALUES (?, ?, ?, ?)";
 
                             try (PreparedStatement insP = conn.prepareStatement(ins)) {
                                 insP.setString(1, idAlterno);
@@ -189,6 +245,7 @@ public class modelSincronizacionClaves {
                                     insP.setNull(2, Types.INTEGER);
 
                                 insP.setString(3, idProducto);
+                                insP.setString(4, "activo");
 
                                 return insP.executeUpdate() > 0;
                             }

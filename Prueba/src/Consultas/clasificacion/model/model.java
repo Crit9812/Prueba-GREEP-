@@ -23,8 +23,12 @@ public class model {
     }
 
     public boolean insertarMarca(String nombre) {
+        if (buscarMarcaPorNombreInsensible(nombre) != null) {
+            return false;
+        }
         marcas marca = new marcas();
         marca.setNombre(nombre);
+        marca.setEstado("activo");
         return marcaDAO.insertar(marca);
     }
 
@@ -42,6 +46,22 @@ public class model {
         List<marcas> marcas = marcaDAO.obtenerTodos();
         for (marcas m : marcas) {
             if (m.getId() == id) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    public boolean existeMarcaNombre(String nombre) {
+        return buscarMarcaPorNombreInsensible(nombre) != null;
+    }
+
+    private marcas buscarMarcaPorNombreInsensible(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        for (marcas m : marcaDAO.obtenerTodos()) {
+            if (m.getNombre() != null && m.getNombre().equalsIgnoreCase(nombre.trim())) {
                 return m;
             }
         }
@@ -75,8 +95,12 @@ public class model {
     }
 
     public boolean insertarEtiqueta(String nombre) {
+        if (buscarEtiquetaPorNombreInsensible(nombre) != null) {
+            return false;
+        }
         etiquetas etiqueta = new etiquetas();
         etiqueta.setNombre(nombre);
+        etiqueta.setEstado("activo");
         return etiquetaDAO.insertar(etiqueta);
     }
 
@@ -93,6 +117,22 @@ public class model {
         List<etiquetas> etiquetas = etiquetaDAO.obtenerTodos();
         for (etiquetas e : etiquetas) {
             if (e.getId() == id) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    public boolean existeEtiquetaNombre(String nombre) {
+        return buscarEtiquetaPorNombreInsensible(nombre) != null;
+    }
+
+    private etiquetas buscarEtiquetaPorNombreInsensible(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        for (etiquetas e : etiquetaDAO.obtenerTodos()) {
+            if (e.getNombre() != null && e.getNombre().equalsIgnoreCase(nombre.trim())) {
                 return e;
             }
         }
@@ -126,8 +166,12 @@ public class model {
     }
 
     public boolean insertarUbicacion(String nombre) {
+        if (buscarUbicacionPorNombreInsensible(nombre) != null) {
+            return false;
+        }
         ubicaciones ubicacion = new ubicaciones();
         ubicacion.setNombre(nombre);
+        ubicacion.setEstado("activo");
         return ubicacionDAO.insertar(ubicacion);
     }
 
@@ -144,6 +188,22 @@ public class model {
         List<ubicaciones> ubicaciones = ubicacionDAO.obtenerTodos();
         for (ubicaciones u : ubicaciones) {
             if (u.getId() == id) {
+                return u;
+            }
+        }
+        return null;
+    }
+
+    public boolean existeUbicacionNombre(String nombre) {
+        return buscarUbicacionPorNombreInsensible(nombre) != null;
+    }
+
+    private ubicaciones buscarUbicacionPorNombreInsensible(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        for (ubicaciones u : ubicacionDAO.obtenerTodos()) {
+            if (u.getNombre() != null && u.getNombre().equalsIgnoreCase(nombre.trim())) {
                 return u;
             }
         }
@@ -177,8 +237,12 @@ public class model {
     }
 
     public boolean insertarUM(String nombre) {
+        if (buscarUMPorNombreInsensible(nombre) != null) {
+            return false;
+        }
         unidades_Medida um = new unidades_Medida();
         um.setNombre(nombre);
+        um.setEstado("activo");
         return umDAO.insertar(um);
     }
 
@@ -195,6 +259,22 @@ public class model {
         List<unidades_Medida> unidades = umDAO.obtenerTodos();
         for (unidades_Medida u : unidades) {
             if (u.getId() == id) {
+                return u;
+            }
+        }
+        return null;
+    }
+
+    public boolean existeUMNombre(String nombre) {
+        return buscarUMPorNombreInsensible(nombre) != null;
+    }
+
+    private unidades_Medida buscarUMPorNombreInsensible(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        for (unidades_Medida u : umDAO.obtenerTodos()) {
+            if (u.getNombre() != null && u.getNombre().equalsIgnoreCase(nombre.trim())) {
                 return u;
             }
         }
