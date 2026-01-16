@@ -19,7 +19,7 @@ public class model {
     // ================= MARCAS =================
 
     public List<marcas> obtenerMarcas() {
-        return marcaDAO.obtenerTodos();
+        return filtrarMarcasActivas(marcaDAO.obtenerTodos());
     }
 
     public boolean insertarMarca(String nombre) {
@@ -91,7 +91,7 @@ public class model {
     // ================= ETIQUETAS =================
 
     public List<etiquetas> obtenerEtiquetas() {
-        return etiquetaDAO.obtenerTodos();
+        return filtrarEtiquetasActivas(etiquetaDAO.obtenerTodos());
     }
 
     public boolean insertarEtiqueta(String nombre) {
@@ -162,7 +162,7 @@ public class model {
     // ================= UBICACIONES =================
 
     public List<ubicaciones> obtenerUbicaciones() {
-        return ubicacionDAO.obtenerTodos();
+        return filtrarUbicacionesActivas(ubicacionDAO.obtenerTodos());
     }
 
     public boolean insertarUbicacion(String nombre) {
@@ -233,7 +233,7 @@ public class model {
     // ================= UNIDADES DE MEDIDA =================
 
     public List<unidades_Medida> obtenerUM() {
-        return umDAO.obtenerTodos();
+        return filtrarUnidadesActivas(umDAO.obtenerTodos());
     }
 
     public boolean insertarUM(String nombre) {
@@ -299,5 +299,45 @@ public class model {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    private List<marcas> filtrarMarcasActivas(List<marcas> lista) {
+        java.util.List<marcas> activas = new java.util.ArrayList<>();
+        for (marcas m : lista) {
+            if (m.getEstado() != null && m.getEstado().equalsIgnoreCase("activo")) {
+                activas.add(m);
+            }
+        }
+        return activas;
+    }
+
+    private List<etiquetas> filtrarEtiquetasActivas(List<etiquetas> lista) {
+        java.util.List<etiquetas> activas = new java.util.ArrayList<>();
+        for (etiquetas e : lista) {
+            if (e.getEstado() != null && e.getEstado().equalsIgnoreCase("activo")) {
+                activas.add(e);
+            }
+        }
+        return activas;
+    }
+
+    private List<ubicaciones> filtrarUbicacionesActivas(List<ubicaciones> lista) {
+        java.util.List<ubicaciones> activas = new java.util.ArrayList<>();
+        for (ubicaciones u : lista) {
+            if (u.getEstado() != null && u.getEstado().equalsIgnoreCase("activo")) {
+                activas.add(u);
+            }
+        }
+        return activas;
+    }
+
+    private List<unidades_Medida> filtrarUnidadesActivas(List<unidades_Medida> lista) {
+        java.util.List<unidades_Medida> activas = new java.util.ArrayList<>();
+        for (unidades_Medida u : lista) {
+            if (u.getEstado() != null && u.getEstado().equalsIgnoreCase("activo")) {
+                activas.add(u);
+            }
+        }
+        return activas;
     }
 }

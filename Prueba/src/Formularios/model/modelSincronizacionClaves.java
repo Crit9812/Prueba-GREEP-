@@ -63,7 +63,8 @@ public class modelSincronizacionClaves {
      */
     public List<Map<String, Object>> obtenerProveedores() throws SQLException {
         List<Map<String, Object>> out = new ArrayList<>();
-        String sql = "SELECT `" + COL_PROVEEDOR_ID + "`, `" + COL_PROVEEDOR_NOMBRE + "` FROM " + TABLA_PROVEEDORES + " ORDER BY `" + COL_PROVEEDOR_NOMBRE + "`";
+        String sql = "SELECT `" + COL_PROVEEDOR_ID + "`, `" + COL_PROVEEDOR_NOMBRE + "` FROM " + TABLA_PROVEEDORES +
+                " WHERE LOWER(status) = 'activo' ORDER BY `" + COL_PROVEEDOR_NOMBRE + "`";
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -90,7 +91,8 @@ public class modelSincronizacionClaves {
                 "p.`" + COL_PRODUCTO_MARCA + "` AS raw_marca, p.`" + COL_PRODUCTO_ETIQUETA + "` AS raw_etiqueta " +
                 "FROM " + TABLA_PRODUCTOS + " p " +
                 "LEFT JOIN marcas m ON m.id = p." + COL_PRODUCTO_MARCA + " " +
-                "LEFT JOIN etiquetas e ON e.id = p." + COL_PRODUCTO_ETIQUETA;
+                "LEFT JOIN etiquetas e ON e.id = p." + COL_PRODUCTO_ETIQUETA + " " +
+                "WHERE LOWER(p.estado) = 'activo'";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);

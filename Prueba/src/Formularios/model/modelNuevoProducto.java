@@ -120,7 +120,10 @@ public class modelNuevoProducto {
     public java.util.List<String> obtenerUnidadesMedida() {
         java.util.List<String> nombres = new java.util.ArrayList<>();
         for (unidades_Medida unidad : unidadDAO.obtenerTodos()) {
-            if (unidad.getNombre() != null && !unidad.getNombre().isBlank()) {
+            if (unidad.getNombre() != null
+                    && !unidad.getNombre().isBlank()
+                    && unidad.getEstado() != null
+                    && unidad.getEstado().equalsIgnoreCase("activo")) {
                 nombres.add(unidad.getNombre());
             }
         }

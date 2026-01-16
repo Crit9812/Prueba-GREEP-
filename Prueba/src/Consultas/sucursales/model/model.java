@@ -12,7 +12,7 @@ public class model {
 
     public ObservableList<sucursal> obtenerSucursales() {
         ArrayList<sucursal> lista = dao.obtenerTodos();
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
     public boolean eliminarSucursal(int idSucursal) {
@@ -25,8 +25,16 @@ public class model {
 
     public ObservableList<sucursal> buscarExacto(String nombre) {
         ArrayList<sucursal> lista = dao.buscarParcial("nombre", nombre);
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
+    private ArrayList<sucursal> filtrarActivos(ArrayList<sucursal> lista) {
+        ArrayList<sucursal> activos = new ArrayList<>();
+        for (sucursal s : lista) {
+            if (s.getStatus() != null && s.getStatus().equalsIgnoreCase("activo")) {
+                activos.add(s);
+            }
+        }
+        return activos;
+    }
 }
-
