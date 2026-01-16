@@ -245,14 +245,6 @@ public class MainController {
     }
 
     private void eliminarProducto(producto p) {
-        int disponibles = productoModel.contarArticulosDisponibles(p.getIdProducto());
-        if (disponibles > 0) {
-            new Alert(Alert.AlertType.ERROR,
-                    "No se puede eliminar el producto porque tiene " + disponibles + " artículo(s) disponible(s)."
-            ).showAndWait();
-            return;
-        }
-
         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
         alerta.setTitle("Confirmar eliminación");
         alerta.setHeaderText(null);

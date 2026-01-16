@@ -68,15 +68,6 @@ public class model {
         return 0;
     }
 
-    public int contarArticulosDisponiblesPorMarca(int marcaId) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarArticulosDisponiblesPorMarca(conn, marcaId);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
     // ================= ETIQUETAS =================
 
     public List<etiquetas> obtenerEtiquetas() {
@@ -122,15 +113,6 @@ public class model {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public int contarArticulosDisponiblesPorEtiqueta(int etiquetaId) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarArticulosDisponiblesPorEtiqueta(conn, etiquetaId);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -188,15 +170,6 @@ public class model {
         return 0;
     }
 
-    public int contarArticulosDisponiblesPorUbicacion(int ubicacionId) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarArticulosDisponiblesPorUbicacion(conn, ubicacionId);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
     // ================= UNIDADES DE MEDIDA =================
 
     public List<unidades_Medida> obtenerUM() {
@@ -242,15 +215,6 @@ public class model {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public int contarArticulosDisponiblesPorUM(int umId) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarArticulosDisponiblesPorUnidadMedida(conn, umId);
         } catch (Exception e) {
             e.printStackTrace();
         }

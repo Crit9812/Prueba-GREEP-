@@ -6,6 +6,30 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correcciones">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/model/DAO/GenericDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/model/DAO/GenericDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/unidades_Medida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/unidades_Medida.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/view/sincronizarClaves.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/sincronizarClaves.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/login/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/login/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -450,7 +474,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768499065710</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="Correcciones">
+      <option name="closed" value="true" />
+      <created>1768572617622</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1768572617622</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -527,7 +559,8 @@
     <MESSAGE value="Se agrego API de codigo postal" />
     <MESSAGE value="Conexion a FTP cambiada para adquirir mas archivos" />
     <MESSAGE value="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp" />
-    <option name="LAST_COMMIT_MESSAGE" value="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp" />
+    <MESSAGE value="Correcciones" />
+    <option name="LAST_COMMIT_MESSAGE" value="Correcciones" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

@@ -3,6 +3,10 @@ package Consultas.clasificacion.model;
 import Compartido.model.DAO.Column;
 import Compartido.model.DAO.PrimaryKey;
 import Compartido.model.DAO.Table;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 
 @Table(name = "unidades_Medida")
 public class unidades_Medida {
@@ -14,6 +18,10 @@ public class unidades_Medida {
     @Column(name = "nombre")
     private String nombre;
 
+    // Properties para JavaFX
+    private transient IntegerProperty idProperty;
+    private transient StringProperty nombreProperty;
+
     public unidades_Medida() {}
 
     public unidades_Medida(Integer id, String nombre) {
@@ -22,8 +30,33 @@ public class unidades_Medida {
     }
 
     public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public void setId(Integer id) {
+        this.id = id;
+        if (idProperty != null) {
+            idProperty.set(id);
+        }
+    }
 
     public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+        if (nombreProperty != null) {
+            nombreProperty.set(nombre);
+        }
+    }
+
+    // Métodos property para JavaFX
+    public IntegerProperty idProperty() {
+        if (idProperty == null) {
+            idProperty = new SimpleIntegerProperty(id);
+        }
+        return idProperty;
+    }
+
+    public StringProperty nombreProperty() {
+        if (nombreProperty == null) {
+            nombreProperty = new SimpleStringProperty(nombre);
+        }
+        return nombreProperty;
+    }
 }

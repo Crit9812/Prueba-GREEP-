@@ -527,4 +527,304 @@ public class modelNuevoTraspasoSalida {
         }
         return null;
     }
+
+
+    /**
+     * Verifica si una presentación existe para un producto (sin lote específico)
+     * Para uso en modo rápido
+     */
+    public boolean existePresentacionParaProducto(String idProducto, String presentacion) {
+        String sql = """
+        SELECT 1
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        WHERE de.claveProducto = ? AND a.presentacion = ?
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si un factor existe para una combinación producto-presentación (sin lote específico)
+     * Para uso en modo rápido
+     */
+    public boolean existeFactorParaProductoPresentacion(String idProducto, String presentacion, int factor) {
+        String sql = """
+        SELECT 1
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si una combinación producto-presentación-factor existe en inventario
+     * Para uso en modo rápido
+     */
+    public boolean existeCombinacionProductoPresentacionFactor(String idProducto, String presentacion, int factor) {
+        String sql = """
+        SELECT 1
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Obtiene los precios de la última entrada de un producto con presentación y factor específicos
+     * Para uso en modo rápido
+     */
+    public Optional<PreciosProducto> obtenerPreciosProductoUltimaEntradaConPresentacion(
+            String idProducto, String presentacion, int factor) {
+        String sql = """
+        SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
+        FROM detalle_Entrada de
+        JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+        WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal precioUnitario = obtenerDecimal(rs, "precioUnitario");
+                    BigDecimal precioIva = obtenerDecimal(rs, "precioIVA");
+                    BigDecimal precioBruto = obtenerDecimal(rs, "precioBrutoTotal");
+                    BigDecimal precioTotal = obtenerDecimal(rs, "precioTotal");
+                    return Optional.of(new PreciosProducto(precioUnitario, precioIva, precioBruto, precioTotal));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Si no encuentra con presentación y factor específicos, intentar con el método genérico
+        return obtenerPreciosProductoUltimaEntrada(idProducto);
+    }
+
+    /**
+     * Obtiene la cantidad disponible total de un producto con presentación y factor específicos
+     * Para uso en modo rápido
+     */
+    public int obtenerCantidadTotalDisponibleProductoPresentacionFactor(
+            String idProducto, String presentacion, int factor) {
+        String sql = """
+        SELECT COUNT(*) AS total
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Verifica si hay suficiente cantidad disponible para un producto con presentación y factor específicos
+     * Para uso en modo rápido
+     */
+    public boolean verificarDisponibilidadSuficiente(String idProducto, String presentacion,
+                                                     int factor, int cantidadRequerida) {
+        int disponible = obtenerCantidadDisponibleProductoPresentacionFactor(idProducto, presentacion, factor);
+        return disponible >= cantidadRequerida;
+    }
+
+    /**
+     * Obtiene las disponibilidades por lote para un producto con presentación y factor específicos
+     * Ordenado por fecha de caducidad (más cercana primero)
+     * Para uso en modo rápido
+     */
+    public List<DisponibilidadPorLote> obtenerDisponibilidadesPorLote(String idProducto,
+                                                                      String presentacion, int factor) {
+        List<DisponibilidadPorLote> resultado = new ArrayList<>();
+        String sql = """
+        SELECT a.lote, a.caducidad, COUNT(*) AS cantidad
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+        GROUP BY a.lote, a.caducidad
+        ORDER BY a.caducidad ASC, a.lote ASC
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String lote = rs.getString("lote");
+                    java.sql.Date caducidad = rs.getDate("caducidad");
+                    int cantidad = rs.getInt("cantidad");
+                    java.time.LocalDate caducidadLocal = caducidad != null ? caducidad.toLocalDate() : null;
+                    resultado.add(new DisponibilidadPorLote(lote, caducidadLocal, cantidad));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Clase interna para representar disponibilidad por lote
+     */
+    public static class DisponibilidadPorLote {
+        private final String lote;
+        private final java.time.LocalDate caducidad;
+        private final int cantidad;
+
+        public DisponibilidadPorLote(String lote, java.time.LocalDate caducidad, int cantidad) {
+            this.lote = lote != null ? lote : "";
+            this.caducidad = caducidad;
+            this.cantidad = cantidad;
+        }
+
+        public String getLote() {
+            return lote;
+        }
+
+        public java.time.LocalDate getCaducidad() {
+            return caducidad;
+        }
+
+        public int getCantidad() {
+            return cantidad;
+        }
+    }
+
+    /**
+     * Obtiene las ubicaciones disponibles para un producto con presentación y factor específicos
+     * Ordenadas por cantidad disponible (mayor a menor)
+     * Para uso en modo rápido
+     */
+    public List<UbicacionDisponible> obtenerUbicacionesDisponibles(String idProducto,
+                                                                   String presentacion, int factor) {
+        List<UbicacionDisponible> resultado = new ArrayList<>();
+        String sql = """
+        SELECT u.nombre AS ubicacion, COUNT(*) AS cantidad
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        JOIN ubicaciones u ON u.id = a.ubicacion
+        WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+        GROUP BY u.nombre
+        ORDER BY cantidad DESC, u.nombre ASC
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String ubicacion = rs.getString("ubicacion");
+                    int cantidad = rs.getInt("cantidad");
+                    resultado.add(new UbicacionDisponible(ubicacion, cantidad));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Clase interna para representar ubicaciones disponibles
+     */
+    public static class UbicacionDisponible {
+        private final String ubicacion;
+        private final int cantidad;
+
+        public UbicacionDisponible(String ubicacion, int cantidad) {
+            this.ubicacion = ubicacion != null ? ubicacion : "";
+            this.cantidad = cantidad;
+        }
+
+        public String getUbicacion() {
+            return ubicacion;
+        }
+
+        public int getCantidad() {
+            return cantidad;
+        }
+    }
 }

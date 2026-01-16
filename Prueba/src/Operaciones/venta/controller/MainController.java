@@ -278,6 +278,13 @@ public class MainController {
                         factura.clear();
                     }
                     mostrarAlerta("Éxito", "La venta se registró correctamente.");
+                    if (buscador != null) {
+                        buscador.setValue(null);
+                        if (buscador.getEditor() != null) {
+                            buscador.getEditor().clear();
+                        }
+                        clienteSeleccionadoId = null;
+                    }
                 } else {
                     mostrarAlerta("Error", "No se pudo registrar la venta.");
                 }

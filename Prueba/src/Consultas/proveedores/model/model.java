@@ -1,11 +1,9 @@
 package Consultas.proveedores.model;
 
 import Compartido.model.DAO.GenericDAO;
-import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import java.sql.Connection;
 import java.util.ArrayList;
 
 public class model {
@@ -19,16 +17,6 @@ public class model {
 
     public boolean eliminar(int id) {
         return dao.eliminar(String.valueOf(id));
-    }
-
-    public int contarArticulosDisponibles(int idProveedor) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarArticulosDisponiblesPorProveedor(conn, String.valueOf(idProveedor));
-        } catch (Exception e) {
-            System.out.println("Error en contarArticulosDisponiblesProveedor: " + e.getMessage());
-        }
-
-        return 0;
     }
 
     public proveedores obtenerPorId(int id) {

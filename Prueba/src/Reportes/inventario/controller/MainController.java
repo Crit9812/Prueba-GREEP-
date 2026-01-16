@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class MainController {
 
@@ -138,6 +139,23 @@ public class MainController {
 
             paneNavbarController.setTitulo("Inventario", "#ffffff");
 
+            contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal.doubleValue() > 0) {
+                    // Pequeño delay para asegurar que todo esté estable
+                    Platform.runLater(() -> {
+                        Platform.runLater(this::actualizarPoliticaRedimensionamiento);
+                    });
+                }
+            });
+
+            // Escuchar cambios en el tamaño de la tabla
+            contenidoTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
+               System.out.println("escuchando");
+                if (newVal.doubleValue() > 0 && newVal.doubleValue() != oldVal.doubleValue()) {
+                    Platform.runLater(this::actualizarPoliticaRedimensionamiento);
+                }
+            });
+
             configurarColumnasTabla();
             configurarInventarioDetallado();
             configurarFiltros();
@@ -182,6 +200,49 @@ public class MainController {
         }
 
         contenidoTabla.setItems(itemsInventario);
+        Platform.runLater(() -> {
+            forzarActualizacionRedimensionamiento();
+        });
+    }
+
+    private void actualizarPoliticaRedimensionamiento() {
+        List<TableColumn<ItemInventario, ?>> columnasVisibles = contenidoTabla.getColumns().stream()
+                .filter(TableColumn::isVisible)
+                .collect(Collectors.toList());
+
+        Platform.runLater(() -> {
+            double anchoDisponible = contenidoTabla.getWidth();
+            if (anchoDisponible <= 0) {
+                anchoDisponible = Math.max(100, contenedorTabla.getWidth() );
+            }
+
+            double minWidthTotal = columnasVisibles.stream()
+                    .mapToDouble(TableColumn::getMinWidth)
+                    .sum();
+
+            // Margen del 5% para evitar problemas de redondeo
+            boolean columnasCaben = minWidthTotal <= (anchoDisponible * 1.05);
+
+            if (columnasCaben) {
+                contenidoTabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+                // Resetear para distribución equitativa
+                for (TableColumn<ItemInventario, ?> col : columnasVisibles) {
+                    col.setPrefWidth(-1);
+                }
+            } else {
+                contenidoTabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+
+                // Intentar hacer ajustes inteligentes
+                if (minWidthTotal > anchoDisponible * 1.2) { // Si excede en más del 20%
+                    double factor = (anchoDisponible * 0.9) / minWidthTotal;
+                    for (TableColumn<ItemInventario, ?> col : columnasVisibles) {
+                        col.setPrefWidth(col.getMinWidth() * factor);
+                    }
+                }
+            }
+
+            contenidoTabla.requestLayout();
+        });
     }
 
     private void configurarInventarioDetallado() {
@@ -212,6 +273,22 @@ public class MainController {
         for (TableColumn<ItemInventario, ?> columna : obtenerColumnasModo(detallado)) {
             columna.setVisible(estado.getOrDefault(columna, true));
         }
+        forzarActualizacionRedimensionamiento();
+    }
+
+    private void forzarActualizacionRedimensionamiento() {
+        System.out.println("metodoreforzar");
+        Platform.runLater(() -> {
+            // Pequeño delay para asegurar que todos los cambios de UI se hayan procesado
+            Platform.runLater(() -> {
+                // Forzar un cambio de tamaño temporal
+                contenidoTabla.setPrefWidth(contenidoTabla.getWidth() + 0.001);
+                Platform.runLater(() -> {
+                    contenidoTabla.setPrefWidth(contenidoTabla.getWidth() - 0.001);
+                    actualizarPoliticaRedimensionamiento();
+                });
+            });
+        });
     }
 
     private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
@@ -250,6 +327,7 @@ public class MainController {
                         entry.getKey().setVisible(entry.getValue());
                     }
                     estado.putAll(seleccion);
+                    forzarActualizacionRedimensionamiento();
                 });
     }
 

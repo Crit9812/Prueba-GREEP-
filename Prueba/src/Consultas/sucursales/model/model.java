@@ -1,11 +1,9 @@
 package Consultas.sucursales.model;
 
 import Compartido.model.DAO.GenericDAO;
-import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import java.sql.Connection;
 import java.util.ArrayList;
 
 public class model {
@@ -21,16 +19,6 @@ public class model {
         return dao.eliminar(String.valueOf(idSucursal));
     }
 
-    public int contarArticulosPendientes(int idSucursal) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarArticulosPendientesPorSucursal(conn, String.valueOf(idSucursal));
-        } catch (Exception e) {
-            System.out.println("Error en contarArticulosPendientesSucursal: " + e.getMessage());
-        }
-
-        return 0;
-    }
-
     public sucursal obtenerSucursalPorId(int id) {
         return dao.buscarExacto("id", id);
     }
@@ -41,3 +29,4 @@ public class model {
     }
 
 }
+

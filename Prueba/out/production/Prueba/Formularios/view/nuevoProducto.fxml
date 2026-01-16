@@ -78,7 +78,7 @@
 
                                 <VBox spacing="5" HBox.hgrow="ALWAYS">
                                     <Label text="Unidad de Medida"/>
-                                    <ComboBox fx:id="cmbUnidadMedida" prefWidth="150" editable="true"/>
+                                    <TextField fx:id="txtUnidadMedida" prefWidth="150"/>
                                 </VBox>
                             </HBox>
 

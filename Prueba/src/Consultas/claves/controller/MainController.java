@@ -262,14 +262,6 @@ public class MainController {
     private void eliminarClave(String[] fila) {
         String idAlterno = fila[0];
 
-        int disponibles = modeloClaves.contarArticulosDisponibles(idAlterno);
-        if (disponibles > 0) {
-            mostrarAlertaError("No se puede eliminar",
-                    "No se puede eliminar la clave porque tiene " + disponibles
-                            + " artículo(s) disponible(s) vinculados.");
-            return;
-        }
-
         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
         alerta.setTitle("Confirmar eliminación");
         alerta.setHeaderText(null);
