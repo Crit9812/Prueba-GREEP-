@@ -1,7 +1,6 @@
 package Consultas.claves.controller;
 
 import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
@@ -22,6 +21,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 public class MainController {
 
@@ -55,8 +55,15 @@ public class MainController {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
                 VBox navbarLoaded = loader.load();
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
+                Object navbarCtrl = loader.getController();
+                if (navbarCtrl != null) {
+                    try {
+                        Method setOverlayPane = navbarCtrl.getClass().getMethod("setOverlayPane", Pane.class);
+                        setOverlayPane.invoke(navbarCtrl, overlayPane);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
                 navbar.getChildren().setAll(navbarLoaded);
             } catch (IOException e) {
                 e.printStackTrace();
