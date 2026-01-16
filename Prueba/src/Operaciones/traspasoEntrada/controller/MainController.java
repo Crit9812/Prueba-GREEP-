@@ -10,7 +10,7 @@ import java.util.function.Function;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 import javafx.application.Platform;
-import Formularios.controller.controllerUbicacionTraspaso;
+import Formularios.controller.ControllerUbicacionTraspaso;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.scene.Parent;
@@ -175,7 +175,7 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/ubicacionTraspaso.fxml"));
             Parent root = loader.load();
 
-            controllerUbicacionTraspaso controller = loader.getController();
+            ControllerUbicacionTraspaso controller = loader.getController();
             controller.setClaveEntrada(claveEntrada);
 
             // Configurar callback para cuando se confirme este traspaso

@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="Formularios.controller.controllerUbicacionTraspaso">
+            fx:controller="Formularios.controller.ControllerUbicacionTraspaso">
     <top>
         <VBox spacing="10" BorderPane.alignment="CENTER">
             <padding>

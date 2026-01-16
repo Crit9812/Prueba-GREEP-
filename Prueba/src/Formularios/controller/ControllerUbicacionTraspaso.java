@@ -21,7 +21,7 @@ import javafx.stage.Stage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class controllerUbicacionTraspaso {
+public class ControllerUbicacionTraspaso {
 
     @FXML private VBox contenedorUbicaciones;
     @FXML private Label lblTitulo;
