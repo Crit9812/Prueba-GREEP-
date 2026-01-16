@@ -111,6 +111,24 @@ public class model {
         return compuesto.isEmpty() ? claveProducto : compuesto;
     }
 
+    public List<String> obtenerNombresUbicaciones() {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT nombre FROM ubicaciones WHERE LOWER(TRIM(COALESCE(estado, ''))) = 'activo' ORDER BY nombre";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                lista.add(rs.getString("nombre"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return lista;
+    }
+
     public ObservableList<traspasoEntrada> obtenerPendientes() {
         ObservableList<traspasoEntrada> lista = FXCollections.observableArrayList();
 
