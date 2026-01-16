@@ -14,9 +14,6 @@ public class marca {
     @Column(name = "nombre")
     private String nombre;
 
-    @Column(name = "estado")
-    private String estado;
-
     // Constructor vacío necesario para el DAO
     public marca() {}
 
@@ -31,9 +28,6 @@ public class marca {
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
-
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
 
     @Override
     public String toString() {

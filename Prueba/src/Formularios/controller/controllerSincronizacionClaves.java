@@ -408,24 +408,6 @@ public class controllerSincronizacionClaves {
                 return;
             }
 
-            if (originalIdAlterno == null || !originalIdAlterno.equals(idClaveCatalogo)) {
-                var detalleExistente = model.obtenerDetalleClaveAlterna(idClaveCatalogo);
-                if (detalleExistente.isPresent()) {
-                    var detalle = detalleExistente.get();
-                    String proveedorNombre = detalle.getProveedorNombre();
-                    String productoNombre = detalle.getProductoNombre();
-                    String proveedorTexto = proveedorNombre != null && !proveedorNombre.isBlank()
-                            ? proveedorNombre
-                            : "Proveedor no disponible";
-                    String productoTexto = productoNombre != null && !productoNombre.isBlank()
-                            ? productoNombre
-                            : "Producto no disponible";
-                    mostrarAdvertencia("La clave alterna ya existe y está vinculada al proveedor \"" +
-                            proveedorTexto + "\" y producto \"" + productoTexto + "\".");
-                    return;
-                }
-            }
-
             boolean ok = model.guardarClave(originalIdAlterno, idClaveCatalogo, proveedorId, productoId);
             if (ok) {
                 // ALMACENAR LA CLAVE CREADA

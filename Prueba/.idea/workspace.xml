@@ -7,6 +7,48 @@
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correcciones de todo lo roto">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Prueba/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Prueba/Formularios/view/nuevoProducto.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/controller/productoCboxController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/productoCboxController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/helper/RefrescoHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/helper/RefrescoHelper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/model/modelProductoCbox.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/model/modelProductoCbox.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/etiquetas.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/etiquetas.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/marcas.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/marcas.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/ubicaciones.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/ubicaciones.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/unidades_Medida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/unidades_Medida.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/claves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/claves.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/model/cliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/model/cliente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/etiqueta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/etiqueta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/marca.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/marca.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/producto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/producto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/proveedores.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/proveedores.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/model/sucursal.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/model/sucursal.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaSucursal.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaSucursal.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoCliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoCliente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoPedido.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoPedido.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProveedor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProveedor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoUsuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoUsuario.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelSincronizacionClaves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelSincronizacionClaves.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/usuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/usuario.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/login/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/login/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +80,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
+        <entry key="$PROJECT_DIR$/.." value="1cfecfd50b704cc7d8c27659232028120df5a011" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -56,6 +98,9 @@
     &quot;assignee&quot;: &quot;Crit9812&quot;
   }
 }</component>
+  <component name="GitRewordedCommitMessages">
+    <option name="onto" value="87c299f049eea5577d47417ae00a6410207847a9" />
+  </component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/Crit9812/Prueba-GREEP-.git&quot;,
@@ -81,7 +126,7 @@
     "Application.Main.executor": "Run",
     "Application.Prueba.executor": "Run",
     "Application.main.Main.executor": "Run",
-    "Application.main.executor": "Run",
+    "Application.main.executor": "Debug",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
@@ -91,7 +136,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#74 on codex/add-validation-and-active-s…forms",
+    "git-widget-placeholder": "#49 on Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",

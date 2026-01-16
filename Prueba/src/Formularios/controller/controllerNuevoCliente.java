@@ -45,7 +45,6 @@ public class controllerNuevoCliente {
 
     private boolean modoEdicion = false;
     private int idClienteEdicion = -1;
-    private String statusActual = "";
 
     private final AtomicLong solicitudCpId = new AtomicLong(0);
     private String coloniaPendiente = null;
@@ -108,7 +107,6 @@ public class controllerNuevoCliente {
         txtNoInt.setText(String.valueOf(c.getNumeroInt()));
         txtCorreoElectronico.setText(c.getCorreo());
         txtTelefono.setText(c.getTelefono() == null ? "" : c.getTelefono());
-        statusActual = c.getStatus();
 
         buscarCpSiValido(txtCP.getText());
 
@@ -147,7 +145,6 @@ public class controllerNuevoCliente {
             c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
             c.setCorreo(txtCorreoElectronico.getText());
             c.setTelefono(txtTelefono.getText().trim());
-            c.setStatus(modoEdicion ? statusActual : "activo");
 
             boolean exito = modoEdicion ?
                     model.modificarCliente(c) :

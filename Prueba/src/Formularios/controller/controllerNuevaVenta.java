@@ -462,47 +462,37 @@ public class controllerNuevaVenta {
         // Agregar listener para cuando se selecciona presentación en modo normal
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {
-                // Validar que haya lote capturado antes de permitir seleccionar presentación
-                String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-                if (lote.isBlank()) {
-                    cbPresentacion.setValue(null);
-                    mostrarAlertaCascada("Debe capturar el lote antes de seleccionar la presentación.");
-                    return;
-                }
-
                 // Si es "pz", establecer factor 1 automáticamente
                 if (newVal.equalsIgnoreCase("pz")) {
                     txtFactor.setText("1");
                     txtFactor.setEditable(false);
                     txtFactor.setStyle("-fx-background-color: #f0f0f0;");
-                    factorValido = true;  // Marcar como válido ya que es automático
-                    ultimoFactorValidado = "1";  // Establecer el factor validado
                 } else {
                     txtFactor.setEditable(true);
                     txtFactor.setStyle("");
                     txtFactor.clear();
-                    factorValido = false;  // Resetear validez
-                    ultimoFactorValidado = "";  // Limpiar factor validado
 
-                    // Si hay cantidad capturada, limpiarla porque necesita factor (como en modo rápido)
+                    // Si hay cantidad capturada, limpiarla porque necesita factor
                     if (!txtCantidad.getText().isBlank()) {
                         txtCantidad.clear();
                         mostrarAlertaCascada("Debe capturar el factor antes de la cantidad para esta presentación.");
                     }
                 }
-            }
 
-            // SOLO limpiar factor si no es "pz" o si se cambia de "pz" a otra cosa
-            if (newVal != null && !newVal.equals(oldVal)) {
-                if (oldVal != null && oldVal.equalsIgnoreCase("pz") &&
-                        (newVal == null || !newVal.equalsIgnoreCase("pz"))) {
-                    txtFactor.clear();
-                    ultimoFactorValidado = "";
-                    factorValido = false;
+                String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+                if (cantidadTexto.isBlank()) {
+                    cbPresentacion.setValue(null);
+                    mostrarAlertaCascada("Debe capturar la cantidad antes de la presentación.");
+                    return;
                 }
             }
-
+            if (newVal != null && !newVal.equals(oldVal)) {
+                txtFactor.clear();
+                ultimoFactorValidado = "";
+                factorValido = false;
+            }
             presentacionValida = false;
+            factorValido = false;
             validarPresentacion();
             actualizarEstadoCascada();
         });
@@ -590,6 +580,14 @@ public class controllerNuevaVenta {
         // Listener para factor en modo normal
         txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isBlank()) {
+                // Verificar que haya cantidad capturada
+                String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+                if (cantidadTexto.isBlank()) {
+                    txtFactor.clear();
+                    mostrarAlertaCascada("Debe capturar la cantidad antes del factor.");
+                    return;
+                }
+
                 // Verificar que haya presentación seleccionada
                 String presentacion = cbPresentacion.getValue();
                 if (presentacion == null || presentacion.isBlank()) {
@@ -685,8 +683,6 @@ public class controllerNuevaVenta {
         txtCantidad.clear();
         cbPresentacion.setValue(null);
         txtFactor.clear();
-        txtFactor.setEditable(true); // Restaurar editable por defecto
-        txtFactor.setStyle("");
         limpiarUbicacionPrimaria();
         limpiarPrecios();
         if (txtNota != null) {
@@ -859,9 +855,6 @@ public class controllerNuevaVenta {
         if (txtPrecioEntradaIva != null) {
             txtPrecioEntradaIva.setText(formatearDecimal(precioEntradaIvaBase));
         }
-
-        txtPrecioSalida.setText(formatearDecimal(precioEntradaBase));
-
         recalcularPrecios();
     }
 
@@ -870,7 +863,6 @@ public class controllerNuevaVenta {
         if (txtPrecioEntradaIva != null) {
             txtPrecioEntradaIva.clear();
         }
-        txtPrecioSalida.clear();
         txtPrecioIVA.clear();
         txtPrecioBruto.clear();
         txtPrecioTotal.clear();
@@ -1857,10 +1849,6 @@ public class controllerNuevaVenta {
             actualizarEstadoCascada();
             return;
         }
-
-        // Solo cargar precio de entrada si el campo está vacío
-        boolean precioSalidaEstaVacio = txtPrecioSalida.getText() == null || txtPrecioSalida.getText().isBlank();
-
         String loteSnapshot = lote;
         String productoSnapshot = idProducto;
         javafx.concurrent.Task<ResultadoValidacionLote> task = new javafx.concurrent.Task<>() {
@@ -1914,11 +1902,7 @@ public class controllerNuevaVenta {
                     loteValidado = true;
                     dpCaducidad.setValue(resultado.caducidad);
                     caducidadValidada = true;
-
-                    // SOLO cargar precio de entrada si el campo de precio de salida está vacío
-                    if (precioSalidaEstaVacio) {
-                        cargarPrecioEntradaDesdeProducto();
-                    }
+                    cargarPrecioEntradaDesdeProducto();
                 }
                 ubicacionValidada = false;
                 cantidadTotalValida = false;
@@ -2023,6 +2007,11 @@ public class controllerNuevaVenta {
             }
         }
 
+        if (cantidadTexto.isBlank() && txtFactor.getText() != null && !txtFactor.getText().isBlank()) {
+            txtFactor.clear();
+            mostrarAlertaCascada("Debe capturar la cantidad antes del factor.");
+            return;
+        }
     }
 
     private void validarCamposDesdePresentacion() {
@@ -2031,7 +2020,11 @@ public class controllerNuevaVenta {
             return;
         }
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
-
+        if (cantidadTexto.isBlank() && cbPresentacion.getValue() != null && !cbPresentacion.getValue().isBlank()) {
+            cbPresentacion.setValue(null);
+            mostrarAlertaCascada("Debe capturar la cantidad antes de la presentación.");
+            return;
+        }
         validarPresentacion();
     }
 
@@ -2046,7 +2039,13 @@ public class controllerNuevaVenta {
             return;
         }
 
-
+        // Verificar que haya cantidad capturada
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (cantidadTexto.isBlank()) {
+            txtFactor.clear();
+            mostrarAlertaCascada("Debe capturar la cantidad antes del factor.");
+            return;
+        }
 
         // Verificar que haya presentación seleccionada
         String presentacion = cbPresentacion.getValue();
@@ -2230,37 +2229,12 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe capturar un lote y caducidad válidos antes de la cantidad.");
             return;
         }
-
-        // AHORA VALIDAMOS PRESENTACIÓN Y FACTOR TAMBIÉN
-        String presentacion = cbPresentacion.getValue();
-        String factorTexto = txtFactor.getText();
-
-        if (presentacion == null || presentacion.isBlank() ||
-                factorTexto == null || factorTexto.isBlank()) {
-            campoCantidad.clear();
-            mostrarAlerta("Advertencia", "Debe completar presentación y factor antes de la cantidad.");
-            return;
-        }
-
-        int factor;
-        try {
-            factor = Integer.parseInt(factorTexto);
-            if (factor <= 0) {
-                campoCantidad.clear();
-                mostrarAlerta("Advertencia", "El factor debe ser mayor a 0.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            campoCantidad.clear();
-            mostrarAlerta("Error", "El factor debe ser un número válido.");
-            return;
-        }
-
         String idProducto = productoController.getIdSeleccionado();
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String presentacion = cbPresentacion.getValue();
+        int factor = parseEntero(txtFactor.getText());
         java.time.LocalDate caducidad = dpCaducidad.getValue();
         String ubicacion = combo.getValue() != null ? combo.getValue().trim() : "";
-
         if (idProducto == null || idProducto.isBlank()
                 || lote.isBlank()
                 || presentacion == null
@@ -2269,10 +2243,9 @@ public class controllerNuevaVenta {
                 || caducidad == null
                 || ubicacion.isBlank()) {
             campoCantidad.clear();
-            mostrarAlerta("Advertencia", "Debe completar todas las características del producto antes de la cantidad.");
+            mostrarAlerta("Advertencia", "Debe completar las características del producto antes de la cantidad.");
             return;
         }
-
         String idProductoSnapshot = idProducto;
         String loteSnapshot = lote;
         String presentacionSnapshot = presentacion;
@@ -2294,17 +2267,10 @@ public class controllerNuevaVenta {
                 String idProductoActual = productoController.getIdSeleccionado();
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 String presentacionActual = cbPresentacion.getValue();
-                String factorActualText = txtFactor.getText();
-                int factorActual = 0;
-                try {
-                    factorActual = factorActualText != null ? Integer.parseInt(factorActualText) : 0;
-                } catch (NumberFormatException e) {
-                    factorActual = 0;
-                }
+                int factorActual = parseEntero(txtFactor.getText());
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = combo.getValue() != null ? combo.getValue().trim() : "";
                 String cantidadActual = campoCantidad.getText() != null ? campoCantidad.getText().trim() : "";
-
                 if (!idProductoSnapshot.equals(idProductoActual)
                         || !loteSnapshot.equals(loteActual)
                         || !presentacionSnapshot.equals(presentacionActual)
@@ -2314,15 +2280,13 @@ public class controllerNuevaVenta {
                         || !cantidadTextoSnapshot.equals(cantidadActual)) {
                     return;
                 }
-
                 cantidadDisponibleUbicacion = getValue();
                 if (cantidadDisponibleUbicacion <= 0) {
                     campoCantidad.clear();
                     mostrarAlerta("Advertencia",
-                            "No hay existencia en esa ubicación con las características indicadas (lote, presentación y factor).");
+                            "No hay existencia en esa ubicación con las características indicadas.");
                     return;
                 }
-
                 int cantidad = parseEntero(cantidadActual);
                 if (cantidad <= 0) {
                     campoCantidad.clear();
@@ -2558,7 +2522,12 @@ public class controllerNuevaVenta {
             mostrarAlertaCascada("Debe capturar la presentación antes del factor.");
             return;
         }
-
+        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
+        if (cantidadTexto.isBlank()) {
+            txtFactor.clear();
+            mostrarAlertaCascada("Debe capturar la cantidad antes del factor.");
+            return;
+        }
         factorDebounce.setOnFinished(event -> {
             String factorActual = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
             if (factorActual.isBlank()) {
@@ -2591,53 +2560,22 @@ public class controllerNuevaVenta {
             cantidadTotalValida = false;
             return;
         }
-
-        // AHORA VALIDAMOS PRESENTACIÓN Y FACTOR TAMBIÉN
-        String presentacion = cbPresentacion.getValue();
-        String factorTexto = txtFactor.getText();
-
-        if (presentacion == null || presentacion.isBlank() ||
-                factorTexto == null || factorTexto.isBlank()) {
-            cantidadTotalValida = false;
-            return;
-        }
-
-        int factor;
-        try {
-            factor = Integer.parseInt(factorTexto);
-            if (factor <= 0) {
-                txtCantidad.clear();
-                cantidadTotalValida = false;
-                mostrarAlertaSinEspera("Advertencia", "El factor debe ser mayor a 0.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            txtCantidad.clear();
-            cantidadTotalValida = false;
-            mostrarAlertaSinEspera("Error", "El factor debe ser un número válido.");
-            return;
-        }
-
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
         if (idProducto == null || idProducto.isBlank()) {
             cantidadTotalValida = false;
             return;
         }
-
         String loteSnapshot = lote;
         String idSnapshot = idProducto;
         java.time.LocalDate caducidadSnapshot = dpCaducidad.getValue();
-        String presentacionSnapshot = presentacion;
-        int factorSnapshot = factor;
         int cantidadSnapshot = cantidad;
 
         javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
             @Override
             protected Integer call() {
-                // Necesitamos una nueva consulta que incluya presentación y factor
-                return modelo.obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
-                        idSnapshot, loteSnapshot, caducidadSnapshot, presentacionSnapshot, factorSnapshot);
+                return modelo.obtenerCantidadDisponibleProductoLoteCaducidad(
+                        idSnapshot, loteSnapshot, caducidadSnapshot);
             }
 
             @Override
@@ -2645,32 +2583,20 @@ public class controllerNuevaVenta {
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 String idActual = productoController.getIdSeleccionado();
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
-                String presentacionActual = cbPresentacion.getValue();
-                String factorActualText = txtFactor.getText();
-                int factorActual = 0;
-                try {
-                    factorActual = factorActualText != null ? Integer.parseInt(factorActualText) : 0;
-                } catch (NumberFormatException e) {
-                    factorActual = 0;
-                }
                 int cantidadActual = parseEntero(txtCantidad.getText());
-
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
                         || caducidadSnapshot == null
                         || !caducidadSnapshot.equals(caducidadActual)
-                        || !presentacionSnapshot.equals(presentacionActual)
-                        || factorSnapshot != factorActual
                         || cantidadActual != cantidadSnapshot) {
                     return;
                 }
-
                 int disponible = getValue();
                 if (cantidadSnapshot > disponible) {
                     txtCantidad.clear();
                     cantidadTotalValida = false;
                     mostrarAlertaSinEspera("Advertencia",
-                            "La cantidad supera la disponible para el lote, presentación y factor seleccionados.");
+                            "La cantidad supera la disponible para el lote y caducidad seleccionados.");
                 } else {
                     cantidadTotalValida = true;
                     actualizarPreciosPorUbicaciones();
@@ -2694,7 +2620,23 @@ public class controllerNuevaVenta {
             return;
         }
         String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
-
+        if (cantidadTexto.isBlank()) {
+            presentacionValida = false;
+            if (presentacion != null && !presentacion.isBlank()) {
+                cbPresentacion.setValue(null);
+                mostrarAlertaSinEspera("Advertencia", "Debe capturar la cantidad antes de la presentación.");
+            }
+            return;
+        }
+        int cantidad = parseEntero(cantidadTexto);
+        if (cantidad <= 0) {
+            presentacionValida = false;
+            if (presentacion != null && !presentacion.isBlank()) {
+                cbPresentacion.setValue(null);
+                mostrarAlertaSinEspera("Advertencia", "La cantidad debe ser mayor a 0 antes de la presentación.");
+            }
+            return;
+        }
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
         if (presentacion == null || presentacion.isBlank() || idProducto == null || idProducto.isBlank()) {
@@ -2749,14 +2691,6 @@ public class controllerNuevaVenta {
             }
             return;
         }
-
-        // Si es "pz" y tiene factor 1, validar automáticamente
-        if (presentacion.equalsIgnoreCase("pz") && "1".equals(factorTexto)) {
-            factorValido = true;
-            ultimoFactorValidado = "1";
-            return;
-        }
-
         validarPresentacion();
         if (!presentacionValida) {
             factorValido = false;
@@ -2817,7 +2751,6 @@ public class controllerNuevaVenta {
                             "El factor no corresponde con la presentación y lote seleccionados.");
                 } else {
                     factorValido = true;
-                    ultimoFactorValidado = factorTextoSnapshot;
                 }
             }
         };
@@ -2848,19 +2781,12 @@ public class controllerNuevaVenta {
         ultimaPresentacionValidada = "";
         ultimaCantidadUbicacionValidada.clear();
 
-        // Restaurar campo factor a editable
-        txtFactor.setEditable(true);
-        txtFactor.setStyle("");
-        txtFactor.clear();
-
         // También limpiar campos del modo rápido
         if (cbPresentacionRapida != null) {
             cbPresentacionRapida.setValue(null);
         }
         if (txtFactorRapido != null) {
             txtFactorRapido.clear();
-            txtFactorRapido.setEditable(true);
-            txtFactorRapido.setStyle("");
         }
         if (txtCantidadRapida != null) {
             txtCantidadRapida.clear();

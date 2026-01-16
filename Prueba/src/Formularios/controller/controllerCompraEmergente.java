@@ -91,9 +91,9 @@ public class controllerCompraEmergente {
         }
         productoController = new productoCboxController();
         if (proveedorId != null && !proveedorId.isBlank()) {
-            productoController.inicializarConProveedorActivos(cbClaveProducto, cbProductoNombre, cbClaveAlterna, proveedorId);
+            productoController.inicializarConProveedor(cbClaveProducto, cbProductoNombre, cbClaveAlterna, proveedorId);
         } else {
-            productoController.inicializarActivos(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+            productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
         }
 
         configurarPresentaciones();

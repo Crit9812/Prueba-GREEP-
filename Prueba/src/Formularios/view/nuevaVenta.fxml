@@ -85,6 +85,10 @@
                                                 <Label text="Caducidad:"/>
                                                 <DatePicker fx:id="dpCaducidad" promptText="Selecciona fecha"/>
                                             </VBox>
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Cantidad:"/>
+                                                <TextField fx:id="txtCantidad"/>
+                                            </VBox>
                                         </HBox>
 
                                         <!-- Presentación y Factor -->
@@ -96,10 +100,6 @@
                                             <VBox spacing="5">
                                                 <Label text="Factor:"/>
                                                 <TextField fx:id="txtFactor" prefWidth="80" maxWidth="80"/>
-                                            </VBox>
-                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                                <Label text="Cantidad:"/>
-                                                <TextField fx:id="txtCantidad"/>
                                             </VBox>
                                         </HBox>
 
@@ -194,6 +194,9 @@
                                                 <Label text="Factor:"/>
                                                 <TextField fx:id="txtFactorRapido" prefWidth="80" maxWidth="80"/>
                                             </VBox>
+                                        </HBox>
+                                        <!-- Cantidad -->
+                                        <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Cantidad:"/>
                                                 <TextField fx:id="txtCantidadRapida"/>

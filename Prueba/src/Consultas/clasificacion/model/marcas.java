@@ -18,9 +18,6 @@ public class marcas {
     @Column(name = "nombre")
     private String nombre;
 
-    @Column(name = "estado")
-    private String estado;
-
     // Properties para JavaFX
     private transient IntegerProperty idProperty;
     private transient StringProperty nombreProperty;
@@ -47,9 +44,6 @@ public class marcas {
             nombreProperty.set(nombre);
         }
     }
-
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
 
     // Métodos property para JavaFX
     public IntegerProperty idProperty() {

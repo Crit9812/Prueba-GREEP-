@@ -43,7 +43,6 @@ public class controllerNuevaSucursal {
 
     private boolean modoEdicion = false;
     private int idSucursalEdicion = -1;
-    private String statusActual = "";
 
     private final modelNuevaSucursal model = new modelNuevaSucursal();
     private Runnable onSaved = null;
@@ -102,7 +101,6 @@ public class controllerNuevaSucursal {
         txtPais.setText(s.getPais());
         txtCorreo.setText(s.getCorreo());
         txtTelefono.setText(String.valueOf(s.getTelefono()));
-        statusActual = s.getStatus();
 
         coloniaPendiente = s.getColonia();
         buscarCpSiValido(txtCP.getText());
@@ -139,7 +137,6 @@ public class controllerNuevaSucursal {
         s.setPais(txtPais.getText().trim());
         s.setCorreo(txtCorreo.getText().trim());
         s.setTelefono(txtTelefono.getText().trim());
-        s.setStatus(modoEdicion ? statusActual : "activo");
 
         boolean exito = modoEdicion ?
                 model.modificarSucursal(s) :

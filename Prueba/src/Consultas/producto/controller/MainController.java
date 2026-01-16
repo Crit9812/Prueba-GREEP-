@@ -326,13 +326,16 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoProducto.fxml"));
             Parent root = loader.load();
             controllerNuevoProducto ctrl = loader.getController();
-            ctrl.setOnSaved(this::actualizarProductos);
+            ctrl.setOnSaved(this::preloadDatosUltraRapido);
             Stage stage = new Stage();
             stage.initOwner(contenidoTabla.getScene().getWindow());
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.setTitle("Nuevo producto");
             stage.setScene(new Scene(root));
             stage.showAndWait();
+            if (ctrl.isProductoCreado()) {
+                preloadDatosUltraRapido();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

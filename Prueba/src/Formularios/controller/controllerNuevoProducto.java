@@ -25,7 +25,7 @@ public class controllerNuevoProducto {
     @FXML private ComboBox<String> cmbCategoria;
     @FXML private ComboBox<marca> cmbMarca;
     @FXML private TextField txtMaterial;
-    @FXML private ComboBox<String> cmbUnidadMedida;
+    @FXML private TextField txtUnidadMedida;
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtInventarioMin;
     @FXML private Button btnGuardar;
@@ -37,7 +37,6 @@ public class controllerNuevoProducto {
     private boolean modoEdicion = false;
     private String idEdicion = "";
     private String nombreImagenActual = "";
-    private String estadoActual = "";
     private Runnable onSaved = null;
 
     private modelNuevoProducto modeloFormulario;
@@ -64,13 +63,11 @@ public class controllerNuevoProducto {
         cmbCategoria.setEditable(false); // solo elegir
         cmbMarca.setEditable(true);      // puede escribir
         cmbEtiqueta.setEditable(true);   // puede escribir
-        cmbUnidadMedida.setEditable(true);
 
         // Cargar datos
         cargarCategorias();
         cargarMarcas();
         cargarEtiquetas();
-        cargarUnidadesMedida();
 
         // Configurar cómo mostrar las etiquetas y marcas en los ComboBox
         configurarComboBoxes();
@@ -141,11 +138,6 @@ public class controllerNuevoProducto {
         cmbEtiqueta.setItems(etiquetas);
     }
 
-    private void cargarUnidadesMedida() {
-        ObservableList<String> unidades = FXCollections.observableArrayList(modeloFormulario.obtenerUnidadesMedida());
-        cmbUnidadMedida.setItems(unidades);
-    }
-
     @FXML
     public void seleccionarImagen() {
         FileChooser fileChooser = new FileChooser();
@@ -177,18 +169,7 @@ public class controllerNuevoProducto {
         txtNombre.setText(p.getNombreProducto());
         cmbCategoria.getSelectionModel().select(p.getCategoria());
         txtMaterial.setText(p.getMaterial());
-        estadoActual = p.getEstado();
-        String unidadProducto = p.getUnidadMedida();
-        if (unidadProducto != null && !unidadProducto.isBlank()) {
-            if (!cmbUnidadMedida.getItems().contains(unidadProducto)) {
-                cmbUnidadMedida.getItems().add(unidadProducto);
-            }
-            cmbUnidadMedida.getSelectionModel().select(unidadProducto);
-            cmbUnidadMedida.getEditor().setText(unidadProducto);
-        } else {
-            cmbUnidadMedida.getSelectionModel().clearSelection();
-            cmbUnidadMedida.getEditor().clear();
-        }
+        txtUnidadMedida.setText(p.getUnidadMedida());
         txtDescripcion.setText(p.getDescripcion());
         txtInventarioMin.setText(String.valueOf(p.getInventarioMin()));
 
@@ -259,9 +240,7 @@ public class controllerNuevoProducto {
             if (categoria == null) categoria = "";
 
             String material = txtMaterial.getText().trim();
-            String unidadMedida = cmbUnidadMedida.getEditor().getText() != null
-                    ? cmbUnidadMedida.getEditor().getText().trim()
-                    : "";
+            String unidadMedida = txtUnidadMedida.getText().trim();
             String descripcion = txtDescripcion.getText().trim();
 
             int inventarioMin = 0;
@@ -294,15 +273,6 @@ public class controllerNuevoProducto {
                     mostrarError("Error al procesar la marca");
                     return;
                 }
-            }
-
-            if (!unidadMedida.isEmpty()) {
-                String unidadRegistrada = modeloFormulario.crearOActualizarUnidadMedida(unidadMedida);
-                if (unidadRegistrada == null) {
-                    mostrarError("Error al procesar la unidad de medida");
-                    return;
-                }
-                unidadMedida = unidadRegistrada;
             }
 
             // Manejar imagen
@@ -338,7 +308,6 @@ public class controllerNuevoProducto {
             p.setDescripcion(descripcion);
             p.setInventarioMin(inventarioMin);
             p.setUrlImagen(nombreImagen);
-            p.setEstado(modoEdicion ? estadoActual : "activo");
 
             boolean resultado;
             if (modoEdicion) {
@@ -357,7 +326,6 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
-                cargarUnidadesMedida();
 
                 // Ejecutar callback para refrescar la tabla principal
                 if (onSaved != null) onSaved.run();

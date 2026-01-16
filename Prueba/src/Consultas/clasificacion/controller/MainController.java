@@ -556,19 +556,19 @@ public class MainController {
 
     // ================== AGREGAR ==================
     @FXML private void agregarMarca() {
-        agregarConValidacion("Agregar marca", model::existeMarcaNombre, model::insertarMarca, "marca");
+        agregar("Agregar marca", model::insertarMarca, contenidoTablaMarcas);
     }
 
     @FXML private void agregarEtiqueta() {
-        agregarConValidacion("Agregar etiqueta", model::existeEtiquetaNombre, model::insertarEtiqueta, "etiqueta");
+        agregar("Agregar etiqueta", model::insertarEtiqueta, contenidoTablaEtiquetas);
     }
 
     @FXML private void agregarUbicacion() {
-        agregarConValidacion("Agregar ubicación", model::existeUbicacionNombre, model::insertarUbicacion, "ubicación");
+        agregar("Agregar ubicación", model::insertarUbicacion, contenidoTablaUbicaciones);
     }
 
     @FXML private void agregarUM() {
-        agregarConValidacion("Agregar unidad de medida", model::existeUMNombre, model::insertarUM, "unidad de medida");
+        agregar("Agregar unidad de medida", model::insertarUM, contenidoTablaUM);
     }
 
     private <T> void agregar(String titulo, Consumer<String> insertar, TableView<T> tabla) {
@@ -588,42 +588,10 @@ public class MainController {
         });
     }
 
-    private void agregarConValidacion(String titulo,
-                                      Function<String, Boolean> existe,
-                                      Consumer<String> insertar,
-                                      String tipo) {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle(titulo);
-        dialog.setHeaderText(null);
-
-        dialog.showAndWait().ifPresent(nombre -> {
-            String valor = nombre.trim();
-            if (valor.isEmpty()) {
-                return;
-            }
-            if (existe.apply(valor)) {
-                mostrarInfo("El registro de " + tipo + " ya existe: " + valor + ".");
-                return;
-            }
-            new Thread(() -> {
-                insertar.accept(valor);
-                Platform.runLater(this::cargarDatos);
-            }).start();
-        });
-    }
-
     // ================== MENSAJES DE ERROR ==================
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
-    }
-
-    private void mostrarInfo(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Aviso");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();

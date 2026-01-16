@@ -56,9 +56,6 @@ public class cliente {
     @Column(name = "telefono")
     private String telefono;
 
-    @Column(name = "status")
-    private String status;
-
     // 🔹 Constructor sin argumentos requerido por el DAO
     public cliente() {}
 
@@ -134,7 +131,4 @@ public class cliente {
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }

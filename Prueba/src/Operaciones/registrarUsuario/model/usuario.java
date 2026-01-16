@@ -29,9 +29,6 @@ public class usuario {
     @Column(name = "contrasenaUsuario")
     private String contrasenaUsuario;
 
-    @Column(name = "estado")
-    private String estado;
-
     public usuario() {}
 
     public usuario(String idUsuario, String nombreUsuario, String apellidoPUsuario,
@@ -65,7 +62,4 @@ public class usuario {
 
     public String getContrasenaUsuario() { return contrasenaUsuario; }
     public void setContrasenaUsuario(String contrasenaUsuario) { this.contrasenaUsuario = contrasenaUsuario; }
-
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
 }

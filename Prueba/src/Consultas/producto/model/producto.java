@@ -38,9 +38,6 @@ public class producto {
     @Column(name = "urlImagen")
     private String urlImagen;
 
-    @Column(name = "estado")
-    private String estado;
-
     // Constructor vacío necesario para el DAO
     public producto() {}
 
@@ -89,7 +86,4 @@ public class producto {
 
     public String getUrlImagen() { return urlImagen; }
     public void setUrlImagen(String urlImagen) { this.urlImagen = urlImagen; }
-
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
 }

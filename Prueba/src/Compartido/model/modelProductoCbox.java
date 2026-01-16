@@ -44,41 +44,6 @@ public class modelProductoCbox {
         }
     }
 
-    public List<Map<String, String>> obtenerTodosProductosActivos() throws SQLException {
-        try (Connection conn = new Conexion().conectar()) {
-            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
-            String colUrlImagen = resolverColumna(columnasProductos, "urlImagen");
-            String urlImagenSelect = colUrlImagen != null
-                    ? "p." + colUrlImagen + " AS urlImagen"
-                    : "'' AS urlImagen";
-
-            String sql = """
-                SELECT 
-                    p.id,
-                    p.nombre,
-                    COALESCE(p.categoria, '') AS categoria,
-                    p.descripcion,
-                    %s,
-                    p.unidadMedida,
-                    m.nombre AS marca,
-                    e.nombre AS etiqueta
-                FROM productos p
-                LEFT JOIN marcas m ON m.id = p.marca
-                LEFT JOIN etiquetas e ON e.id = p.etiqueta
-                WHERE LOWER(COALESCE(p.estado, '')) = 'activo'
-                ORDER BY p.nombre
-            """.formatted(urlImagenSelect);
-
-            try (PreparedStatement ps = conn.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
-                return procesarResultSetProductos(rs);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error obteniendo productos activos: " + e.getMessage());
-            throw e;
-        }
-    }
-
     public List<Map<String, String>> obtenerProductosDisponibles() throws SQLException {
         try (Connection conn = new Conexion().conectar()) {
             Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
@@ -144,19 +109,6 @@ public class modelProductoCbox {
             }
         } catch (SQLException e) {
             System.err.println("Error obteniendo productos por proveedor: " + e.getMessage());
-            throw e;
-        }
-    }
-
-    public List<Map<String, String>> obtenerProductosPorProveedorActivos(String idProveedor) throws SQLException {
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(buildSqlProductosPorProveedor(conn, true))) {
-            ps.setString(1, idProveedor);
-            try (ResultSet rs = ps.executeQuery()) {
-                return procesarResultSetProductos(rs);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error obteniendo productos activos por proveedor: " + e.getMessage());
             throw e;
         }
     }
@@ -248,34 +200,6 @@ public class modelProductoCbox {
         }
     }
 
-    public List<Map<String, String>> obtenerClavesAlternasPorProductoActivas(String idProducto) throws SQLException {
-        String sql = """
-            SELECT 
-                ca.idAlterno,
-                ca.idProducto,
-                ca.idProveedor,
-                pv.nombre AS nombreProveedor,
-                pr.nombre AS nombreProducto
-            FROM claves ca
-            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE ca.idProducto = ?
-              AND LOWER(COALESCE(ca.estado, '')) = 'activo'
-              AND LOWER(COALESCE(pr.estado, '')) = 'activo'
-            ORDER BY pv.nombre
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProducto);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return procesarResultSetClaves(rs);
-            }
-        }
-    }
-
     /**
      * Obtiene las claves alternas para un producto y proveedor específico
      */
@@ -291,36 +215,6 @@ public class modelProductoCbox {
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
             LEFT JOIN productos pr ON pr.id = ca.idProducto
             WHERE ca.idProducto = ? AND ca.idProveedor = ?
-            ORDER BY pv.nombre
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProducto);
-            ps.setString(2, idProveedor);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return procesarResultSetClaves(rs);
-            }
-        }
-    }
-
-    public List<Map<String, String>> obtenerClavesAlternasPorProductoActivas(String idProducto,
-                                                                             String idProveedor) throws SQLException {
-        String sql = """
-            SELECT 
-                ca.idAlterno,
-                ca.idProducto,
-                ca.idProveedor,
-                pv.nombre AS nombreProveedor,
-                pr.nombre AS nombreProducto
-            FROM claves ca
-            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE ca.idProducto = ? AND ca.idProveedor = ?
-              AND LOWER(COALESCE(ca.estado, '')) = 'activo'
-              AND LOWER(COALESCE(pr.estado, '')) = 'activo'
             ORDER BY pv.nombre
         """;
 
@@ -446,46 +340,12 @@ public class modelProductoCbox {
         return Optional.empty();
     }
 
-    public Optional<Map<String, String>> buscarPorClaveAlternaActiva(String idAlterno) throws SQLException {
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(buildSqlClaveAlterna(conn, false, true))) {
-
-            ps.setString(1, idAlterno);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(crearMapaProductoConClave(rs));
-                }
-            }
-        }
-
-        return Optional.empty();
-    }
-
     /**
      * Busca un producto por su clave alterna y proveedor
      */
     public Optional<Map<String, String>> buscarPorClaveAlterna(String idAlterno, String idProveedor) throws SQLException {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(buildSqlClaveAlterna(conn, true))) {
-
-            ps.setString(1, idAlterno);
-            ps.setString(2, idProveedor);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(crearMapaProductoConClave(rs));
-                }
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    public Optional<Map<String, String>> buscarPorClaveAlternaActiva(String idAlterno,
-                                                                      String idProveedor) throws SQLException {
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(buildSqlClaveAlterna(conn, true, true))) {
 
             ps.setString(1, idAlterno);
             ps.setString(2, idProveedor);
@@ -515,14 +375,7 @@ public class modelProductoCbox {
     }
 
     private String buildSqlProductosPorProveedor(Connection conn) throws SQLException {
-        return buildSqlProductosPorProveedor(conn, false);
-    }
-
-    private String buildSqlProductosPorProveedor(Connection conn, boolean soloActivos) throws SQLException {
         String urlImagenSelect = obtenerSelectUrlImagen(conn, "p");
-        String filtroActivo = soloActivos
-                ? " AND LOWER(COALESCE(p.estado, '')) = 'activo' AND LOWER(COALESCE(c.estado, '')) = 'activo'"
-                : "";
         return """
             SELECT DISTINCT
                 p.id,
@@ -537,22 +390,14 @@ public class modelProductoCbox {
             JOIN claves c ON c.idProducto = p.id
             LEFT JOIN marcas m ON m.id = p.marca
             LEFT JOIN etiquetas e ON e.id = p.etiqueta
-            WHERE c.idProveedor = ?%s
+            WHERE c.idProveedor = ?
             ORDER BY p.nombre
-        """.formatted(urlImagenSelect, filtroActivo);
+        """.formatted(urlImagenSelect);
     }
 
     private String buildSqlClaveAlterna(Connection conn, boolean filtrarProveedor) throws SQLException {
-        return buildSqlClaveAlterna(conn, filtrarProveedor, false);
-    }
-
-    private String buildSqlClaveAlterna(Connection conn, boolean filtrarProveedor,
-                                        boolean soloActivos) throws SQLException {
         String urlImagenSelect = obtenerSelectUrlImagen(conn, "p");
         String filtroProveedor = filtrarProveedor ? " AND ca.idProveedor = ?" : "";
-        String filtroActivo = soloActivos
-                ? " AND LOWER(COALESCE(ca.estado, '')) = 'activo' AND LOWER(COALESCE(p.estado, '')) = 'activo'"
-                : "";
         return """
             SELECT 
                 p.id,
@@ -571,8 +416,8 @@ public class modelProductoCbox {
             LEFT JOIN marcas m ON m.id = p.marca
             LEFT JOIN etiquetas e ON e.id = p.etiqueta
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            WHERE ca.idAlterno = ?%s%s
-        """.formatted(urlImagenSelect, filtroProveedor, filtroActivo);
+            WHERE ca.idAlterno = ?%s
+        """.formatted(urlImagenSelect, filtroProveedor);
     }
 
     private String obtenerSelectUrlImagen(Connection conn, String aliasTabla) throws SQLException {
@@ -609,30 +454,6 @@ public class modelProductoCbox {
         }
     }
 
-    public List<Map<String, String>> obtenerTodasClavesAlternasActivas() throws SQLException {
-        String sql = """
-            SELECT 
-                ca.idAlterno,
-                ca.idProducto,
-                ca.idProveedor,
-                pv.nombre AS nombreProveedor,
-                pr.nombre AS nombreProducto
-            FROM claves ca
-            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE LOWER(COALESCE(ca.estado, '')) = 'activo'
-              AND LOWER(COALESCE(pr.estado, '')) = 'activo'
-            ORDER BY ca.idAlterno
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            return procesarResultSetClaves(rs);
-        }
-    }
-
     /**
      * Obtiene todas las claves alternas de un proveedor
      */
@@ -648,34 +469,6 @@ public class modelProductoCbox {
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
             LEFT JOIN productos pr ON pr.id = ca.idProducto
             WHERE ca.idProveedor = ?
-            ORDER BY ca.idAlterno
-        """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, idProveedor);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return procesarResultSetClaves(rs);
-            }
-        }
-    }
-
-    public List<Map<String, String>> obtenerClavesAlternasPorProveedorActivas(String idProveedor) throws SQLException {
-        String sql = """
-            SELECT 
-                ca.idAlterno,
-                ca.idProducto,
-                ca.idProveedor,
-                pv.nombre AS nombreProveedor,
-                pr.nombre AS nombreProducto
-            FROM claves ca
-            LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE ca.idProveedor = ?
-              AND LOWER(COALESCE(ca.estado, '')) = 'activo'
-              AND LOWER(COALESCE(pr.estado, '')) = 'activo'
             ORDER BY ca.idAlterno
         """;
 

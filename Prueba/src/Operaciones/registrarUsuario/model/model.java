@@ -8,14 +8,7 @@ public class model {
     private GenericDAO<usuario> dao = new GenericDAO<>(usuario.class);
 
     public ArrayList<usuario> obtenerUsuarios() {
-        ArrayList<usuario> lista = dao.obtenerTodos();
-        ArrayList<usuario> activos = new ArrayList<>();
-        for (usuario u : lista) {
-            if (u.getEstado() != null && u.getEstado().equalsIgnoreCase("activo")) {
-                activos.add(u);
-            }
-        }
-        return activos;
+        return dao.obtenerTodos();
     }
 
     public boolean eliminarUsuario(String id) {

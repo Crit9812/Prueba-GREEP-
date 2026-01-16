@@ -12,7 +12,7 @@ public class model {
 
     public ObservableList<proveedores> obtener() {
         ArrayList<proveedores> lista = dao.obtenerTodos();
-        return FXCollections.observableArrayList(filtrarActivos(lista));
+        return FXCollections.observableArrayList(lista);
     }
 
     public boolean eliminar(int id) {
@@ -25,16 +25,6 @@ public class model {
 
     public ObservableList<proveedores> buscarExacto(String nombre) {
         ArrayList<proveedores> lista = dao.buscarParcial("Nombre", nombre);
-        return FXCollections.observableArrayList(filtrarActivos(lista));
-    }
-
-    private ArrayList<proveedores> filtrarActivos(ArrayList<proveedores> lista) {
-        ArrayList<proveedores> activos = new ArrayList<>();
-        for (proveedores p : lista) {
-            if (p.getStatus() != null && p.getStatus().equalsIgnoreCase("activo")) {
-                activos.add(p);
-            }
-        }
-        return activos;
+        return FXCollections.observableArrayList(lista);
     }
 }
