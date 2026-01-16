@@ -17,7 +17,7 @@ public class model {
 
     public List<String> obtenerNombresProveedores() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM proveedores ORDER BY nombre";
+        String sql = "SELECT nombre FROM proveedores WHERE LOWER(COALESCE(status, '')) = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -52,7 +52,7 @@ public class model {
     }
 
     public String obtenerIdProveedorPorNombre(String nombreProveedor) {
-        String sql = "SELECT id FROM proveedores WHERE nombre = ? LIMIT 1";
+        String sql = "SELECT id FROM proveedores WHERE nombre = ? AND LOWER(COALESCE(status, '')) = 'activo' LIMIT 1";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {

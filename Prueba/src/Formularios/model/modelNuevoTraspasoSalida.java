@@ -15,7 +15,7 @@ public class modelNuevoTraspasoSalida {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
+        String sql = "SELECT nombre FROM ubicaciones WHERE LOWER(COALESCE(estado, '')) = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);

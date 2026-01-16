@@ -34,14 +34,14 @@ public class controllerNuevoPedido {
 
     // Lista de presentaciones disponibles
     private ObservableList<String> presentaciones = FXCollections.observableArrayList(
-            "Pieza", "Caja", "Bolsa", "Paquete"
+            "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
     );
 
     @FXML
     public void initialize() {
         // Inicializar controlador de productos
         productoController = new productoCboxController();
-        productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+        productoController.inicializarActivos(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
 
         // Configurar ComboBox de presentación
         configurarPresentaciones();
@@ -60,8 +60,9 @@ public class controllerNuevoPedido {
 
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
-        cbPresentacion.setValue("Pieza"); // Valor por defecto
+        cbPresentacion.setValue("pz"); // Valor por defecto
         txtFactor.setText("1"); // Establecer factor inicial como 1
+        cbPresentacion.setEditable(false);
 
         // 🔥 NUEVO: Agregar listener para cambiar automáticamente el factor cuando se selecciona "Pieza"
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -69,7 +70,7 @@ public class controllerNuevoPedido {
                 String presentacion = newVal.trim();
 
                 // Si se selecciona "Pieza", establecer factor como 1
-                if (presentacion.equalsIgnoreCase("Pieza")) {
+                if (presentacion.equalsIgnoreCase("Pieza") || presentacion.equalsIgnoreCase("pz")) {
                     txtFactor.setText("1");
                 }
                 // Si se cambia a otra presentación que NO sea "Pieza"
@@ -232,7 +233,7 @@ public class controllerNuevoPedido {
 
             // Si no se seleccionó presentación, usar valor por defecto
             if (presentacion == null || presentacion.isEmpty()) {
-                presentacion = "Pieza";
+                presentacion = "pz";
             }
 
             // Crear item con todos los campos
@@ -294,7 +295,7 @@ public class controllerNuevoPedido {
         if (item.getPresentacion() != null && !item.getPresentacion().isEmpty()) {
             cbPresentacion.setValue(item.getPresentacion());
         } else {
-            cbPresentacion.setValue("Pieza");
+            cbPresentacion.setValue("pz");
         }
 
         if (item.getFactor() != null && !item.getFactor().isEmpty()) {
@@ -314,7 +315,7 @@ public class controllerNuevoPedido {
         productoController.limpiarSeleccion();
         txtCantidad.clear();
         txtDescripcion.clear();
-        cbPresentacion.setValue("Pieza");
+        cbPresentacion.setValue("pz");
         txtFactor.setText("1");
         btnGuardar.setText("Guardar");
         cbClaveProducto.requestFocus();
@@ -351,7 +352,7 @@ public class controllerNuevoPedido {
         productoController.limpiarSeleccion();
         txtCantidad.clear();
         txtDescripcion.clear();
-        cbPresentacion.setValue("Pieza");
+        cbPresentacion.setValue("pz");
         txtFactor.setText("1");
         cbClaveProducto.requestFocus();
         btnGuardar.setText("Guardar");
