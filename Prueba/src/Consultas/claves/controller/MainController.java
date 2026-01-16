@@ -1,8 +1,6 @@
 package Consultas.claves.controller;
 
 import Compartido.controller.encabezadoController;
-import Compartido.exportar.exportador;
-import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
@@ -323,10 +321,11 @@ public class MainController {
         dialogo.getButtonTypes().setAll(btnPDF, btnExcel, btnCancelar);
 
         dialogo.showAndWait().ifPresent(res -> {
-            if (res == btnPDF)
-                exportador.exportarTabla(contenidoTabla, "Claves", "pdf");
-            else if (res == btnExcel)
-                exportador.exportarTabla(contenidoTabla, "Claves", "excel");
+            if (res == btnPDF) {
+                exportarTabla("pdf");
+            } else if (res == btnExcel) {
+                exportarTabla("excel");
+            }
         });
     }
 
@@ -337,7 +336,34 @@ public class MainController {
     }
 
     public void exportarPlantilla() {
-        exportarPlantilla.exportarPlantilla("claves");
+        exportarPlantilla("claves");
+    }
+
+    private void exportarTabla(String tipo) {
+        try {
+            Class<?> exportadorClass = Class.forName("Compartido.exportar.exportador");
+            Method exportarTabla = exportadorClass.getMethod(
+                    "exportarTabla",
+                    TableView.class,
+                    String.class,
+                    String.class
+            );
+            exportarTabla.invoke(null, contenidoTabla, "Claves", tipo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlertaError("Error", "No se pudo exportar la tabla.");
+        }
+    }
+
+    private void exportarPlantilla(String tipo) {
+        try {
+            Class<?> exportarPlantillaClass = Class.forName("Compartido.exportar.exportarPlantilla");
+            Method exportarPlantillaMethod = exportarPlantillaClass.getMethod("exportarPlantilla", String.class);
+            exportarPlantillaMethod.invoke(null, tipo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlertaError("Error", "No se pudo exportar la plantilla.");
+        }
     }
 
     // Métodos auxiliares para mostrar alertas
