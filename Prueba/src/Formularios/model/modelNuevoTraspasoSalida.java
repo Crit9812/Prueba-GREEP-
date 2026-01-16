@@ -375,6 +375,7 @@ public class modelNuevoTraspasoSalida {
             JOIN ubicaciones u ON u.id = a.ubicacion
             WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
               AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+              AND LOWER(u.estado) = 'activo'
             GROUP BY a.lote, a.caducidad, u.nombre
             ORDER BY a.caducidad ASC, a.lote ASC
         """;
@@ -781,6 +782,7 @@ public class modelNuevoTraspasoSalida {
         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
         JOIN ubicaciones u ON u.id = a.ubicacion
         WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+          AND LOWER(u.estado) = 'activo'
         GROUP BY u.nombre
         ORDER BY cantidad DESC, u.nombre ASC
     """;
