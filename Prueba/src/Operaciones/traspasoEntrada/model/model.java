@@ -15,6 +15,24 @@ import java.util.Map;
 
 public class model {
 
+    public List<String> obtenerNombresUbicaciones() {
+        List<String> lista = new ArrayList<>();
+        String sql = "SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                lista.add(rs.getString("nombre"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return lista;
+    }
+
     // Clase interna para representar los detalles de una entrada
     public static class DetalleEntrada {
         private String claveProducto;
