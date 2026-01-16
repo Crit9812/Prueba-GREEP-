@@ -129,6 +129,46 @@ public class model {
         return lista;
     }
 
+    public boolean existeUbicacionNombre(String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return false;
+        }
+        String sql = "SELECT 1 FROM ubicaciones WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?)) LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, nombre.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean insertarUbicacionActiva(String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return false;
+        }
+        if (existeUbicacionNombre(nombre)) {
+            return true;
+        }
+
+        String sql = "INSERT INTO ubicaciones (nombre, estado) VALUES (?, 'activo')";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, nombre.trim());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public ObservableList<traspasoEntrada> obtenerPendientes() {
         ObservableList<traspasoEntrada> lista = FXCollections.observableArrayList();
 

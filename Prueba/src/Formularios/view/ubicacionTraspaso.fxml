@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="Formularios.controller.controllerUbicacionTraspaso"
+      spacing="16"
+      style="-fx-background-color: #1e1e1e;">
+
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Asignar ubicaciones" style="-fx-text-fill: #ffffff; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <ScrollPane fitToWidth="true" prefHeight="520" style="-fx-background: transparent;">
+        <content>
+            <VBox fx:id="contenedorUbicaciones" spacing="12"/>
+        </content>
+    </ScrollPane>
+
+    <HBox spacing="12" alignment="CENTER_RIGHT">
+        <Button fx:id="btnCancelar" text="Cancelar" styleClass="botones"/>
+        <Button fx:id="btnConfirmar" text="Confirmar" styleClass="botones"/>
+    </HBox>
+</VBox>
