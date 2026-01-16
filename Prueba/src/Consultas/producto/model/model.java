@@ -21,7 +21,7 @@ public class model {
     // Metodo para obtener todos los productos
     public ObservableList<producto> obtenerProductos() {
         ArrayList<producto> lista = productoDAO.obtenerTodos();
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
     // Metodo para eliminar un producto por ID
@@ -32,12 +32,12 @@ public class model {
     // Metodo para buscar productos por un campo específico
     public ObservableList<producto> buscarProductos(String campo, String valor) {
         ArrayList<producto> lista = productoDAO.buscarParcial(campo, valor);
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
     public ObservableList<producto> busquedaMultipleProductos(String textoBusqueda) {
         ArrayList<producto> lista = productoDAO.buscarMultiple("id", "nombre", textoBusqueda);
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
     // Metodo para buscar un producto por su ID
@@ -88,5 +88,15 @@ public class model {
     // Buscar marca por ID
     public marca buscarMarcaPorId(String id) {
         return modelMarca.buscarPorId(id);
+    }
+
+    private ArrayList<producto> filtrarActivos(ArrayList<producto> lista) {
+        ArrayList<producto> activos = new ArrayList<>();
+        for (producto p : lista) {
+            if (p != null && "activo".equalsIgnoreCase(p.getEstado())) {
+                activos.add(p);
+            }
+        }
+        return activos;
     }
 }

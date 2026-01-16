@@ -374,6 +374,22 @@ public class controllerSincronizacionClaves {
                 return;
             }
             String idClaveCatalogo = claveAltText.trim();
+            if (!modoEdicion || (originalIdAlterno != null && !originalIdAlterno.equals(idClaveCatalogo))) {
+                Map<String, String> detalle = model.obtenerDetalleClave(idClaveCatalogo);
+                if (detalle != null) {
+                    String proveedor = detalle.getOrDefault("proveedor", "");
+                    String producto = detalle.getOrDefault("producto", "");
+                    if (proveedor == null || proveedor.isBlank()) {
+                        proveedor = "Sin proveedor";
+                    }
+                    if (producto == null || producto.isBlank()) {
+                        producto = "Sin producto";
+                    }
+                    mostrarAdvertencia("La clave alterna ya está registrada con el proveedor \"" +
+                            proveedor + "\" y el producto \"" + producto + "\".");
+                    return;
+                }
+            }
 
             // proveedor
             Integer proveedorId = null;

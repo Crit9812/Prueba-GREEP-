@@ -72,7 +72,7 @@
                 <VBox spacing="5" HBox.hgrow="ALWAYS">
                     <Label text="Presentación:"/>
                     <ComboBox fx:id="cbPresentacion"
-                              editable="true"
+                              editable="false"
                               prefWidth="250"
                               maxWidth="250"
                               promptText="Seleccione presentación"/>

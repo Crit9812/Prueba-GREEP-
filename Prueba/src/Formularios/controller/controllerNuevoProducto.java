@@ -25,7 +25,7 @@ public class controllerNuevoProducto {
     @FXML private ComboBox<String> cmbCategoria;
     @FXML private ComboBox<marca> cmbMarca;
     @FXML private TextField txtMaterial;
-    @FXML private TextField txtUnidadMedida;
+    @FXML private ComboBox<String> cmbUnidadMedida;
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtInventarioMin;
     @FXML private Button btnGuardar;
@@ -63,11 +63,13 @@ public class controllerNuevoProducto {
         cmbCategoria.setEditable(false); // solo elegir
         cmbMarca.setEditable(true);      // puede escribir
         cmbEtiqueta.setEditable(true);   // puede escribir
+        cmbUnidadMedida.setEditable(true);
 
         // Cargar datos
         cargarCategorias();
         cargarMarcas();
         cargarEtiquetas();
+        cargarUnidadesMedida();
 
         // Configurar cómo mostrar las etiquetas y marcas en los ComboBox
         configurarComboBoxes();
@@ -138,6 +140,11 @@ public class controllerNuevoProducto {
         cmbEtiqueta.setItems(etiquetas);
     }
 
+    private void cargarUnidadesMedida() {
+        ObservableList<String> unidades = modeloFormulario.obtenerUnidadesActivas();
+        cmbUnidadMedida.setItems(unidades);
+    }
+
     @FXML
     public void seleccionarImagen() {
         FileChooser fileChooser = new FileChooser();
@@ -169,7 +176,7 @@ public class controllerNuevoProducto {
         txtNombre.setText(p.getNombreProducto());
         cmbCategoria.getSelectionModel().select(p.getCategoria());
         txtMaterial.setText(p.getMaterial());
-        txtUnidadMedida.setText(p.getUnidadMedida());
+        cmbUnidadMedida.getEditor().setText(p.getUnidadMedida());
         txtDescripcion.setText(p.getDescripcion());
         txtInventarioMin.setText(String.valueOf(p.getInventarioMin()));
 
@@ -240,7 +247,7 @@ public class controllerNuevoProducto {
             if (categoria == null) categoria = "";
 
             String material = txtMaterial.getText().trim();
-            String unidadMedida = txtUnidadMedida.getText().trim();
+            String unidadMedida = cmbUnidadMedida.getEditor().getText().trim();
             String descripcion = txtDescripcion.getText().trim();
 
             int inventarioMin = 0;
@@ -273,6 +280,15 @@ public class controllerNuevoProducto {
                     mostrarError("Error al procesar la marca");
                     return;
                 }
+            }
+
+            if (!unidadMedida.isEmpty()) {
+                String unidadGuardada = modeloFormulario.crearOActualizarUnidad(unidadMedida);
+                if (unidadGuardada == null) {
+                    mostrarError("Error al procesar la unidad de medida");
+                    return;
+                }
+                unidadMedida = unidadGuardada;
             }
 
             // Manejar imagen
@@ -308,6 +324,14 @@ public class controllerNuevoProducto {
             p.setDescripcion(descripcion);
             p.setInventarioMin(inventarioMin);
             p.setUrlImagen(nombreImagen);
+            if (modoEdicion) {
+                producto existente = modeloFormulario.buscarProductoPorId(p.getIdProducto());
+                if (existente != null) {
+                    p.setEstado(existente.getEstado());
+                }
+            } else {
+                p.setEstado("activo");
+            }
 
             boolean resultado;
             if (modoEdicion) {
@@ -326,6 +350,8 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
+                cargarUnidadesMedida();
+                cargarUnidadesMedida();
 
                 // Ejecutar callback para refrescar la tabla principal
                 if (onSaved != null) onSaved.run();

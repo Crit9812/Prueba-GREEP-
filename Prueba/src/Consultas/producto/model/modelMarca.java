@@ -15,6 +15,17 @@ public class modelMarca {
 
     // Obtener todas las marcas
     public ArrayList<marca> obtenerTodas() {
+        ArrayList<marca> todas = marcaDAO.obtenerTodos();
+        ArrayList<marca> activas = new ArrayList<>();
+        for (marca m : todas) {
+            if (m != null && "activo".equalsIgnoreCase(m.getEstado())) {
+                activas.add(m);
+            }
+        }
+        return activas;
+    }
+
+    public ArrayList<marca> obtenerTodasIncluyendoInactivas() {
         return marcaDAO.obtenerTodos();
     }
 
@@ -53,7 +64,7 @@ public class modelMarca {
     public marca buscarPorNombre(String nombre) {
         // Primero intentamos con búsqueda exacta
         marca encontrada = null;
-        ArrayList<marca> todas = obtenerTodas();
+        ArrayList<marca> todas = obtenerTodasIncluyendoInactivas();
 
         for (marca m : todas) {
             if (m.getNombre() != null && m.getNombre().equalsIgnoreCase(nombre)) {

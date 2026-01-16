@@ -137,6 +137,9 @@ public class controllerNuevaSucursal {
         s.setPais(txtPais.getText().trim());
         s.setCorreo(txtCorreo.getText().trim());
         s.setTelefono(txtTelefono.getText().trim());
+        if (!modoEdicion) {
+            s.setStatus("activo");
+        }
 
         boolean exito = modoEdicion ?
                 model.modificarSucursal(s) :

@@ -34,7 +34,7 @@ public class controllerNuevoPedido {
 
     // Lista de presentaciones disponibles
     private ObservableList<String> presentaciones = FXCollections.observableArrayList(
-            "Pieza", "Caja", "Bolsa", "Paquete"
+            "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
     );
 
     @FXML
@@ -60,7 +60,8 @@ public class controllerNuevoPedido {
 
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
-        cbPresentacion.setValue("Pieza"); // Valor por defecto
+        cbPresentacion.setEditable(false);
+        cbPresentacion.setValue("pieza"); // Valor por defecto
         txtFactor.setText("1"); // Establecer factor inicial como 1
 
         // 🔥 NUEVO: Agregar listener para cambiar automáticamente el factor cuando se selecciona "Pieza"
@@ -69,7 +70,7 @@ public class controllerNuevoPedido {
                 String presentacion = newVal.trim();
 
                 // Si se selecciona "Pieza", establecer factor como 1
-                if (presentacion.equalsIgnoreCase("Pieza")) {
+                if (presentacion.equalsIgnoreCase("pieza")) {
                     txtFactor.setText("1");
                 }
                 // Si se cambia a otra presentación que NO sea "Pieza"

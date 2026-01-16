@@ -15,6 +15,17 @@ public class modelEtiqueta {
 
     // Obtener todas las etiquetas
     public ArrayList<etiqueta> obtenerTodas() {
+        ArrayList<etiqueta> todas = etiquetaDAO.obtenerTodos();
+        ArrayList<etiqueta> activas = new ArrayList<>();
+        for (etiqueta e : todas) {
+            if (e != null && "activo".equalsIgnoreCase(e.getEstado())) {
+                activas.add(e);
+            }
+        }
+        return activas;
+    }
+
+    public ArrayList<etiqueta> obtenerTodasIncluyendoInactivas() {
         return etiquetaDAO.obtenerTodos();
     }
 
@@ -53,7 +64,7 @@ public class modelEtiqueta {
     public etiqueta buscarPorNombre(String nombre) {
         // Primero intentamos con búsqueda exacta
         etiqueta encontrada = null;
-        ArrayList<etiqueta> todas = obtenerTodas();
+        ArrayList<etiqueta> todas = obtenerTodasIncluyendoInactivas();
 
         for (etiqueta e : todas) {
             if (e.getNombre() != null && e.getNombre().equalsIgnoreCase(nombre)) {
