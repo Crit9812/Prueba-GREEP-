@@ -31,6 +31,7 @@ public class modelProductoCbox {
                 FROM productos p
                 LEFT JOIN marcas m ON m.id = p.marca
                 LEFT JOIN etiquetas e ON e.id = p.etiqueta
+                WHERE p.estado = 'activo'
                 ORDER BY p.nombre
             """.formatted(urlImagenSelect);
 
@@ -80,7 +81,8 @@ public class modelProductoCbox {
                     .append("` = p.id ")
                     .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
                     .append("` = de.`").append(colDetalleEntradaId).append("` ")
-                    .append("WHERE LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
+                    .append("WHERE p.estado = 'activo' ")
+                    .append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
                     .append("AND (a.`").append(colArticuloDetalleSalida)
                     .append("` IS NULL OR a.`").append(colArticuloDetalleSalida).append("` = 0) ")
                     .append("ORDER BY p.nombre");
@@ -185,7 +187,9 @@ public class modelProductoCbox {
             FROM claves ca
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
             LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE ca.idProducto = ?
+            WHERE ca.estado = 'activo'
+              AND pr.estado = 'activo'
+              AND ca.idProducto = ?
             ORDER BY pv.nombre
         """;
 
@@ -214,7 +218,9 @@ public class modelProductoCbox {
             FROM claves ca
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
             LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE ca.idProducto = ? AND ca.idProveedor = ?
+            WHERE ca.estado = 'activo'
+              AND pr.estado = 'activo'
+              AND ca.idProducto = ? AND ca.idProveedor = ?
             ORDER BY pv.nombre
         """;
 
@@ -260,7 +266,9 @@ public class modelProductoCbox {
                     .append("` = pr.id ")
                     .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
                     .append("` = de.`").append(colDetalleEntradaId).append("` ")
-                    .append("WHERE LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
+                    .append("WHERE ca.estado = 'activo' ")
+                    .append("AND pr.estado = 'activo' ")
+                    .append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
                     .append("AND (a.`").append(colArticuloDetalleSalida)
                     .append("` IS NULL OR a.`").append(colArticuloDetalleSalida).append("` = 0) ")
                     .append("ORDER BY pv.nombre");
@@ -391,6 +399,8 @@ public class modelProductoCbox {
             LEFT JOIN marcas m ON m.id = p.marca
             LEFT JOIN etiquetas e ON e.id = p.etiqueta
             WHERE c.idProveedor = ?
+              AND c.estado = 'activo'
+              AND p.estado = 'activo'
             ORDER BY p.nombre
         """.formatted(urlImagenSelect);
     }
@@ -416,7 +426,9 @@ public class modelProductoCbox {
             LEFT JOIN marcas m ON m.id = p.marca
             LEFT JOIN etiquetas e ON e.id = p.etiqueta
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
-            WHERE ca.idAlterno = ?%s
+            WHERE ca.estado = 'activo'
+              AND p.estado = 'activo'
+              AND ca.idAlterno = ?%s
         """.formatted(urlImagenSelect, filtroProveedor);
     }
 
@@ -443,6 +455,8 @@ public class modelProductoCbox {
             FROM claves ca
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
             LEFT JOIN productos pr ON pr.id = ca.idProducto
+            WHERE ca.estado = 'activo'
+              AND pr.estado = 'activo'
             ORDER BY ca.idAlterno
         """;
 
@@ -468,7 +482,9 @@ public class modelProductoCbox {
             FROM claves ca
             LEFT JOIN proveedores pv ON pv.id = ca.idProveedor
             LEFT JOIN productos pr ON pr.id = ca.idProducto
-            WHERE ca.idProveedor = ?
+            WHERE ca.estado = 'activo'
+              AND pr.estado = 'activo'
+              AND ca.idProveedor = ?
             ORDER BY ca.idAlterno
         """;
 
