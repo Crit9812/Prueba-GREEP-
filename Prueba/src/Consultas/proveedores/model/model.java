@@ -18,6 +18,9 @@ public class model {
     }
 
     public boolean eliminar(int id) {
+        if (contarArticulosDisponibles(id) > 0) {
+            return false;
+        }
         return dao.eliminar(String.valueOf(id));
     }
 

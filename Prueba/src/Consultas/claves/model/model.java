@@ -26,6 +26,12 @@ public class model {
     }
 
     public boolean eliminar(String id) {
+        if (id == null || id.isBlank()) {
+            return false;
+        }
+        if (contarArticulosDisponibles(id) > 0) {
+            return false;
+        }
         return claveDAO.eliminar(id);
     }
 

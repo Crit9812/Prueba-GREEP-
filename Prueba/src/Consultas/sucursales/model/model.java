@@ -18,6 +18,9 @@ public class model {
     }
 
     public boolean eliminarSucursal(int idSucursal) {
+        if (contarArticulosPendientes(idSucursal) > 0) {
+            return false;
+        }
         return dao.eliminar(String.valueOf(idSucursal));
     }
 

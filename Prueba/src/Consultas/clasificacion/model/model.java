@@ -49,6 +49,9 @@ public class model {
     }
 
     public boolean eliminarMarca(int id) {
+        if (contarArticulosDisponiblesPorMarca(id) > 0) {
+            return false;
+        }
         return marcaDAO.eliminar(String.valueOf(id));
     }
 
@@ -109,6 +112,9 @@ public class model {
     }
 
     public boolean eliminarEtiqueta(int id) {
+        if (contarArticulosDisponiblesPorEtiqueta(id) > 0) {
+            return false;
+        }
         return etiquetaDAO.eliminar(String.valueOf(id));
     }
 
@@ -169,6 +175,9 @@ public class model {
     }
 
     public boolean eliminarUbicacion(int id) {
+        if (contarArticulosDisponiblesPorUbicacion(id) > 0) {
+            return false;
+        }
         return ubicacionDAO.eliminar(String.valueOf(id));
     }
 
@@ -229,6 +238,9 @@ public class model {
     }
 
     public boolean eliminarUM(int id) {
+        if (contarArticulosDisponiblesPorUM(id) > 0) {
+            return false;
+        }
         return umDAO.eliminar(String.valueOf(id));
     }
 

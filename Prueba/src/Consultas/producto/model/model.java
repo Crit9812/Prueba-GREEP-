@@ -29,6 +29,12 @@ public class model {
 
     // Metodo para eliminar un producto por ID
     public boolean eliminarProducto(String id) {
+        if (id == null || id.isBlank()) {
+            return false;
+        }
+        if (contarArticulosDisponibles(id) > 0) {
+            return false;
+        }
         return productoDAO.eliminar(id);
     }
 
