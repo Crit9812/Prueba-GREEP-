@@ -5,6 +5,7 @@ import Consultas.producto.model.etiqueta;
 import Consultas.producto.model.marca;
 import Consultas.producto.model.modelEtiqueta;
 import Consultas.producto.model.modelMarca;
+import Consultas.clasificacion.model.unidades_Medida;
 import Compartido.model.DAO.GenericDAO;
 
 public class modelNuevoProducto {
@@ -12,11 +13,13 @@ public class modelNuevoProducto {
     private GenericDAO<producto> productoDAO;
     private modelEtiqueta modelEtiqueta;
     private modelMarca modelMarca;
+    private GenericDAO<unidades_Medida> unidadDAO;
 
     public modelNuevoProducto() {
         this.productoDAO = new GenericDAO<>(producto.class);
         this.modelEtiqueta = new modelEtiqueta();
         this.modelMarca = new modelMarca();
+        this.unidadDAO = new GenericDAO<>(unidades_Medida.class);
     }
 
     // Metodo para guardar producto (nuevo)
@@ -44,16 +47,12 @@ public class modelNuevoProducto {
         etiqueta etiquetaExistente = buscarEtiquetaPorNombreInsensible(nombre);
 
         if (etiquetaExistente != null) {
-            // Si existe, actualizamos el nombre por si hay cambios de formato
-            if (!etiquetaExistente.getNombre().equals(nombre)) {
-                etiquetaExistente.setNombre(nombre);
-                modelEtiqueta.actualizarEtiqueta(etiquetaExistente);
-            }
             return etiquetaExistente.getId();
         } else {
             // Si no existe, creamos una nueva
             etiqueta nuevaEtiqueta = new etiqueta();
             nuevaEtiqueta.setNombre(nombre);
+            nuevaEtiqueta.setEstado("activo");
             if (modelEtiqueta.insertarEtiqueta(nuevaEtiqueta)) {
                 return nuevaEtiqueta.getId();
             }
@@ -83,16 +82,12 @@ public class modelNuevoProducto {
         marca marcaExistente = buscarMarcaPorNombreInsensible(nombre);
 
         if (marcaExistente != null) {
-            // Si existe, actualizamos el nombre por si hay cambios de formato
-            if (!marcaExistente.getNombre().equals(nombre)) {
-                marcaExistente.setNombre(nombre);
-                modelMarca.actualizarMarca(marcaExistente);
-            }
             return marcaExistente.getId();
         } else {
             // Si no existe, creamos una nueva
             marca nuevaMarca = new marca();
             nuevaMarca.setNombre(nombre);
+            nuevaMarca.setEstado("activo");
             if (modelMarca.insertarMarca(nuevaMarca)) {
                 return nuevaMarca.getId();
             }
@@ -120,5 +115,37 @@ public class modelNuevoProducto {
     // Metodo para obtener marca por ID
     public marca obtenerMarcaPorId(String id) {
         return modelMarca.buscarPorId(id);
+    }
+
+    public java.util.List<String> obtenerUnidadesMedida() {
+        java.util.List<String> nombres = new java.util.ArrayList<>();
+        for (unidades_Medida unidad : unidadDAO.obtenerTodos()) {
+            if (unidad.getNombre() != null
+                    && !unidad.getNombre().isBlank()
+                    && unidad.getEstado() != null
+                    && unidad.getEstado().equalsIgnoreCase("activo")) {
+                nombres.add(unidad.getNombre());
+            }
+        }
+        return nombres;
+    }
+
+    public String crearOActualizarUnidadMedida(String nombre) {
+        if (nombre == null || nombre.isBlank()) {
+            return "";
+        }
+        String nombreLimpio = nombre.trim();
+        for (unidades_Medida unidad : unidadDAO.obtenerTodos()) {
+            if (unidad.getNombre() != null && unidad.getNombre().equalsIgnoreCase(nombreLimpio)) {
+                return unidad.getNombre();
+            }
+        }
+        unidades_Medida nueva = new unidades_Medida();
+        nueva.setNombre(nombreLimpio);
+        nueva.setEstado("activo");
+        if (unidadDAO.insertar(nueva)) {
+            return nombreLimpio;
+        }
+        return null;
     }
 }

@@ -29,6 +29,7 @@ public class controllerNuevoUsuario {
 
     private MainController mainController;
     private usuario usuarioEditando = null;
+    private String estadoActual = "";
 
     private final modelNuevoUsuario modelo = new modelNuevoUsuario();
 
@@ -97,6 +98,7 @@ public class controllerNuevoUsuario {
         // MODO EDICIÓN
         if (usuarioEditando != null) {
             u.setIdUsuario(usuarioEditando.getIdUsuario());
+            u.setEstado(estadoActual);
 
             Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
                     "¿Confirmar actualización del usuario?");
@@ -112,6 +114,7 @@ public class controllerNuevoUsuario {
         }
 
         // MODO AGREGAR
+        u.setEstado("activo");
         if (modelo.validarUsuarioExistente(u.getUserName())) {
             mostrarError("El nombre de usuario ya existe.");
             return;
@@ -151,6 +154,7 @@ public class controllerNuevoUsuario {
 
     public void cargarUsuario(usuario usuario) {
         this.usuarioEditando = usuario;
+        this.estadoActual = usuario != null ? usuario.getEstado() : "";
 
         // Cambios de visual en modo edición
         titulo.setText("Editar Usuario");

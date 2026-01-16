@@ -47,6 +47,9 @@ public class sucursal {
     @Column(name = "telefono")
     private String telefono;
 
+    @Column(name = "status")
+    private String status;
+
     public sucursal() {}
 
     public sucursal(Integer id, String nombre, String domicilio, Integer cp,
@@ -107,4 +110,7 @@ public class sucursal {
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }
