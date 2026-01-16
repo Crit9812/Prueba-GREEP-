@@ -1,22 +1,27 @@
 package Formularios.model;
 
+import Consultas.clasificacion.model.unidades_Medida;
 import Consultas.producto.model.producto;
 import Consultas.producto.model.etiqueta;
 import Consultas.producto.model.marca;
 import Consultas.producto.model.modelEtiqueta;
 import Consultas.producto.model.modelMarca;
 import Compartido.model.DAO.GenericDAO;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class modelNuevoProducto {
 
     private GenericDAO<producto> productoDAO;
     private modelEtiqueta modelEtiqueta;
     private modelMarca modelMarca;
+    private GenericDAO<unidades_Medida> unidadDAO;
 
     public modelNuevoProducto() {
         this.productoDAO = new GenericDAO<>(producto.class);
         this.modelEtiqueta = new modelEtiqueta();
         this.modelMarca = new modelMarca();
+        this.unidadDAO = new GenericDAO<>(unidades_Medida.class);
     }
 
     // Metodo para guardar producto (nuevo)
@@ -54,6 +59,7 @@ public class modelNuevoProducto {
             // Si no existe, creamos una nueva
             etiqueta nuevaEtiqueta = new etiqueta();
             nuevaEtiqueta.setNombre(nombre);
+            nuevaEtiqueta.setEstado("activo");
             if (modelEtiqueta.insertarEtiqueta(nuevaEtiqueta)) {
                 return nuevaEtiqueta.getId();
             }
@@ -64,7 +70,7 @@ public class modelNuevoProducto {
     private etiqueta buscarEtiquetaPorNombreInsensible(String nombre) {
         // Necesitamos implementar un método en ModelEtiqueta para búsqueda insensible
         // Por ahora, vamos a obtener todas y buscar manualmente
-        java.util.ArrayList<etiqueta> todas = modelEtiqueta.obtenerTodas();
+        java.util.ArrayList<etiqueta> todas = modelEtiqueta.obtenerTodasIncluyendoInactivas();
         for (etiqueta e : todas) {
             if (e.getNombre() != null && e.getNombre().equalsIgnoreCase(nombre)) {
                 return e;
@@ -93,6 +99,7 @@ public class modelNuevoProducto {
             // Si no existe, creamos una nueva
             marca nuevaMarca = new marca();
             nuevaMarca.setNombre(nombre);
+            nuevaMarca.setEstado("activo");
             if (modelMarca.insertarMarca(nuevaMarca)) {
                 return nuevaMarca.getId();
             }
@@ -103,10 +110,52 @@ public class modelNuevoProducto {
     private marca buscarMarcaPorNombreInsensible(String nombre) {
         // Necesitamos implementar un metodo en ModelMarca para búsqueda insensible
         // Por ahora, vamos a obtener todas y buscar manualmente
-        java.util.ArrayList<marca> todas = modelMarca.obtenerTodas();
+        java.util.ArrayList<marca> todas = modelMarca.obtenerTodasIncluyendoInactivas();
         for (marca m : todas) {
             if (m.getNombre() != null && m.getNombre().equalsIgnoreCase(nombre)) {
                 return m;
+            }
+        }
+        return null;
+    }
+
+    public ObservableList<String> obtenerUnidadesActivas() {
+        java.util.ArrayList<unidades_Medida> unidades = unidadDAO.obtenerTodos();
+        java.util.List<String> nombres = new java.util.ArrayList<>();
+        for (unidades_Medida unidad : unidades) {
+            if (unidad != null && "activo".equalsIgnoreCase(unidad.getEstado())) {
+                if (unidad.getNombre() != null) {
+                    nombres.add(unidad.getNombre());
+                }
+            }
+        }
+        return FXCollections.observableArrayList(nombres);
+    }
+
+    public String crearOActualizarUnidad(String nombre) {
+        unidades_Medida existente = buscarUnidadPorNombreInsensible(nombre);
+        if (existente != null) {
+            if (!nombre.equals(existente.getNombre())) {
+                existente.setNombre(nombre);
+                unidadDAO.actualizar(existente);
+            }
+            return existente.getNombre();
+        }
+
+        unidades_Medida nueva = new unidades_Medida();
+        nueva.setNombre(nombre);
+        nueva.setEstado("activo");
+        if (unidadDAO.insertar(nueva)) {
+            return nueva.getNombre();
+        }
+        return null;
+    }
+
+    private unidades_Medida buscarUnidadPorNombreInsensible(String nombre) {
+        java.util.ArrayList<unidades_Medida> unidades = unidadDAO.obtenerTodos();
+        for (unidades_Medida unidad : unidades) {
+            if (unidad.getNombre() != null && unidad.getNombre().equalsIgnoreCase(nombre)) {
+                return unidad;
             }
         }
         return null;

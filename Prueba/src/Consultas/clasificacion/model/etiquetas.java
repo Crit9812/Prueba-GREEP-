@@ -19,6 +19,9 @@ public class etiquetas {
     @Column(name = "nombre")
     private String nombre;
 
+    @Column(name = "estado")
+    private String estado;
+
     // Properties para JavaFX
     private transient IntegerProperty idProperty;
     private transient StringProperty nombreProperty;
@@ -46,6 +49,9 @@ public class etiquetas {
         }
     }
 
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
+
     // Métodos property para JavaFX
     public IntegerProperty idProperty() {
         if (idProperty == null) {
@@ -61,5 +67,4 @@ public class etiquetas {
         return nombreProperty;
     }
 }
-
 

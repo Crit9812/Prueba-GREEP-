@@ -19,12 +19,20 @@ public class model {
     // ================= MARCAS =================
 
     public List<marcas> obtenerMarcas() {
-        return marcaDAO.obtenerTodos();
+        List<marcas> todas = marcaDAO.obtenerTodos();
+        java.util.List<marcas> activas = new java.util.ArrayList<>();
+        for (marcas m : todas) {
+            if (m != null && "activo".equalsIgnoreCase(m.getEstado())) {
+                activas.add(m);
+            }
+        }
+        return activas;
     }
 
     public boolean insertarMarca(String nombre) {
         marcas marca = new marcas();
         marca.setNombre(nombre);
+        marca.setEstado("activo");
         return marcaDAO.insertar(marca);
     }
 
@@ -71,12 +79,20 @@ public class model {
     // ================= ETIQUETAS =================
 
     public List<etiquetas> obtenerEtiquetas() {
-        return etiquetaDAO.obtenerTodos();
+        List<etiquetas> todas = etiquetaDAO.obtenerTodos();
+        java.util.List<etiquetas> activas = new java.util.ArrayList<>();
+        for (etiquetas e : todas) {
+            if (e != null && "activo".equalsIgnoreCase(e.getEstado())) {
+                activas.add(e);
+            }
+        }
+        return activas;
     }
 
     public boolean insertarEtiqueta(String nombre) {
         etiquetas etiqueta = new etiquetas();
         etiqueta.setNombre(nombre);
+        etiqueta.setEstado("activo");
         return etiquetaDAO.insertar(etiqueta);
     }
 
@@ -122,12 +138,20 @@ public class model {
     // ================= UBICACIONES =================
 
     public List<ubicaciones> obtenerUbicaciones() {
-        return ubicacionDAO.obtenerTodos();
+        List<ubicaciones> todas = ubicacionDAO.obtenerTodos();
+        java.util.List<ubicaciones> activas = new java.util.ArrayList<>();
+        for (ubicaciones u : todas) {
+            if (u != null && "activo".equalsIgnoreCase(u.getEstado())) {
+                activas.add(u);
+            }
+        }
+        return activas;
     }
 
     public boolean insertarUbicacion(String nombre) {
         ubicaciones ubicacion = new ubicaciones();
         ubicacion.setNombre(nombre);
+        ubicacion.setEstado("activo");
         return ubicacionDAO.insertar(ubicacion);
     }
 
@@ -173,13 +197,71 @@ public class model {
     // ================= UNIDADES DE MEDIDA =================
 
     public List<unidades_Medida> obtenerUM() {
-        return umDAO.obtenerTodos();
+        List<unidades_Medida> todas = umDAO.obtenerTodos();
+        java.util.List<unidades_Medida> activas = new java.util.ArrayList<>();
+        for (unidades_Medida u : todas) {
+            if (u != null && "activo".equalsIgnoreCase(u.getEstado())) {
+                activas.add(u);
+            }
+        }
+        return activas;
     }
 
     public boolean insertarUM(String nombre) {
         unidades_Medida um = new unidades_Medida();
         um.setNombre(nombre);
+        um.setEstado("activo");
         return umDAO.insertar(um);
+    }
+
+    public boolean existeMarca(String nombre) {
+        return existePorNombre(marcaDAO.obtenerTodos(), nombre);
+    }
+
+    public boolean existeEtiqueta(String nombre) {
+        return existePorNombre(etiquetaDAO.obtenerTodos(), nombre);
+    }
+
+    public boolean existeUbicacion(String nombre) {
+        return existePorNombre(ubicacionDAO.obtenerTodos(), nombre);
+    }
+
+    public boolean existeUM(String nombre) {
+        return existePorNombre(umDAO.obtenerTodos(), nombre);
+    }
+
+    private <T> boolean existePorNombre(List<T> items, String nombre) {
+        if (nombre == null) {
+            return false;
+        }
+        String objetivo = nombre.trim();
+        if (objetivo.isEmpty()) {
+            return false;
+        }
+        for (T item : items) {
+            if (item instanceof marcas) {
+                marcas m = (marcas) item;
+                if (m.getNombre() != null && m.getNombre().equalsIgnoreCase(objetivo)) {
+                    return true;
+                }
+            } else if (item instanceof etiquetas) {
+                etiquetas e = (etiquetas) item;
+                if (e.getNombre() != null && e.getNombre().equalsIgnoreCase(objetivo)) {
+                    return true;
+                }
+            } else if (item instanceof ubicaciones) {
+                ubicaciones u = (ubicaciones) item;
+                if (u.getNombre() != null && u.getNombre().equalsIgnoreCase(objetivo)) {
+                    return true;
+                }
+            } else if (item instanceof unidades_Medida) {
+                unidades_Medida um = (unidades_Medida) item;
+                if (um.getNombre() != null && um.getNombre().equalsIgnoreCase(objetivo)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public boolean actualizarUM(int id, String nombre) {

@@ -93,6 +93,11 @@ public class controllerNuevoUsuario {
         u.setUserName(txtNombreDeUsuario.getText());
         u.setRolUsuario(miComboBox.getSelectionModel().getSelectedItem());
         u.setContrasenaUsuario(txtContrasena.getText());
+        if (usuarioEditando != null) {
+            u.setEstado(usuarioEditando.getEstado());
+        } else {
+            u.setEstado("activo");
+        }
 
         // MODO EDICIÓN
         if (usuarioEditando != null) {
