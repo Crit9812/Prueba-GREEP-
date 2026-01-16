@@ -4,51 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Correcciones de todo lo roto">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Prueba/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Prueba/Formularios/view/nuevoProducto.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Compartido/controller/productoCboxController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/productoCboxController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Compartido/helper/RefrescoHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/helper/RefrescoHelper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Compartido/model/modelProductoCbox.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/model/modelProductoCbox.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/etiquetas.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/etiquetas.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/marcas.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/marcas.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/ubicaciones.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/ubicaciones.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/unidades_Medida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/unidades_Medida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/claves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/claves.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/model/cliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/model/cliente.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/etiqueta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/etiqueta.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/marca.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/marca.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/producto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/producto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/proveedores.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/proveedores.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/model/sucursal.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/model/sucursal.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaSucursal.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaSucursal.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoCliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoCliente.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoPedido.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoPedido.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProveedor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProveedor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoUsuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoUsuario.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerSincronizacionClaves.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelSincronizacionClaves.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelSincronizacionClaves.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/usuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/model/usuario.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/login/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/login/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -126,7 +83,7 @@
     "Application.Main.executor": "Run",
     "Application.Prueba.executor": "Run",
     "Application.main.Main.executor": "Run",
-    "Application.main.executor": "Debug",
+    "Application.main.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
@@ -512,7 +469,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768574418380</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4">
+      <option name="closed" value="true" />
+      <created>1768595937313</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1768595937313</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -565,7 +530,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Sucursal,Cliente y proveedores listos (CRUD)" />
     <MESSAGE value="casi consultas" />
     <MESSAGE value="pedidos" />
     <MESSAGE value="subido en rama pruebas" />
@@ -590,7 +554,8 @@
     <MESSAGE value="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp" />
     <MESSAGE value="Correcciones" />
     <MESSAGE value="Correcciones de todo lo roto" />
-    <option name="LAST_COMMIT_MESSAGE" value="Correcciones de todo lo roto" />
+    <MESSAGE value="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4" />
+    <option name="LAST_COMMIT_MESSAGE" value="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
