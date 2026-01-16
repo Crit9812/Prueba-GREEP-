@@ -29,6 +29,7 @@ public class controllerNuevoUsuario {
 
     private MainController mainController;
     private usuario usuarioEditando = null;
+    private String estadoActual = null;
 
     private final modelNuevoUsuario modelo = new modelNuevoUsuario();
 
@@ -93,6 +94,11 @@ public class controllerNuevoUsuario {
         u.setUserName(txtNombreDeUsuario.getText());
         u.setRolUsuario(miComboBox.getSelectionModel().getSelectedItem());
         u.setContrasenaUsuario(txtContrasena.getText());
+        if (usuarioEditando != null) {
+            u.setEstado(estadoActual);
+        } else {
+            u.setEstado("activo");
+        }
 
         // MODO EDICIÓN
         if (usuarioEditando != null) {
@@ -151,6 +157,7 @@ public class controllerNuevoUsuario {
 
     public void cargarUsuario(usuario usuario) {
         this.usuarioEditando = usuario;
+        this.estadoActual = usuario.getEstado();
 
         // Cambios de visual en modo edición
         titulo.setText("Editar Usuario");

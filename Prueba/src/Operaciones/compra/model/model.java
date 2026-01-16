@@ -35,7 +35,7 @@ public class model {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
+        String sql = "SELECT nombre FROM ubicaciones WHERE LOWER(estado) = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -384,7 +384,7 @@ public class model {
         } catch (NumberFormatException ignored) {
         }
 
-        String sql = "SELECT id FROM ubicaciones WHERE nombre = ? LIMIT 1";
+        String sql = "SELECT id FROM ubicaciones WHERE LOWER(nombre) = LOWER(?) LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, texto);
             try (ResultSet rs = ps.executeQuery()) {
@@ -393,7 +393,7 @@ public class model {
                 }
             }
         }
-        String insertar = "INSERT INTO ubicaciones (nombre) VALUES (?)";
+        String insertar = "INSERT INTO ubicaciones (nombre, estado) VALUES (?, 'activo')";
         try (PreparedStatement ps = conn.prepareStatement(insertar, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, texto);
             ps.executeUpdate();

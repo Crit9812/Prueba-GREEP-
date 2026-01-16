@@ -39,7 +39,8 @@ public class modelSincronizacionClaves {
      */
     public List<Map<String, Object>> obtenerProveedores() throws SQLException {
         List<Map<String, Object>> out = new ArrayList<>();
-        String sql = "SELECT `" + COL_PROVEEDOR_ID + "`, `" + COL_PROVEEDOR_NOMBRE + "` FROM " + TABLA_PROVEEDORES + " ORDER BY `" + COL_PROVEEDOR_NOMBRE + "`";
+        String sql = "SELECT `" + COL_PROVEEDOR_ID + "`, `" + COL_PROVEEDOR_NOMBRE + "` FROM " + TABLA_PROVEEDORES +
+                " WHERE LOWER(`status`) = 'activo' ORDER BY `" + COL_PROVEEDOR_NOMBRE + "`";
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -66,7 +67,8 @@ public class modelSincronizacionClaves {
                 "p.`" + COL_PRODUCTO_MARCA + "` AS raw_marca, p.`" + COL_PRODUCTO_ETIQUETA + "` AS raw_etiqueta " +
                 "FROM " + TABLA_PRODUCTOS + " p " +
                 "LEFT JOIN marcas m ON m.id = p." + COL_PRODUCTO_MARCA + " " +
-                "LEFT JOIN etiquetas e ON e.id = p." + COL_PRODUCTO_ETIQUETA;
+                "LEFT JOIN etiquetas e ON e.id = p." + COL_PRODUCTO_ETIQUETA + " " +
+                "WHERE LOWER(p.`estado`) = 'activo'";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -178,7 +180,7 @@ public class modelSincronizacionClaves {
                         } else {
                             // INSERT
                             String ins = "INSERT INTO " + TABLA_CLAVES +
-                                    " (`" + COL_CLAVE_CATALOGO + "`, `" + COL_CLAVE_PROVEEDOR + "`, `" + COL_CLAVE_GREEP + "`) VALUES (?, ?, ?)";
+                                    " (`" + COL_CLAVE_CATALOGO + "`, `" + COL_CLAVE_PROVEEDOR + "`, `" + COL_CLAVE_GREEP + "`, `estado`) VALUES (?, ?, ?, 'activo')";
 
                             try (PreparedStatement insP = conn.prepareStatement(ins)) {
                                 insP.setString(1, idAlterno);
@@ -197,5 +199,32 @@ public class modelSincronizacionClaves {
                 }
             }
         }
+    }
+
+    public Optional<Map<String, String>> obtenerDetalleClaveAlterna(String idAlterno) throws SQLException {
+        if (idAlterno == null || idAlterno.isBlank()) {
+            return Optional.empty();
+        }
+        String sql = "SELECT c.`" + COL_CLAVE_CATALOGO + "` AS clave, " +
+                "p.`" + COL_PROVEEDOR_NOMBRE + "` AS proveedor_nombre, " +
+                "pr.`" + COL_PRODUCTO_NOMBRE + "` AS producto_nombre " +
+                "FROM " + TABLA_CLAVES + " c " +
+                "LEFT JOIN " + TABLA_PROVEEDORES + " p ON p.`" + COL_PROVEEDOR_ID + "` = c.`" + COL_CLAVE_PROVEEDOR + "` " +
+                "LEFT JOIN " + TABLA_PRODUCTOS + " pr ON pr.`" + COL_PRODUCTO_ID + "` = c.`" + COL_CLAVE_GREEP + "` " +
+                "WHERE c.`" + COL_CLAVE_CATALOGO + "` = ? LIMIT 1";
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idAlterno);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, String> info = new HashMap<>();
+                    info.put("clave", rs.getString("clave"));
+                    info.put("proveedor", rs.getString("proveedor_nombre"));
+                    info.put("producto", rs.getString("producto_nombre"));
+                    return Optional.of(info);
+                }
+            }
+        }
+        return Optional.empty();
     }
 }

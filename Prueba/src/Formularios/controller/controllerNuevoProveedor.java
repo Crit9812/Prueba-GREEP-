@@ -50,6 +50,7 @@ public class controllerNuevoProveedor {
 
     private boolean modoEdicion = false;
     private int idProveedorEdicion = -1;
+    private String statusActual = null;
 
     private final modelNuevoProveedor model = new modelNuevoProveedor();
     private Runnable onSaved = null;
@@ -99,6 +100,7 @@ public class controllerNuevoProveedor {
 
         modoEdicion = true;
         idProveedorEdicion = p.getId();
+        statusActual = p.getStatus();
 
         txtNombre.setText(p.getNombre());
         txtRepresentante.setText(p.getRepresentante());
@@ -154,6 +156,11 @@ public class controllerNuevoProveedor {
         p.setPais(txtPais.getText());
         p.setCorreo(txtCorreo.getText());
         p.setTelefono(txtTelefono.getText().trim());
+        if (modoEdicion) {
+            p.setStatus(statusActual);
+        } else {
+            p.setStatus("activo");
+        }
 
         boolean exito = modoEdicion ?
                 model.modificarProveedor(p) :

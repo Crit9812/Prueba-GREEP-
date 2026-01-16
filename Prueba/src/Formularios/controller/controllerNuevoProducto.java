@@ -25,7 +25,7 @@ public class controllerNuevoProducto {
     @FXML private ComboBox<String> cmbCategoria;
     @FXML private ComboBox<marca> cmbMarca;
     @FXML private TextField txtMaterial;
-    @FXML private TextField txtUnidadMedida;
+    @FXML private ComboBox<String> cmbUnidadMedida;
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtInventarioMin;
     @FXML private Button btnGuardar;
@@ -44,6 +44,7 @@ public class controllerNuevoProducto {
 
     private String productoIdCreado = "";
     private String productoNombreCreado = "";
+    private String estadoActual = null;
 
     public void setOnSaved(Runnable r) { this.onSaved = r; }
 
@@ -63,11 +64,13 @@ public class controllerNuevoProducto {
         cmbCategoria.setEditable(false); // solo elegir
         cmbMarca.setEditable(true);      // puede escribir
         cmbEtiqueta.setEditable(true);   // puede escribir
+        cmbUnidadMedida.setEditable(true); // puede escribir
 
         // Cargar datos
         cargarCategorias();
         cargarMarcas();
         cargarEtiquetas();
+        cargarUnidadesMedida();
 
         // Configurar cómo mostrar las etiquetas y marcas en los ComboBox
         configurarComboBoxes();
@@ -162,6 +165,7 @@ public class controllerNuevoProducto {
         modoEdicion = true;
         idEdicion = p.getIdProducto();
         nombreImagenActual = p.getUrlImagen();
+        estadoActual = p.getEstado();
 
         txtIdProducto.setText(p.getIdProducto());
         txtIdProducto.setDisable(true); // No permitir editar ID en modo edición
@@ -169,7 +173,10 @@ public class controllerNuevoProducto {
         txtNombre.setText(p.getNombreProducto());
         cmbCategoria.getSelectionModel().select(p.getCategoria());
         txtMaterial.setText(p.getMaterial());
-        txtUnidadMedida.setText(p.getUnidadMedida());
+        if (p.getUnidadMedida() != null) {
+            cmbUnidadMedida.getSelectionModel().select(p.getUnidadMedida());
+            cmbUnidadMedida.getEditor().setText(p.getUnidadMedida());
+        }
         txtDescripcion.setText(p.getDescripcion());
         txtInventarioMin.setText(String.valueOf(p.getInventarioMin()));
 
@@ -240,7 +247,7 @@ public class controllerNuevoProducto {
             if (categoria == null) categoria = "";
 
             String material = txtMaterial.getText().trim();
-            String unidadMedida = txtUnidadMedida.getText().trim();
+            String unidadMedida = obtenerUnidadMedidaTexto();
             String descripcion = txtDescripcion.getText().trim();
 
             int inventarioMin = 0;
@@ -308,6 +315,11 @@ public class controllerNuevoProducto {
             p.setDescripcion(descripcion);
             p.setInventarioMin(inventarioMin);
             p.setUrlImagen(nombreImagen);
+            if (modoEdicion) {
+                p.setEstado(estadoActual);
+            } else {
+                p.setEstado("activo");
+            }
 
             boolean resultado;
             if (modoEdicion) {
@@ -326,6 +338,10 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
+                cargarUnidadesMedida();
+                cargarUnidadesMedida();
+                cargarUnidadesMedida();
+                cargarUnidadesMedida();
 
                 // Ejecutar callback para refrescar la tabla principal
                 if (onSaved != null) onSaved.run();
@@ -352,6 +368,7 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
+                cargarUnidadesMedida();
 
                 // Ejecutar callback para refrescar la tabla principal
                 if (onSaved != null) onSaved.run();
@@ -370,6 +387,22 @@ public class controllerNuevoProducto {
     private String getFileExtension(String fileName) {
         int idx = fileName.lastIndexOf(".");
         return idx == -1 ? ".jpg" : fileName.substring(idx).toLowerCase();
+    }
+
+    private void cargarUnidadesMedida() {
+        ObservableList<String> unidades = modeloFormulario.obtenerNombresUnidadesActivas();
+        cmbUnidadMedida.setItems(unidades);
+    }
+
+    private String obtenerUnidadMedidaTexto() {
+        if (cmbUnidadMedida == null) {
+            return "";
+        }
+        String valor = cmbUnidadMedida.getEditor() != null ? cmbUnidadMedida.getEditor().getText() : null;
+        if (valor == null || valor.isBlank()) {
+            valor = cmbUnidadMedida.getSelectionModel().getSelectedItem();
+        }
+        return valor == null ? "" : valor.trim();
     }
 
     private void mostrarError(String mensaje) {
@@ -393,3 +426,12 @@ public class controllerNuevoProducto {
         return !productoIdCreado.isEmpty() && !productoNombreCreado.isEmpty();
     }
 }
+            // Manejar unidad de medida
+            if (!unidadMedida.isEmpty()) {
+                String unidadNormalizada = modeloFormulario.crearOActualizarUnidadMedida(unidadMedida);
+                if (unidadNormalizada == null) {
+                    mostrarError("Error al procesar la unidad de medida");
+                    return;
+                }
+                unidadMedida = unidadNormalizada;
+            }

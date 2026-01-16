@@ -43,6 +43,7 @@ public class controllerNuevaSucursal {
 
     private boolean modoEdicion = false;
     private int idSucursalEdicion = -1;
+    private String statusActual = null;
 
     private final modelNuevaSucursal model = new modelNuevaSucursal();
     private Runnable onSaved = null;
@@ -88,6 +89,7 @@ public class controllerNuevaSucursal {
 
         modoEdicion = true;
         idSucursalEdicion = s.getId();
+        statusActual = s.getStatus();
 
         txtNombre.setText(s.getNombre());
         txtDomicilio.setText(s.getDomicilio());
@@ -137,6 +139,11 @@ public class controllerNuevaSucursal {
         s.setPais(txtPais.getText().trim());
         s.setCorreo(txtCorreo.getText().trim());
         s.setTelefono(txtTelefono.getText().trim());
+        if (modoEdicion) {
+            s.setStatus(statusActual);
+        } else {
+            s.setStatus("activo");
+        }
 
         boolean exito = modoEdicion ?
                 model.modificarSucursal(s) :

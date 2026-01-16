@@ -23,6 +23,9 @@ public class claves {
     @Column(name = "idProveedor")
     private Integer idProveedor; // relación con proveedores
 
+    @Column(name = "estado")
+    private String estado;
+
     public claves() {}
 
     public claves(String idClaveCatalogo, Integer claveProveedor, String claveGreep, String idProducto, Integer idProveedor) {
@@ -47,4 +50,7 @@ public class claves {
 
     public Integer getIdProveedor() { return idProveedor; }
     public void setIdProveedor(Integer idProveedor) { this.idProveedor = idProveedor; }
+
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
 }

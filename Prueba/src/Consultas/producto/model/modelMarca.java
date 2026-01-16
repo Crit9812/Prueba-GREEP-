@@ -18,6 +18,17 @@ public class modelMarca {
         return marcaDAO.obtenerTodos();
     }
 
+    public ArrayList<marca> obtenerActivas() {
+        ArrayList<marca> todas = obtenerTodas();
+        ArrayList<marca> activas = new ArrayList<>();
+        for (marca m : todas) {
+            if (m != null && "activo".equalsIgnoreCase(m.getEstado())) {
+                activas.add(m);
+            }
+        }
+        return activas;
+    }
+
     // Obtener mapa de id->nombre para usar en combos o tablas
     public Map<String, String> obtenerMapaMarcas() {
         Map<String, String> mapa = new HashMap<>();

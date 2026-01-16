@@ -45,6 +45,7 @@ public class controllerNuevoCliente {
 
     private boolean modoEdicion = false;
     private int idClienteEdicion = -1;
+    private String statusActual = null;
 
     private final AtomicLong solicitudCpId = new AtomicLong(0);
     private String coloniaPendiente = null;
@@ -91,6 +92,7 @@ public class controllerNuevoCliente {
 
         modoEdicion = true;
         idClienteEdicion = c.getId();
+        statusActual = c.getStatus();
         txtNombre.setText(c.getNombre());
         txtRFC.setText(c.getRfc());
         txtCURP.setText(c.getCurp());
@@ -145,6 +147,11 @@ public class controllerNuevoCliente {
             c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
             c.setCorreo(txtCorreoElectronico.getText());
             c.setTelefono(txtTelefono.getText().trim());
+            if (modoEdicion) {
+                c.setStatus(statusActual);
+            } else {
+                c.setStatus("activo");
+            }
 
             boolean exito = modoEdicion ?
                     model.modificarCliente(c) :

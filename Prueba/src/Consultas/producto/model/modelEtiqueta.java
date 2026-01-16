@@ -18,6 +18,17 @@ public class modelEtiqueta {
         return etiquetaDAO.obtenerTodos();
     }
 
+    public ArrayList<etiqueta> obtenerActivas() {
+        ArrayList<etiqueta> todas = obtenerTodas();
+        ArrayList<etiqueta> activas = new ArrayList<>();
+        for (etiqueta e : todas) {
+            if (e != null && "activo".equalsIgnoreCase(e.getEstado())) {
+                activas.add(e);
+            }
+        }
+        return activas;
+    }
+
     // Obtener mapa de id->nombre para usar en combos o tablas
     public Map<String, String> obtenerMapaEtiquetas() {
         Map<String, String> mapa = new HashMap<>();

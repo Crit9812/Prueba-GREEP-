@@ -19,12 +19,13 @@ public class model {
     // ================= MARCAS =================
 
     public List<marcas> obtenerMarcas() {
-        return marcaDAO.obtenerTodos();
+        return filtrarActivos(marcaDAO.obtenerTodos());
     }
 
     public boolean insertarMarca(String nombre) {
         marcas marca = new marcas();
         marca.setNombre(nombre);
+        marca.setEstado("activo");
         return marcaDAO.insertar(marca);
     }
 
@@ -52,6 +53,23 @@ public class model {
         return marcaDAO.eliminar(String.valueOf(id));
     }
 
+    public boolean existeMarcaPorNombre(String nombre) {
+        return buscarMarcaPorNombre(nombre) != null;
+    }
+
+    private marcas buscarMarcaPorNombre(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        String buscado = nombre.trim();
+        for (marcas m : marcaDAO.obtenerTodos()) {
+            if (m != null && m.getNombre() != null && m.getNombre().equalsIgnoreCase(buscado)) {
+                return m;
+            }
+        }
+        return null;
+    }
+
     public int contarProductosPorMarca(int marcaId) {
         String sql = "SELECT COUNT(*) FROM productos WHERE marca = ?";
 
@@ -71,12 +89,13 @@ public class model {
     // ================= ETIQUETAS =================
 
     public List<etiquetas> obtenerEtiquetas() {
-        return etiquetaDAO.obtenerTodos();
+        return filtrarActivos(etiquetaDAO.obtenerTodos());
     }
 
     public boolean insertarEtiqueta(String nombre) {
         etiquetas etiqueta = new etiquetas();
         etiqueta.setNombre(nombre);
+        etiqueta.setEstado("activo");
         return etiquetaDAO.insertar(etiqueta);
     }
 
@@ -103,6 +122,23 @@ public class model {
         return etiquetaDAO.eliminar(String.valueOf(id));
     }
 
+    public boolean existeEtiquetaPorNombre(String nombre) {
+        return buscarEtiquetaPorNombre(nombre) != null;
+    }
+
+    private etiquetas buscarEtiquetaPorNombre(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        String buscado = nombre.trim();
+        for (etiquetas e : etiquetaDAO.obtenerTodos()) {
+            if (e != null && e.getNombre() != null && e.getNombre().equalsIgnoreCase(buscado)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
     public int contarProductosPorEtiqueta(int etiquetaId) {
         String sql = "SELECT COUNT(*) FROM productos WHERE etiqueta = ?";
 
@@ -122,12 +158,13 @@ public class model {
     // ================= UBICACIONES =================
 
     public List<ubicaciones> obtenerUbicaciones() {
-        return ubicacionDAO.obtenerTodos();
+        return filtrarActivos(ubicacionDAO.obtenerTodos());
     }
 
     public boolean insertarUbicacion(String nombre) {
         ubicaciones ubicacion = new ubicaciones();
         ubicacion.setNombre(nombre);
+        ubicacion.setEstado("activo");
         return ubicacionDAO.insertar(ubicacion);
     }
 
@@ -154,6 +191,23 @@ public class model {
         return ubicacionDAO.eliminar(String.valueOf(id));
     }
 
+    public boolean existeUbicacionPorNombre(String nombre) {
+        return buscarUbicacionPorNombre(nombre) != null;
+    }
+
+    private ubicaciones buscarUbicacionPorNombre(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        String buscado = nombre.trim();
+        for (ubicaciones u : ubicacionDAO.obtenerTodos()) {
+            if (u != null && u.getNombre() != null && u.getNombre().equalsIgnoreCase(buscado)) {
+                return u;
+            }
+        }
+        return null;
+    }
+
     public int contarProductosPorUbicacion(int ubicacionId) {
         String sql = "SELECT COUNT(*) FROM detalleArticulo WHERE idUbicacion = ?";
 
@@ -173,12 +227,13 @@ public class model {
     // ================= UNIDADES DE MEDIDA =================
 
     public List<unidades_Medida> obtenerUM() {
-        return umDAO.obtenerTodos();
+        return filtrarActivos(umDAO.obtenerTodos());
     }
 
     public boolean insertarUM(String nombre) {
         unidades_Medida um = new unidades_Medida();
         um.setNombre(nombre);
+        um.setEstado("activo");
         return umDAO.insertar(um);
     }
 
@@ -205,6 +260,23 @@ public class model {
         return umDAO.eliminar(String.valueOf(id));
     }
 
+    public boolean existeUMPorNombre(String nombre) {
+        return buscarUMPorNombre(nombre) != null;
+    }
+
+    private unidades_Medida buscarUMPorNombre(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        String buscado = nombre.trim();
+        for (unidades_Medida u : umDAO.obtenerTodos()) {
+            if (u != null && u.getNombre() != null && u.getNombre().equalsIgnoreCase(buscado)) {
+                return u;
+            }
+        }
+        return null;
+    }
+
     public int contarProductosPorUM(int umId) {
         String sql = "SELECT COUNT(*) FROM productos WHERE unidad_Medida = ?";
 
@@ -219,5 +291,24 @@ public class model {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    private <T> List<T> filtrarActivos(List<T> lista) {
+        List<T> resultado = new java.util.ArrayList<>();
+        if (lista == null) {
+            return resultado;
+        }
+        for (T item : lista) {
+            if (item instanceof marcas m && "activo".equalsIgnoreCase(m.getEstado())) {
+                resultado.add(item);
+            } else if (item instanceof etiquetas e && "activo".equalsIgnoreCase(e.getEstado())) {
+                resultado.add(item);
+            } else if (item instanceof ubicaciones u && "activo".equalsIgnoreCase(u.getEstado())) {
+                resultado.add(item);
+            } else if (item instanceof unidades_Medida u && "activo".equalsIgnoreCase(u.getEstado())) {
+                resultado.add(item);
+            }
+        }
+        return resultado;
     }
 }

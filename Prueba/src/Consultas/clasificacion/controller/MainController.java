@@ -556,31 +556,36 @@ public class MainController {
 
     // ================== AGREGAR ==================
     @FXML private void agregarMarca() {
-        agregar("Agregar marca", model::insertarMarca, contenidoTablaMarcas);
+        agregar("Agregar marca", model::insertarMarca, model::existeMarcaPorNombre, contenidoTablaMarcas);
     }
 
     @FXML private void agregarEtiqueta() {
-        agregar("Agregar etiqueta", model::insertarEtiqueta, contenidoTablaEtiquetas);
+        agregar("Agregar etiqueta", model::insertarEtiqueta, model::existeEtiquetaPorNombre, contenidoTablaEtiquetas);
     }
 
     @FXML private void agregarUbicacion() {
-        agregar("Agregar ubicación", model::insertarUbicacion, contenidoTablaUbicaciones);
+        agregar("Agregar ubicación", model::insertarUbicacion, model::existeUbicacionPorNombre, contenidoTablaUbicaciones);
     }
 
     @FXML private void agregarUM() {
-        agregar("Agregar unidad de medida", model::insertarUM, contenidoTablaUM);
+        agregar("Agregar unidad de medida", model::insertarUM, model::existeUMPorNombre, contenidoTablaUM);
     }
 
-    private <T> void agregar(String titulo, Consumer<String> insertar, TableView<T> tabla) {
+    private <T> void agregar(String titulo, Consumer<String> insertar, java.util.function.Predicate<String> existe, TableView<T> tabla) {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle(titulo);
         dialog.setHeaderText(null);
 
         dialog.showAndWait().ifPresent(nombre -> {
             if (!nombre.trim().isEmpty()) {
+                String nombreLimpio = nombre.trim();
+                if (existe != null && existe.test(nombreLimpio)) {
+                    mostrarError("Ese registro ya existe.");
+                    return;
+                }
                 // Ejecutar la inserción en un hilo separado
                 new Thread(() -> {
-                    insertar.accept(nombre.trim());
+                    insertar.accept(nombreLimpio);
                     // Recargar datos después de insertar
                     Platform.runLater(this::cargarDatos);
                 }).start();
