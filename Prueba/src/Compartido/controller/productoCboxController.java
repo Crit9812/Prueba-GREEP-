@@ -208,11 +208,7 @@ public class productoCboxController {
                     return modelProductoCbox.obtenerProductosPorProveedor(idProveedorFiltro);
                 }
                 if (soloDisponibles) {
-                    List<Map<String, String>> disponibles = modelProductoCbox.obtenerProductosDisponibles();
-                    if (disponibles == null || disponibles.isEmpty()) {
-                        return modelProductoCbox.obtenerTodosProductos();
-                    }
-                    return disponibles;
+                    return modelProductoCbox.obtenerProductosDisponibles();
                 }
                 return modelProductoCbox.obtenerTodosProductos();
             }
@@ -238,11 +234,7 @@ public class productoCboxController {
                     return modelProductoCbox.obtenerClavesAlternasPorProveedor(idProveedorFiltro);
                 }
                 if (soloDisponibles) {
-                    List<Map<String, String>> disponibles = modelProductoCbox.obtenerClavesAlternasDisponibles();
-                    if (disponibles == null || disponibles.isEmpty()) {
-                        return modelProductoCbox.obtenerTodasClavesAlternas();
-                    }
-                    return disponibles;
+                    return modelProductoCbox.obtenerClavesAlternasDisponibles();
                 }
                 return modelProductoCbox.obtenerTodasClavesAlternas();
             }
