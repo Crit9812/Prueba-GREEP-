@@ -28,17 +28,20 @@ public class exportador {
 
     private static final DateTimeFormatter FILE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-
+    
     // -----------------------
-    // Metodo público para exportar según tipo seleccionado
+    // Metodo público para exportar según tipo seleccionado (MODIFICADO)
     // -----------------------
     public static <T> void exportarTabla(TableView<T> tabla, String titulo, String tipo) {
+        exportarTabla(tabla, titulo, tipo, null);
+    }
+
+    public static <T> void exportarTabla(TableView<T> tabla, String titulo, String tipo, List<String> filtros) {
         if (tabla.getItems().isEmpty()) {
             mostrarError("No hay datos para exportar.");
             return;
         }
 
-        // Selección de carpeta en lugar de archivo
         DirectoryChooser dirChooser = new DirectoryChooser();
         dirChooser.setTitle("Seleccionar carpeta para guardar el archivo");
         File carpeta = dirChooser.showDialog(tabla.getScene().getWindow());
@@ -50,9 +53,9 @@ public class exportador {
 
             try {
                 if (tipo.equalsIgnoreCase("pdf")) {
-                        exportarPDF(tabla, titulo, archivo);
+                    exportarPDF(tabla, titulo, archivo, filtros);
                 } else {
-                    exportarExcel(tabla, titulo, archivo);
+                    exportarExcel(tabla, titulo, archivo, filtros);
                 }
                 mostrarExito("Archivo generado correctamente:\n" + archivo.getAbsolutePath());
             } catch (Exception e) {
@@ -62,7 +65,7 @@ public class exportador {
         }
     }
 
-    public static <T> void previsualizarPDF(TableView<T> tabla, String titulo) {
+    public static <T> void previsualizarPDF(TableView<T> tabla, String titulo, List<String> filtros) {
         if (tabla.getItems().isEmpty()) {
             mostrarError("No hay datos para exportar.");
             return;
@@ -71,7 +74,7 @@ public class exportador {
         try {
             File archivo = File.createTempFile(titulo + "-preview-", ".pdf");
             archivo.deleteOnExit();
-            exportarPDF(tabla, titulo, archivo);
+            exportarPDF(tabla, titulo, archivo, filtros);
 
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().open(archivo);
@@ -87,16 +90,16 @@ public class exportador {
     // -----------------------
     // Exportar PDF
     // -----------------------
-    private static <T> void exportarPDF(TableView<T> tabla, String titulo, File archivo) throws IOException {
 
+    private static <T> void exportarPDF(TableView<T> tabla, String titulo, File archivo, List<String> filtros) throws IOException {
         final int MAX_COLUMNAS_POR_SECCION = 6;
 
         try (PDDocument document = new PDDocument()) {
-
             PDType1Font fontTitleBold = new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD);
             PDType1Font fontHeaderBold = new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD);
             PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.TIMES_ROMAN);
             PDType1Font fontFooter = new PDType1Font(Standard14Fonts.FontName.TIMES_ROMAN);
+            PDType1Font fontFiltros = new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD);
 
             float margin = 50;
             float rowHeight = 20;
@@ -104,7 +107,6 @@ public class exportador {
             int pageNumber = 1;
 
             List<TableColumn<T, ?>> allColumns = obtenerColumnasVisibles(tabla);
-
             List<T> dataItems = tabla.getItems();
 
             float pageWidth = PDRectangle.A4.getHeight();
@@ -126,21 +128,26 @@ public class exportador {
             }
 
             // -----------------------
-            // CALCULAR FILAS POR PÁGINA
+            // CALCULAR FILAS POR PÁGINA (AJUSTADO POR FILTROS)
             // -----------------------
-            float usableHeight = pageHeight - (margin * 2) - 60; // título + encabezados
+            float espacioTitulo = 40; // Título normal
+            float espacioFiltros = 0;
+
+            if (filtros != null && !filtros.isEmpty()) {
+                espacioFiltros = 30 + (filtros.size() * 12); // Espacio para mostrar filtros
+            }
+
+            float usableHeight = pageHeight - (margin * 2) - espacioTitulo - espacioFiltros - 60; // título + filtros + encabezados
             int rowsPerPage = (int) (usableHeight / rowHeight);
 
             // -----------------------
             // PAGINACIÓN: FILAS → COLUMNAS
             // -----------------------
             for (int rowStart = 0; rowStart < dataItems.size(); rowStart += rowsPerPage) {
-
                 int rowEnd = Math.min(rowStart + rowsPerPage, dataItems.size());
                 List<T> rowBlock = dataItems.subList(rowStart, rowEnd);
 
                 for (int sectionIndex = 0; sectionIndex < columnSections.size(); sectionIndex++) {
-
                     List<TableColumn<T, ?>> section = columnSections.get(sectionIndex);
 
                     PDPage page = new PDPage(new PDRectangle(pageWidth, pageHeight));
@@ -168,6 +175,30 @@ public class exportador {
                     contentStream.endText();
 
                     yPosition -= 40;
+
+                    // -----------------------
+                    // MOSTRAR FILTROS APLICADOS
+                    // -----------------------
+                    if (filtros != null && !filtros.isEmpty()) {
+                        contentStream.beginText();
+                        contentStream.setFont(fontFiltros, 10);
+                        contentStream.newLineAtOffset(margin, yPosition);
+                        contentStream.showText("Productos filtrados:");
+                        contentStream.endText();
+
+                        yPosition -= 15;
+
+                        contentStream.setFont(fontNormal, 9);
+                        for (String filtro : filtros) {
+                            contentStream.beginText();
+                            contentStream.newLineAtOffset(margin + 10, yPosition); // Indentación
+                            contentStream.showText("• " + filtro);
+                            contentStream.endText();
+                            yPosition -= 12;
+                        }
+
+                        yPosition -= 10; // Espacio adicional después de filtros
+                    }
 
                     float colWidth = tableWidth / section.size();
 
@@ -199,11 +230,9 @@ public class exportador {
                     // FILAS
                     // -----------------------
                     for (T item : rowBlock) {
-
                         textx = margin;
 
                         for (TableColumn<T, ?> col : section) {
-
                             Object value = col.getCellData(item);
                             String text = value != null ? value.toString() : "";
 
@@ -253,8 +282,6 @@ public class exportador {
         return result;
     }
 
-
-
     private static void agregarPieDePagina(PDDocument document, PDPage page, float margin, float tableWidth, PDType1Font fontFooter, int pageNumber) throws IOException {
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page,
                 PDPageContentStream.AppendMode.APPEND, true, true)) {
@@ -281,7 +308,8 @@ public class exportador {
     // -----------------------
     // Exportar Excel
     // -----------------------
-    private static <T> void exportarExcel(TableView<T> tabla, String titulo, File archivo) throws IOException {
+
+    private static <T> void exportarExcel(TableView<T> tabla, String titulo, File archivo, List<String> filtros) throws IOException {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet(titulo);
 
@@ -296,21 +324,45 @@ public class exportador {
         CreationHelper createHelper = workbook.getCreationHelper();
         dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd/MM/yyyy HH:mm:ss"));
 
-        Row titleRow = sheet.createRow(0);
+        CellStyle filtroStyle = workbook.createCellStyle();
+        Font filtroFont = workbook.createFont();
+        filtroFont.setBold(false);
+        filtroStyle.setFont(filtroFont);
+
+        int rowNum = 0;
+
+        // Título
+        Row titleRow = sheet.createRow(rowNum++);
         titleRow.createCell(0).setCellValue(titulo);
         List<TableColumn<T, ?>> columns = obtenerColumnasVisibles(tabla);
         Cell dateCell = titleRow.createCell(columns.size());
         dateCell.setCellValue(LocalDateTime.now());
         dateCell.setCellStyle(dateStyle);
 
-        Row headerRow = sheet.createRow(1);
+        // Filtros aplicados
+        if (filtros != null && !filtros.isEmpty()) {
+            Row filtroTitleRow = sheet.createRow(rowNum++);
+            filtroTitleRow.createCell(0).setCellValue("Productos filtrados:");
+            filtroTitleRow.getCell(0).setCellStyle(filtroStyle);
+
+            for (String filtro : filtros) {
+                Row filtroRow = sheet.createRow(rowNum++);
+                filtroRow.createCell(0).setCellValue("• " + filtro);
+                filtroRow.getCell(0).setCellStyle(filtroStyle);
+            }
+
+            rowNum++; // Espacio en blanco
+        }
+
+        // Encabezados de columnas
+        Row headerRow = sheet.createRow(rowNum++);
         for (int i = 0; i < columns.size(); i++) {
             Cell cell = headerRow.createCell(i);
             cell.setCellValue(columns.get(i).getText());
             cell.setCellStyle(headerStyle);
         }
 
-        int rowNum = 2;
+        // Datos
         for (T item : tabla.getItems()) {
             Row row = sheet.createRow(rowNum++);
             int colIndex = 0;

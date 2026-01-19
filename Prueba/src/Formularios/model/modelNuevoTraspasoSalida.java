@@ -15,7 +15,7 @@ public class modelNuevoTraspasoSalida {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre";
+        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -527,6 +527,48 @@ public class modelNuevoTraspasoSalida {
         }
         return null;
     }
+
+    /**
+     * Obtiene la cantidad disponible para un producto con lote, caducidad, presentación y factor específicos
+     */
+    public int obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
+            String idProducto, String lote, java.time.LocalDate caducidad,
+            String presentacion, int factor) {
+        String sql = """
+        SELECT COUNT(*) AS total
+        FROM articulo a
+        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+        WHERE a.lote = ? 
+          AND de.claveProducto = ?
+          AND a.caducidad = ?
+          AND a.presentacion = ?
+          AND a.factor = ?
+          AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+    """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+
+            int index = 1;
+            ps.setString(index++, lote);
+            ps.setString(index++, idProducto);
+            ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
+            index = agregarParametroEstado(ps, conn, index);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+        return 0;
+    }
+
 
 
     /**

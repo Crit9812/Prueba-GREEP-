@@ -524,7 +524,7 @@ public class GenericDAO<T> {
 
     public static int contarDisponiblesSinSalidaPorLoteProductoCaducidad(Connection conn, String lote, String idProducto,
                                                                          java.time.LocalDate caducidad) {
-        if (conn == null || lote == null || idProducto == null || caducidad == null) {
+        if (conn == null || lote == null || idProducto == null) {
             return 0;
         }
 
@@ -556,9 +556,13 @@ public class GenericDAO<T> {
                     .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
                     .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
                     .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? AND a.`")
-                    .append(colArticuloLote).append("` = ? AND a.`").append(colArticuloCaducidad)
-                    .append("` = ? ")
-                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloLote).append("` = ? ");
+            if (caducidad == null) {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` IS NULL ");
+            } else {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` = ? ");
+            }
+            sql.append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
                     .append(colArticuloDetalleSalida).append("` = 0)");
             if (colArticuloEstado != null) {
                 sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
@@ -568,7 +572,9 @@ public class GenericDAO<T> {
                 int index = 1;
                 ps.setString(index++, idProducto);
                 ps.setString(index++, lote);
-                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
                 if (colArticuloEstado != null) {
                     ps.setString(index, "disponible");
                 }
@@ -588,7 +594,7 @@ public class GenericDAO<T> {
     public static int contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(Connection conn, String lote,
                                                                           java.time.LocalDate caducidad,
                                                                           String ubicacionNombre) {
-        if (conn == null || lote == null || caducidad == null || ubicacionNombre == null) {
+        if (conn == null || lote == null || ubicacionNombre == null) {
             return 0;
         }
 
@@ -617,9 +623,13 @@ public class GenericDAO<T> {
                     .append("FROM articulo a ")
                     .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
                     .append("` = a.`").append(colArticuloUbicacion).append("` ")
-                    .append("WHERE a.`").append(colArticuloLote).append("` = ? AND a.`")
-                    .append(colArticuloCaducidad).append("` = ? AND u.`")
-                    .append(colUbicacionNombre).append("` = ? ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? ");
+            if (caducidad == null) {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` IS NULL ");
+            } else {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` = ? ");
+            }
+            sql.append("AND u.`").append(colUbicacionNombre).append("` = ? ")
                     .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
                     .append(colArticuloDetalleSalida).append("` = 0)");
             if (colArticuloEstado != null) {
@@ -629,7 +639,9 @@ public class GenericDAO<T> {
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 int index = 1;
                 ps.setString(index++, lote);
-                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
                 ps.setString(index++, ubicacionNombre);
                 if (colArticuloEstado != null) {
                     ps.setString(index, "disponible");
@@ -650,8 +662,7 @@ public class GenericDAO<T> {
     public static int contarDisponiblesSinSalidaDetalle(Connection conn, String idProducto, String lote,
                                                         java.time.LocalDate caducidad, String presentacion, int factor,
                                                         String ubicacionNombre) {
-        if (conn == null || idProducto == null || lote == null || caducidad == null
-                || presentacion == null || ubicacionNombre == null) {
+        if (conn == null || idProducto == null || lote == null || presentacion == null || ubicacionNombre == null) {
             return 0;
         }
 
@@ -696,12 +707,16 @@ public class GenericDAO<T> {
                     .append("` = a.`").append(colArticuloUbicacion).append("` ")
                     .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? ")
                     .append("AND a.`").append(colArticuloLote).append("` = ? ")
-                    .append("AND a.`").append(colArticuloCaducidad).append("` = ? ")
                     .append("AND a.`").append(colArticuloPresentacion).append("` = ? ")
                     .append("AND a.`").append(colArticuloFactor).append("` = ? ")
                     .append("AND u.`").append(colUbicacionNombre).append("` = ? ")
                     .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
                     .append(colArticuloDetalleSalida).append("` = 0)");
+            if (caducidad == null) {
+                sql.append(" AND a.`").append(colArticuloCaducidad).append("` IS NULL");
+            } else {
+                sql.append(" AND a.`").append(colArticuloCaducidad).append("` = ?");
+            }
             if (colArticuloEstado != null) {
                 sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
             }
@@ -710,10 +725,12 @@ public class GenericDAO<T> {
                 int index = 1;
                 ps.setString(index++, idProducto);
                 ps.setString(index++, lote);
-                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
                 ps.setString(index++, presentacion);
                 ps.setInt(index++, factor);
                 ps.setString(index++, ubicacionNombre);
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
                 if (colArticuloEstado != null) {
                     ps.setString(index, "disponible");
                 }

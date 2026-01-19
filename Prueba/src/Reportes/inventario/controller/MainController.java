@@ -85,6 +85,8 @@ public class MainController {
     private String criterioOrden = "id";
     private String direccionOrden = "asc";
     private final List<Filtro> filtrosActivos = new ArrayList<>();
+    private boolean restaurandoFiltros = false;
+
 
     @FXML
     public void initialize() {
@@ -200,9 +202,6 @@ public class MainController {
         }
 
         contenidoTabla.setItems(itemsInventario);
-        Platform.runLater(() -> {
-            forzarActualizacionRedimensionamiento();
-        });
     }
 
     private void actualizarPoliticaRedimensionamiento() {
@@ -273,23 +272,8 @@ public class MainController {
         for (TableColumn<ItemInventario, ?> columna : obtenerColumnasModo(detallado)) {
             columna.setVisible(estado.getOrDefault(columna, true));
         }
-        forzarActualizacionRedimensionamiento();
     }
 
-    private void forzarActualizacionRedimensionamiento() {
-        System.out.println("metodoreforzar");
-        Platform.runLater(() -> {
-            // Pequeño delay para asegurar que todos los cambios de UI se hayan procesado
-            Platform.runLater(() -> {
-                // Forzar un cambio de tamaño temporal
-                contenidoTabla.setPrefWidth(contenidoTabla.getWidth() + 0.001);
-                Platform.runLater(() -> {
-                    contenidoTabla.setPrefWidth(contenidoTabla.getWidth() - 0.001);
-                    actualizarPoliticaRedimensionamiento();
-                });
-            });
-        });
-    }
 
     private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
         List<TableColumn<ItemInventario, ?>> columnas = new ArrayList<>();
@@ -327,16 +311,24 @@ public class MainController {
                         entry.getKey().setVisible(entry.getValue());
                     }
                     estado.putAll(seleccion);
-                    forzarActualizacionRedimensionamiento();
                 });
     }
 
     private void configurarFiltros() {
         actualizarOpcionesFiltro(chkInventarioDetallado.isSelected());
-        comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> actualizarValoresFiltro(newVal));
+        comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (restaurandoFiltros) return;
+            actualizarValoresFiltro(newVal);
+        });
     }
 
     private void actualizarOpcionesFiltro(boolean detallado) {
+
+        String campoSeleccionado = comboFiltro.getValue();
+        String valorSeleccionado = comboValor.getValue();
+
+        restaurandoFiltros = true;
+
         List<String> opciones = new ArrayList<>();
         opciones.add("ID");
         opciones.add("Producto");
@@ -352,15 +344,38 @@ public class MainController {
         }
 
         comboFiltro.getItems().setAll(opciones);
+
+        if (campoSeleccionado != null && opciones.contains(campoSeleccionado)) {
+            comboFiltro.setValue(campoSeleccionado);
+
+            actualizarValoresFiltro(campoSeleccionado);
+
+            if (valorSeleccionado != null &&
+                    comboValor.getItems().contains(valorSeleccionado)) {
+                comboValor.setValue(valorSeleccionado);
+            }
+        } else {
+            comboValor.getItems().clear();
+            comboValor.setValue(null);
+        }
+
+        restaurandoFiltros = false;
+
         limpiarFiltrosNoDisponibles(new LinkedHashSet<>(opciones));
     }
 
     private void actualizarValoresFiltro(String campo) {
+
         comboValor.getItems().clear();
-        comboValor.setValue(null);
+
+        if (!restaurandoFiltros) {
+            comboValor.setValue(null);
+        }
+
         if (campo == null || campo.isBlank()) {
             return;
         }
+
         Set<String> valores = new LinkedHashSet<>();
         for (ItemInventario item : itemsInventarioOriginal) {
             String valor = obtenerValorCampo(item, campo);
@@ -368,21 +383,37 @@ public class MainController {
                 valores.add(valor);
             }
         }
+
         comboValor.getItems().setAll(valores);
     }
+
 
     @FXML
     private void agregarFiltro() {
         String campo = comboFiltro.getValue();
         String valor = comboValor.getValue();
         if (campo == null || valor == null) {
+            mostrarAdvertencia(
+                    "Filtro incompleto",
+                    "Debes seleccionar un valor para el campo \"" + campo + "\"."
+            );
             return;
         }
         if (filtrosActivos.size() >= 3) {
+            mostrarAdvertencia(
+                    "Límite de filtros",
+                    "Solo puedes aplicar hasta 3 filtros al mismo tiempo.\n" +
+                            "Elimina uno para agregar otro."
+            );
             return;
         }
         for (Filtro filtro : filtrosActivos) {
             if (filtro.campo.equals(campo)) {
+                mostrarAdvertencia(
+                        "Filtro duplicado",
+                        "Ya existe un filtro aplicado para el campo \"" + campo + "\".\n" +
+                                "Elimina el filtro actual si deseas cambiar su valor."
+                );
                 return;
             }
         }
@@ -472,13 +503,22 @@ public class MainController {
         }
     }
 
+    // En la clase MainController, cambia estos métodos:
+
     @FXML
     private void exportarExcel() {
         if (contenidoTabla.getItems().isEmpty()) {
             mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
             return;
         }
-        exportador.exportarTabla(contenidoTabla, "Inventario", "excel");
+
+        // Crear lista de filtros aplicados
+        List<String> filtrosAplicados = new ArrayList<>();
+        for (Filtro filtro : filtrosActivos) {
+            filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
+        }
+
+        exportador.exportarTabla(contenidoTabla, "Inventario", "excel", filtrosAplicados);
     }
 
     @FXML
@@ -487,7 +527,14 @@ public class MainController {
             mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
             return;
         }
-        exportador.exportarTabla(contenidoTabla, "Inventario", "pdf");
+
+        // Crear lista de filtros aplicados
+        List<String> filtrosAplicados = new ArrayList<>();
+        for (Filtro filtro : filtrosActivos) {
+            filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
+        }
+
+        exportador.exportarTabla(contenidoTabla, "Inventario", "pdf", filtrosAplicados);
     }
 
     @FXML
@@ -496,7 +543,14 @@ public class MainController {
             mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
             return;
         }
-        exportador.previsualizarPDF(contenidoTabla, "Inventario");
+
+        // Crear lista de filtros aplicados
+        List<String> filtrosAplicados = new ArrayList<>();
+        for (Filtro filtro : filtrosActivos) {
+            filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
+        }
+
+        exportador.previsualizarPDF(contenidoTabla, "Inventario", filtrosAplicados);
     }
 
     private void mostrarAdvertencia(String titulo, String mensaje) {
@@ -564,57 +618,62 @@ public class MainController {
     }
 
     private void cargarInventarioDisponible(boolean detallado) {
+
         String sql = detallado ? """
-                SELECT
-                    p.id AS claveProducto,
-                    p.nombre AS producto,
-                    m.nombre AS marca,
-                    p.categoria AS categoria,
-                    p.material AS material,
-                    p.unidadMedida AS unidadMedida,
-                    a.presentacion AS presentacion,
-                    a.factor AS factor,
-                    a.lote AS lote,
-                    a.caducidad AS caducidad,
-                    u.nombre AS ubicacion,
-                    p.descripcion AS descripcion,
-                    p.inventarioMin AS inventarioMinimo
-                FROM articulo a
-                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
-                INNER JOIN productos p ON de.claveProducto = p.id
-                LEFT JOIN marcas m ON p.marca = m.id
-                LEFT JOIN ubicaciones u ON a.ubicacion = u.id
-                WHERE a.Estado = 'disponible'
-                """ : """
-                SELECT
-                    p.id AS claveProducto,
-                    COUNT(a.idArticulo) AS cantidad,
-                    p.nombre AS producto,
-                    m.nombre AS marca,
-                    p.categoria AS categoria,
-                    p.material AS material,
-                    p.unidadMedida AS unidadMedida,
-                    a.presentacion AS presentacion,
-                    a.factor AS factor,
-                    p.descripcion AS descripcion,
-                    p.inventarioMin AS inventarioMinimo
-                FROM articulo a
-                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
-                INNER JOIN productos p ON de.claveProducto = p.id
-                LEFT JOIN marcas m ON p.marca = m.id
-                WHERE a.Estado = 'disponible'
-                GROUP BY
-                    p.id,
-                    p.nombre,
-                    m.nombre,
-                    p.categoria,
-                    p.material,
-                    p.unidadMedida,
-                    a.presentacion,
-                    a.factor,
-                    p.descripcion,
-                    p.inventarioMin
-                """;
+            SELECT
+                p.id AS claveProducto,
+                p.nombre AS producto,
+                m.nombre AS marca,
+                p.categoria AS categoria,
+                p.material AS material,
+                p.unidadMedida AS unidadMedida,
+                a.presentacion AS presentacion,
+                a.factor AS factor,
+                a.lote AS lote,
+                a.caducidad AS caducidad,
+                u.nombre AS ubicacion,
+                p.descripcion AS descripcion,
+                p.inventarioMin AS inventarioMinimo
+            FROM articulo a
+            INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+            INNER JOIN productos p ON de.claveProducto = p.id
+            LEFT JOIN marcas m ON p.marca = m.id
+            LEFT JOIN ubicaciones u ON a.ubicacion = u.id
+            WHERE a.Estado = 'disponible'
+            """ : """
+            SELECT
+                p.id AS claveProducto,
+                COUNT(a.idArticulo) AS cantidad,
+                p.nombre AS producto,
+                m.nombre AS marca,
+                p.categoria AS categoria,
+                p.material AS material,
+                p.unidadMedida AS unidadMedida,
+                a.presentacion AS presentacion,
+                a.factor AS factor,
+                p.descripcion AS descripcion,
+                p.inventarioMin AS inventarioMinimo
+            FROM articulo a
+            INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+            INNER JOIN productos p ON de.claveProducto = p.id
+            LEFT JOIN marcas m ON p.marca = m.id
+            WHERE a.Estado = 'disponible'
+            GROUP BY
+                p.id,
+                p.nombre,
+                m.nombre,
+                p.categoria,
+                p.material,
+                p.unidadMedida,
+                a.presentacion,
+                a.factor,
+                p.descripcion,
+                p.inventarioMin
+            """;
+
+        // 1️⃣ Guardar selección actual de filtros
+        String campoActual = comboFiltro.getValue();
+        String valorActual = comboValor.getValue();
 
         itemsInventarioOriginal.clear();
 
@@ -640,12 +699,25 @@ public class MainController {
                         rs.getString("inventarioMinimo")
                 ));
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        actualizarValoresFiltro(comboFiltro.getValue());
+        restaurandoFiltros = true;
+
+        actualizarValoresFiltro(campoActual);
+
+        if (valorActual != null &&
+                comboValor.getItems().contains(valorActual)) {
+            comboValor.setValue(valorActual);
+        }
+
+        restaurandoFiltros = false;
+
+        // 3️⃣ Aplicar filtros activos
         aplicarFiltros();
     }
+
 
     private static class Filtro {
         private final String campo;
