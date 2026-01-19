@@ -2581,10 +2581,6 @@ public class controllerNuevaVenta {
     }
 
     private void validarCantidadTotalDisponible() {
-        if (!caducidadValidada) {
-            cantidadTotalValida = false;
-            return;
-        }
         String texto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
         if (texto.isBlank()) {
             cantidadTotalValida = false;

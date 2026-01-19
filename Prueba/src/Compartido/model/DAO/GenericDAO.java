@@ -591,6 +591,75 @@ public class GenericDAO<T> {
         return 0;
     }
 
+    public static int contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor(Connection conn, String lote,
+                                                                                  String idProducto,
+                                                                                  String presentacion, int factor) {
+        if (conn == null || lote == null || idProducto == null || presentacion == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
+            String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloPresentacion == null || colArticuloFactor == null
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? ")
+                    .append("AND de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloPresentacion).append("` = ? ")
+                    .append("AND a.`").append(colArticuloFactor).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                ps.setString(index++, idProducto);
+                ps.setString(index++, presentacion);
+                ps.setInt(index++, factor);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor: "
+                    + e.getMessage());
+        }
+
+        return 0;
+    }
+
     public static int contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(Connection conn, String lote,
                                                                           java.time.LocalDate caducidad,
                                                                           String ubicacionNombre) {

@@ -2268,10 +2268,6 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void validarCantidadTotalDisponible() {
-        if (!caducidadValidada) {
-            cantidadTotalValida = false;
-            return;
-        }
         String texto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
         if (texto.isBlank()) {
             cantidadTotalValida = false;
@@ -2282,6 +2278,28 @@ public class controllerNuevoTraspasoSalida {
             cantidadTotalValida = false;
             return;
         }
+        String presentacion = cbPresentacion.getValue();
+        String factorTexto = txtFactor.getText();
+        if (presentacion == null || presentacion.isBlank()
+                || factorTexto == null || factorTexto.isBlank()) {
+            cantidadTotalValida = false;
+            return;
+        }
+        int factor;
+        try {
+            factor = Integer.parseInt(factorTexto);
+            if (factor <= 0) {
+                txtCantidad.clear();
+                cantidadTotalValida = false;
+                mostrarAlertaSinEspera("Advertencia", "El factor debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            txtCantidad.clear();
+            cantidadTotalValida = false;
+            mostrarAlertaSinEspera("Error", "El factor debe ser un número válido.");
+            return;
+        }
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
         if (idProducto == null || idProducto.isBlank()) {
@@ -2290,22 +2308,34 @@ public class controllerNuevoTraspasoSalida {
         }
         String loteSnapshot = lote;
         String idSnapshot = idProducto;
+        String presentacionSnapshot = presentacion;
+        int factorSnapshot = factor;
         int cantidadSnapshot = cantidad;
 
         javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
             @Override
             protected Integer call() {
-                return modelo.obtenerCantidadDisponibleProductoLote(
-                        idSnapshot, loteSnapshot);
+                return modelo.obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
+                        idSnapshot, loteSnapshot, null, presentacionSnapshot, factorSnapshot);
             }
 
             @Override
             protected void succeeded() {
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 String idActual = productoController.getIdSeleccionado();
+                String presentacionActual = cbPresentacion.getValue();
+                String factorActualText = txtFactor.getText();
+                int factorActual = 0;
+                try {
+                    factorActual = factorActualText != null ? Integer.parseInt(factorActualText) : 0;
+                } catch (NumberFormatException e) {
+                    factorActual = 0;
+                }
                 int cantidadActual = parseEntero(txtCantidad.getText());
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
+                        || !presentacionSnapshot.equals(presentacionActual)
+                        || factorSnapshot != factorActual
                         || cantidadActual != cantidadSnapshot) {
                     return;
                 }
@@ -2314,7 +2344,7 @@ public class controllerNuevoTraspasoSalida {
                     txtCantidad.clear();
                     cantidadTotalValida = false;
                     mostrarAlertaSinEspera("Advertencia",
-                            "La cantidad supera la disponible para el lote seleccionado.");
+                            "La cantidad supera la disponible para el lote, presentación y factor seleccionados.");
                 } else {
                     cantidadTotalValida = true;
                     actualizarPreciosPorUbicaciones();
