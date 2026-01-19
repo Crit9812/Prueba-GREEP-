@@ -1876,10 +1876,7 @@ public class controllerNuevaVenta {
                 }
                 Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(
                         loteSnapshot, productoSnapshot);
-                if (caducidad.isEmpty()) {
-                    return ResultadoValidacionLote.loteInvalido();
-                }
-                return ResultadoValidacionLote.ok(caducidad.get());
+                return ResultadoValidacionLote.ok(caducidad.orElse(null));
             }
 
             @Override
