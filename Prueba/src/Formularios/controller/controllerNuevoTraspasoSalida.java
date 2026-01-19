@@ -2290,25 +2290,22 @@ public class controllerNuevoTraspasoSalida {
         }
         String loteSnapshot = lote;
         String idSnapshot = idProducto;
-        java.time.LocalDate caducidadSnapshot = dpCaducidad.getValue();
         int cantidadSnapshot = cantidad;
 
         javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
             @Override
             protected Integer call() {
-                return modelo.obtenerCantidadDisponibleProductoLoteCaducidad(
-                        idSnapshot, loteSnapshot, caducidadSnapshot);
+                return modelo.obtenerCantidadDisponibleProductoLote(
+                        idSnapshot, loteSnapshot);
             }
 
             @Override
             protected void succeeded() {
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 String idActual = productoController.getIdSeleccionado();
-                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 int cantidadActual = parseEntero(txtCantidad.getText());
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
-                        || !Objects.equals(caducidadSnapshot, caducidadActual)
                         || cantidadActual != cantidadSnapshot) {
                     return;
                 }
@@ -2317,7 +2314,7 @@ public class controllerNuevoTraspasoSalida {
                     txtCantidad.clear();
                     cantidadTotalValida = false;
                     mostrarAlertaSinEspera("Advertencia",
-                            "La cantidad supera la disponible para el lote y caducidad seleccionados.");
+                            "La cantidad supera la disponible para el lote seleccionado.");
                 } else {
                     cantidadTotalValida = true;
                     actualizarPreciosPorUbicaciones();

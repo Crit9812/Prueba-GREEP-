@@ -564,11 +564,6 @@ public class modelNuevoTraspasoSalida {
         WHERE a.lote = ? 
           AND de.claveProducto = ?
         """);
-        if (caducidad == null) {
-            sql.append(" AND a.caducidad IS NULL ");
-        } else {
-            sql.append(" AND a.caducidad = ? ");
-        }
         sql.append("""
           AND a.presentacion = ?
           AND a.factor = ?
@@ -581,9 +576,6 @@ public class modelNuevoTraspasoSalida {
             int index = 1;
             ps.setString(index++, lote);
             ps.setString(index++, idProducto);
-            if (caducidad != null) {
-                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
-            }
             ps.setString(index++, presentacion);
             ps.setInt(index++, factor);
             index = agregarParametroEstado(ps, conn, index);
@@ -598,6 +590,15 @@ public class modelNuevoTraspasoSalida {
             return 0;
         }
         return 0;
+    }
+
+    public int obtenerCantidadDisponibleProductoLote(String idProducto, String lote) {
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorLoteProducto(conn, lote, idProducto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
 

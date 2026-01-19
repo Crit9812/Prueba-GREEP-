@@ -2631,7 +2631,6 @@ public class controllerNuevaVenta {
 
         String loteSnapshot = lote;
         String idSnapshot = idProducto;
-        java.time.LocalDate caducidadSnapshot = dpCaducidad.getValue();
         String presentacionSnapshot = presentacion;
         int factorSnapshot = factor;
         int cantidadSnapshot = cantidad;
@@ -2641,14 +2640,13 @@ public class controllerNuevaVenta {
             protected Integer call() {
                 // Necesitamos una nueva consulta que incluya presentación y factor
                 return modelo.obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
-                        idSnapshot, loteSnapshot, caducidadSnapshot, presentacionSnapshot, factorSnapshot);
+                        idSnapshot, loteSnapshot, null, presentacionSnapshot, factorSnapshot);
             }
 
             @Override
             protected void succeeded() {
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 String idActual = productoController.getIdSeleccionado();
-                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String presentacionActual = cbPresentacion.getValue();
                 String factorActualText = txtFactor.getText();
                 int factorActual = 0;
@@ -2661,7 +2659,6 @@ public class controllerNuevaVenta {
 
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
-                        || !Objects.equals(caducidadSnapshot, caducidadActual)
                         || !presentacionSnapshot.equals(presentacionActual)
                         || factorSnapshot != factorActual
                         || cantidadActual != cantidadSnapshot) {
