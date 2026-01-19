@@ -22,6 +22,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
@@ -54,6 +55,7 @@ public class controllerNuevaVenta {
     @FXML private ComboBox<String> cbProductoNombre;
     @FXML private TextField txtDescripcion;
     @FXML private ImageView previewImage;
+    @FXML private ScrollPane scrollPaneVenta;
     @FXML private TextField txtLote;
     @FXML private DatePicker dpCaducidad;
     @FXML private TextField txtCantidad;
@@ -3195,6 +3197,7 @@ public class controllerNuevaVenta {
 
         nuevaFila.getChildren().addAll(vboxUbicacion, vboxCantidad, vboxBoton);
         contenedorUbicaciones.getChildren().add(nuevaFila);
+        ajustarScrollUbicaciones();
 
         configurarCampoCantidadUbicacion(txtCantidad, nuevoCombo);
         configurarComboUbicacion(nuevoCombo, txtCantidad);
@@ -3230,6 +3233,17 @@ public class controllerNuevaVenta {
 
         contenedorUbicaciones.getChildren().remove(fila);
         contadorFilas--;
+        ajustarScrollUbicaciones();
+    }
+
+    private void ajustarScrollUbicaciones() {
+        if (scrollPaneVenta == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            scrollPaneVenta.layout();
+            scrollPaneVenta.setVvalue(1.0);
+        });
     }
 
     public void setItemsVenta(ObservableList<traspasoSalida> itemsVenta) {

@@ -232,7 +232,11 @@ public class model {
                         sqlSelect.append(" AND a.").append(colArticuloLote).append(" = ?");
                     }
                     if (colArticuloCaducidad != null) {
-                        sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        if (tieneCaducidad(item)) {
+                            sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        } else {
+                            sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                        }
                     }
                     if (colArticuloUbicacion != null) {
                         sqlSelect.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
@@ -256,7 +260,7 @@ public class model {
                         if (colArticuloLote != null) {
                             ps.setString(index++, item.getLote());
                         }
-                        if (colArticuloCaducidad != null) {
+                        if (colArticuloCaducidad != null && tieneCaducidad(item)) {
                             ps.setDate(index++, parseDate(item.getCaducidad()));
                         }
                         if (colArticuloUbicacion != null) {
@@ -379,6 +383,10 @@ public class model {
             }
         }
         return null;
+    }
+
+    private boolean tieneCaducidad(traspasoSalida item) {
+        return item != null && item.getCaducidad() != null && !item.getCaducidad().isBlank();
     }
 
     private long insertarRegistro(Connection conn, String tabla, Map<String, String> columnas, Map<String, Object> valores)
