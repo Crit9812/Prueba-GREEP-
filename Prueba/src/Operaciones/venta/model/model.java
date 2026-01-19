@@ -227,7 +227,11 @@ public class model {
                         sql.append(" AND a.").append(colArticuloLote).append(" = ?");
                     }
                     if (colArticuloCaducidad != null) {
-                        sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        if (tieneCaducidad(item)) {
+                            sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        } else {
+                            sql.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                        }
                     }
                     if (colArticuloUbicacion != null) {
                         sql.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
@@ -252,7 +256,7 @@ public class model {
                         if (colArticuloLote != null) {
                             ps.setString(index++, item.getLote());
                         }
-                        if (colArticuloCaducidad != null) {
+                        if (colArticuloCaducidad != null && tieneCaducidad(item)) {
                             ps.setDate(index++, parseDate(item.getCaducidad()));
                         }
                         if (colArticuloUbicacion != null) {
@@ -387,7 +391,11 @@ public class model {
             sql.append(" AND a.").append(colArticuloLote).append(" = ?");
         }
         if (colArticuloCaducidad != null) {
-            sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+            if (tieneCaducidad(item)) {
+                sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+            } else {
+                sql.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+            }
         }
         if (colArticuloPresentacion != null) {
             sql.append(" AND a.").append(colArticuloPresentacion).append(" = ?");
@@ -406,7 +414,7 @@ public class model {
             if (colArticuloLote != null) {
                 ps.setString(index++, item.getLote());
             }
-            if (colArticuloCaducidad != null) {
+            if (colArticuloCaducidad != null && tieneCaducidad(item)) {
                 ps.setDate(index++, parseDate(item.getCaducidad()));
             }
             if (colArticuloPresentacion != null) {
@@ -629,5 +637,9 @@ public class model {
         }
 
         return null;
+    }
+
+    private boolean tieneCaducidad(traspasoSalida item) {
+        return item != null && item.getCaducidad() != null && !item.getCaducidad().isBlank();
     }
 }
