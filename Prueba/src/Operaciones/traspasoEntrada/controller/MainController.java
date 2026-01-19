@@ -18,6 +18,8 @@ import javafx.scene.Scene;
 import javafx.fxml.FXMLLoader;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.exportar.ReporteTraspasoExporter;
+import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoEntrada.model.model;
 import Operaciones.traspasoEntrada.model.traspasoEntrada;
 import javafx.fxml.FXML;
@@ -179,9 +181,9 @@ public class MainController {
             controller.setClaveEntrada(claveEntrada);
 
             // Configurar callback para cuando se confirme este traspaso
-            controller.setOnConfirmCallback(() -> {
+            controller.setOnConfirmCallback(ubicacionesPorProducto -> {
                 // Actualizar la entrada específica después de asignar ubicaciones
-                actualizarEntradaIndividual(claveEntrada, nuevoEstadoEntrada, nuevoEstadoArticulos, pendientes);
+                actualizarEntradaIndividual(claveEntrada, nuevoEstadoEntrada, nuevoEstadoArticulos, pendientes, ubicacionesPorProducto);
             });
 
             Stage stage = new Stage();
@@ -239,27 +241,25 @@ public class MainController {
     private void actualizarEntradaIndividual(String claveEntrada,
                                              String nuevoEstadoEntrada,
                                              String nuevoEstadoArticulos,
-                                             List<traspasoEntrada> pendientes) {
-        // Crear una lista con solo esta entrada
-        List<String> clavesIndividual = new ArrayList<>();
-        clavesIndividual.add(claveEntrada);
-
+                                             List<traspasoEntrada> pendientes,
+                                             java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
         // Actualizar esta entrada específica en la base de datos
-        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(
-                clavesIndividual,
+        model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
+                claveEntrada,
+                ubicacionesPorProducto,
                 nuevoEstadoEntrada,
                 nuevoEstadoArticulos
         );
 
-        if (actualizado) {
+        if (resultado.isExito()) {
             // Actualizar la lista original quitando la entrada procesada
             entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
 
             // Actualizar la tabla manteniendo el orden
             actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
 
-            // No mostrar alerta aquí, ya se mostró en el controllerUbicacionTraspaso
-            // Solo proceder con el siguiente traspaso automáticamente
+            List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+            Platform.runLater(() -> mostrarConfirmacionReporte(claveEntrada, resultado.getMensaje(), detalles, ubicacionesPorProducto));
 
             // Esperar un momento antes de procesar el siguiente
             Platform.runLater(() -> {
@@ -277,7 +277,7 @@ public class MainController {
         } else {
             Platform.runLater(() -> {
                 mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                        "No se pudo actualizar el estado del traspaso: " + claveEntrada);
+                        "No se pudo actualizar el traspaso: " + resultado.getMensaje());
 
                 // Aún así, intentar con el siguiente si hay
                 if (!pendientes.isEmpty()) {
@@ -309,6 +309,25 @@ public class MainController {
 
         // También limpiar selección del checkbox
         miCheckBox.setSelected(false);
+    }
+
+    private void mostrarConfirmacionReporte(String claveEntrada,
+                                            String mensaje,
+                                            List<model.DetalleEntrada> detalles,
+                                            java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("Registro exitoso");
+        dialogo.setHeaderText(mensaje);
+        dialogo.setContentText("¿Deseas descargar el reporte de este traspaso?");
+        ButtonType btnDescargar = new ButtonType("Descargar");
+        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
+        dialogo.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == btnDescargar) {
+                ReporteTraspasoExporter.exportarReporte(claveEntrada, detalles, ubicacionesPorProducto,
+                        contenidoTabla != null && contenidoTabla.getScene() != null ? contenidoTabla.getScene().getWindow() : null);
+            }
+        });
     }
 
     private void cargarImagenesFlecha() {
