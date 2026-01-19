@@ -7,6 +7,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -15,6 +16,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -24,6 +26,7 @@ import java.util.List;
 public class ControllerUbicacionTraspaso {
 
     @FXML private VBox contenedorUbicaciones;
+    @FXML private VBox contenedorDetalles;
     @FXML private Label lblTitulo;
     @FXML private Button btnConfirmar;
     @FXML private Button btnCancelar;
@@ -50,6 +53,7 @@ public class ControllerUbicacionTraspaso {
     public void setClaveEntrada(String claveEntrada) {
         this.claveEntrada = claveEntrada;
         actualizarTitulo();
+        cargarDetallesEntrada();
     }
 
     public void setStage(Stage stage) {
@@ -95,6 +99,78 @@ public class ControllerUbicacionTraspaso {
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
+    }
+
+    private void cargarDetallesEntrada() {
+        if (contenedorDetalles == null) {
+            return;
+        }
+
+        contenedorDetalles.getChildren().clear();
+
+        if (claveEntrada == null || claveEntrada.isBlank()) {
+            return;
+        }
+
+        javafx.concurrent.Task<List<model.DetalleEntrada>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<model.DetalleEntrada> call() {
+                return modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+            }
+
+            @Override
+            protected void succeeded() {
+                List<model.DetalleEntrada> detalles = getValue();
+                if (detalles == null || detalles.isEmpty()) {
+                    return;
+                }
+                int contador = 1;
+                for (model.DetalleEntrada detalle : detalles) {
+                    agregarDetalleAlFormulario(detalle, contador++, detalles.size());
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void agregarDetalleAlFormulario(model.DetalleEntrada detalle, int numero, int totalDetalles) {
+        VBox productoContainer = new VBox(8);
+        productoContainer.setStyle("-fx-padding: 15; -fx-background-color: #f5f5f5; " +
+                "-fx-border-color: #ddd; -fx-border-radius: 6; -fx-background-radius: 6;");
+        productoContainer.setPadding(new Insets(15));
+
+        HBox headerBox = new HBox(10);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblNumero = new Label(numero + ".");
+        lblNumero.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-min-width: 30;");
+
+        Label lblProducto = new Label(detalle.getProducto());
+        lblProducto.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2c3e50;");
+
+        headerBox.getChildren().addAll(lblNumero, lblProducto);
+
+        VBox detallesBox = new VBox(3);
+        detallesBox.setStyle("-fx-padding: 0 0 0 40;");
+
+        Label lblClave = new Label("Clave: " + detalle.getClaveProducto());
+        Label lblCantidad = new Label("Cantidad: " + detalle.getCantidad());
+        Label lblPrecioUnitario = new Label("Precio unitario: " + detalle.getPrecioUnitario());
+        Label lblPrecioTotal = new Label("Precio total: " + detalle.getPrecioTotal());
+
+        detallesBox.getChildren().addAll(lblClave, lblCantidad, lblPrecioUnitario, lblPrecioTotal);
+
+        productoContainer.getChildren().addAll(headerBox, detallesBox);
+        contenedorDetalles.getChildren().add(productoContainer);
+
+        if (numero < totalDetalles) {
+            Region separador = new Region();
+            separador.setPrefHeight(10);
+            contenedorDetalles.getChildren().add(separador);
+        }
     }
 
     private void inicializarUbicacionesDinamicas() {
