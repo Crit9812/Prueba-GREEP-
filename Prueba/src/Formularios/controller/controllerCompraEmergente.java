@@ -90,11 +90,7 @@ public class controllerCompraEmergente {
             lblTitulo.setText(tituloFormulario);
         }
         productoController = new productoCboxController();
-        if (proveedorId != null && !proveedorId.isBlank()) {
-            productoController.inicializarConProveedor(cbClaveProducto, cbProductoNombre, cbClaveAlterna, proveedorId);
-        } else {
-            productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
-        }
+        productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
 
         configurarPresentaciones();
         configurarEventos();
@@ -139,7 +135,7 @@ public class controllerCompraEmergente {
         this.proveedorNombre = proveedorNombre;
 
         if (inicializado && productoController != null) {
-            productoController.recargarConProveedor(proveedorId);
+            productoController.recargarConProveedor(null);
         }
     }
 
@@ -736,7 +732,7 @@ public class controllerCompraEmergente {
 
                 // 3. Recargar el controlador de productos para que incluya el nuevo
                 if (productoController != null) {
-                    productoController.recargarConProveedor(proveedorId);
+                    productoController.recargarConProveedor(null);
                 }
 
                 // 4. Mostrar mensaje y abrir formulario de claves con proveedor Y producto
@@ -802,7 +798,7 @@ public class controllerCompraEmergente {
 
             // Recargar productos después de cerrar el formulario
             if (productoController != null) {
-                productoController.recargarConProveedor(this.proveedorId);
+                productoController.recargarConProveedor(null);
             }
 
         } catch (IOException e) {
@@ -855,7 +851,7 @@ public class controllerCompraEmergente {
 
             // Recargar productos después de cerrar el formulario
             if (productoController != null) {
-                productoController.recargarConProveedor(this.proveedorId);
+                productoController.recargarConProveedor(null);
             }
 
         } catch (IOException e) {
