@@ -99,6 +99,7 @@ public class model {
                     if (rs.next()) {
                         nombreProducto = formato(rs.getObject("nombre"));
                         marca = formato(rs.getObject("marca"));
+                        marca = resolverNombreMarca(conn, marca);
                         presentacion = formato(rs.getObject("presentacion"));
 
                         // Construir el compuesto
@@ -536,6 +537,35 @@ public class model {
             }
         }
         return claves;
+    }
+
+    private String resolverNombreMarca(Connection conn, String marcaRaw) throws SQLException {
+        if (marcaRaw == null || marcaRaw.isBlank()) {
+            return marcaRaw;
+        }
+
+        Map<String, String> columnasMarcas = obtenerColumnas(conn, "marcas");
+        String colId = resolverColumna(columnasMarcas, "id", "idMarca", "marca_id");
+        String colNombre = resolverColumna(columnasMarcas, "nombre", "marca", "descripcion", "nombreMarca");
+
+        if (colId == null || colNombre == null) {
+            return marcaRaw;
+        }
+
+        String sql = "SELECT `" + colNombre + "` AS nombre FROM marcas WHERE `" + colId + "` = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, marcaRaw);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String nombre = formato(rs.getObject("nombre"));
+                    if (!nombre.isBlank()) {
+                        return nombre;
+                    }
+                }
+            }
+        }
+
+        return marcaRaw;
     }
 
     private String formato(Object valor) {

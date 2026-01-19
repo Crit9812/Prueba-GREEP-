@@ -4,17 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/d6f8c21b-6a77-4ad3-a53d-d949c98f8913.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/d6f8c21b-6a77-4ad3-a53d-d949c98f8913/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Arreglo de los formularios">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Compartido/exportar/exportador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/exportar/exportador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevaVenta.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,7 +94,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#83 on codex/actualizar-combobox-para-fo…uctos",
+    "git-widget-placeholder": "#86 on codex/replace-brand-id-with-name-…table",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -494,7 +486,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768596636267</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="Arreglo de los formularios">
+      <option name="closed" value="true" />
+      <created>1768849053678</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1768849053678</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -547,7 +547,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="casi consultas" />
     <MESSAGE value="pedidos" />
     <MESSAGE value="subido en rama pruebas" />
     <MESSAGE value="Merge remote-tracking branch 'origin/detached' into detached" />
@@ -572,7 +571,8 @@
     <MESSAGE value="Correcciones" />
     <MESSAGE value="Correcciones de todo lo roto" />
     <MESSAGE value="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4" />
-    <option name="LAST_COMMIT_MESSAGE" value="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4" />
+    <MESSAGE value="Arreglo de los formularios" />
+    <option name="LAST_COMMIT_MESSAGE" value="Arreglo de los formularios" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
