@@ -32,6 +32,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.util.Callback;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -172,7 +173,17 @@ public class MainController {
         String claveEntrada = actual.getClaveEntrada();
 
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/ubicacionTraspaso.fxml"));
+            URL ubicacionUrl = getClass().getResource("/Formularios/view/ubicacionTraspaso.fxml");
+            if (ubicacionUrl == null) {
+                File fxmlFile = new File("src/Formularios/view/ubicacionTraspaso.fxml");
+                if (fxmlFile.exists()) {
+                    ubicacionUrl = fxmlFile.toURI().toURL();
+                }
+            }
+            if (ubicacionUrl == null) {
+                throw new IllegalStateException("No se encontró ubicacionTraspaso.fxml en el classpath.");
+            }
+            FXMLLoader loader = new FXMLLoader(ubicacionUrl);
             Parent root = loader.load();
 
             ControllerUbicacionTraspaso controller = loader.getController();
