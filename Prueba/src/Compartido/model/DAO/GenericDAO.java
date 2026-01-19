@@ -591,6 +591,75 @@ public class GenericDAO<T> {
         return 0;
     }
 
+    public static int contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor(Connection conn, String lote,
+                                                                                  String idProducto,
+                                                                                  String presentacion, int factor) {
+        if (conn == null || lote == null || idProducto == null || presentacion == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
+            String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloPresentacion == null || colArticuloFactor == null
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? ")
+                    .append("AND de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloPresentacion).append("` = ? ")
+                    .append("AND a.`").append(colArticuloFactor).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                ps.setString(index++, idProducto);
+                ps.setString(index++, presentacion);
+                ps.setInt(index++, factor);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor: "
+                    + e.getMessage());
+        }
+
+        return 0;
+    }
+
     public static int contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(Connection conn, String lote,
                                                                           java.time.LocalDate caducidad,
                                                                           String ubicacionNombre) {
@@ -654,6 +723,96 @@ public class GenericDAO<T> {
             }
         } catch (Exception e) {
             System.out.println("Error en contarDisponiblesSinSalidaPorLoteCaducidadUbicacion: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(Connection conn, String idProducto,
+                                                                                  String lote,
+                                                                                  java.time.LocalDate caducidad,
+                                                                                  String ubicacionNombre) {
+        if (conn == null || idProducto == null || lote == null || ubicacionNombre == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasUbicaciones = obtenerColumnas(conn, "ubicaciones");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            String colUbicacionId = resolverColumna(columnasUbicaciones, "id", "idUbicacion", "ubicacion_id",
+                    "id_ubicacion");
+            String colUbicacionNombre = resolverColumna(columnasUbicaciones, "nombre", "nombreUbicacion", "ubicacion");
+            String colUbicacionEstado = resolverColumna(columnasUbicaciones, "estado", "Estado");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloCaducidad == null || colArticuloUbicacion == null || colDetalleEntradaId == null
+                    || colDetalleEntradaProducto == null || colUbicacionId == null || colUbicacionNombre == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                    .append("` = a.`").append(colArticuloUbicacion).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloLote).append("` = ? ");
+            if (caducidad == null) {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` IS NULL ");
+            } else {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` = ? ");
+            }
+            sql.append("AND u.`").append(colUbicacionNombre).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+            if (colUbicacionEstado != null) {
+                sql.append(" AND LOWER(u.`").append(colUbicacionEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, idProducto);
+                ps.setString(index++, lote);
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                ps.setString(index++, ubicacionNombre);
+                if (colArticuloEstado != null) {
+                    ps.setString(index++, "disponible");
+                }
+                if (colUbicacionEstado != null) {
+                    ps.setString(index, "activo");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion: "
+                    + e.getMessage());
         }
 
         return 0;

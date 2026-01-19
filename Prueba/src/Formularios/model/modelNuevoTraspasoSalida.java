@@ -15,7 +15,7 @@ public class modelNuevoTraspasoSalida {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
+        String sql = "SELECT nombre FROM ubicaciones WHERE LOWER(estado) = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -120,6 +120,43 @@ public class modelNuevoTraspasoSalida {
         return Optional.empty();
     }
 
+    public Optional<PreciosProducto> obtenerPreciosProductoPorLotePresentacion(String idProducto, String lote,
+                                                                               String presentacion) {
+        String sql = """
+            SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
+            FROM detalle_Entrada de
+            JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND a.presentacion = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote != null ? lote : "");
+            ps.setString(index++, presentacion != null ? presentacion : "");
+            index = agregarParametroEstado(ps, conn, index);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal precioUnitario = obtenerDecimal(rs, "precioUnitario");
+                    BigDecimal precioIva = obtenerDecimal(rs, "precioIVA");
+                    BigDecimal precioBruto = obtenerDecimal(rs, "precioBrutoTotal");
+                    BigDecimal precioTotal = obtenerDecimal(rs, "precioTotal");
+                    return Optional.of(new PreciosProducto(precioUnitario, precioIva, precioBruto, precioTotal));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
     public Optional<PreciosProducto> obtenerPreciosProductoUltimaEntrada(String idProducto) {
         String sql = """
             SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
@@ -204,6 +241,29 @@ public class modelNuevoTraspasoSalida {
         try (Connection conn = new Conexion().conectar()) {
             return GenericDAO.contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(
                     conn, lote, caducidad, ubicacionNombre);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public boolean existeLoteCaducidadUbicacionProducto(String idProducto, String lote,
+                                                        java.time.LocalDate caducidad, String ubicacionNombre) {
+        try (Connection conn = new Conexion().conectar()) {
+            int disponibles = GenericDAO.contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(
+                    conn, idProducto, lote, caducidad, ubicacionNombre);
+            return disponibles > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public int obtenerCantidadDisponibleProductoUbicacion(String idProducto, String lote,
+                                                          java.time.LocalDate caducidad, String ubicacionNombre) {
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(
+                    conn, idProducto, lote, caducidad, ubicacionNombre);
         } catch (Exception e) {
             e.printStackTrace();
             return 0;
@@ -534,39 +594,22 @@ public class modelNuevoTraspasoSalida {
     public int obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
             String idProducto, String lote, java.time.LocalDate caducidad,
             String presentacion, int factor) {
-        String sql = """
-        SELECT COUNT(*) AS total
-        FROM articulo a
-        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-        WHERE a.lote = ? 
-          AND de.claveProducto = ?
-          AND a.caducidad = ?
-          AND a.presentacion = ?
-          AND a.factor = ?
-          AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-    """;
-
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
-
-            int index = 1;
-            ps.setString(index++, lote);
-            ps.setString(index++, idProducto);
-            ps.setDate(index++, java.sql.Date.valueOf(caducidad));
-            ps.setString(index++, presentacion);
-            ps.setInt(index++, factor);
-            index = agregarParametroEstado(ps, conn, index);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total");
-                }
-            }
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor(
+                    conn, lote, idProducto, presentacion, factor);
         } catch (Exception e) {
             e.printStackTrace();
             return 0;
         }
-        return 0;
+    }
+
+    public int obtenerCantidadDisponibleProductoLote(String idProducto, String lote) {
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorLoteProducto(conn, lote, idProducto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
 

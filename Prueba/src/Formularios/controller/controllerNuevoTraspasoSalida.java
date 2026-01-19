@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 
 public class controllerNuevoTraspasoSalida {
 
@@ -617,12 +618,12 @@ public class controllerNuevoTraspasoSalida {
         }
 
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String presentacion = cbPresentacion.getValue();
 
         javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
-                return modelo.obtenerPreciosProductoPorLoteCaducidad(idProducto, lote, caducidad);
+                return modelo.obtenerPreciosProductoPorLotePresentacion(idProducto, lote, presentacion);
             }
 
             @Override
@@ -762,7 +763,6 @@ public class controllerNuevoTraspasoSalida {
                 || nombre == null || nombre.isBlank()
                 || descripcion.isBlank()
                 || lote.isBlank()
-                || caducidad == null
                 || cantidadTexto.isBlank()
                 || presentacion == null || presentacion.isBlank()
                 || factorTexto.isBlank()
@@ -831,7 +831,7 @@ public class controllerNuevoTraspasoSalida {
         itemParaEditar.setProducto(nombre);
         itemParaEditar.setDescripcion(descripcion);
         itemParaEditar.setLote(lote);
-        itemParaEditar.setCaducidad(caducidad.toString());
+        itemParaEditar.setCaducidad(caducidad != null ? caducidad.toString() : "");
         itemParaEditar.setCantidad(cantidad);
         itemParaEditar.setPresentacion(presentacion);
         itemParaEditar.setFactor(factor);
@@ -876,7 +876,6 @@ public class controllerNuevoTraspasoSalida {
                 || nombre == null || nombre.isBlank()
                 || descripcion.isBlank()
                 || lote.isBlank()
-                || caducidad == null
                 || cantidadTexto.isBlank()
                 || presentacion == null || presentacion.isBlank()
                 || factorTexto.isBlank()
@@ -944,7 +943,7 @@ public class controllerNuevoTraspasoSalida {
                 nombre,
                 descripcion,
                 lote,
-                caducidad.toString(),
+                caducidad != null ? caducidad.toString() : "",
                 cantidad,
                 presentacion,
                 factor,
@@ -1704,10 +1703,7 @@ public class controllerNuevoTraspasoSalida {
                 }
                 Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(
                         loteSnapshot, productoSnapshot);
-                if (caducidad.isEmpty()) {
-                    return ResultadoValidacionLote.loteInvalido();
-                }
-                return ResultadoValidacionLote.ok(caducidad.get());
+                return ResultadoValidacionLote.ok(caducidad.orElse(null));
             }
 
             @Override
@@ -1879,17 +1875,19 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void validarUbicacion() {
-        if (!caducidadValidada) {
+        if (!loteValidado) {
             ubicacionValidada = false;
             return;
         }
+        String idProducto = productoController.getIdSeleccionado();
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
         String ubicacion = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
-        if (ubicacion.isBlank()) {
+        if (idProducto == null || idProducto.isBlank() || ubicacion.isBlank()) {
             ubicacionValidada = false;
             return;
         }
+        String idProductoSnapshot = idProducto;
         String loteSnapshot = lote;
         java.time.LocalDate caducidadSnapshot = caducidad;
         String ubicacionSnapshot = ubicacion;
@@ -1897,22 +1895,24 @@ public class controllerNuevoTraspasoSalida {
         javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
             @Override
             protected Boolean call() {
-                boolean existe = modelo.existeLoteCaducidadUbicacion(loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                boolean existe = modelo.existeLoteCaducidadUbicacionProducto(
+                        idProductoSnapshot, loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
                 if (existe) {
-                    cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponible(
-                            loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                    cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponibleProductoUbicacion(
+                            idProductoSnapshot, loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
                 }
                 return existe;
             }
 
             @Override
             protected void succeeded() {
+                String idProductoActual = productoController.getIdSeleccionado();
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
-                if (!loteSnapshot.equals(loteActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                if (!idProductoSnapshot.equals(idProductoActual)
+                        || !loteSnapshot.equals(loteActual)
+                        || !Objects.equals(caducidadSnapshot, caducidadActual)
                         || !ubicacionSnapshot.equals(ubicacionActual)) {
                     return;
                 }
@@ -1943,21 +1943,23 @@ public class controllerNuevoTraspasoSalida {
         if (combo == null) {
             return;
         }
-        if (!caducidadValidada) {
+        if (!loteValidado) {
             if (combo == comboUbicacion) {
                 ubicacionValidada = false;
             }
             return;
         }
+        String idProducto = productoController.getIdSeleccionado();
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         java.time.LocalDate caducidad = dpCaducidad.getValue();
         String ubicacion = combo.getValue() != null ? combo.getValue().trim() : "";
-        if (ubicacion.isBlank()) {
+        if (idProducto == null || idProducto.isBlank() || ubicacion.isBlank()) {
             if (combo == comboUbicacion) {
                 ubicacionValidada = false;
             }
             return;
         }
+        String idProductoSnapshot = idProducto;
         String loteSnapshot = lote;
         java.time.LocalDate caducidadSnapshot = caducidad;
         String ubicacionSnapshot = ubicacion;
@@ -1965,22 +1967,24 @@ public class controllerNuevoTraspasoSalida {
         javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
             @Override
             protected Boolean call() {
-                boolean existe = modelo.existeLoteCaducidadUbicacion(loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                boolean existe = modelo.existeLoteCaducidadUbicacionProducto(
+                        idProductoSnapshot, loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
                 if (existe) {
-                    cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponible(
-                            loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
+                    cantidadDisponibleUbicacion = modelo.obtenerCantidadDisponibleProductoUbicacion(
+                            idProductoSnapshot, loteSnapshot, caducidadSnapshot, ubicacionSnapshot);
                 }
                 return existe;
             }
 
             @Override
             protected void succeeded() {
+                String idProductoActual = productoController.getIdSeleccionado();
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = combo.getValue() != null ? combo.getValue().trim() : "";
-                if (!loteSnapshot.equals(loteActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                if (!idProductoSnapshot.equals(idProductoActual)
+                        || !loteSnapshot.equals(loteActual)
+                        || !Objects.equals(caducidadSnapshot, caducidadActual)
                         || !ubicacionSnapshot.equals(ubicacionActual)) {
                     return;
                 }
@@ -2021,9 +2025,9 @@ public class controllerNuevoTraspasoSalida {
             mostrarAlerta("Advertencia", "Debe capturar la ubicación antes de la cantidad en ubicación.");
             return;
         }
-        if (!loteValidado || !caducidadValidada) {
+        if (!loteValidado) {
             campoCantidad.clear();
-            mostrarAlerta("Advertencia", "Debe capturar un lote y caducidad válidos antes de la cantidad.");
+            mostrarAlerta("Advertencia", "Debe capturar un lote válido antes de la cantidad.");
             return;
         }
         String idProducto = productoController.getIdSeleccionado();
@@ -2037,7 +2041,6 @@ public class controllerNuevoTraspasoSalida {
                 || presentacion == null
                 || presentacion.isBlank()
                 || factor <= 0
-                || caducidad == null
                 || ubicacion.isBlank()) {
             campoCantidad.clear();
             mostrarAlerta("Advertencia", "Debe completar las características del producto antes de la cantidad.");
@@ -2072,7 +2075,7 @@ public class controllerNuevoTraspasoSalida {
                         || !loteSnapshot.equals(loteActual)
                         || !presentacionSnapshot.equals(presentacionActual)
                         || factorSnapshot != factorActual
-                        || (caducidadSnapshot != null && !caducidadSnapshot.equals(caducidadActual))
+                        || !Objects.equals(caducidadSnapshot, caducidadActual)
                         || !ubicacionSnapshot.equals(ubicacionActual)
                         || !cantidadTextoSnapshot.equals(cantidadActual)) {
                     return;
@@ -2265,10 +2268,6 @@ public class controllerNuevoTraspasoSalida {
     }
 
     private void validarCantidadTotalDisponible() {
-        if (!caducidadValidada) {
-            cantidadTotalValida = false;
-            return;
-        }
         String texto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
         if (texto.isBlank()) {
             cantidadTotalValida = false;
@@ -2279,6 +2278,28 @@ public class controllerNuevoTraspasoSalida {
             cantidadTotalValida = false;
             return;
         }
+        String presentacion = cbPresentacion.getValue();
+        String factorTexto = txtFactor.getText();
+        if (presentacion == null || presentacion.isBlank()
+                || factorTexto == null || factorTexto.isBlank()) {
+            cantidadTotalValida = false;
+            return;
+        }
+        int factor;
+        try {
+            factor = Integer.parseInt(factorTexto);
+            if (factor <= 0) {
+                txtCantidad.clear();
+                cantidadTotalValida = false;
+                mostrarAlertaSinEspera("Advertencia", "El factor debe ser mayor a 0.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            txtCantidad.clear();
+            cantidadTotalValida = false;
+            mostrarAlertaSinEspera("Error", "El factor debe ser un número válido.");
+            return;
+        }
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String idProducto = productoController.getIdSeleccionado();
         if (idProducto == null || idProducto.isBlank()) {
@@ -2287,26 +2308,34 @@ public class controllerNuevoTraspasoSalida {
         }
         String loteSnapshot = lote;
         String idSnapshot = idProducto;
-        java.time.LocalDate caducidadSnapshot = dpCaducidad.getValue();
+        String presentacionSnapshot = presentacion;
+        int factorSnapshot = factor;
         int cantidadSnapshot = cantidad;
 
         javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
             @Override
             protected Integer call() {
-                return modelo.obtenerCantidadDisponibleProductoLoteCaducidad(
-                        idSnapshot, loteSnapshot, caducidadSnapshot);
+                return modelo.obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
+                        idSnapshot, loteSnapshot, null, presentacionSnapshot, factorSnapshot);
             }
 
             @Override
             protected void succeeded() {
                 String loteActual = txtLote.getText() != null ? txtLote.getText().trim() : "";
                 String idActual = productoController.getIdSeleccionado();
-                java.time.LocalDate caducidadActual = dpCaducidad.getValue();
+                String presentacionActual = cbPresentacion.getValue();
+                String factorActualText = txtFactor.getText();
+                int factorActual = 0;
+                try {
+                    factorActual = factorActualText != null ? Integer.parseInt(factorActualText) : 0;
+                } catch (NumberFormatException e) {
+                    factorActual = 0;
+                }
                 int cantidadActual = parseEntero(txtCantidad.getText());
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || !presentacionSnapshot.equals(presentacionActual)
+                        || factorSnapshot != factorActual
                         || cantidadActual != cantidadSnapshot) {
                     return;
                 }
@@ -2315,7 +2344,7 @@ public class controllerNuevoTraspasoSalida {
                     txtCantidad.clear();
                     cantidadTotalValida = false;
                     mostrarAlertaSinEspera("Advertencia",
-                            "La cantidad supera la disponible para el lote y caducidad seleccionados.");
+                            "La cantidad supera la disponible para el lote, presentación y factor seleccionados.");
                 } else {
                     cantidadTotalValida = true;
                     actualizarPreciosPorUbicaciones();
@@ -2330,7 +2359,7 @@ public class controllerNuevoTraspasoSalida {
 
     private void validarPresentacion() {
         String presentacion = cbPresentacion.getValue();
-        if (!loteValidado || !caducidadValidada) {
+        if (!loteValidado) {
             presentacionValida = false;
             if (presentacion != null && !presentacion.isBlank()) {
                 cbPresentacion.setValue(null);
@@ -2483,8 +2512,8 @@ public class controllerNuevoTraspasoSalida {
         return productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
-                && caducidadValidada
-                && cantidadTotalValida;
+                && cbPresentacion.getValue() != null
+                && !cbPresentacion.getValue().isBlank();
     }
 
     private void limpiarValidacionesInventario() {
