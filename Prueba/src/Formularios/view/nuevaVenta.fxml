@@ -20,7 +20,8 @@
 
     <!-- Contenido principal con scroll -->
     <center>
-        <ScrollPane fitToWidth="true"
+        <ScrollPane fx:id="scrollPaneVenta"
+                    fitToWidth="true"
                     vbarPolicy="AS_NEEDED"
                     hbarPolicy="NEVER"
                     style="-fx-background: white; -fx-background-color: white;">
