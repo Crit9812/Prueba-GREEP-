@@ -38,9 +38,6 @@
                     <Label text="Resumen del traspaso"
                            style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
                     <VBox fx:id="contenedorDetalles" spacing="12"/>
-                    <Label text="Captura las ubicaciones para este traspaso:"
-                           style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
-                    <VBox fx:id="contenedorUbicaciones" spacing="10"/>
                 </VBox>
             </content>
         </ScrollPane>

@@ -25,7 +25,6 @@ import java.util.List;
 
 public class ControllerUbicacionTraspaso {
 
-    @FXML private VBox contenedorUbicaciones;
     @FXML private VBox contenedorDetalles;
     @FXML private Label lblTitulo;
     @FXML private Button btnConfirmar;
@@ -34,18 +33,16 @@ public class ControllerUbicacionTraspaso {
     private static final int MAX_FILAS = 10;
 
     private final ObservableList<String> ubicaciones = FXCollections.observableArrayList();
-    private final List<UbicacionRow> filasUbicacion = new ArrayList<>();
+    private final List<UbicacionSection> seccionesUbicacion = new ArrayList<>();
 
     private final model modeloTraspaso = new model();
 
-    private int contadorFilas = 0;
     private String claveEntrada;
     private Stage stage;
     private Runnable onConfirmCallback;
 
     @FXML
     public void initialize() {
-        inicializarUbicacionesDinamicas();
         cargarUbicacionesDesdeBD();
         actualizarTitulo();
     }
@@ -107,6 +104,7 @@ public class ControllerUbicacionTraspaso {
         }
 
         contenedorDetalles.getChildren().clear();
+        seccionesUbicacion.clear();
 
         if (claveEntrada == null || claveEntrada.isBlank()) {
             return;
@@ -163,7 +161,17 @@ public class ControllerUbicacionTraspaso {
 
         detallesBox.getChildren().addAll(lblClave, lblCantidad, lblPrecioUnitario, lblPrecioTotal);
 
-        productoContainer.getChildren().addAll(headerBox, detallesBox);
+        Label lblTituloUbicaciones = new Label("Ubicaciones para este producto:");
+        lblTituloUbicaciones.setStyle("-fx-font-weight: bold; -fx-font-size: 12;");
+
+        VBox contenedorUbicaciones = new VBox(10);
+        contenedorUbicaciones.setStyle("-fx-padding: 5 0 0 40;");
+
+        UbicacionSection seccion = new UbicacionSection(detalle.getProducto(), contenedorUbicaciones);
+        seccionesUbicacion.add(seccion);
+        agregarFilaUbicacion(seccion, true);
+
+        productoContainer.getChildren().addAll(headerBox, detallesBox, lblTituloUbicaciones, contenedorUbicaciones);
         contenedorDetalles.getChildren().add(productoContainer);
 
         if (numero < totalDetalles) {
@@ -173,15 +181,8 @@ public class ControllerUbicacionTraspaso {
         }
     }
 
-    private void inicializarUbicacionesDinamicas() {
-        contenedorUbicaciones.getChildren().clear();
-        filasUbicacion.clear();
-        contadorFilas = 0;
-        agregarFilaUbicacion(true);
-    }
-
-    private void agregarFilaUbicacion(boolean esInicial) {
-        if (contadorFilas >= MAX_FILAS) {
+    private void agregarFilaUbicacion(UbicacionSection seccion, boolean esInicial) {
+        if (seccion.contadorFilas >= MAX_FILAS) {
             mostrarAlerta("Límite alcanzado", "Solo se pueden agregar hasta " + MAX_FILAS + " ubicaciones.");
             return;
         }
@@ -211,33 +212,33 @@ public class ControllerUbicacionTraspaso {
         HBox.setHgrow(vboxBoton, Priority.ALWAYS);
 
         if (esInicial) {
-            boton.setOnAction(event -> agregarFilaUbicacion(false));
+            boton.setOnAction(event -> agregarFilaUbicacion(seccion, false));
         } else {
-            boton.setOnAction(event -> eliminarFilaUbicacion(nuevaFila));
+            boton.setOnAction(event -> eliminarFilaUbicacion(seccion, nuevaFila));
         }
 
         nuevaFila.getChildren().addAll(vboxUbicacion, vboxCantidad, vboxBoton);
-        contenedorUbicaciones.getChildren().add(nuevaFila);
+        seccion.contenedor.getChildren().add(nuevaFila);
 
         configurarComboUbicacion(combo);
 
-        filasUbicacion.add(new UbicacionRow(nuevaFila, combo, txtCantidad));
-        contadorFilas++;
+        seccion.filasUbicacion.add(new UbicacionRow(nuevaFila, combo, txtCantidad));
+        seccion.contadorFilas++;
     }
 
-    private void eliminarFilaUbicacion(HBox fila) {
+    private void eliminarFilaUbicacion(UbicacionSection seccion, HBox fila) {
         UbicacionRow filaEncontrada = null;
-        for (UbicacionRow filaUbicacion : filasUbicacion) {
+        for (UbicacionRow filaUbicacion : seccion.filasUbicacion) {
             if (filaUbicacion.contenedor == fila) {
                 filaEncontrada = filaUbicacion;
                 break;
             }
         }
         if (filaEncontrada != null) {
-            filasUbicacion.remove(filaEncontrada);
+            seccion.filasUbicacion.remove(filaEncontrada);
         }
-        contenedorUbicaciones.getChildren().remove(fila);
-        contadorFilas = Math.max(0, contadorFilas - 1);
+        seccion.contenedor.getChildren().remove(fila);
+        seccion.contadorFilas = Math.max(0, seccion.contadorFilas - 1);
     }
 
     private void configurarComboUbicacion(ComboBox<String> comboBox) {
@@ -310,14 +311,26 @@ public class ControllerUbicacionTraspaso {
     }
 
     private void sincronizarCombosUbicacion() {
-        for (UbicacionRow filaUbicacion : filasUbicacion) {
-            filaUbicacion.combo.setItems(ubicaciones);
+        for (UbicacionSection seccion : seccionesUbicacion) {
+            for (UbicacionRow filaUbicacion : seccion.filasUbicacion) {
+                filaUbicacion.combo.setItems(ubicaciones);
+            }
         }
     }
 
     @FXML
     private void confirmarUbicaciones() {
-        List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
+        List<UbicacionCompra> ubicacionesSeleccionadas = new ArrayList<>();
+        for (UbicacionSection seccion : seccionesUbicacion) {
+            List<UbicacionCompra> ubicacionesSeccion = obtenerUbicacionesSeleccionadas(seccion);
+            if (ubicacionesSeccion.isEmpty()) {
+                mostrarAlerta("Validación",
+                        "Debe capturar al menos una ubicación con cantidad para: " + seccion.nombreProducto);
+                return;
+            }
+            ubicacionesSeleccionadas.addAll(ubicacionesSeccion);
+        }
+
         if (ubicacionesSeleccionadas.isEmpty()) {
             mostrarAlerta("Validación", "Debe capturar al menos una ubicación con cantidad.");
             return;
@@ -340,9 +353,9 @@ public class ControllerUbicacionTraspaso {
         }
     }
 
-    private List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
+    private List<UbicacionCompra> obtenerUbicacionesSeleccionadas(UbicacionSection seccion) {
         List<UbicacionCompra> resultado = new ArrayList<>();
-        for (UbicacionRow filaUbicacion : filasUbicacion) {
+        for (UbicacionRow filaUbicacion : seccion.filasUbicacion) {
             ComboBox<String> combo = filaUbicacion.combo;
             TextField cantidadField = filaUbicacion.cantidad;
 
@@ -387,6 +400,20 @@ public class ControllerUbicacionTraspaso {
             this.contenedor = contenedor;
             this.combo = combo;
             this.cantidad = cantidad;
+        }
+    }
+
+    private static class UbicacionSection {
+        private final String nombreProducto;
+        private final VBox contenedor;
+        private final List<UbicacionRow> filasUbicacion;
+        private int contadorFilas;
+
+        private UbicacionSection(String nombreProducto, VBox contenedor) {
+            this.nombreProducto = nombreProducto;
+            this.contenedor = contenedor;
+            this.filasUbicacion = new ArrayList<>();
+            this.contadorFilas = 0;
         }
     }
 }
