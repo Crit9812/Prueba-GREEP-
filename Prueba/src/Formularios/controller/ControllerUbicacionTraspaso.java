@@ -39,7 +39,7 @@ public class ControllerUbicacionTraspaso {
 
     private String claveEntrada;
     private Stage stage;
-    private Runnable onConfirmCallback;
+    private java.util.function.Consumer<java.util.Map<String, List<UbicacionCompra>>> onConfirmCallback;
 
     @FXML
     public void initialize() {
@@ -57,7 +57,7 @@ public class ControllerUbicacionTraspaso {
         this.stage = stage;
     }
 
-    public void setOnConfirmCallback(Runnable onConfirmCallback) {
+    public void setOnConfirmCallback(java.util.function.Consumer<java.util.Map<String, List<UbicacionCompra>>> onConfirmCallback) {
         this.onConfirmCallback = onConfirmCallback;
     }
 
@@ -168,6 +168,7 @@ public class ControllerUbicacionTraspaso {
         contenedorUbicaciones.setStyle("-fx-padding: 5 0 0 40;");
 
         UbicacionSection seccion = new UbicacionSection(
+                detalle.getClaveProducto(),
                 detalle.getProducto(),
                 contenedorUbicaciones,
                 obtenerCantidadEsperada(detalle.getCantidad())
@@ -325,6 +326,7 @@ public class ControllerUbicacionTraspaso {
     @FXML
     private void confirmarUbicaciones() {
         List<UbicacionCompra> ubicacionesSeleccionadas = new ArrayList<>();
+        java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto = new java.util.LinkedHashMap<>();
         for (UbicacionSection seccion : seccionesUbicacion) {
             List<UbicacionCompra> ubicacionesSeccion = obtenerUbicacionesSeleccionadas(seccion);
             if (ubicacionesSeccion.isEmpty()) {
@@ -336,6 +338,7 @@ public class ControllerUbicacionTraspaso {
                 return;
             }
             ubicacionesSeleccionadas.addAll(ubicacionesSeccion);
+            ubicacionesPorProducto.put(seccion.claveProducto, ubicacionesSeccion);
         }
 
         if (ubicacionesSeleccionadas.isEmpty()) {
@@ -344,7 +347,7 @@ public class ControllerUbicacionTraspaso {
         }
 
         if (onConfirmCallback != null) {
-            onConfirmCallback.run();
+            onConfirmCallback.accept(ubicacionesPorProducto);
         }
         cerrarFormulario();
     }
@@ -441,13 +444,15 @@ public class ControllerUbicacionTraspaso {
     }
 
     private static class UbicacionSection {
+        private final String claveProducto;
         private final String nombreProducto;
         private final VBox contenedor;
         private final List<UbicacionRow> filasUbicacion;
         private int contadorFilas;
         private final int cantidadEsperada;
 
-        private UbicacionSection(String nombreProducto, VBox contenedor, int cantidadEsperada) {
+        private UbicacionSection(String claveProducto, String nombreProducto, VBox contenedor, int cantidadEsperada) {
+            this.claveProducto = claveProducto;
             this.nombreProducto = nombreProducto;
             this.contenedor = contenedor;
             this.filasUbicacion = new ArrayList<>();

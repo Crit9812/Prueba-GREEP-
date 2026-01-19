@@ -18,6 +18,7 @@ import javafx.scene.Scene;
 import javafx.fxml.FXMLLoader;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoEntrada.model.model;
 import Operaciones.traspasoEntrada.model.traspasoEntrada;
 import javafx.fxml.FXML;
@@ -179,9 +180,9 @@ public class MainController {
             controller.setClaveEntrada(claveEntrada);
 
             // Configurar callback para cuando se confirme este traspaso
-            controller.setOnConfirmCallback(() -> {
+            controller.setOnConfirmCallback(ubicacionesPorProducto -> {
                 // Actualizar la entrada específica después de asignar ubicaciones
-                actualizarEntradaIndividual(claveEntrada, nuevoEstadoEntrada, nuevoEstadoArticulos, pendientes);
+                actualizarEntradaIndividual(claveEntrada, nuevoEstadoEntrada, nuevoEstadoArticulos, pendientes, ubicacionesPorProducto);
             });
 
             Stage stage = new Stage();
@@ -239,14 +240,16 @@ public class MainController {
     private void actualizarEntradaIndividual(String claveEntrada,
                                              String nuevoEstadoEntrada,
                                              String nuevoEstadoArticulos,
-                                             List<traspasoEntrada> pendientes) {
+                                             List<traspasoEntrada> pendientes,
+                                             java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
         // Crear una lista con solo esta entrada
         List<String> clavesIndividual = new ArrayList<>();
         clavesIndividual.add(claveEntrada);
 
         // Actualizar esta entrada específica en la base de datos
-        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(
-                clavesIndividual,
+        boolean actualizado = modeloTraspaso.actualizarUbicacionesYEstados(
+                claveEntrada,
+                ubicacionesPorProducto,
                 nuevoEstadoEntrada,
                 nuevoEstadoArticulos
         );

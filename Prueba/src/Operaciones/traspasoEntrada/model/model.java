@@ -1,5 +1,6 @@
 package Operaciones.traspasoEntrada.model;
 
+import Operaciones.compra.model.UbicacionCompra;
 import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -8,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -322,6 +324,117 @@ public class model {
         }
     }
 
+    public boolean actualizarUbicacionesYEstados(String claveEntrada,
+                                                 Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
+                                                 String nuevoEstadoEntrada,
+                                                 String nuevoEstadoArticulos) {
+        if (claveEntrada == null || claveEntrada.isBlank()) {
+            return false;
+        }
+        if (ubicacionesPorProducto == null || ubicacionesPorProducto.isEmpty()) {
+            return false;
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            conn.setAutoCommit(false);
+
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+
+            String colDetalleId = resolverColumna(columnasDetalle, "id", "idDetalleEntrada", "id_detalle_entrada",
+                    "detalle_entrada_id", "detalleEntrada");
+            String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+            String colDetalleProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto",
+                    "producto_id", "clave_producto");
+            String colArticuloDetalle = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                    "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+
+            if (colDetalleId == null || colDetalleEntrada == null || colDetalleProducto == null ||
+                    colArticuloDetalle == null || colArticuloId == null || colArticuloUbicacion == null) {
+                conn.rollback();
+                return false;
+            }
+
+            String sqlArticulos = "SELECT a.`" + colArticuloId + "` AS idArticulo " +
+                    "FROM articulo a " +
+                    "JOIN detalle_Entrada d ON a.`" + colArticuloDetalle + "` = d.`" + colDetalleId + "` " +
+                    "WHERE d.`" + colDetalleEntrada + "` = ? AND d.`" + colDetalleProducto + "` = ? " +
+                    "ORDER BY a.`" + colArticuloId + "`";
+
+            String sqlActualizar = "UPDATE articulo SET `" + colArticuloUbicacion + "` = ? WHERE `" + colArticuloId + "` = ?";
+
+            try (PreparedStatement psArticulos = conn.prepareStatement(sqlArticulos);
+                 PreparedStatement psActualizar = conn.prepareStatement(sqlActualizar)) {
+
+                for (Map.Entry<String, List<UbicacionCompra>> entry : ubicacionesPorProducto.entrySet()) {
+                    String claveProducto = entry.getKey();
+                    List<UbicacionCompra> ubicaciones = entry.getValue();
+
+                    List<Integer> idsArticulos = new ArrayList<>();
+                    psArticulos.setString(1, claveEntrada);
+                    psArticulos.setString(2, claveProducto);
+                    try (ResultSet rs = psArticulos.executeQuery()) {
+                        while (rs.next()) {
+                            idsArticulos.add(rs.getInt("idArticulo"));
+                        }
+                    }
+
+                    int indiceArticulo = 0;
+                    for (UbicacionCompra ubicacion : ubicaciones) {
+                        if (ubicacion == null) {
+                            continue;
+                        }
+                        Integer idUbicacion = resolverUbicacionId(conn, ubicacion.getUbicacion());
+                        if (idUbicacion == null) {
+                            conn.rollback();
+                            return false;
+                        }
+                        int cantidad = Math.max(0, ubicacion.getCantidad());
+                        for (int i = 0; i < cantidad && indiceArticulo < idsArticulos.size(); i++) {
+                            psActualizar.setInt(1, idUbicacion);
+                            psActualizar.setInt(2, idsArticulos.get(indiceArticulo++));
+                            psActualizar.addBatch();
+                        }
+                    }
+
+                    if (indiceArticulo != idsArticulos.size()) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                psActualizar.executeBatch();
+            }
+
+            boolean actualizadoArticulos = actualizarEstadoArticulosPorEntradas(
+                    conn,
+                    java.util.List.of(claveEntrada),
+                    nuevoEstadoArticulos
+            );
+            if (!actualizadoArticulos) {
+                conn.rollback();
+                return false;
+            }
+
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+            String colId = resolverColumna(columnasEntradas, "id", "claveEntrada", "idEntrada", "entrada_id");
+            String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
+            if (colId == null || colEstado == null) {
+                conn.rollback();
+                return false;
+            }
+            actualizarEstado(conn, java.util.List.of(claveEntrada), colId, colEstado, nuevoEstadoEntrada);
+
+            conn.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private boolean actualizarEstado(Connection conn, List<String> clavesEntrada, String colId, String colEstado, String nuevoEstado) throws SQLException {
         List<String> claves = filtrarClaves(clavesEntrada);
         if (claves.isEmpty()) {
@@ -442,6 +555,40 @@ public class model {
             }
         }
         return columnas;
+    }
+
+    private Integer resolverUbicacionId(Connection conn, String ubicacion) throws SQLException {
+        if (ubicacion == null || ubicacion.isBlank()) {
+            return null;
+        }
+        String texto = ubicacion.trim();
+        try {
+            return Integer.valueOf(texto);
+        } catch (NumberFormatException ignored) {
+        }
+
+        String sql = "SELECT id FROM ubicaciones WHERE nombre = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, texto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        }
+
+        String insertar = "INSERT INTO ubicaciones (nombre) VALUES (?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertar, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, texto);
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
+                }
+            }
+        }
+
+        return null;
     }
 
     private String resolverColumna(Map<String, String> columnas, String... candidatos) {
