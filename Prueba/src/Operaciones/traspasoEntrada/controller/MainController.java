@@ -175,13 +175,21 @@ public class MainController {
         try {
             URL ubicacionUrl = getClass().getResource("/Formularios/view/ubicacionTraspaso.fxml");
             if (ubicacionUrl == null) {
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                if (classLoader != null) {
+                    ubicacionUrl = classLoader.getResource("Formularios/view/ubicacionTraspaso.fxml");
+                }
+            }
+            if (ubicacionUrl == null) {
                 File fxmlFile = new File("src/Formularios/view/ubicacionTraspaso.fxml");
                 if (fxmlFile.exists()) {
                     ubicacionUrl = fxmlFile.toURI().toURL();
                 }
             }
             if (ubicacionUrl == null) {
-                throw new IllegalStateException("No se encontró ubicacionTraspaso.fxml en el classpath.");
+                mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                        "No se encontró el archivo ubicacionTraspaso.fxml. Verifica que esté en la carpeta de recursos.");
+                return;
             }
             FXMLLoader loader = new FXMLLoader(ubicacionUrl);
             Parent root = loader.load();
