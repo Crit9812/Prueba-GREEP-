@@ -167,7 +167,11 @@ public class ControllerUbicacionTraspaso {
         VBox contenedorUbicaciones = new VBox(10);
         contenedorUbicaciones.setStyle("-fx-padding: 5 0 0 40;");
 
-        UbicacionSection seccion = new UbicacionSection(detalle.getProducto(), contenedorUbicaciones);
+        UbicacionSection seccion = new UbicacionSection(
+                detalle.getProducto(),
+                contenedorUbicaciones,
+                obtenerCantidadEsperada(detalle.getCantidad())
+        );
         seccionesUbicacion.add(seccion);
         agregarFilaUbicacion(seccion, true);
 
@@ -328,6 +332,9 @@ public class ControllerUbicacionTraspaso {
                         "Debe capturar al menos una ubicación con cantidad para: " + seccion.nombreProducto);
                 return;
             }
+            if (!validarSumaUbicaciones(seccion, ubicacionesSeccion)) {
+                return;
+            }
             ubicacionesSeleccionadas.addAll(ubicacionesSeccion);
         }
 
@@ -381,6 +388,36 @@ public class ControllerUbicacionTraspaso {
         return resultado;
     }
 
+    private int obtenerCantidadEsperada(String cantidadTexto) {
+        if (cantidadTexto == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(cantidadTexto.trim());
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
+
+    private boolean validarSumaUbicaciones(UbicacionSection seccion, List<UbicacionCompra> ubicacionesSeccion) {
+        int suma = 0;
+        for (UbicacionCompra ubicacion : ubicacionesSeccion) {
+            suma += ubicacion.getCantidad();
+        }
+        if (seccion.cantidadEsperada <= 0) {
+            mostrarAlerta("Validación",
+                    "No se pudo determinar la cantidad esperada para: " + seccion.nombreProducto);
+            return false;
+        }
+        if (suma != seccion.cantidadEsperada) {
+            mostrarAlerta("Validación",
+                    "La suma de cantidades para " + seccion.nombreProducto +
+                            " debe ser " + seccion.cantidadEsperada + " y actualmente es " + suma + ".");
+            return false;
+        }
+        return true;
+    }
+
     private void mostrarAlerta(String titulo, String mensaje) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.WARNING);
@@ -408,12 +445,14 @@ public class ControllerUbicacionTraspaso {
         private final VBox contenedor;
         private final List<UbicacionRow> filasUbicacion;
         private int contadorFilas;
+        private final int cantidadEsperada;
 
-        private UbicacionSection(String nombreProducto, VBox contenedor) {
+        private UbicacionSection(String nombreProducto, VBox contenedor, int cantidadEsperada) {
             this.nombreProducto = nombreProducto;
             this.contenedor = contenedor;
             this.filasUbicacion = new ArrayList<>();
             this.contadorFilas = 0;
+            this.cantidadEsperada = cantidadEsperada;
         }
     }
 }
