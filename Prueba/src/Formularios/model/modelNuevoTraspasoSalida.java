@@ -557,25 +557,33 @@ public class modelNuevoTraspasoSalida {
     public int obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
             String idProducto, String lote, java.time.LocalDate caducidad,
             String presentacion, int factor) {
-        String sql = """
+        StringBuilder sql = new StringBuilder("""
         SELECT COUNT(*) AS total
         FROM articulo a
         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
         WHERE a.lote = ? 
           AND de.claveProducto = ?
-          AND a.caducidad = ?
+        """);
+        if (caducidad == null) {
+            sql.append(" AND a.caducidad IS NULL ");
+        } else {
+            sql.append(" AND a.caducidad = ? ");
+        }
+        sql.append("""
           AND a.presentacion = ?
           AND a.factor = ?
           AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-    """;
+        """);
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql.toString(), conn))) {
 
             int index = 1;
             ps.setString(index++, lote);
             ps.setString(index++, idProducto);
-            ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+            if (caducidad != null) {
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+            }
             ps.setString(index++, presentacion);
             ps.setInt(index++, factor);
             index = agregarParametroEstado(ps, conn, index);
