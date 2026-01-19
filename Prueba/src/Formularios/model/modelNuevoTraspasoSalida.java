@@ -120,6 +120,43 @@ public class modelNuevoTraspasoSalida {
         return Optional.empty();
     }
 
+    public Optional<PreciosProducto> obtenerPreciosProductoPorLotePresentacion(String idProducto, String lote,
+                                                                               String presentacion) {
+        String sql = """
+            SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
+            FROM detalle_Entrada de
+            JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND a.presentacion = ?
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+                     + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote != null ? lote : "");
+            ps.setString(index++, presentacion != null ? presentacion : "");
+            index = agregarParametroEstado(ps, conn, index);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal precioUnitario = obtenerDecimal(rs, "precioUnitario");
+                    BigDecimal precioIva = obtenerDecimal(rs, "precioIVA");
+                    BigDecimal precioBruto = obtenerDecimal(rs, "precioBrutoTotal");
+                    BigDecimal precioTotal = obtenerDecimal(rs, "precioTotal");
+                    return Optional.of(new PreciosProducto(precioUnitario, precioIva, precioBruto, precioTotal));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
     public Optional<PreciosProducto> obtenerPreciosProductoUltimaEntrada(String idProducto) {
         String sql = """
             SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal

@@ -743,12 +743,12 @@ public class controllerNuevaVenta {
         }
 
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        java.time.LocalDate caducidad = dpCaducidad.getValue();
+        String presentacion = cbPresentacion.getValue();
 
         javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
-                return modelo.obtenerPreciosProductoPorLoteCaducidad(idProducto, lote, caducidad);
+                return modelo.obtenerPreciosProductoPorLotePresentacion(idProducto, lote, presentacion);
             }
 
             @Override
@@ -988,7 +988,7 @@ public class controllerNuevaVenta {
             itemParaEditar.setProducto(nombre);
             itemParaEditar.setDescripcion(descripcion);
             itemParaEditar.setLote(lote);
-            itemParaEditar.setCaducidad(caducidad.toString());
+            itemParaEditar.setCaducidad(caducidad != null ? caducidad.toString() : "");
             itemParaEditar.setCantidad(cantidad);
             itemParaEditar.setPresentacion(presentacion);
             itemParaEditar.setFactor(factor);
@@ -1004,7 +1004,7 @@ public class controllerNuevaVenta {
                     nombre,
                     descripcion,
                     lote,
-                    caducidad.toString(),
+                    caducidad != null ? caducidad.toString() : "",
                     cantidad,
                     presentacion,
                     factor,
@@ -2827,7 +2827,8 @@ public class controllerNuevaVenta {
         return productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
-                && caducidadValidada;
+                && cbPresentacion.getValue() != null
+                && !cbPresentacion.getValue().isBlank();
     }
 
     private void limpiarValidacionesInventario() {
