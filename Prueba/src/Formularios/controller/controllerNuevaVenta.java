@@ -1865,7 +1865,7 @@ public class controllerNuevaVenta {
                 Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(
                         loteSnapshot, productoSnapshot);
                 if (caducidad.isEmpty()) {
-                    return ResultadoValidacionLote.loteInvalido();
+                    return ResultadoValidacionLote.ok(null);
                 }
                 return ResultadoValidacionLote.ok(caducidad.get());
             }
@@ -2116,8 +2116,7 @@ public class controllerNuevaVenta {
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
                 if (!loteSnapshot.equals(loteActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || !java.util.Objects.equals(caducidadSnapshot, caducidadActual)
                         || !ubicacionSnapshot.equals(ubicacionActual)) {
                     return;
                 }
@@ -2183,8 +2182,7 @@ public class controllerNuevaVenta {
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = combo.getValue() != null ? combo.getValue().trim() : "";
                 if (!loteSnapshot.equals(loteActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || !java.util.Objects.equals(caducidadSnapshot, caducidadActual)
                         || !ubicacionSnapshot.equals(ubicacionActual)) {
                     return;
                 }
@@ -2586,8 +2584,7 @@ public class controllerNuevaVenta {
                 int cantidadActual = parseEntero(txtCantidad.getText());
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || !java.util.Objects.equals(caducidadSnapshot, caducidadActual)
                         || cantidadActual != cantidadSnapshot) {
                     return;
                 }

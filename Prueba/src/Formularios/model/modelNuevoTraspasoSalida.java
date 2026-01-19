@@ -81,17 +81,21 @@ public class modelNuevoTraspasoSalida {
 
     public Optional<PreciosProducto> obtenerPreciosProductoPorLoteCaducidad(String idProducto, String lote,
                                                                             java.time.LocalDate caducidad) {
-        String sql = """
+        StringBuilder sql = new StringBuilder("""
             SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal
             FROM detalle_Entrada de
             JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
             WHERE de.claveProducto = ?
               AND a.lote = ?
-              AND a.caducidad = ?
-        """;
+        """);
+        if (caducidad == null) {
+            sql.append(" AND a.caducidad IS NULL");
+        } else {
+            sql.append(" AND a.caducidad = ?");
+        }
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql.toString(), conn)
                      + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
@@ -99,8 +103,6 @@ public class modelNuevoTraspasoSalida {
             ps.setString(index++, lote != null ? lote : "");
             if (caducidad != null) {
                 ps.setDate(index++, java.sql.Date.valueOf(caducidad));
-            } else {
-                ps.setDate(index++, null);
             }
             index = agregarParametroEstado(ps, conn, index);
 
