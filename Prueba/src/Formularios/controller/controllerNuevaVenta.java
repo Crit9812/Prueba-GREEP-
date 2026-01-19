@@ -2082,7 +2082,7 @@ public class controllerNuevaVenta {
     }
 
     private void validarUbicacion() {
-        if (!caducidadValidada) {
+        if (!loteValidado) {
             ubicacionValidada = false;
             return;
         }
@@ -2149,7 +2149,7 @@ public class controllerNuevaVenta {
         if (combo == null) {
             return;
         }
-        if (!caducidadValidada) {
+        if (!loteValidado) {
             if (combo == comboUbicacion) {
                 ubicacionValidada = false;
             }
@@ -2230,9 +2230,9 @@ public class controllerNuevaVenta {
             mostrarAlerta("Advertencia", "Debe capturar la ubicación antes de la cantidad en ubicación.");
             return;
         }
-        if (!loteValidado || !caducidadValidada) {
+        if (!loteValidado) {
             campoCantidad.clear();
-            mostrarAlerta("Advertencia", "Debe capturar un lote y caducidad válidos antes de la cantidad.");
+            mostrarAlerta("Advertencia", "Debe capturar un lote válido antes de la cantidad.");
             return;
         }
 
@@ -2681,7 +2681,7 @@ public class controllerNuevaVenta {
 
     private void validarPresentacion() {
         String presentacion = cbPresentacion.getValue();
-        if (!loteValidado || !caducidadValidada) {
+        if (!loteValidado) {
             presentacionValida = false;
             if (presentacion != null && !presentacion.isBlank()) {
                 cbPresentacion.setValue(null);
