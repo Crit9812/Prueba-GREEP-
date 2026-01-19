@@ -324,15 +324,15 @@ public class model {
         }
     }
 
-    public boolean actualizarUbicacionesYEstados(String claveEntrada,
-                                                 Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
-                                                 String nuevoEstadoEntrada,
-                                                 String nuevoEstadoArticulos) {
+    public ResultadoOperacion actualizarUbicacionesYEstados(String claveEntrada,
+                                                            Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
+                                                            String nuevoEstadoEntrada,
+                                                            String nuevoEstadoArticulos) {
         if (claveEntrada == null || claveEntrada.isBlank()) {
-            return false;
+            return ResultadoOperacion.error("La clave de entrada es inválida.");
         }
         if (ubicacionesPorProducto == null || ubicacionesPorProducto.isEmpty()) {
-            return false;
+            return ResultadoOperacion.error("No se proporcionaron ubicaciones para actualizar.");
         }
 
         try (Connection conn = new Conexion().conectar()) {
@@ -354,7 +354,7 @@ public class model {
             if (colDetalleId == null || colDetalleEntrada == null || colDetalleProducto == null ||
                     colArticuloDetalle == null || colArticuloId == null || colArticuloUbicacion == null) {
                 conn.rollback();
-                return false;
+                return ResultadoOperacion.error("No se pudieron resolver las columnas necesarias para actualizar ubicaciones.");
             }
 
             String sqlArticulos = "SELECT a.`" + colArticuloId + "` AS idArticulo " +
@@ -389,7 +389,7 @@ public class model {
                         Integer idUbicacion = resolverUbicacionId(conn, ubicacion.getUbicacion());
                         if (idUbicacion == null) {
                             conn.rollback();
-                            return false;
+                            return ResultadoOperacion.error("No se pudo resolver la ubicación: " + ubicacion.getUbicacion());
                         }
                         int cantidad = Math.max(0, ubicacion.getCantidad());
                         for (int i = 0; i < cantidad && indiceArticulo < idsArticulos.size(); i++) {
@@ -401,7 +401,7 @@ public class model {
 
                     if (indiceArticulo != idsArticulos.size()) {
                         conn.rollback();
-                        return false;
+                        return ResultadoOperacion.error("La distribución de ubicaciones no coincide con los artículos para el producto: " + claveProducto);
                     }
                 }
 
@@ -415,7 +415,7 @@ public class model {
             );
             if (!actualizadoArticulos) {
                 conn.rollback();
-                return false;
+                return ResultadoOperacion.error("No se pudo actualizar el estado de los artículos.");
             }
 
             Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
@@ -423,15 +423,15 @@ public class model {
             String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
             if (colId == null || colEstado == null) {
                 conn.rollback();
-                return false;
+                return ResultadoOperacion.error("No se pudo actualizar el estado de la entrada.");
             }
             actualizarEstado(conn, java.util.List.of(claveEntrada), colId, colEstado, nuevoEstadoEntrada);
 
             conn.commit();
-            return true;
+            return ResultadoOperacion.exito("Ubicaciones asignadas y estados actualizados correctamente.");
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return ResultadoOperacion.error("Ocurrió un error al actualizar ubicaciones: " + e.getMessage());
         }
     }
 
@@ -589,6 +589,32 @@ public class model {
         }
 
         return null;
+    }
+
+    public static class ResultadoOperacion {
+        private final boolean exito;
+        private final String mensaje;
+
+        private ResultadoOperacion(boolean exito, String mensaje) {
+            this.exito = exito;
+            this.mensaje = mensaje;
+        }
+
+        public static ResultadoOperacion exito(String mensaje) {
+            return new ResultadoOperacion(true, mensaje);
+        }
+
+        public static ResultadoOperacion error(String mensaje) {
+            return new ResultadoOperacion(false, mensaje);
+        }
+
+        public boolean isExito() {
+            return exito;
+        }
+
+        public String getMensaje() {
+            return mensaje;
+        }
     }
 
     private String resolverColumna(Map<String, String> columnas, String... candidatos) {

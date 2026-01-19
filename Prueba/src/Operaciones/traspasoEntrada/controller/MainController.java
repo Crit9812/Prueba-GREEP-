@@ -247,22 +247,21 @@ public class MainController {
         clavesIndividual.add(claveEntrada);
 
         // Actualizar esta entrada específica en la base de datos
-        boolean actualizado = modeloTraspaso.actualizarUbicacionesYEstados(
+        model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
                 claveEntrada,
                 ubicacionesPorProducto,
                 nuevoEstadoEntrada,
                 nuevoEstadoArticulos
         );
 
-        if (actualizado) {
+        if (resultado.isExito()) {
             // Actualizar la lista original quitando la entrada procesada
             entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
 
             // Actualizar la tabla manteniendo el orden
             actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
 
-            // No mostrar alerta aquí, ya se mostró en el controllerUbicacionTraspaso
-            // Solo proceder con el siguiente traspaso automáticamente
+            Platform.runLater(() -> mostrarAlerta(Alert.AlertType.INFORMATION, "Éxito", resultado.getMensaje()));
 
             // Esperar un momento antes de procesar el siguiente
             Platform.runLater(() -> {
@@ -280,7 +279,7 @@ public class MainController {
         } else {
             Platform.runLater(() -> {
                 mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                        "No se pudo actualizar el estado del traspaso: " + claveEntrada);
+                        "No se pudo actualizar el traspaso: " + resultado.getMensaje());
 
                 // Aún así, intentar con el siguiente si hay
                 if (!pendientes.isEmpty()) {
