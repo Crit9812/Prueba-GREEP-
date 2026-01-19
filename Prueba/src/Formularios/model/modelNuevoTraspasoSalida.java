@@ -15,7 +15,7 @@ public class modelNuevoTraspasoSalida {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
+        String sql = "SELECT nombre FROM ubicaciones WHERE LOWER(estado) = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -204,6 +204,29 @@ public class modelNuevoTraspasoSalida {
         try (Connection conn = new Conexion().conectar()) {
             return GenericDAO.contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(
                     conn, lote, caducidad, ubicacionNombre);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public boolean existeLoteCaducidadUbicacionProducto(String idProducto, String lote,
+                                                        java.time.LocalDate caducidad, String ubicacionNombre) {
+        try (Connection conn = new Conexion().conectar()) {
+            int disponibles = GenericDAO.contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(
+                    conn, idProducto, lote, caducidad, ubicacionNombre);
+            return disponibles > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public int obtenerCantidadDisponibleProductoUbicacion(String idProducto, String lote,
+                                                          java.time.LocalDate caducidad, String ubicacionNombre) {
+        try (Connection conn = new Conexion().conectar()) {
+            return GenericDAO.contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(
+                    conn, idProducto, lote, caducidad, ubicacionNombre);
         } catch (Exception e) {
             e.printStackTrace();
             return 0;
