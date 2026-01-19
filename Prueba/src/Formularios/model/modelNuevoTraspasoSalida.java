@@ -44,12 +44,14 @@ public class modelNuevoTraspasoSalida {
             JOIN ubicaciones u ON u.id = a.ubicacion
             WHERE de.claveProducto = ?
               AND a.lote = ?
-              AND a.caducidad = ?
+              AND a.caducidad %s
               AND u.nombre = ?
         """;
+        String filtroCaducidad = caducidad == null ? "IS NULL" : "= ?";
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(
+                     String.format(sql, filtroCaducidad), conn)
                      + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
@@ -57,8 +59,6 @@ public class modelNuevoTraspasoSalida {
             ps.setString(index++, lote != null ? lote : "");
             if (caducidad != null) {
                 ps.setDate(index++, java.sql.Date.valueOf(caducidad));
-            } else {
-                ps.setDate(index++, null);
             }
             ps.setString(index++, ubicacionNombre != null ? ubicacionNombre : "");
             index = agregarParametroEstado(ps, conn, index);
@@ -87,11 +87,13 @@ public class modelNuevoTraspasoSalida {
             JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
             WHERE de.claveProducto = ?
               AND a.lote = ?
-              AND a.caducidad = ?
+              AND a.caducidad %s
         """;
+        String filtroCaducidad = caducidad == null ? "IS NULL" : "= ?";
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn)
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(
+                     String.format(sql, filtroCaducidad), conn)
                      + " ORDER BY de.idDetalleEntrada DESC LIMIT 1")) {
 
             int index = 1;
@@ -99,8 +101,6 @@ public class modelNuevoTraspasoSalida {
             ps.setString(index++, lote != null ? lote : "");
             if (caducidad != null) {
                 ps.setDate(index++, java.sql.Date.valueOf(caducidad));
-            } else {
-                ps.setDate(index++, null);
             }
             index = agregarParametroEstado(ps, conn, index);
 
@@ -171,14 +171,16 @@ public class modelNuevoTraspasoSalida {
     }
 
     public boolean existeLoteConCaducidad(String lote, java.time.LocalDate caducidad) {
-        String sql = "SELECT 1 FROM articulo WHERE lote = ? AND caducidad = ?";
+        String sql = "SELECT 1 FROM articulo WHERE lote = ? AND caducidad " + (caducidad == null ? "IS NULL" : "= ?");
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, lote);
-            ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+            if (caducidad != null) {
+                ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+            }
             index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -262,6 +264,32 @@ public class modelNuevoTraspasoSalida {
         }
 
         return Optional.empty();
+    }
+
+    public boolean existeLoteProductoSinCaducidad(String lote, String idProducto) {
+        String sql = """
+            SELECT 1
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE a.lote = ? AND de.claveProducto = ? AND a.caducidad IS NULL
+              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
+
+            int index = 1;
+            ps.setString(index++, lote);
+            ps.setString(index++, idProducto);
+            index = agregarParametroEstado(ps, conn, index);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public int obtenerCantidadDisponibleProductoLoteCaducidad(String idProducto, String lote,

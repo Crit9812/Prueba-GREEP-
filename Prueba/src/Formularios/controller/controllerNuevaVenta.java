@@ -897,7 +897,7 @@ public class controllerNuevaVenta {
                 || nombre == null || nombre.isBlank()
                 || descripcion.isBlank()
                 || lote.isBlank()
-                || caducidad == null
+                || (caducidad == null && !caducidadValidada)
                 || cantidadTexto.isBlank()
                 || presentacion == null || presentacion.isBlank()
                 || factorTexto.isBlank()
@@ -976,12 +976,12 @@ public class controllerNuevaVenta {
         }
 
         if (itemParaEditar != null) {
-            itemParaEditar.setClaveProducto(clave);
-            itemParaEditar.setProducto(nombre);
-            itemParaEditar.setDescripcion(descripcion);
-            itemParaEditar.setLote(lote);
-            itemParaEditar.setCaducidad(caducidad.toString());
-            itemParaEditar.setCantidad(cantidad);
+        itemParaEditar.setClaveProducto(clave);
+        itemParaEditar.setProducto(nombre);
+        itemParaEditar.setDescripcion(descripcion);
+        itemParaEditar.setLote(lote);
+        itemParaEditar.setCaducidad(caducidad != null ? caducidad.toString() : "");
+        itemParaEditar.setCantidad(cantidad);
             itemParaEditar.setPresentacion(presentacion);
             itemParaEditar.setFactor(factor);
             itemParaEditar.setUbicaciones(ubicacionesSeleccionadas);
@@ -996,7 +996,7 @@ public class controllerNuevaVenta {
                     nombre,
                     descripcion,
                     lote,
-                    caducidad.toString(),
+                    caducidad != null ? caducidad.toString() : "",
                     cantidad,
                     presentacion,
                     factor,
@@ -1865,6 +1865,9 @@ public class controllerNuevaVenta {
                 Optional<java.time.LocalDate> caducidad = modelo.obtenerCaducidadParaLoteProducto(
                         loteSnapshot, productoSnapshot);
                 if (caducidad.isEmpty()) {
+                    if (modelo.existeLoteProductoSinCaducidad(loteSnapshot, productoSnapshot)) {
+                        return ResultadoValidacionLote.ok(null);
+                    }
                     return ResultadoValidacionLote.loteInvalido();
                 }
                 return ResultadoValidacionLote.ok(caducidad.get());
@@ -2116,8 +2119,7 @@ public class controllerNuevaVenta {
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = comboUbicacion.getValue() != null ? comboUbicacion.getValue().trim() : "";
                 if (!loteSnapshot.equals(loteActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || (caducidadSnapshot != null && !caducidadSnapshot.equals(caducidadActual))
                         || !ubicacionSnapshot.equals(ubicacionActual)) {
                     return;
                 }
@@ -2183,8 +2185,7 @@ public class controllerNuevaVenta {
                 java.time.LocalDate caducidadActual = dpCaducidad.getValue();
                 String ubicacionActual = combo.getValue() != null ? combo.getValue().trim() : "";
                 if (!loteSnapshot.equals(loteActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || (caducidadSnapshot != null && !caducidadSnapshot.equals(caducidadActual))
                         || !ubicacionSnapshot.equals(ubicacionActual)) {
                     return;
                 }
@@ -2240,7 +2241,6 @@ public class controllerNuevaVenta {
                 || presentacion == null
                 || presentacion.isBlank()
                 || factor <= 0
-                || caducidad == null
                 || ubicacion.isBlank()) {
             campoCantidad.clear();
             mostrarAlerta("Advertencia", "Debe completar las características del producto antes de la cantidad.");
@@ -2586,8 +2586,7 @@ public class controllerNuevaVenta {
                 int cantidadActual = parseEntero(txtCantidad.getText());
                 if (!loteSnapshot.equals(loteActual)
                         || !idSnapshot.equals(idActual)
-                        || caducidadSnapshot == null
-                        || !caducidadSnapshot.equals(caducidadActual)
+                        || (caducidadSnapshot != null && !caducidadSnapshot.equals(caducidadActual))
                         || cantidadActual != cantidadSnapshot) {
                     return;
                 }
