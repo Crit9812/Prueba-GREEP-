@@ -352,6 +352,7 @@ public class MainController {
     }
 
     private void configurarTabla() {
+        contenidoTabla.setSortPolicy(param -> {return false; });
         // Configurar la columna de la flecha primero
         configurarColumnaFlecha();
 
@@ -498,8 +499,8 @@ public class MainController {
         // Actualizar el estado
         filasDesplegadas.put(claveEntrada, !estaDesplegada);
 
-        // Forzar actualización de la tabla
-        contenidoTabla.refresh();
+        // Re-aplicar el ordenamiento para mantener el orden correcto
+        aplicarOrdenamiento();
     }
 
     private void expandirFila(String claveEntrada) {
