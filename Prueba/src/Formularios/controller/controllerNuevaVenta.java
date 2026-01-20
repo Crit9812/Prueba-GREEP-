@@ -2588,6 +2588,9 @@ public class controllerNuevaVenta {
             validarFactorCompleto(factorActual);
             if (factorValido) {
                 ultimoFactorValidado = factorActual;
+                if (modoAjusteInventario) {
+                    cargarPrecioEntradaDesdeProducto();
+                }
             }
         });
         factorDebounce.playFromStart();
@@ -2763,6 +2766,9 @@ public class controllerNuevaVenta {
         if (presentacion.equalsIgnoreCase("pz") && "1".equals(factorTexto)) {
             factorValido = true;
             ultimoFactorValidado = "1";
+            if (modoAjusteInventario) {
+                cargarPrecioEntradaDesdeProducto();
+            }
             return;
         }
 
@@ -2827,6 +2833,9 @@ public class controllerNuevaVenta {
                 } else {
                     factorValido = true;
                     ultimoFactorValidado = factorTextoSnapshot;
+                    if (modoAjusteInventario) {
+                        cargarPrecioEntradaDesdeProducto();
+                    }
                 }
             }
         };
