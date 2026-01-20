@@ -126,6 +126,7 @@ public class controllerNuevaVenta {
     private boolean cantidadRapidaValida = false;
     private final Map<String, Image> cacheImagenes = new HashMap<>();
     private boolean modoSoloNormal = false;
+    private boolean modoAjusteInventario = false;
 
     @FXML
     public void initialize() {
@@ -3077,6 +3078,17 @@ public class controllerNuevaVenta {
         if (txtPrecioTotalRapida != null) {
             txtPrecioTotalRapida.setEditable(false);
         }
+        aplicarModoAjusteInventario();
+    }
+
+    private void aplicarModoAjusteInventario() {
+        if (!modoAjusteInventario) {
+            return;
+        }
+        txtPrecioSalida.setEditable(false);
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.setEditable(false);
+        }
     }
 
     private void configurarManejoEnter() {
@@ -3268,6 +3280,13 @@ public class controllerNuevaVenta {
         this.itemParaEditar = item;
         if (itemParaEditar != null && inicializado) {
             cargarItemParaEditar();
+        }
+    }
+
+    public void setModoAjusteInventario(boolean modoAjusteInventario) {
+        this.modoAjusteInventario = modoAjusteInventario;
+        if (inicializado) {
+            aplicarModoAjusteInventario();
         }
     }
 

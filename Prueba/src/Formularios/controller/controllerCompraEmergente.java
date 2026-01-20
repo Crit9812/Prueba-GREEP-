@@ -2,6 +2,7 @@ package Formularios.controller;
 
 import Compartido.controller.productoCboxController;
 import Formularios.utilities.helperCompraEmergente;
+import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.controller.MainController;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.compra.model.compra;
@@ -83,6 +84,8 @@ public class controllerCompraEmergente {
     private final Map<String, Image> cacheImagenes = new HashMap<>();
     private final List<UbicacionRow> filasUbicacion = new ArrayList<>();
     private int contadorFilas = 0;
+    private boolean modoAjusteInventario = false;
+    private final modelNuevoTraspasoSalida modeloPreciosAjuste = new modelNuevoTraspasoSalida();
 
     @FXML
     public void initialize() {
@@ -146,6 +149,10 @@ public class controllerCompraEmergente {
         }
     }
 
+    public void setModoAjusteInventario(boolean modoAjusteInventario) {
+        this.modoAjusteInventario = modoAjusteInventario;
+    }
+
     private void configurarPresentaciones() {
         cbPresentacion.setItems(presentaciones);
         cbPresentacion.setValue("pz");
@@ -187,7 +194,11 @@ public class controllerCompraEmergente {
                 seleccionarClaveAlternaPendiente = true;
             }
             actualizarImagenProducto();
-            cargarPrecioEntradaUltimoProducto();
+            if (modoAjusteInventario) {
+                cargarPrecioEntradaAjusteInventario();
+            } else {
+                cargarPrecioEntradaUltimoProducto();
+            }
         });
 
         cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -196,7 +207,11 @@ public class controllerCompraEmergente {
                 seleccionarClaveAlternaPendiente = true;
             }
             actualizarImagenProducto();
-            cargarPrecioEntradaUltimoProducto();
+            if (modoAjusteInventario) {
+                cargarPrecioEntradaAjusteInventario();
+            } else {
+                cargarPrecioEntradaUltimoProducto();
+            }
         });
 
         cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -204,18 +219,44 @@ public class controllerCompraEmergente {
                 actualizarDescripcionDesdeProducto();
             }
             actualizarImagenProducto();
-            cargarPrecioEntradaUltimoProducto();
+            if (modoAjusteInventario) {
+                cargarPrecioEntradaAjusteInventario();
+            } else {
+                cargarPrecioEntradaUltimoProducto();
+            }
         });
 
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && newVal.equalsIgnoreCase("pz")) {
                 txtFactor.setText("1");
+                if (modoAjusteInventario) {
+                    cargarPrecioEntradaAjusteInventario();
+                }
                 return;
             }
             if (oldVal != null && oldVal.equalsIgnoreCase("pz") && "1".equals(txtFactor.getText())) {
                 txtFactor.clear();
             }
+            if (modoAjusteInventario) {
+                cargarPrecioEntradaAjusteInventario();
+            }
         });
+
+        if (txtLote != null) {
+            txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (modoAjusteInventario) {
+                    cargarPrecioEntradaAjusteInventario();
+                }
+            });
+        }
+
+        if (txtFactor != null) {
+            txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (modoAjusteInventario) {
+                    cargarPrecioEntradaAjusteInventario();
+                }
+            });
+        }
 
         btnGuardar.setOnAction(e -> guardarItem());
         if (btnLimpiar != null) {
@@ -445,6 +486,51 @@ public class controllerCompraEmergente {
         hilo.start();
     }
 
+    private void cargarPrecioEntradaAjusteInventario() {
+        String idProducto = productoController != null ? productoController.getIdSeleccionado() : null;
+        String lote = txtLote != null && txtLote.getText() != null ? txtLote.getText().trim() : "";
+        String presentacion = cbPresentacion != null ? cbPresentacion.getValue() : null;
+        String factorTexto = txtFactor != null && txtFactor.getText() != null ? txtFactor.getText().trim() : "";
+
+        if (idProducto == null || idProducto.isBlank()
+                || lote.isBlank()
+                || presentacion == null || presentacion.isBlank()
+                || factorTexto.isBlank()) {
+            return;
+        }
+
+        int factor;
+        try {
+            factor = Integer.parseInt(factorTexto);
+        } catch (NumberFormatException e) {
+            return;
+        }
+
+        Task<java.util.Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new Task<>() {
+            @Override
+            protected java.util.Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
+                return modeloPreciosAjuste.obtenerPreciosProductoPorLotePresentacionFactor(
+                        idProducto, lote, presentacion, factor);
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.Optional<modelNuevoTraspasoSalida.PreciosProducto> resultado = getValue();
+                if (resultado != null && resultado.isPresent()) {
+                    BigDecimal precio = resultado.get().getPrecioUnitario();
+                    txtPrecioEntrada.setText(formatearDecimal(precio));
+                    recalcularPrecios();
+                } else if (txtPrecioEntrada != null && (txtPrecioEntrada.getText() == null || txtPrecioEntrada.getText().isBlank())) {
+                    recalcularPrecios();
+                }
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
     // Metodo para actualizar la clave alterna desde el formulario de claves
     public void actualizarClaveAlternaCreada(String claveAlterna) {
         Platform.runLater(() -> {
@@ -585,7 +671,11 @@ public class controllerCompraEmergente {
             mostrarAlertaSinEspera("Éxito", "Producto actualizado.");
             cerrarFormulario();
         } else {
-            mostrarAlertaSinEspera("Éxito", "Producto agregado a la compra");
+            if (modoAjusteInventario) {
+                mostrarAlertaSinEspera("Éxito", "Se agregó el artículo correctamente.");
+            } else {
+                mostrarAlertaSinEspera("Éxito", "Producto agregado a la compra");
+            }
 
             limpiarFormularioParaNuevo();
         }
