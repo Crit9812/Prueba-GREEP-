@@ -246,6 +246,9 @@ public class controllerNuevoProducto {
                 producto existente = modeloFormulario.buscarProductoPorId(idProducto);
                 if (existente != null) {
                     if (esProductoDesactivado(existente)) {
+                        if (!confirmarReactivacion(existente.getIdProducto())) {
+                            return;
+                        }
                         prepararSobrescritura(existente);
                     } else {
                         mostrarError("Ese ID ya está registrado en otro producto.");
@@ -315,6 +318,9 @@ public class controllerNuevoProducto {
                 );
                 if (duplicado != null) {
                     if (esProductoDesactivado(duplicado)) {
+                        if (!confirmarReactivacion(duplicado.getIdProducto())) {
+                            return;
+                        }
                         prepararSobrescritura(duplicado);
                     } else {
                         mostrarError("Ese producto ya existe con el ID: " + duplicado.getIdProducto());
@@ -633,6 +639,14 @@ public class controllerNuevoProducto {
         reactivarProducto = true;
         txtIdProducto.setText(idEdicion);
         txtIdProducto.setDisable(true);
+    }
+
+    private boolean confirmarReactivacion(String idProducto) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Producto desactivado");
+        alert.setHeaderText("Este producto ya está registrado pero fue desactivado.");
+        alert.setContentText("¿Deseas reactivarlo con el ID " + idProducto + "?");
+        return alert.showAndWait().filter(ButtonType.OK::equals).isPresent();
     }
 
     private static class UnidadMedidaRow {
