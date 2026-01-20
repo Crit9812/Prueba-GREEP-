@@ -747,20 +747,10 @@ public class controllerNuevaVenta {
 
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String presentacion = cbPresentacion.getValue();
-        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
 
         javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
-                if (modoAjusteInventario) {
-                    int factor;
-                    try {
-                        factor = Integer.parseInt(factorTexto);
-                    } catch (NumberFormatException e) {
-                        return Optional.empty();
-                    }
-                    return modelo.obtenerPreciosProductoPorLotePresentacionFactor(idProducto, lote, presentacion, factor);
-                }
                 return modelo.obtenerPreciosProductoPorLotePresentacion(idProducto, lote, presentacion);
             }
 
@@ -2588,9 +2578,6 @@ public class controllerNuevaVenta {
             validarFactorCompleto(factorActual);
             if (factorValido) {
                 ultimoFactorValidado = factorActual;
-                if (modoAjusteInventario) {
-                    cargarPrecioEntradaDesdeProducto();
-                }
             }
         });
         factorDebounce.playFromStart();
@@ -2766,9 +2753,6 @@ public class controllerNuevaVenta {
         if (presentacion.equalsIgnoreCase("pz") && "1".equals(factorTexto)) {
             factorValido = true;
             ultimoFactorValidado = "1";
-            if (modoAjusteInventario) {
-                cargarPrecioEntradaDesdeProducto();
-            }
             return;
         }
 
@@ -2833,9 +2817,6 @@ public class controllerNuevaVenta {
                 } else {
                     factorValido = true;
                     ultimoFactorValidado = factorTextoSnapshot;
-                    if (modoAjusteInventario) {
-                        cargarPrecioEntradaDesdeProducto();
-                    }
                 }
             }
         };
@@ -2846,15 +2827,11 @@ public class controllerNuevaVenta {
     }
 
     private boolean datosCompletosParaPrecioEntrada() {
-        boolean base = productoController.getIdSeleccionado() != null
+        return productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
                 && cbPresentacion.getValue() != null
                 && !cbPresentacion.getValue().isBlank();
-        if (!base) {
-            return false;
-        }
-        return !modoAjusteInventario || factorValido;
     }
 
     private void limpiarValidacionesInventario() {
