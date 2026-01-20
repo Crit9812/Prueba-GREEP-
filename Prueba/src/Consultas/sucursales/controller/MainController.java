@@ -147,13 +147,6 @@ public class MainController {
                             }
                             if (enSalidas > 0) {
                                 motivo.append("\n- Salidas: ").append(enSalidas);
-                                StringBuilder detalleSalidas = new StringBuilder();
-                                for (String linea : sucursalModel.obtenerDetalleSalidasPorSucursal(seleccionado.getId())) {
-                                    detalleSalidas.append("\n  • ").append(linea);
-                                }
-                                if (detalleSalidas.length() > 0) {
-                                    motivo.append("\n  Detalles de salidas:").append(detalleSalidas);
-                                }
                             }
                             new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
                             return;

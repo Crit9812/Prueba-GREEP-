@@ -70,19 +70,6 @@ public class model {
         return detalles;
     }
 
-    public java.util.List<String> obtenerDetalleSalidasPorSucursal(int idSucursal) {
-        java.util.List<String> detalles = new java.util.ArrayList<>();
-        String sql = """
-                SELECT idSalida, noFactura, fechaSalida, Estado
-                FROM salidas
-                WHERE idDestinatario = ?
-                  AND LOWER(Estado) IN (?, ?, ?)
-                ORDER BY idSalida
-                """;
-        cargarDetalle(detalles, sql, idSucursal, false);
-        return detalles;
-    }
-
     private int contarRegistrosConEstados(String sql, int idSucursal) {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
