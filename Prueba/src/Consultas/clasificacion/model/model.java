@@ -194,7 +194,7 @@ public class model {
     }
 
     public int contarProductosPorUbicacion(int ubicacionId) {
-        String sql = "SELECT COUNT(*) FROM detalleArticulo WHERE idUbicacion = ?";
+        String sql = "SELECT COUNT(*) FROM articulo WHERE ubicacion = ?";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -212,11 +212,10 @@ public class model {
     public List<String> obtenerDetalleArticulosPorUbicacion(int ubicacionId) {
         List<String> detalles = new java.util.ArrayList<>();
         String sql = """
-                SELECT da.idDetalle, da.idArticulo, a.Estado
-                FROM detalleArticulo da
-                LEFT JOIN articulo a ON a.idArticulo = da.idArticulo
-                WHERE da.idUbicacion = ?
-                ORDER BY da.idDetalle
+                SELECT idArticulo, Estado, lote, caducidad
+                FROM articulo
+                WHERE ubicacion = ?
+                ORDER BY idArticulo
                 """;
 
         try (Connection conn = new Conexion().conectar();
@@ -224,11 +223,14 @@ public class model {
             ps.setInt(1, ubicacionId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String idDetalle = rs.getString("idDetalle");
                     String idArticulo = rs.getString("idArticulo");
                     String estado = rs.getString("Estado");
-                    String texto = "Detalle " + idDetalle + " | Artículo " + idArticulo
-                            + (estado != null ? " | Estado " + estado : "");
+                    String lote = rs.getString("lote");
+                    String caducidad = rs.getString("caducidad");
+                    String texto = "Artículo " + idArticulo
+                            + (estado != null ? " | Estado " + estado : "")
+                            + (lote != null ? " | Lote " + lote : "")
+                            + (caducidad != null ? " | Caducidad " + caducidad : "");
                     detalles.add(texto);
                 }
             }
