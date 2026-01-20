@@ -470,7 +470,7 @@ public class MainController {
 
     private TableCell<unidades_Medida, Void> crearBotonEliminarUM() {
         return crearBotonEliminar(
-                u -> model.contarProductosPorUM(u.getId()),
+                u -> model.contarProductosPorUM(u.getNombre()),
                 u -> {
                     if (model.eliminarUM(u.getId())) {
                         Platform.runLater(() -> {
@@ -503,8 +503,13 @@ public class MainController {
                     String nombre = obtenerNombre.apply(item);
 
                     if (vinculados > 0) {
-                        if (!confirmarConVinculos(tipo, nombre, vinculados)) return;
-                    } else if (!confirmar("Eliminar " + tipo, nombre)) return;
+                        mostrarAlertaWarning("No se puede eliminar",
+                                "No se puede desactivar la " + tipo + " \"" + nombre + "\" porque tiene "
+                                        + vinculados + " producto(s) relacionado(s).");
+                        return;
+                    }
+
+                    if (!confirmar("Desactivar " + tipo, nombre)) return;
 
                     // Ejecutar la eliminación en un hilo separado
                     new Thread(() -> {

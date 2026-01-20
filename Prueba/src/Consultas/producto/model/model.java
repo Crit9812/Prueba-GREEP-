@@ -1,8 +1,12 @@
 package Consultas.producto.model;
 
 import Compartido.model.DAO.GenericDAO;
+import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -24,9 +28,14 @@ public class model {
         return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
-    // Metodo para eliminar un producto por ID
+    // Metodo para desactivar un producto por ID
     public boolean eliminarProducto(String id) {
-        return productoDAO.eliminar(id);
+        producto producto = buscarProductoPorId(id);
+        if (producto == null) {
+            return false;
+        }
+        producto.setEstado("desactivado");
+        return productoDAO.actualizar(producto);
     }
 
     // Metodo para buscar productos por un campo específico
@@ -43,6 +52,33 @@ public class model {
     // Metodo para buscar un producto por su ID
     public producto buscarProductoPorId(String id) {
         return productoDAO.buscarExacto("id", id);
+    }
+
+    public int contarEntradasPorProducto(String idProducto) {
+        return contarRegistros("SELECT COUNT(*) FROM detalle_Entrada WHERE claveProducto = ?", idProducto);
+    }
+
+    public int contarSalidasPorProducto(String idProducto) {
+        return contarRegistros("SELECT COUNT(*) FROM detalle_Salida WHERE claveProductoSalida = ?", idProducto);
+    }
+
+    public int contarClavesPorProducto(String idProducto) {
+        return contarRegistros("SELECT COUNT(*) FROM claves WHERE idProducto = ? AND estado = 'activo'", idProducto);
+    }
+
+    private int contarRegistros(String sql, String valor) {
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, valor);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     // Metodo para actualizar solo la URL de la imagen

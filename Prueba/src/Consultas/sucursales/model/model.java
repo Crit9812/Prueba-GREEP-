@@ -1,9 +1,13 @@
 package Consultas.sucursales.model;
 
 import Compartido.model.DAO.GenericDAO;
+import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 
 public class model {
@@ -16,7 +20,12 @@ public class model {
     }
 
     public boolean eliminarSucursal(int idSucursal) {
-        return dao.eliminar(String.valueOf(idSucursal));
+        sucursal sucursal = obtenerSucursalPorId(idSucursal);
+        if (sucursal == null) {
+            return false;
+        }
+        sucursal.setStatus("desactivado");
+        return dao.actualizar(sucursal);
     }
 
     public sucursal obtenerSucursalPorId(int id) {
@@ -26,6 +35,29 @@ public class model {
     public ObservableList<sucursal> buscarExacto(String nombre) {
         ArrayList<sucursal> lista = dao.buscarParcial("nombre", nombre);
         return FXCollections.observableArrayList(filtrarActivos(lista));
+    }
+
+    public int contarEntradasPorSucursal(int idSucursal) {
+        return contarRegistros("SELECT COUNT(*) FROM entradas WHERE idRemitente = ?", idSucursal);
+    }
+
+    public int contarSalidasPorSucursal(int idSucursal) {
+        return contarRegistros("SELECT COUNT(*) FROM salidas WHERE idDestinatario = ?", idSucursal);
+    }
+
+    private int contarRegistros(String sql, int idSucursal) {
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idSucursal);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     private ArrayList<sucursal> filtrarActivos(ArrayList<sucursal> lista) {

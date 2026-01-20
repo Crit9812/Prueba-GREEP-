@@ -1,9 +1,13 @@
 package Consultas.claves.model;
 
 import Compartido.model.DAO.GenericDAO;
+import conexion.Conexion;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 
 public class model {
@@ -24,7 +28,35 @@ public class model {
     }
 
     public boolean eliminar(String id) {
-        return claveDAO.eliminar(id);
+        claves clave = claveDAO.buscarExacto("idAlterno", id);
+        if (clave == null) {
+            return false;
+        }
+        clave.setEstado("desactivado");
+        return claveDAO.actualizar(clave);
+    }
+
+    public int contarEntradasPorClave(String idAlterno) {
+        return contarRegistros("SELECT COUNT(*) FROM detalle_Entrada WHERE claveProducto = ?", idAlterno);
+    }
+
+    public int contarSalidasPorClave(String idAlterno) {
+        return contarRegistros("SELECT COUNT(*) FROM detalle_Salida WHERE claveProductoSalida = ?", idAlterno);
+    }
+
+    private int contarRegistros(String sql, String idAlterno) {
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idAlterno);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     // --- USANDO DAO ESPECÍFICO ---

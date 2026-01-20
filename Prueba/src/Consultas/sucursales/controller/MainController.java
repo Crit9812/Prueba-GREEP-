@@ -130,17 +130,31 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         sucursal seleccionado = getTableView().getItems().get(getIndex());
+                        int enEntradas = sucursalModel.contarEntradasPorSucursal(seleccionado.getId());
+                        int enSalidas = sucursalModel.contarSalidasPorSucursal(seleccionado.getId());
+                        if (enEntradas > 0 || enSalidas > 0) {
+                            StringBuilder motivo = new StringBuilder(
+                                    "No se puede desactivar la sucursal porque tiene registros relacionados:");
+                            if (enEntradas > 0) {
+                                motivo.append("\n- Entradas: ").append(enEntradas);
+                            }
+                            if (enSalidas > 0) {
+                                motivo.append("\n- Salidas: ").append(enSalidas);
+                            }
+                            new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
+                            return;
+                        }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                         alerta.setTitle("Confirmar eliminación");
                         alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea eliminar esta sucursal?");
+                        alerta.setContentText("¿Está seguro que desea desactivar esta sucursal?");
                         alerta.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.OK) {
                                 if (sucursalModel.eliminarSucursal(seleccionado.getId())) {
                                     contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Sucursal eliminada correctamente").showAndWait();
+                                    new Alert(Alert.AlertType.INFORMATION, "Sucursal desactivada correctamente").showAndWait();
                                 } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar la sucursal").showAndWait();
+                                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar la sucursal").showAndWait();
                                 }
                             }
                         });

@@ -139,17 +139,31 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         proveedores seleccionado = getTableView().getItems().get(getIndex());
+                        int enEntradas = proveedorModel.contarEntradasPorProveedor(seleccionado.getId());
+                        int enClaves = proveedorModel.contarClavesPorProveedor(seleccionado.getId());
+                        if (enEntradas > 0 || enClaves > 0) {
+                            StringBuilder motivo = new StringBuilder(
+                                    "No se puede desactivar el proveedor porque tiene registros relacionados:");
+                            if (enEntradas > 0) {
+                                motivo.append("\n- Entradas: ").append(enEntradas);
+                            }
+                            if (enClaves > 0) {
+                                motivo.append("\n- Claves: ").append(enClaves);
+                            }
+                            new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
+                            return;
+                        }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                         alerta.setTitle("Confirmar eliminación");
                         alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea eliminar este proveedor?");
+                        alerta.setContentText("¿Está seguro que desea desactivar este proveedor?");
                         alerta.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.OK) {
                                 if (proveedorModel.eliminar(seleccionado.getId())) {
                                     contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Proveedor eliminado correctamente").showAndWait();
+                                    new Alert(Alert.AlertType.INFORMATION, "Proveedor desactivado correctamente").showAndWait();
                                 } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el proveedor.").showAndWait();
+                                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar el proveedor.").showAndWait();
                                 }
                             }
                         });

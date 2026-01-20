@@ -57,7 +57,12 @@ public class model {
     }
 
     public boolean eliminarMarca(int id) {
-        return marcaDAO.eliminar(String.valueOf(id));
+        marcas marca = buscarMarcaPorId(id);
+        if (marca == null) {
+            return false;
+        }
+        marca.setEstado("desactivado");
+        return marcaDAO.actualizar(marca);
     }
 
     public int contarProductosPorMarca(int marcaId) {
@@ -116,7 +121,12 @@ public class model {
     }
 
     public boolean eliminarEtiqueta(int id) {
-        return etiquetaDAO.eliminar(String.valueOf(id));
+        etiquetas etiqueta = buscarEtiquetaPorId(id);
+        if (etiqueta == null) {
+            return false;
+        }
+        etiqueta.setEstado("desactivado");
+        return etiquetaDAO.actualizar(etiqueta);
     }
 
     public int contarProductosPorEtiqueta(int etiquetaId) {
@@ -175,7 +185,12 @@ public class model {
     }
 
     public boolean eliminarUbicacion(int id) {
-        return ubicacionDAO.eliminar(String.valueOf(id));
+        ubicaciones ubicacion = buscarUbicacionPorId(id);
+        if (ubicacion == null) {
+            return false;
+        }
+        ubicacion.setEstado("desactivado");
+        return ubicacionDAO.actualizar(ubicacion);
     }
 
     public int contarProductosPorUbicacion(int ubicacionId) {
@@ -284,16 +299,22 @@ public class model {
     }
 
     public boolean eliminarUM(int id) {
-        return umDAO.eliminar(String.valueOf(id));
+        unidades_Medida um = buscarUMPorId(id);
+        if (um == null) {
+            return false;
+        }
+        um.setEstado("desactivado");
+        return umDAO.actualizar(um);
     }
 
-    public int contarProductosPorUM(int umId) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE unidad_Medida = ?";
+    public int contarProductosPorUM(String nombreUM) {
+        String sql = "SELECT COUNT(*) FROM productos WHERE unidadMedida LIKE ?";
+        String patron = "%" + nombreUM + "%";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, umId);
+            ps.setString(1, patron);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt(1);
 

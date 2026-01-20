@@ -245,18 +245,36 @@ public class MainController {
     }
 
     private void eliminarProducto(producto p) {
+        int enEntradas = productoModel.contarEntradasPorProducto(p.getIdProducto());
+        int enSalidas = productoModel.contarSalidasPorProducto(p.getIdProducto());
+        int enClaves = productoModel.contarClavesPorProducto(p.getIdProducto());
+
+        if (enEntradas > 0 || enSalidas > 0 || enClaves > 0) {
+            StringBuilder motivo = new StringBuilder("No se puede eliminar el producto porque tiene registros relacionados:");
+            if (enEntradas > 0) {
+                motivo.append("\n- Entradas: ").append(enEntradas);
+            }
+            if (enSalidas > 0) {
+                motivo.append("\n- Salidas: ").append(enSalidas);
+            }
+            if (enClaves > 0) {
+                motivo.append("\n- Claves: ").append(enClaves);
+            }
+            new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
+            return;
+        }
+
         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
         alerta.setTitle("Confirmar eliminación");
         alerta.setHeaderText(null);
-        alerta.setContentText("¿Está seguro que desea eliminar este producto?");
+        alerta.setContentText("¿Está seguro que desea desactivar este producto?");
         alerta.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (productoModel.eliminarProducto(p.getIdProducto())) {
-                    eliminarImagenProducto(p);
                     contenidoTabla.getItems().remove(p);
-                    new Alert(Alert.AlertType.INFORMATION, "Producto eliminado correctamente").showAndWait();
+                    new Alert(Alert.AlertType.INFORMATION, "Producto desactivado correctamente").showAndWait();
                 } else {
-                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el producto.").showAndWait();
+                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar el producto.").showAndWait();
                 }
             }
         });
