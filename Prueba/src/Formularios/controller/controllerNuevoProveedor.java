@@ -50,6 +50,8 @@ public class controllerNuevoProveedor {
 
     private boolean modoEdicion = false;
     private int idProveedorEdicion = -1;
+    private String tituloNuevoProveedor = null;
+    private String textoBotonNuevoProveedor = null;
 
     private final modelNuevoProveedor model = new modelNuevoProveedor();
     private Runnable onSaved = null;
@@ -66,6 +68,7 @@ public class controllerNuevoProveedor {
         configurarValidaciones();
         configurarCamposAutocompletado();
         configurarAutocompletadoCp();
+        aplicarTextoNuevoProveedor();
 
         // 👉 Todos los TextField ejecutarán guardarProveedor() al presionar ENTER
         setEnterAction(txtNombre);
@@ -93,6 +96,12 @@ public class controllerNuevoProveedor {
     }
 
     public void setOnSaved(Runnable r) { this.onSaved = r; }
+
+    public void configurarTextoNuevoProveedor(String titulo, String textoBoton) {
+        tituloNuevoProveedor = titulo;
+        textoBotonNuevoProveedor = textoBoton;
+        aplicarTextoNuevoProveedor();
+    }
 
     public void cargarProveedor(proveedores p) {
         if (p == null) return;
@@ -205,6 +214,16 @@ public class controllerNuevoProveedor {
         aplicarFiltro(txtNoExt, permitirNumeros(10));
         aplicarFiltro(txtCorreo, permitirEmail(120));
         aplicarFiltro(txtTelefono, permitirNumeros(10));
+    }
+
+    private void aplicarTextoNuevoProveedor() {
+        if (modoEdicion || titulo == null || btnGuardar == null) return;
+        if (tituloNuevoProveedor != null && !tituloNuevoProveedor.isBlank()) {
+            titulo.setText(tituloNuevoProveedor);
+        }
+        if (textoBotonNuevoProveedor != null && !textoBotonNuevoProveedor.isBlank()) {
+            btnGuardar.setText(textoBotonNuevoProveedor);
+        }
     }
 
     private void aplicarFiltro(TextField field, UnaryOperator<TextFormatter.Change> filter) {
