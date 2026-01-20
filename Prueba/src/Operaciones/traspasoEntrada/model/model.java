@@ -42,13 +42,17 @@ public class model {
         private String cantidad;
         private String precioUnitario;
         private String precioTotal;
+        private String nombreSucursal; 
 
-        public DetalleEntrada(String claveProducto, String producto, String cantidad, String precioUnitario, String precioTotal) {
+        // Constructor modificado para incluir la sucursal
+        public DetalleEntrada(String claveProducto, String producto, String cantidad,
+                              String precioUnitario, String precioTotal, String nombreSucursal) {
             this.claveProducto = claveProducto;
             this.producto = producto;
             this.cantidad = cantidad;
             this.precioUnitario = precioUnitario;
             this.precioTotal = precioTotal;
+            this.nombreSucursal = nombreSucursal != null ? nombreSucursal : "";
         }
 
         public String getClaveProducto() { return claveProducto; }
@@ -56,6 +60,54 @@ public class model {
         public String getCantidad() { return cantidad; }
         public String getPrecioUnitario() { return precioUnitario; }
         public String getPrecioTotal() { return precioTotal; }
+        public String getNombreSucursal() { return nombreSucursal; } // NUEVO GETTER
+    }
+
+    // Método para obtener el nombre de la sucursal del remitente
+    public String obtenerNombreSucursalPorEntrada(String claveEntrada) {
+        String nombreSucursal = "";
+
+        if (claveEntrada == null || claveEntrada.trim().isEmpty()) {
+            return "No especificado";
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+            Map<String, String> columnasSucursales = obtenerColumnas(conn, "sucursales");
+
+            String colId = resolverColumna(columnasEntradas, "id", "claveEntrada", "idEntrada", "entrada_id");
+            String colSucursal = resolverColumna(columnasEntradas, "idRemitente", "idSucursal", "sucursal",
+                    "sucursal_id", "id_sucursal", "remitente");
+
+            String colSucursalId = resolverColumna(columnasSucursales, "id", "idSucursal", "sucursal_id", "id_sucursal");
+            String colSucursalNombre = resolverColumna(columnasSucursales, "nombre", "nombreSucursal", "sucursal");
+
+            if (colId == null || colSucursal == null || colSucursalId == null || colSucursalNombre == null) {
+                return "No especificado";
+            }
+
+            String sql = "SELECT s.`" + colSucursalNombre + "` AS sucursal " +
+                    "FROM entradas e " +
+                    "LEFT JOIN sucursales s ON e.`" + colSucursal + "` = s.`" + colSucursalId + "` " +
+                    "WHERE e.`" + colId + "` = ? " +
+                    "LIMIT 1";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, claveEntrada);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        nombreSucursal = formato(rs.getObject("sucursal"));
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error al obtener nombre de sucursal para entrada " + claveEntrada + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return nombreSucursal != null && !nombreSucursal.trim().isEmpty() ? nombreSucursal : "No especificado";
     }
 
     public String obtenerNombreProducto(String claveProducto) {
@@ -252,6 +304,10 @@ public class model {
 
                 try (ResultSet rs = ps.executeQuery()) {
                     int contador = 0;
+
+                    // Obtener el nombre de la sucursal del remitente (una sola vez para todos los detalles)
+                    String nombreSucursal = obtenerNombreSucursalPorEntrada(claveEntrada);
+
                     while (rs.next()) {
                         String claveProd = formato(rs.getObject("claveProducto"));
                         String cantidad = formato(rs.getObject("cantidad"));
@@ -263,16 +319,16 @@ public class model {
                                 ": ClaveProducto=" + claveProd +
                                 ", Cantidad=" + cantidad +
                                 ", PrecioUnitario=" + precioUnitario +
-                                ", PrecioTotal=" + precioTotal);
+                                ", PrecioTotal=" + precioTotal +
+                                ", Sucursal=" + nombreSucursal);
 
                         // Obtener el nombre del producto usando el método existente
                         String nombreProducto = obtenerNombreProducto(claveProd);
 
-
-                        // Ahora sí, crear el DetalleEntrada con los 5 parámetros
-                        detalles.add(new DetalleEntrada(claveProd, nombreProducto, cantidad, precioUnitario, precioTotal));
+                        // Crear el DetalleEntrada con los 6 parámetros (añadiendo nombreSucursal)
+                        detalles.add(new DetalleEntrada(claveProd, nombreProducto, cantidad,
+                                precioUnitario, precioTotal, nombreSucursal));
                     }
-
                 }
             }
 

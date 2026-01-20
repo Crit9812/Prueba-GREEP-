@@ -142,7 +142,7 @@ public class SelectorOrdenPopup {
     }
 
     private static String textoCriterio(String criterio) {
-        switch (criterio) {
+        switch (criterio.toLowerCase()) {
             case "cantidad":
                 return "Cantidad";
             case "producto":
@@ -151,9 +151,17 @@ public class SelectorOrdenPopup {
                 return "Fecha";
             case "sucursal":
                 return "Sucursal";
+            case "ubicacion":
+            case "ubicación":
+                return "Ubicación";
+            case "lote":
+                return "Lote";
+            case "caducidad":
+                return "Caducidad";
             case "id":
             default:
                 return "ID";
         }
     }
+
 }

@@ -503,8 +503,6 @@ public class MainController {
         }
     }
 
-    // En la clase MainController, cambia estos métodos:
-
     @FXML
     private void exportarExcel() {
         if (contenidoTabla.getItems().isEmpty()) {
@@ -571,6 +569,10 @@ public class MainController {
         }
         criterios.add("producto");
 
+        if (detallado) {
+            criterios.add("ubicacion");
+        }
+
         SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
                 criterios, criterioOrden, direccionOrden, seleccion -> {
                     criterioOrden = seleccion.getCriterio();
@@ -600,17 +602,15 @@ public class MainController {
             case "producto":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getProducto()));
                 break;
+            case "ubicacion":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getUbicacion()));
+                break;
             case "id":
             default:
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveProducto()));
                 break;
         }
-
-        if ("cantidad".equalsIgnoreCase(criterioOrden)) {
-            if ("asc".equalsIgnoreCase(direccionOrden)) {
-                comparator = comparator.reversed();
-            }
-        } else if ("desc".equalsIgnoreCase(direccionOrden)) {
+        if ("desc".equalsIgnoreCase(direccionOrden)) {
             comparator = comparator.reversed();
         }
 
@@ -717,7 +717,6 @@ public class MainController {
         // 3️⃣ Aplicar filtros activos
         aplicarFiltros();
     }
-
 
     private static class Filtro {
         private final String campo;
