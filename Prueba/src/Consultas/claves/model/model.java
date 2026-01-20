@@ -28,12 +28,15 @@ public class model {
     }
 
     public boolean eliminar(String id) {
-        claves clave = claveDAO.buscarExacto("idAlterno", id);
-        if (clave == null) {
-            return false;
+        String sql = "UPDATE claves SET estado = 'desactivado' WHERE idAlterno = ?";
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        clave.setEstado("desactivado");
-        return claveDAO.actualizar(clave);
+        return false;
     }
 
     public int contarEntradasPorClave(String idAlterno) {
