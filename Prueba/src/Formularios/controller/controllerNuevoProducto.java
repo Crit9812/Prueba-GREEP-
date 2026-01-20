@@ -624,7 +624,7 @@ public class controllerNuevoProducto {
             return false;
         }
         String estadoNormalizado = estado.trim().toLowerCase();
-        return estadoNormalizado.equals("desactivado") || estadoNormalizado.equals("inactivo");
+        return !estadoNormalizado.equals("activo");
     }
 
     private void prepararSobrescritura(producto productoExistente) {
