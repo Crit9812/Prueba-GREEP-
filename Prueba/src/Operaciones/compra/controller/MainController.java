@@ -591,7 +591,7 @@ public class MainController {
     @FXML
     public void abrirNuevoProveedor() {
         Formularios.controller.controllerNuevoProveedor controlador = new Formularios.controller.controllerNuevoProveedor();
-        controlador.configurarTextoNuevoProveedor("Guardar proveedor", "Guardar proveedor");
+        controlador.configurarTextoNuevoProveedor("Agregar proveedor", "Agregar proveedor");
 
         // 👉 NUEVO: Configurar callback para cuando se guarde el proveedor
         controlador.setOnSaved(() -> {

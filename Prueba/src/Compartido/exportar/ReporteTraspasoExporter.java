@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -50,12 +49,6 @@ public class ReporteTraspasoExporter {
     private static final float LINE_HEIGHT = 14f;
     private static final float SECTION_SPACING = 20f;
     private static final float CELL_PADDING = 5f;
-    private static final float ROW_HEIGHT_DETALLES = 30f; // Aumentado para fuente 14
-    private static final float ROW_HEIGHT_UBICACIONES = 25f;
-
-    // Variables para control de páginas
-    private static int filasPorHojaActual = 0;
-    private static int totalFilasEnHoja = 0;
 
     public static void exportarReporte(String claveEntrada,
                                        List<model.DetalleEntrada> detalles,
@@ -93,85 +86,63 @@ public class ReporteTraspasoExporter {
                                        List<model.DetalleEntrada> detalles,
                                        Map<String, List<UbicacionCompra>> ubicacionesPorProducto) throws IOException {
         try (PDDocument document = new PDDocument()) {
-            // Resetear variables para cada reporte
-            filasPorHojaActual = 0;
-            totalFilasEnHoja = 0;
-
-            // Calcular cuántas filas caben en una página
+            // Configurar página
             PDRectangle pageSize = PDRectangle.LETTER;
+            PDPage page = new PDPage(pageSize);
+            document.addPage(page);
+
+            PDPageContentStream contentStream = new PDPageContentStream(document, page);
+
+            // Posiciones iniciales
+            float pageWidth = pageSize.getWidth();
             float pageHeight = pageSize.getHeight();
-            float espacioRestante = pageHeight - (MARGIN * 2) - 180; // Restar encabezado e info general
-            int maxFilasPorHoja = (int) (espacioRestante / ROW_HEIGHT_DETALLES);
+            float currentY = pageHeight - MARGIN;
 
-            // Dividir detalles en páginas si son muchos
-            int totalPaginas = (int) Math.ceil((double) detalles.size() / maxFilasPorHoja);
+            // Fuentes
+            PDType1Font fontTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font fontNormalBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font fontTablaCabecera = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font fontTablaDatos = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
 
-            for (int pagina = 0; pagina < totalPaginas; pagina++) {
-                int inicio = pagina * maxFilasPorHoja;
-                int fin = Math.min(inicio + maxFilasPorHoja, detalles.size());
-                List<model.DetalleEntrada> detallesPagina = detalles.subList(inicio, fin);
+            // 1. ENCABEZADO DEL REPORTE
+            currentY = dibujarEncabezado(contentStream, fontTitulo, pageWidth, currentY, claveEntrada);
 
-                PDPage page = new PDPage(pageSize);
-                document.addPage(page);
-                PDPageContentStream contentStream = new PDPageContentStream(document, page);
-
-                // Posiciones iniciales
-                float pageWidth = pageSize.getWidth();
-                float currentY = pageHeight - MARGIN;
-
-                // Fuentes
-                PDType1Font fontTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                PDType1Font fontNormalBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDType1Font fontTablaCabecera = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDType1Font fontTablaDatos = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-
-                // 1. ENCABEZADO DEL REPORTE con filas por hoja
-                totalFilasEnHoja = detallesPagina.size();
-                currentY = dibujarEncabezado(contentStream, fontTitulo, pageWidth, currentY,
-                        claveEntrada, pagina + 1, totalPaginas, totalFilasEnHoja);
-
-                // 2. INFORMACIÓN GENERAL (solo en primera página)
-                if (pagina == 0) {
-                    String quienEnvia = "";
-                    if (!detalles.isEmpty()) {
-                        quienEnvia = obtenerNombreSucursal(detalles.get(0));
-                    }
-                    currentY = dibujarInformacionGeneral(contentStream, fontSubtitulo, fontNormal,
-                            pageWidth, currentY, detalles, quienEnvia);
-                } else {
-                    currentY -= 20; // Espacio sin información general
-                }
-
-                // 3. TABLA DE DETALLES (con fuente 14 para registros)
-                currentY = dibujarTablaDetalles(contentStream, fontTablaCabecera, fontTablaDatos,
-                        pageWidth, currentY, detallesPagina, inicio + 1);
-
-                // 4. UBICACIONES POR PRODUCTO (solo en la última página)
-                if (pagina == totalPaginas - 1) {
-                    currentY = dibujarUbicaciones(contentStream, fontSubtitulo, fontNormal, fontNormalBold,
-                            pageWidth, currentY, ubicacionesPorProducto, detalles);
-                }
-
-                // 5. PIE DE PÁGINA
-                dibujarPiePagina(contentStream, fontNormal, pageWidth, pageHeight, pagina + 1, totalPaginas);
-
-                contentStream.close();
+            // 2. INFORMACIÓN GENERAL
+            // Obtener quién envía (nombre de sucursal del primer detalle)
+            String quienEnvia = "";
+            if (!detalles.isEmpty()) {
+                // Si tu modelo tiene un método para obtener la sucursal, úsalo aquí
+                // Por ejemplo: detalles.get(0).getSucursalOrigen() o similar
+                quienEnvia = obtenerNombreSucursal(detalles.get(0));
             }
 
+            currentY = dibujarInformacionGeneral(contentStream, fontSubtitulo, fontNormal, pageWidth,
+                    currentY, detalles, quienEnvia);
+
+            // 3. TABLA DE DETALLES
+            currentY = dibujarTablaDetalles(contentStream, fontTablaCabecera, fontTablaDatos,
+                    pageWidth, currentY, detalles);
+
+            // 4. UBICACIONES POR PRODUCTO
+            currentY = dibujarUbicaciones(contentStream, fontSubtitulo, fontNormal, fontNormalBold,
+                    pageWidth, currentY, ubicacionesPorProducto, detalles);
+
+            // 5. PIE DE PÁGINA
+            dibujarPiePagina(contentStream, fontNormal, pageWidth, pageHeight);
+
+            contentStream.close();
             document.save(archivo);
         }
     }
+
 
     private static float dibujarEncabezado(PDPageContentStream contentStream,
                                            PDType1Font fontTitulo,
                                            float pageWidth,
                                            float currentY,
-                                           String claveEntrada,
-                                           int paginaActual,
-                                           int totalPaginas,
-                                           int filasEnEstaHoja) throws IOException {
+                                           String claveEntrada) throws IOException {
         // Fondo del encabezado con el nuevo color verde #91d485
         contentStream.setNonStrokingColor(COLOR_BANDA_SUPERIOR[0], COLOR_BANDA_SUPERIOR[1], COLOR_BANDA_SUPERIOR[2]);
         contentStream.addRect(MARGIN, currentY - 60, pageWidth - 2 * MARGIN, 60);
@@ -185,18 +156,14 @@ public class ReporteTraspasoExporter {
         contentStream.showText("REPORTE DE TRASPASO");
         contentStream.endText();
 
-        // Subtítulo con clave y filas por hoja
-        String subtitulo = "Clave: " + claveEntrada;
-        if (totalPaginas > 1) {
-            subtitulo += " • Página " + paginaActual + "/" + totalPaginas;
-        }
-        subtitulo += " • Filas en hoja: " + filasEnEstaHoja;
-
+        // Subtítulo
         contentStream.beginText();
         contentStream.setFont(fontTitulo, 14);
         contentStream.newLineAtOffset(MARGIN + 10, currentY - 50);
-        contentStream.showText(subtitulo);
+        contentStream.showText("Clave: " + claveEntrada);
         contentStream.endText();
+
+        // NOTA: Se quitaron fecha y hora de aquí (se moverán a información general)
 
         return currentY - 80;
     }
@@ -296,8 +263,7 @@ public class ReporteTraspasoExporter {
                                               PDType1Font fontDatos,
                                               float pageWidth,
                                               float currentY,
-                                              List<model.DetalleEntrada> detalles,
-                                              int inicioNumeracion) throws IOException {
+                                              List<model.DetalleEntrada> detalles) throws IOException {
         // Título de sección en color #333
         contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
         contentStream.beginText();
@@ -318,7 +284,7 @@ public class ReporteTraspasoExporter {
 
         // Dibujar fondo de cabecera
         contentStream.setNonStrokingColor(COLOR_ENCABEZADO_TABLA[0], COLOR_ENCABEZADO_TABLA[1], COLOR_ENCABEZADO_TABLA[2]);
-        contentStream.addRect(MARGIN, currentY - 25, tableWidth, 25); // Aumentado de 20 a 25 para fuente 14
+        contentStream.addRect(MARGIN, currentY - 20, tableWidth, 20);
         contentStream.fill();
 
         // Dibujar texto de cabecera
@@ -327,93 +293,95 @@ public class ReporteTraspasoExporter {
         for (int i = 0; i < headers.length; i++) {
             contentStream.beginText();
             contentStream.setFont(fontCabecera, 10);
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18); // Ajustado
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(headers[i]);
             contentStream.endText();
             xPos += scaledWidths[i];
         }
 
-        currentY -= 30; // Aumentado de 25 a 30
+        currentY -= 25;
 
-        // Dibujar filas de datos CON FUENTE 14
-        int filaNum = inicioNumeracion;
+        // Dibujar filas de datos
+        int filaNum = 1;
         for (model.DetalleEntrada detalle : detalles) {
             // Alternar colores de fila
-            if ((filaNum - inicioNumeracion + 1) % 2 == 0) {
+            if (filaNum % 2 == 0) {
                 contentStream.setNonStrokingColor(COLOR_FILA_PAR[0], COLOR_FILA_PAR[1], COLOR_FILA_PAR[2]);
             } else {
                 contentStream.setNonStrokingColor(COLOR_FILA_IMPAR[0], COLOR_FILA_IMPAR[1], COLOR_FILA_IMPAR[2]);
             }
-            contentStream.addRect(MARGIN, currentY - 25, tableWidth, 25); // Aumentado de 20 a 25
+            contentStream.addRect(MARGIN, currentY - 20, tableWidth, 20);
             contentStream.fill();
 
-            // Dibujar datos CON FUENTE 14
+            // Dibujar datos
             contentStream.setNonStrokingColor(0, 0, 0);
             xPos = MARGIN;
 
             // Columna 1: Número
             contentStream.beginText();
-            contentStream.setFont(fontDatos, 14); // CAMBIADO DE 10 A 14
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18); // Ajustado
+            contentStream.setFont(fontDatos, 10);
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(String.valueOf(filaNum));
             contentStream.endText();
             xPos += scaledWidths[0];
 
             // Columna 2: Clave
             contentStream.beginText();
-            contentStream.setFont(fontDatos, 14); // CAMBIADO DE 10 A 14
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18);
+            contentStream.setFont(fontDatos, 10);
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(detalle.getClaveProducto());
             contentStream.endText();
             xPos += scaledWidths[1];
 
             // Columna 3: Producto (ajustar si es muy largo)
             String producto = detalle.getProducto();
-            if (producto.length() > 20) { // Reducido de 25 para fuente más grande
-                producto = producto.substring(0, 17) + "...";
+            if (producto.length() > 25) {
+                producto = producto.substring(0, 22) + "...";
             }
             contentStream.beginText();
-            contentStream.setFont(fontDatos, 14); // CAMBIADO DE 10 A 14
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18);
+            contentStream.setFont(fontDatos, 10);
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(producto);
             contentStream.endText();
             xPos += scaledWidths[2];
 
             // Columna 4: Cantidad
             contentStream.beginText();
-            contentStream.setFont(fontDatos, 14); // CAMBIADO DE 10 A 14
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18);
+            contentStream.setFont(fontDatos, 10);
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(detalle.getCantidad());
             contentStream.endText();
             xPos += scaledWidths[3];
 
             // Columna 5: Precio Unitario
             contentStream.beginText();
-            contentStream.setFont(fontDatos, 14); // CAMBIADO DE 10 A 14
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18);
+            contentStream.setFont(fontDatos, 10);
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(detalle.getPrecioUnitario());
             contentStream.endText();
             xPos += scaledWidths[4];
 
-            // Columna 6: Precio Total
+            // Columna 6: Precio Total (NO alineado a la derecha - vuelve a la alineación normal)
             contentStream.setNonStrokingColor(COLOR_TOTALES[0], COLOR_TOTALES[1], COLOR_TOTALES[2]);
             contentStream.beginText();
-            contentStream.setFont(fontCabecera, 14); // CAMBIADO DE 10 A 14
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 18);
+            contentStream.setFont(fontCabecera, 10);
+            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
             contentStream.showText(detalle.getPrecioTotal());
             contentStream.endText();
 
-            currentY -= 30; // Aumentado de 25 a 30 para fuente más grande
+            currentY -= 25;
             filaNum++;
 
-            // Actualizar contador de filas en esta hoja
-            filasPorHojaActual++;
+            // Verificar si necesitamos nueva página
+            if (currentY < MARGIN + 100 && filaNum <= detalles.size()) {
+                // Por simplicidad, continuamos en la misma
+            }
         }
 
         // Dibujar bordes de la tabla
         contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
         contentStream.setLineWidth(0.5f);
-        contentStream.addRect(MARGIN, currentY + 5, tableWidth, (detalles.size() + 1) * 30);
+        contentStream.addRect(MARGIN, currentY + 5, tableWidth, (detalles.size() + 1) * 25);
         contentStream.stroke();
 
         return currentY - SECTION_SPACING;
@@ -428,13 +396,6 @@ public class ReporteTraspasoExporter {
                                             Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
                                             List<model.DetalleEntrada> detalles) throws IOException {
         if (ubicacionesPorProducto == null || ubicacionesPorProducto.isEmpty()) {
-            return currentY;
-        }
-
-        // Verificar si hay espacio suficiente
-        float espacioMinimoNecesario = 100f;
-        if (currentY < MARGIN + espacioMinimoNecesario) {
-            // No hay espacio suficiente, retornar posición actual
             return currentY;
         }
 
@@ -453,12 +414,6 @@ public class ReporteTraspasoExporter {
             List<UbicacionCompra> ubicaciones = ubicacionesPorProducto.get(detalle.getClaveProducto());
 
             if (ubicaciones != null && !ubicaciones.isEmpty()) {
-                // Verificar si hay espacio para este producto
-                float espacioProducto = 20 + (ubicaciones.size() * 25) + 10;
-                if (currentY - espacioProducto < MARGIN + 50) {
-                    break; // No hay espacio suficiente
-                }
-
                 // Nombre del producto en color azul #0274be
                 contentStream.setNonStrokingColor(COLOR_PRODUCTOS[0], COLOR_PRODUCTOS[1], COLOR_PRODUCTOS[2]);
                 contentStream.beginText();
@@ -541,9 +496,7 @@ public class ReporteTraspasoExporter {
     private static void dibujarPiePagina(PDPageContentStream contentStream,
                                          PDType1Font fontNormal,
                                          float pageWidth,
-                                         float pageHeight,
-                                         int paginaActual,
-                                         int totalPaginas) throws IOException {
+                                         float pageHeight) throws IOException {
         // Línea separadora
         contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
         contentStream.setLineWidth(0.5f);
@@ -560,12 +513,10 @@ public class ReporteTraspasoExporter {
         contentStream.endText();
 
         // Número de página
-        String paginaTexto = "Página " + paginaActual + " de " + totalPaginas;
-        float textoAncho = fontNormal.getStringWidth(paginaTexto) / 1000 * 9;
         contentStream.beginText();
         contentStream.setFont(fontNormal, 9);
-        contentStream.newLineAtOffset(pageWidth - MARGIN - textoAncho - 20, MARGIN + 5);
-        contentStream.showText(paginaTexto);
+        contentStream.newLineAtOffset(pageWidth - MARGIN - 50, MARGIN + 5);
+        contentStream.showText("Página 1 de 1");
         contentStream.endText();
     }
 
@@ -605,6 +556,7 @@ public class ReporteTraspasoExporter {
     }
 
     private static String obtenerNombreSucursal(model.DetalleEntrada detalle) {
+        // Usar el nuevo método getNombreSucursal() que añadimos
         return detalle.getNombreSucursal() != null && !detalle.getNombreSucursal().isEmpty()
                 ? detalle.getNombreSucursal()
                 : "No especificado";
