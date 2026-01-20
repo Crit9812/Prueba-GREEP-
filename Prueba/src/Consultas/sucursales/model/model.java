@@ -38,17 +38,32 @@ public class model {
     }
 
     public int contarEntradasPorSucursal(int idSucursal) {
-        return contarRegistros("SELECT COUNT(*) FROM entradas WHERE idRemitente = ?", idSucursal);
+        String sql = """
+                SELECT COUNT(*)
+                FROM entradas
+                WHERE idRemitente = ?
+                  AND LOWER(Estado) IN (?, ?, ?)
+                """;
+        return contarRegistrosConEstados(sql, idSucursal);
     }
 
     public int contarSalidasPorSucursal(int idSucursal) {
-        return contarRegistros("SELECT COUNT(*) FROM salidas WHERE idDestinatario = ?", idSucursal);
+        String sql = """
+                SELECT COUNT(*)
+                FROM salidas
+                WHERE idDestinatario = ?
+                  AND LOWER(Estado) IN (?, ?, ?)
+                """;
+        return contarRegistrosConEstados(sql, idSucursal);
     }
 
-    private int contarRegistros(String sql, int idSucursal) {
+    private int contarRegistrosConEstados(String sql, int idSucursal) {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idSucursal);
+            ps.setString(2, "activo");
+            ps.setString(3, "pendiente");
+            ps.setString(4, "disponible");
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);

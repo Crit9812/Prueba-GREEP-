@@ -134,7 +134,7 @@ public class MainController {
                         int enSalidas = sucursalModel.contarSalidasPorSucursal(seleccionado.getId());
                         if (enEntradas > 0 || enSalidas > 0) {
                             StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar la sucursal porque tiene registros relacionados:");
+                                    "No se puede desactivar la sucursal porque tiene registros relacionados (activos, pendientes o disponibles):");
                             if (enEntradas > 0) {
                                 motivo.append("\n- Entradas: ").append(enEntradas);
                             }
