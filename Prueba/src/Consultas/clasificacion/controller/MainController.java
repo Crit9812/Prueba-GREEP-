@@ -606,6 +606,14 @@ public class MainController {
         alert.showAndWait();
     }
 
+    private void mostrarAlertaWarning(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
     // ================== ENTER PARA EDITAR ==================
     private void configurarEnter() {
         // Configurar ENTER para cada tabla
