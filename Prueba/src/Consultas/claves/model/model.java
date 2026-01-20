@@ -40,17 +40,34 @@ public class model {
     }
 
     public int contarEntradasPorClave(String idAlterno) {
-        return contarRegistros("SELECT COUNT(*) FROM detalle_Entrada WHERE claveProducto = ?", idAlterno);
+        String sql = """
+                SELECT COUNT(*)
+                FROM detalle_Entrada de
+                INNER JOIN entradas e ON e.idEntrada = de.claveEntrada
+                WHERE de.claveProducto = ?
+                  AND LOWER(e.Estado) IN (?, ?, ?)
+                """;
+        return contarRegistrosConEstados(sql, idAlterno);
     }
 
     public int contarSalidasPorClave(String idAlterno) {
-        return contarRegistros("SELECT COUNT(*) FROM detalle_Salida WHERE claveProductoSalida = ?", idAlterno);
+        String sql = """
+                SELECT COUNT(*)
+                FROM detalle_Salida ds
+                INNER JOIN salidas s ON s.idSalida = ds.claveSalida
+                WHERE ds.claveProductoSalida = ?
+                  AND LOWER(s.Estado) IN (?, ?, ?)
+                """;
+        return contarRegistrosConEstados(sql, idAlterno);
     }
 
-    private int contarRegistros(String sql, String idAlterno) {
+    private int contarRegistrosConEstados(String sql, String idAlterno) {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, idAlterno);
+            ps.setString(2, "activo");
+            ps.setString(3, "pendiente");
+            ps.setString(4, "disponible");
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);

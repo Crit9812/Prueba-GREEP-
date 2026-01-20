@@ -265,7 +265,7 @@ public class MainController {
         int enSalidas = modeloClaves.contarSalidasPorClave(idAlterno);
         if (enEntradas > 0 || enSalidas > 0) {
             StringBuilder motivo = new StringBuilder(
-                    "No se puede desactivar la clave porque tiene registros relacionados:");
+                    "No se puede desactivar la clave porque tiene registros relacionados (activos, pendientes o disponibles):");
             if (enEntradas > 0) {
                 motivo.append("\n- Entradas: ").append(enEntradas);
             }
@@ -360,7 +360,9 @@ public class MainController {
         Alert alerta = new Alert(Alert.AlertType.WARNING);
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
+        Label contenido = new Label(mensaje);
+        contenido.setWrapText(true);
+        alerta.getDialogPane().setContent(contenido);
         alerta.showAndWait();
     }
 }
