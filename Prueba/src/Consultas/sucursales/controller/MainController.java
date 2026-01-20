@@ -137,13 +137,6 @@ public class MainController {
                                     "No se puede desactivar la sucursal porque tiene registros relacionados (activos, pendientes o disponibles):");
                             if (enEntradas > 0) {
                                 motivo.append("\n- Entradas: ").append(enEntradas);
-                                StringBuilder detalleEntradas = new StringBuilder();
-                                for (String linea : sucursalModel.obtenerDetalleEntradasPorSucursal(seleccionado.getId())) {
-                                    detalleEntradas.append("\n  • ").append(linea);
-                                }
-                                if (detalleEntradas.length() > 0) {
-                                    motivo.append("\n  Detalles de entradas:").append(detalleEntradas);
-                                }
                             }
                             if (enSalidas > 0) {
                                 motivo.append("\n- Salidas: ").append(enSalidas);
