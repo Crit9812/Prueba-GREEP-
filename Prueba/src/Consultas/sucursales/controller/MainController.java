@@ -141,7 +141,13 @@ public class MainController {
                             if (enSalidas > 0) {
                                 motivo.append("\n- Salidas: ").append(enSalidas);
                             }
-                            new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
+                            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
+                            alertaAdvertencia.setTitle("Advertencia");
+                            alertaAdvertencia.setHeaderText(null);
+                            Label contenido = new Label(motivo.toString());
+                            contenido.setWrapText(true);
+                            alertaAdvertencia.getDialogPane().setContent(contenido);
+                            alertaAdvertencia.showAndWait();
                             return;
                         }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
