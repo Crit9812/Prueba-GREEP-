@@ -391,9 +391,6 @@ public class controllerNuevoProducto {
                     productoNombreCreado = p.getNombreProducto();
                 }
 
-                // Ejecutar callback para refrescar la tabla principal
-                if (onSaved != null) onSaved.run();
-
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Éxito");
                 alert.setHeaderText(null);
@@ -403,6 +400,9 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
+
+                // Ejecutar callback para refrescar la tabla principal
+                if (onSaved != null) onSaved.run();
 
                 // Cerrar ventana
                 Stage stage = (Stage) btnGuardar.getScene().getWindow();
