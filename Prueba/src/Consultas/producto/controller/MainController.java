@@ -245,20 +245,38 @@ public class MainController {
     }
 
     private void eliminarProducto(producto p) {
-        int enEntradas = productoModel.contarEntradasPorProducto(p.getIdProducto());
-        int enSalidas = productoModel.contarSalidasPorProducto(p.getIdProducto());
-        int enClaves = productoModel.contarClavesPorProducto(p.getIdProducto());
+        int entradas = productoModel.contarEntradasPorProducto(p.getIdProducto());
+        int salidas = productoModel.contarSalidasPorProducto(p.getIdProducto());
+        int detallesEntrada = productoModel.contarDetallesEntradaPorProducto(p.getIdProducto());
+        int detallesSalida = productoModel.contarDetallesSalidaPorProducto(p.getIdProducto());
+        int articulosEntrada = productoModel.contarArticulosEntradaPorProducto(p.getIdProducto());
+        int articulosSalida = productoModel.contarArticulosSalidaPorProducto(p.getIdProducto());
+        int clavesActivas = productoModel.contarClavesPorProducto(p.getIdProducto());
 
-        if (enEntradas > 0 || enSalidas > 0 || enClaves > 0) {
-            StringBuilder motivo = new StringBuilder("No se puede eliminar el producto porque tiene registros relacionados:");
-            if (enEntradas > 0) {
-                motivo.append("\n- Entradas: ").append(enEntradas);
+        if (entradas > 0 || salidas > 0 || detallesEntrada > 0 || detallesSalida > 0
+                || articulosEntrada > 0 || articulosSalida > 0 || clavesActivas > 0) {
+            StringBuilder motivo = new StringBuilder(
+                    "No se puede desactivar el producto porque tiene registros relacionados (activos, pendientes o disponibles):");
+            if (entradas > 0) {
+                motivo.append("\n- Entradas: ").append(entradas);
             }
-            if (enSalidas > 0) {
-                motivo.append("\n- Salidas: ").append(enSalidas);
+            if (detallesEntrada > 0) {
+                motivo.append("\n- Detalles de entrada: ").append(detallesEntrada);
             }
-            if (enClaves > 0) {
-                motivo.append("\n- Claves: ").append(enClaves);
+            if (articulosEntrada > 0) {
+                motivo.append("\n- Artículos de entradas: ").append(articulosEntrada);
+            }
+            if (salidas > 0) {
+                motivo.append("\n- Salidas: ").append(salidas);
+            }
+            if (detallesSalida > 0) {
+                motivo.append("\n- Detalles de salida: ").append(detallesSalida);
+            }
+            if (articulosSalida > 0) {
+                motivo.append("\n- Artículos de salidas: ").append(articulosSalida);
+            }
+            if (clavesActivas > 0) {
+                motivo.append("\n- Claves activas: ").append(clavesActivas);
             }
             new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
             return;
