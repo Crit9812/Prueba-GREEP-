@@ -243,7 +243,7 @@ public class controllerNuevoProducto {
                 // Verificar si el ID ya existe
                 producto existente = modeloFormulario.buscarProductoPorId(idProducto);
                 if (existente != null) {
-                    mostrarError("Ya existe un producto con este ID");
+                    mostrarError("Ese ID ya está registrado en otro producto.");
                     return;
                 }
             }
@@ -293,6 +293,22 @@ public class controllerNuevoProducto {
                 marcaId = modeloFormulario.crearOActualizarMarca(marcaTexto);
                 if (marcaId == null) {
                     mostrarError("Error al procesar la marca");
+                    return;
+                }
+            }
+
+            if (!modoEdicion) {
+                String idDuplicado = modeloFormulario.buscarProductoDuplicado(
+                        txtIdProducto.getText().trim(),
+                        nombre,
+                        etiquetaId,
+                        marcaId,
+                        categoria,
+                        material,
+                        unidadMedida
+                );
+                if (idDuplicado != null && !idDuplicado.isBlank()) {
+                    mostrarError("Ese producto ya existe con el ID: " + idDuplicado);
                     return;
                 }
             }
