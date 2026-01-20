@@ -12,11 +12,16 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class controllerNuevoProducto {
 
@@ -25,7 +30,7 @@ public class controllerNuevoProducto {
     @FXML private ComboBox<String> cmbCategoria;
     @FXML private ComboBox<marca> cmbMarca;
     @FXML private TextField txtMaterial;
-    @FXML private ComboBox<String> cmbUnidadMedida;
+    @FXML private VBox contenedorUnidadMedida;
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtInventarioMin;
     @FXML private Button btnGuardar;
@@ -45,6 +50,11 @@ public class controllerNuevoProducto {
     private String productoIdCreado = "";
     private String productoNombreCreado = "";
 
+    private static final int MAX_UNIDADES_MEDIDA = 5;
+    private final List<UnidadMedidaRow> filasUnidadMedida = new ArrayList<>();
+    private final ObservableList<String> medidasDisponibles = FXCollections.observableArrayList();
+    private int contadorUnidades = 0;
+
     public void setOnSaved(Runnable r) { this.onSaved = r; }
 
     @FXML
@@ -63,7 +73,6 @@ public class controllerNuevoProducto {
         cmbCategoria.setEditable(false); // solo elegir
         cmbMarca.setEditable(true);      // puede escribir
         cmbEtiqueta.setEditable(true);   // puede escribir
-        cmbUnidadMedida.setEditable(true);
 
         // Cargar datos
         cargarCategorias();
@@ -73,6 +82,8 @@ public class controllerNuevoProducto {
 
         // Configurar cómo mostrar las etiquetas y marcas en los ComboBox
         configurarComboBoxes();
+
+        inicializarUnidadesMedidaDinamicas();
 
         // Configurar atajo de teclado ENTER
         btnGuardar.sceneProperty().addListener((obs, oldScene, newScene) -> {
@@ -142,7 +153,8 @@ public class controllerNuevoProducto {
 
     private void cargarUnidadesMedida() {
         ObservableList<String> unidades = modeloFormulario.obtenerUnidadesActivas();
-        cmbUnidadMedida.setItems(unidades);
+        medidasDisponibles.setAll(unidades);
+        actualizarMedidasEnFilas();
     }
 
     @FXML
@@ -176,7 +188,7 @@ public class controllerNuevoProducto {
         txtNombre.setText(p.getNombreProducto());
         cmbCategoria.getSelectionModel().select(p.getCategoria());
         txtMaterial.setText(p.getMaterial());
-        cmbUnidadMedida.getEditor().setText(p.getUnidadMedida());
+        cargarUnidadesMedidaDesdeProducto(p.getUnidadMedida());
         txtDescripcion.setText(p.getDescripcion());
         txtInventarioMin.setText(String.valueOf(p.getInventarioMin()));
 
@@ -231,7 +243,7 @@ public class controllerNuevoProducto {
                 // Verificar si el ID ya existe
                 producto existente = modeloFormulario.buscarProductoPorId(idProducto);
                 if (existente != null) {
-                    mostrarError("Ya existe un producto con este ID");
+                    mostrarError("Ese ID ya está registrado en otro producto.");
                     return;
                 }
             }
@@ -247,8 +259,11 @@ public class controllerNuevoProducto {
             if (categoria == null) categoria = "";
 
             String material = txtMaterial.getText().trim();
-            String unidadMedida = cmbUnidadMedida.getEditor().getText().trim();
             String descripcion = txtDescripcion.getText().trim();
+            String unidadMedida = construirUnidadMedida();
+            if (unidadMedida == null) {
+                return;
+            }
 
             int inventarioMin = 0;
             if (!txtInventarioMin.getText().isEmpty()) {
@@ -282,13 +297,20 @@ public class controllerNuevoProducto {
                 }
             }
 
-            if (!unidadMedida.isEmpty()) {
-                String unidadGuardada = modeloFormulario.crearOActualizarUnidad(unidadMedida);
-                if (unidadGuardada == null) {
-                    mostrarError("Error al procesar la unidad de medida");
+            if (!modoEdicion) {
+                String idDuplicado = modeloFormulario.buscarProductoDuplicado(
+                        txtIdProducto.getText().trim(),
+                        nombre,
+                        etiquetaId,
+                        marcaId,
+                        categoria,
+                        material,
+                        unidadMedida
+                );
+                if (idDuplicado != null && !idDuplicado.isBlank()) {
+                    mostrarError("Ese producto ya existe con el ID: " + idDuplicado);
                     return;
                 }
-                unidadMedida = unidadGuardada;
             }
 
             // Manejar imagen
@@ -398,6 +420,166 @@ public class controllerNuevoProducto {
         return idx == -1 ? ".jpg" : fileName.substring(idx).toLowerCase();
     }
 
+    private void inicializarUnidadesMedidaDinamicas() {
+        reiniciarUnidadesMedidaDinamicas();
+    }
+
+    private void reiniciarUnidadesMedidaDinamicas() {
+        contenedorUnidadMedida.getChildren().clear();
+        filasUnidadMedida.clear();
+        contadorUnidades = 0;
+        agregarFilaUnidadMedida(true);
+    }
+
+    private void agregarFilaUnidadMedida(boolean esInicial) {
+        if (contadorUnidades >= MAX_UNIDADES_MEDIDA) {
+            mostrarError("Solo se pueden agregar hasta " + MAX_UNIDADES_MEDIDA + " unidades de medida.");
+            return;
+        }
+
+        HBox nuevaFila = new HBox(10);
+
+        VBox vboxUnidad = new VBox(5);
+        Label labelUnidad = new Label("Unidad");
+        TextField txtUnidad = new TextField();
+        txtUnidad.setTextFormatter(new TextFormatter<>(change -> {
+            String nuevoTexto = change.getControlNewText();
+            return nuevoTexto.matches("\\d*(\\.\\d*)?") ? change : null;
+        }));
+        vboxUnidad.getChildren().addAll(labelUnidad, txtUnidad);
+        HBox.setHgrow(vboxUnidad, Priority.ALWAYS);
+
+        VBox vboxMedida = new VBox(5);
+        Label labelMedida = new Label("Medida");
+        ComboBox<String> comboMedida = new ComboBox<>();
+        comboMedida.setEditable(true);
+        comboMedida.setItems(medidasDisponibles);
+        vboxMedida.getChildren().addAll(labelMedida, comboMedida);
+        HBox.setHgrow(vboxMedida, Priority.ALWAYS);
+
+        VBox vboxBoton = new VBox(5);
+        Button boton = new Button(esInicial ? "+" : "-");
+        boton.getStyleClass().add("botonAgregarUbi");
+        vboxBoton.getChildren().add(boton);
+        vboxBoton.setAlignment(javafx.geometry.Pos.BOTTOM_CENTER);
+        HBox.setHgrow(vboxBoton, Priority.ALWAYS);
+
+        if (esInicial) {
+            boton.setOnAction(event -> agregarFilaUnidadMedida(false));
+        } else {
+            boton.setOnAction(event -> eliminarFilaUnidadMedida(nuevaFila));
+        }
+
+        nuevaFila.getChildren().addAll(vboxUnidad, vboxMedida, vboxBoton);
+        contenedorUnidadMedida.getChildren().add(nuevaFila);
+
+        filasUnidadMedida.add(new UnidadMedidaRow(nuevaFila, txtUnidad, comboMedida));
+        contadorUnidades++;
+    }
+
+    private void eliminarFilaUnidadMedida(HBox fila) {
+        UnidadMedidaRow filaEncontrada = null;
+        for (UnidadMedidaRow filaUnidad : filasUnidadMedida) {
+            if (filaUnidad.contenedor == fila) {
+                filaEncontrada = filaUnidad;
+                break;
+            }
+        }
+        if (filaEncontrada != null) {
+            filasUnidadMedida.remove(filaEncontrada);
+        }
+        contenedorUnidadMedida.getChildren().remove(fila);
+        contadorUnidades = Math.max(0, contadorUnidades - 1);
+    }
+
+    private void actualizarMedidasEnFilas() {
+        for (UnidadMedidaRow fila : filasUnidadMedida) {
+            fila.comboMedida.setItems(medidasDisponibles);
+        }
+    }
+
+    private String construirUnidadMedida() {
+        List<String> unidades = new ArrayList<>();
+        for (UnidadMedidaRow fila : filasUnidadMedida) {
+            String unidadTexto = fila.txtUnidad.getText().trim();
+            String medidaTexto = fila.comboMedida.getEditor().getText().trim();
+
+            if (unidadTexto.isEmpty() && medidaTexto.isEmpty()) {
+                continue;
+            }
+
+            if (unidadTexto.isEmpty() || medidaTexto.isEmpty()) {
+                mostrarError("Debe completar la unidad y la medida en cada fila.");
+                return null;
+            }
+
+            String medidaGuardada = modeloFormulario.crearOActualizarUnidad(medidaTexto);
+            if (medidaGuardada == null) {
+                mostrarError("Error al procesar la unidad de medida");
+                return null;
+            }
+            unidades.add(unidadTexto + medidaGuardada);
+        }
+
+        return String.join(", ", unidades);
+    }
+
+    private void cargarUnidadesMedidaDesdeProducto(String unidadMedida) {
+        reiniciarUnidadesMedidaDinamicas();
+        if (unidadMedida == null || unidadMedida.isBlank()) {
+            return;
+        }
+
+        String[] partes = unidadMedida.split(",");
+        int index = 0;
+        for (String parte : partes) {
+            if (index >= MAX_UNIDADES_MEDIDA) {
+                break;
+            }
+            String texto = parte.trim();
+            if (texto.isEmpty()) {
+                continue;
+            }
+
+            if (index > 0) {
+                agregarFilaUnidadMedida(false);
+            }
+            UnidadMedidaRow fila = filasUnidadMedida.get(index);
+            String unidadTexto = extraerUnidad(texto);
+            String medidaTexto = extraerMedida(texto);
+            fila.txtUnidad.setText(unidadTexto);
+            fila.comboMedida.getEditor().setText(medidaTexto);
+            fila.comboMedida.setValue(medidaTexto);
+            index++;
+        }
+    }
+
+    private String extraerUnidad(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("^\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(.*)$")
+                .matcher(texto);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return "";
+    }
+
+    private String extraerMedida(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("^\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(.*)$")
+                .matcher(texto);
+        if (matcher.matches()) {
+            return matcher.group(2).trim();
+        }
+        return texto.trim();
+    }
+
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
@@ -417,5 +599,17 @@ public class controllerNuevoProducto {
     // AÑADIR este método para verificar si se creó un producto
     public boolean isProductoCreado() {
         return !productoIdCreado.isEmpty() && !productoNombreCreado.isEmpty();
+    }
+
+    private static class UnidadMedidaRow {
+        private final HBox contenedor;
+        private final TextField txtUnidad;
+        private final ComboBox<String> comboMedida;
+
+        private UnidadMedidaRow(HBox contenedor, TextField txtUnidad, ComboBox<String> comboMedida) {
+            this.contenedor = contenedor;
+            this.txtUnidad = txtUnidad;
+            this.comboMedida = comboMedida;
+        }
     }
 }

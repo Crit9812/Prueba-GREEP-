@@ -39,6 +39,38 @@ public class modelNuevoProducto {
         return productoDAO.buscarExacto("id", id);
     }
 
+    public String buscarProductoDuplicado(String idIgnorar, String nombre, String etiquetaId,
+                                          String marcaId, String categoria, String material,
+                                          String unidadMedida) {
+        java.util.ArrayList<producto> productos = productoDAO.obtenerTodos();
+        String nombreNormalizado = normalizarTexto(nombre);
+        String etiquetaNormalizada = normalizarTexto(etiquetaId);
+        String marcaNormalizada = normalizarTexto(marcaId);
+        String categoriaNormalizada = normalizarTexto(categoria);
+        String materialNormalizado = normalizarTexto(material);
+        String unidadNormalizada = normalizarUnidadMedida(unidadMedida);
+        String idIgnorarNormalizado = normalizarTexto(idIgnorar);
+
+        for (producto productoActual : productos) {
+            if (productoActual == null) {
+                continue;
+            }
+            String idProducto = normalizarTexto(productoActual.getIdProducto());
+            if (!idIgnorarNormalizado.isEmpty() && idProducto.equals(idIgnorarNormalizado)) {
+                continue;
+            }
+            if (nombreNormalizado.equals(normalizarTexto(productoActual.getNombreProducto()))
+                    && etiquetaNormalizada.equals(normalizarTexto(productoActual.getEtiqueta()))
+                    && marcaNormalizada.equals(normalizarTexto(productoActual.getMarca()))
+                    && categoriaNormalizada.equals(normalizarTexto(productoActual.getCategoria()))
+                    && materialNormalizado.equals(normalizarTexto(productoActual.getMaterial()))
+                    && unidadNormalizada.equals(normalizarUnidadMedida(productoActual.getUnidadMedida()))) {
+                return productoActual.getIdProducto();
+            }
+        }
+        return null;
+    }
+
     // Métodos para manejar etiquetas
     public etiqueta buscarEtiquetaPorNombre(String nombre) {
         return modelEtiqueta.buscarPorNombre(nombre);
@@ -169,5 +201,27 @@ public class modelNuevoProducto {
     // Metodo para obtener marca por ID
     public marca obtenerMarcaPorId(String id) {
         return modelMarca.buscarPorId(id);
+    }
+
+    private String normalizarTexto(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return texto.trim().toLowerCase();
+    }
+
+    private String normalizarUnidadMedida(String unidadMedida) {
+        if (unidadMedida == null) {
+            return "";
+        }
+        String[] partes = unidadMedida.split(",");
+        java.util.List<String> normalizadas = new java.util.ArrayList<>();
+        for (String parte : partes) {
+            String normalizada = parte.trim().replaceAll("\\s+", "");
+            if (!normalizada.isEmpty()) {
+                normalizadas.add(normalizada.toLowerCase());
+            }
+        }
+        return String.join(",", normalizadas);
     }
 }
