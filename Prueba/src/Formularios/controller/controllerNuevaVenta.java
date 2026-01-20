@@ -126,6 +126,7 @@ public class controllerNuevaVenta {
     private boolean cantidadRapidaValida = false;
     private final Map<String, Image> cacheImagenes = new HashMap<>();
     private boolean modoSoloNormal = false;
+    private boolean modoAjusteInventario = false;
 
     @FXML
     public void initialize() {
@@ -746,10 +747,20 @@ public class controllerNuevaVenta {
 
         String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
         String presentacion = cbPresentacion.getValue();
+        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
 
         javafx.concurrent.Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new javafx.concurrent.Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
+                if (modoAjusteInventario) {
+                    int factor;
+                    try {
+                        factor = Integer.parseInt(factorTexto);
+                    } catch (NumberFormatException e) {
+                        return Optional.empty();
+                    }
+                    return modelo.obtenerPreciosProductoPorLotePresentacionFactor(idProducto, lote, presentacion, factor);
+                }
                 return modelo.obtenerPreciosProductoPorLotePresentacion(idProducto, lote, presentacion);
             }
 
@@ -2826,11 +2837,15 @@ public class controllerNuevaVenta {
     }
 
     private boolean datosCompletosParaPrecioEntrada() {
-        return productoController.getIdSeleccionado() != null
+        boolean base = productoController.getIdSeleccionado() != null
                 && !productoController.getIdSeleccionado().isBlank()
                 && loteValidado
                 && cbPresentacion.getValue() != null
                 && !cbPresentacion.getValue().isBlank();
+        if (!base) {
+            return false;
+        }
+        return !modoAjusteInventario || factorValido;
     }
 
     private void limpiarValidacionesInventario() {
@@ -3077,6 +3092,17 @@ public class controllerNuevaVenta {
         if (txtPrecioTotalRapida != null) {
             txtPrecioTotalRapida.setEditable(false);
         }
+        aplicarModoAjusteInventario();
+    }
+
+    private void aplicarModoAjusteInventario() {
+        if (!modoAjusteInventario) {
+            return;
+        }
+        txtPrecioSalida.setEditable(false);
+        if (txtPrecioSalidaRapida != null) {
+            txtPrecioSalidaRapida.setEditable(false);
+        }
     }
 
     private void configurarManejoEnter() {
@@ -3268,6 +3294,13 @@ public class controllerNuevaVenta {
         this.itemParaEditar = item;
         if (itemParaEditar != null && inicializado) {
             cargarItemParaEditar();
+        }
+    }
+
+    public void setModoAjusteInventario(boolean modoAjusteInventario) {
+        this.modoAjusteInventario = modoAjusteInventario;
+        if (inicializado) {
+            aplicarModoAjusteInventario();
         }
     }
 

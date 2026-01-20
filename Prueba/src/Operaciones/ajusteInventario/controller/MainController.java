@@ -161,6 +161,7 @@ public class MainController {
             Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
             controlador.setItemsCompra(itemsEntrada);
             controlador.setTituloFormulario("Editar Entrada");
+            controlador.setModoAjusteInventario(true);
             controlador.setItemParaEditar(itemParaEditar); // Esto es importante para modo edición
             loader.setController(controlador);
 
@@ -185,6 +186,7 @@ public class MainController {
             controlador.setItemsVenta(itemsSalida);
             controlador.setTituloFormulario("Editar Salida");
             controlador.setModoSoloNormal(true);
+            controlador.setModoAjusteInventario(true);
             controlador.setItemParaEditar(itemParaEditar); // Asegúrate de que este método exista en controllerNuevaVenta
 
             // Llamar al formulario de nueva venta en modo edición
@@ -503,6 +505,7 @@ public class MainController {
             Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
             controlador.setItemsCompra(itemsEntrada);
             controlador.setTituloFormulario("Agregar");
+            controlador.setModoAjusteInventario(true);
             loader.setController(controlador);
 
             Pane formulario = loader.load();
@@ -526,6 +529,7 @@ public class MainController {
         controlador.setItemsVenta(itemsSalida);
         controlador.setTituloFormulario("Quitar");
         controlador.setModoSoloNormal(true);
+        controlador.setModoAjusteInventario(true);
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml", controlador, "Quitar");
     }
 
