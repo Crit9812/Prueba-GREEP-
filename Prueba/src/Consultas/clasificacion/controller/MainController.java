@@ -503,9 +503,20 @@ public class MainController {
                     String nombre = obtenerNombre.apply(item);
 
                     if (vinculados > 0) {
-                        mostrarAlertaWarning("No se puede eliminar",
-                                "No se puede desactivar la " + tipo + " \"" + nombre + "\" porque tiene "
-                                        + vinculados + " producto(s) relacionado(s).");
+                        if ("ubicación".equals(tipo) && item instanceof ubicaciones ubicacion) {
+                            StringBuilder detalle = new StringBuilder();
+                            for (String linea : model.obtenerDetalleArticulosPorUbicacion(ubicacion.getId())) {
+                                detalle.append("\n- ").append(linea);
+                            }
+                            mostrarAlertaWarning("No se puede eliminar",
+                                    "No se puede desactivar la " + tipo + " \"" + nombre + "\" porque tiene "
+                                            + vinculados + " artículo(s) relacionado(s)."
+                                            + (detalle.length() > 0 ? "\nDetalles:" + detalle : ""));
+                        } else {
+                            mostrarAlertaWarning("No se puede eliminar",
+                                    "No se puede desactivar la " + tipo + " \"" + nombre + "\" porque tiene "
+                                            + vinculados + " producto(s) relacionado(s).");
+                        }
                         return;
                     }
 

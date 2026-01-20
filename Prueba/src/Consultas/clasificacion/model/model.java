@@ -209,6 +209,35 @@ public class model {
         return 0;
     }
 
+    public List<String> obtenerDetalleArticulosPorUbicacion(int ubicacionId) {
+        List<String> detalles = new java.util.ArrayList<>();
+        String sql = """
+                SELECT da.idDetalle, da.idArticulo, a.Estado
+                FROM detalleArticulo da
+                LEFT JOIN articulo a ON a.idArticulo = da.idArticulo
+                WHERE da.idUbicacion = ?
+                ORDER BY da.idDetalle
+                """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ubicacionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String idDetalle = rs.getString("idDetalle");
+                    String idArticulo = rs.getString("idArticulo");
+                    String estado = rs.getString("Estado");
+                    String texto = "Detalle " + idDetalle + " | Artículo " + idArticulo
+                            + (estado != null ? " | Estado " + estado : "");
+                    detalles.add(texto);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return detalles;
+    }
+
     // ================= UNIDADES DE MEDIDA =================
 
     public List<unidades_Medida> obtenerUM() {
