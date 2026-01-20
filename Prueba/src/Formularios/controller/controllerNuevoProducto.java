@@ -391,6 +391,9 @@ public class controllerNuevoProducto {
                     productoNombreCreado = p.getNombreProducto();
                 }
 
+                // Ejecutar callback para refrescar la tabla principal
+                if (onSaved != null) onSaved.run();
+
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Éxito");
                 alert.setHeaderText(null);
@@ -400,9 +403,6 @@ public class controllerNuevoProducto {
                 // Refrescar comboboxes si se agregaron nuevas etiquetas/marcas
                 cargarMarcas();
                 cargarEtiquetas();
-
-                // Ejecutar callback para refrescar la tabla principal
-                if (onSaved != null) onSaved.run();
 
                 // Cerrar ventana
                 Stage stage = (Stage) btnGuardar.getScene().getWindow();
@@ -442,6 +442,10 @@ public class controllerNuevoProducto {
         VBox vboxUnidad = new VBox(5);
         Label labelUnidad = new Label("Unidad");
         TextField txtUnidad = new TextField();
+        txtUnidad.setTextFormatter(new TextFormatter<>(change -> {
+            String nuevoTexto = change.getControlNewText();
+            return nuevoTexto.matches("\\d*(\\.\\d*)?") ? change : null;
+        }));
         vboxUnidad.getChildren().addAll(labelUnidad, txtUnidad);
         HBox.setHgrow(vboxUnidad, Priority.ALWAYS);
 
