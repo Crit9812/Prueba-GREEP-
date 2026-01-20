@@ -227,8 +227,12 @@ public class controllerNuevoProducto {
     @FXML
     public void guardarProducto() {
         try {
-            reactivarProducto = false;
-            idReactivacionPendiente = null;
+            if (!modoEdicion) {
+                reactivarProducto = false;
+                idReactivacionPendiente = null;
+            } else if (idReactivacionPendiente == null) {
+                reactivarProducto = false;
+            }
             // Validar campos obligatorios
             if (modoEdicion) {
                 // En modo edición, el ID ya está establecido
