@@ -646,7 +646,10 @@ public class controllerNuevoProducto {
         alert.setTitle("Producto desactivado");
         alert.setHeaderText("Este producto ya está registrado pero fue desactivado.");
         alert.setContentText("¿Deseas reactivarlo con el ID " + idProducto + "?");
-        return alert.showAndWait().filter(ButtonType.OK::equals).isPresent();
+        ButtonType botonAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(botonAceptar, botonCancelar);
+        return alert.showAndWait().filter(botonAceptar::equals).isPresent();
     }
 
     private static class UnidadMedidaRow {
