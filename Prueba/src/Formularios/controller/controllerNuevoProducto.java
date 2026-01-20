@@ -48,6 +48,7 @@ public class controllerNuevoProducto {
     private boolean permitirNuevoDuplicado = false;
     private boolean reemplazarDuplicadoConNuevoId = false;
     private String idDuplicadoParaReemplazar = null;
+    private boolean omitirConfirmacionReactivacion = false;
 
     private modelNuevoProducto modeloFormulario;
     private model modeloConsulta;
@@ -236,6 +237,7 @@ public class controllerNuevoProducto {
                 permitirNuevoDuplicado = false;
                 reemplazarDuplicadoConNuevoId = false;
                 idDuplicadoParaReemplazar = null;
+                omitirConfirmacionReactivacion = false;
             } else if (idReactivacionPendiente == null) {
                 reactivarProducto = false;
             }
@@ -333,6 +335,7 @@ public class controllerNuevoProducto {
                     }
                     if (decision == DecisionDuplicado.SOBRESCRIBIR) {
                         prepararSobrescritura(duplicado);
+                        omitirConfirmacionReactivacion = true;
                     } else if (decision == DecisionDuplicado.NUEVO) {
                         permitirNuevoDuplicado = true;
                         reemplazarDuplicadoConNuevoId = true;
@@ -341,7 +344,7 @@ public class controllerNuevoProducto {
                 }
             }
 
-            if (reactivarProducto && idReactivacionPendiente != null) {
+            if (!omitirConfirmacionReactivacion && reactivarProducto && idReactivacionPendiente != null) {
                 if (!confirmarReactivacion(idReactivacionPendiente)) {
                     return;
                 }
