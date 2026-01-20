@@ -45,6 +45,7 @@ public class controllerNuevoProducto {
     private Runnable onSaved = null;
     private boolean reactivarProducto = false;
     private String idReactivacionPendiente = null;
+    private boolean permitirNuevoDuplicado = false;
 
     private modelNuevoProducto modeloFormulario;
     private model modeloConsulta;
@@ -230,6 +231,7 @@ public class controllerNuevoProducto {
             if (!modoEdicion) {
                 reactivarProducto = false;
                 idReactivacionPendiente = null;
+                permitirNuevoDuplicado = false;
             } else if (idReactivacionPendiente == null) {
                 reactivarProducto = false;
             }
@@ -319,12 +321,16 @@ public class controllerNuevoProducto {
                         material,
                         unidadMedida
                 );
-                if (duplicado != null) {
-                    if (esProductoDesactivado(duplicado)) {
-                        prepararSobrescritura(duplicado);
-                    } else {
-                        mostrarError("Ese producto ya existe con el ID: " + duplicado.getIdProducto());
+                if (duplicado != null && !permitirNuevoDuplicado) {
+                    String idNuevo = txtIdProducto.getText().trim();
+                    DecisionDuplicado decision = confirmarDuplicado(duplicado.getIdProducto(), idNuevo);
+                    if (decision == DecisionDuplicado.CANCELAR) {
                         return;
+                    }
+                    if (decision == DecisionDuplicado.SOBRESCRIBIR) {
+                        prepararSobrescritura(duplicado);
+                    } else if (decision == DecisionDuplicado.NUEVO) {
+                        permitirNuevoDuplicado = true;
                     }
                 }
             }
@@ -642,8 +648,8 @@ public class controllerNuevoProducto {
     private void prepararSobrescritura(producto productoExistente) {
         modoEdicion = true;
         idEdicion = productoExistente.getIdProducto();
-        reactivarProducto = true;
-        idReactivacionPendiente = idEdicion;
+        reactivarProducto = esProductoDesactivado(productoExistente);
+        idReactivacionPendiente = reactivarProducto ? idEdicion : null;
         txtIdProducto.setText(idEdicion);
         txtIdProducto.setDisable(true);
     }
@@ -657,6 +663,37 @@ public class controllerNuevoProducto {
         ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
         alert.getButtonTypes().setAll(botonAceptar, botonCancelar);
         return alert.showAndWait().filter(botonAceptar::equals).isPresent();
+    }
+
+    private DecisionDuplicado confirmarDuplicado(String idExistente, String idNuevo) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Producto duplicado");
+        alert.setHeaderText("Ya existe un producto con los mismos datos.");
+        alert.setContentText("ID existente: " + idExistente + "\nID nuevo: " + idNuevo
+                + "\n\n¿Qué deseas hacer?");
+
+        ButtonType botonSobrescribir = new ButtonType("Sobrescribir", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonNuevo = new ButtonType("Nuevo", ButtonBar.ButtonData.OTHER);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(botonSobrescribir, botonNuevo, botonCancelar);
+
+        return alert.showAndWait()
+                .map(respuesta -> {
+                    if (respuesta == botonSobrescribir) {
+                        return DecisionDuplicado.SOBRESCRIBIR;
+                    }
+                    if (respuesta == botonNuevo) {
+                        return DecisionDuplicado.NUEVO;
+                    }
+                    return DecisionDuplicado.CANCELAR;
+                })
+                .orElse(DecisionDuplicado.CANCELAR);
+    }
+
+    private enum DecisionDuplicado {
+        CANCELAR,
+        SOBRESCRIBIR,
+        NUEVO
     }
 
     private static class UnidadMedidaRow {
