@@ -143,7 +143,7 @@ public class MainController {
                         int enClaves = proveedorModel.contarClavesPorProveedor(seleccionado.getId());
                         if (enEntradas > 0 || enClaves > 0) {
                             StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar el proveedor porque tiene registros relacionados:");
+                                    "No se puede desactivar el proveedor porque tiene registros relacionados (activos, pendientes o disponibles):");
                             if (enEntradas > 0) {
                                 motivo.append("\n- Entradas: ").append(enEntradas);
                             }
