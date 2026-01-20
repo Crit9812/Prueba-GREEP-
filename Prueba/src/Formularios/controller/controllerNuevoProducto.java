@@ -44,6 +44,7 @@ public class controllerNuevoProducto {
     private String nombreImagenActual = "";
     private Runnable onSaved = null;
     private boolean reactivarProducto = false;
+    private String idReactivacionPendiente = null;
 
     private modelNuevoProducto modeloFormulario;
     private model modeloConsulta;
@@ -227,6 +228,7 @@ public class controllerNuevoProducto {
     public void guardarProducto() {
         try {
             reactivarProducto = false;
+            idReactivacionPendiente = null;
             // Validar campos obligatorios
             if (modoEdicion) {
                 // En modo edición, el ID ya está establecido
@@ -246,9 +248,6 @@ public class controllerNuevoProducto {
                 producto existente = modeloFormulario.buscarProductoPorId(idProducto);
                 if (existente != null) {
                     if (esProductoDesactivado(existente)) {
-                        if (!confirmarReactivacion(existente.getIdProducto())) {
-                            return;
-                        }
                         prepararSobrescritura(existente);
                     } else {
                         mostrarError("Ese ID ya está registrado en otro producto.");
@@ -318,14 +317,17 @@ public class controllerNuevoProducto {
                 );
                 if (duplicado != null) {
                     if (esProductoDesactivado(duplicado)) {
-                        if (!confirmarReactivacion(duplicado.getIdProducto())) {
-                            return;
-                        }
                         prepararSobrescritura(duplicado);
                     } else {
                         mostrarError("Ese producto ya existe con el ID: " + duplicado.getIdProducto());
                         return;
                     }
+                }
+            }
+
+            if (reactivarProducto && idReactivacionPendiente != null) {
+                if (!confirmarReactivacion(idReactivacionPendiente)) {
+                    return;
                 }
             }
 
@@ -637,6 +639,7 @@ public class controllerNuevoProducto {
         modoEdicion = true;
         idEdicion = productoExistente.getIdProducto();
         reactivarProducto = true;
+        idReactivacionPendiente = idEdicion;
         txtIdProducto.setText(idEdicion);
         txtIdProducto.setDisable(true);
     }
