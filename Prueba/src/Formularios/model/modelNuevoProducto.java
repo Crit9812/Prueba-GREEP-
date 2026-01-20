@@ -34,6 +34,10 @@ public class modelNuevoProducto {
         return productoDAO.actualizar(p);
     }
 
+    public boolean eliminarProducto(String id) {
+        return productoDAO.eliminar(id);
+    }
+
     // Metodo para buscar producto por ID
     public producto buscarProductoPorId(String id) {
         return productoDAO.buscarExacto("id", id);

@@ -46,6 +46,8 @@ public class controllerNuevoProducto {
     private boolean reactivarProducto = false;
     private String idReactivacionPendiente = null;
     private boolean permitirNuevoDuplicado = false;
+    private boolean reemplazarDuplicadoConNuevoId = false;
+    private String idDuplicadoParaReemplazar = null;
 
     private modelNuevoProducto modeloFormulario;
     private model modeloConsulta;
@@ -232,6 +234,8 @@ public class controllerNuevoProducto {
                 reactivarProducto = false;
                 idReactivacionPendiente = null;
                 permitirNuevoDuplicado = false;
+                reemplazarDuplicadoConNuevoId = false;
+                idDuplicadoParaReemplazar = null;
             } else if (idReactivacionPendiente == null) {
                 reactivarProducto = false;
             }
@@ -331,6 +335,8 @@ public class controllerNuevoProducto {
                         prepararSobrescritura(duplicado);
                     } else if (decision == DecisionDuplicado.NUEVO) {
                         permitirNuevoDuplicado = true;
+                        reemplazarDuplicadoConNuevoId = true;
+                        idDuplicadoParaReemplazar = duplicado.getIdProducto();
                     }
                 }
             }
@@ -339,6 +345,15 @@ public class controllerNuevoProducto {
                 if (!confirmarReactivacion(idReactivacionPendiente)) {
                     return;
                 }
+            }
+
+            if (!modoEdicion && reemplazarDuplicadoConNuevoId && idDuplicadoParaReemplazar != null) {
+                if (!modeloFormulario.eliminarProducto(idDuplicadoParaReemplazar)) {
+                    mostrarError("No se pudo sobrescribir el producto existente.");
+                    return;
+                }
+                reemplazarDuplicadoConNuevoId = false;
+                idDuplicadoParaReemplazar = null;
             }
 
             // Manejar imagen
