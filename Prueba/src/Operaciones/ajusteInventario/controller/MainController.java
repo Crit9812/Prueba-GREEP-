@@ -1,5 +1,7 @@
 package Operaciones.ajusteInventario.controller;
 
+import Compartido.helper.RefrescoHelper;
+import javafx.concurrent.Task;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Operaciones.ajusteInventario.model.model;
@@ -138,6 +140,35 @@ public class MainController {
         configurarListeners();
         configurarSeleccionTodo();
         configurarTotalAjuste();
+
+        RefrescoHelper.setVistaActual("ajusteInventario");
+        RefrescoHelper.registrarRefresco("ajusteInventario", this::actualizarAjusteInventario);
+    }
+
+    private void actualizarAjusteInventario() {
+
+        // 1. Limpiar todas las listas
+        Platform.runLater(() -> {
+            itemsEntrada.clear();
+            itemsSalida.clear();
+            itemsAjuste.clear();
+
+            if (comentario != null) {
+                comentario.clear();
+            }
+
+            if (miCheckBox != null) {
+                miCheckBox.setSelected(false);
+            }
+
+            if (totalAjuste != null) {
+                totalAjuste.setText("0.00");
+                totalAjuste.setStyle("");
+            }
+
+            contenidoTabla.refresh();
+        });
+
     }
 
     private void abrirFormularioEdicion(Object item) {

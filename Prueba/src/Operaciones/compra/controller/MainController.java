@@ -1,5 +1,6 @@
 package Operaciones.compra.controller;
 
+import Compartido.helper.RefrescoHelper;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
@@ -10,9 +11,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
-
 import java.io.IOException;
-
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -140,6 +139,45 @@ public class MainController {
         configurarSeleccionTodo();
         configurarBloqueoProveedor();
         configurarTotalCompra();
+
+        RefrescoHelper.setVistaActual("compra");
+        RefrescoHelper.registrarRefresco("compra", this::actualizarCompra);
+    }
+
+    private void actualizarCompra() {
+        Platform.runLater(() -> {
+            itemsCompra.clear();
+
+            if (buscador != null) {
+                buscador.setValue(null);
+                buscador.getEditor().clear();
+            }
+
+            if (factura != null) {
+                factura.clear();
+            }
+
+            if (comentario != null) {
+                comentario.clear();
+            }
+
+            if (totalCompra != null) {
+                totalCompra.setText("0.00");
+            }
+
+            if (miCheckBox != null) {
+                miCheckBox.setSelected(false);
+            }
+
+            // Habilitar el buscador de proveedores
+            buscador.setDisable(false);
+
+            // Limpiar proveedor seleccionado
+            proveedorSeleccionadoId = null;
+
+        });
+
+        refrescarProveedores();
     }
 
     private void configurarAutocompleteProveedores() {

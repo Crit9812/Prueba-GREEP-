@@ -1,8 +1,11 @@
 package Operaciones.registrarUsuario.controller;
 
+import Compartido.helper.RefrescoHelper;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Operaciones.registrarUsuario.model.usuario;
+import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -153,6 +156,40 @@ public class MainController {
                 }
             });
         });
+
+        RefrescoHelper.setVistaActual("registrarUsuario");
+        RefrescoHelper.registrarRefresco("registrarUsuario", this::actualizarUsuarios);
+    }
+
+    private void actualizarUsuarios() {
+
+        // 1. Limpiar UI
+        Platform.runLater(() -> {
+            contenidoTabla.getSelectionModel().clearSelection();
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+            System.out.println("✓ UI de usuarios limpiada");
+        });
+
+        // 2. Recargar datos de forma asíncrona
+        Task<ArrayList<usuario>> task = new Task<>() {
+            @Override
+            protected java.util.ArrayList<usuario> call() {
+                model model = new model();
+                return model.obtenerUsuarios();
+            }
+
+            @Override
+            protected void succeeded() {
+                java.util.ArrayList<usuario> lista = getValue();
+                contenidoTabla.getItems().setAll(lista);
+            }
+
+            @Override
+            protected void failed() {
+                System.err.println("✗ Error al cargar usuarios: " + getException().getMessage());
+            }
+        };
+        new Thread(task).start();
     }
 
     private boolean solicitarContrasena(usuario user) {

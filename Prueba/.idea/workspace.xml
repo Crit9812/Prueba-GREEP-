@@ -4,13 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion del eliminado en cosas activas">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion traspasos de jessica">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Compartido/exportar/ReporteTraspasoExporter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/exportar/ReporteTraspasoExporter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,7 +93,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "Pruebas",
+    "git-widget-placeholder": "#95 on codex/actualizar-calculo-total-en-reportes",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -203,7 +198,8 @@
       <workItem from="1765202120769" duration="36000" />
       <workItem from="1765202169057" duration="7000" />
       <workItem from="1768917288002" duration="21552000" />
-      <workItem from="1769003836964" duration="12737000" />
+      <workItem from="1769003836964" duration="16189000" />
+      <workItem from="1769032482642" duration="3838000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />
@@ -525,7 +521,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769004995286</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="Agregacion traspasos de jessica">
+      <option name="closed" value="true" />
+      <created>1769021023654</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1769021023654</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -578,7 +582,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="subida de todos los archivos a una rama" />
     <MESSAGE value="comprar" />
     <MESSAGE value="Modificaciones de diseño en compras" />
     <MESSAGE value="Agregada parte de compra completa" />
@@ -603,7 +606,8 @@
     <MESSAGE value="Agregado del controller de jess" />
     <MESSAGE value="cambio en formato de pdf al hacer traspaso de entrada." />
     <MESSAGE value="Agregacion del eliminado en cosas activas" />
-    <option name="LAST_COMMIT_MESSAGE" value="Agregacion del eliminado en cosas activas" />
+    <MESSAGE value="Agregacion traspasos de jessica" />
+    <option name="LAST_COMMIT_MESSAGE" value="Agregacion traspasos de jessica" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

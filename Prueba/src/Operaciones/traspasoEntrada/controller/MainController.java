@@ -1,6 +1,6 @@
 package Operaciones.traspasoEntrada.controller;
 
-
+import Compartido.helper.RefrescoHelper;
 import Compartido.helper.SelectorOrdenPopup;
 import javafx.collections.transformation.SortedList;
 import javafx.scene.Node;
@@ -138,7 +138,97 @@ public class MainController {
             configurarTabla();
             cargarTabla();
             aplicarOrdenamiento();
+            RefrescoHelper.setVistaActual("traspasoEntrada");
+            RefrescoHelper.registrarRefresco("traspasoEntrada", this::actualizarTraspasoEntrada);
         });
+    }
+
+    private void actualizarTraspasoEntrada() {
+
+        // 1. Limpiar UI y datos locales
+        Platform.runLater(() -> {
+            // Limpiar selección
+            contenidoTabla.getSelectionModel().clearSelection();
+
+            // Limpiar checkbox global
+            if (miCheckBox != null) {
+                miCheckBox.setSelected(false);
+            }
+
+            // Resetear combo box
+            if (miComboBox != null) {
+                miComboBox.setValue("Opciones");
+            }
+
+            // Limpiar estructuras de datos
+            filasDesplegadas.clear();
+            detallesPorEntrada.clear();
+
+            // Limpiar listas
+            entradasTraspasoOriginal.clear();
+            entradasTraspaso.clear();
+
+            contenidoTabla.refresh();
+            System.out.println("UI de traspaso entrada limpiada");
+        });
+
+        // 2. Recargar datos de forma asíncrona (IMPORTANTE para muchos registros)
+        cargarTablaAsincrona();
+
+    }
+
+    private void cargarTablaAsincrona() {
+        javafx.concurrent.Task<List<traspasoEntrada>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<traspasoEntrada> call() throws Exception {
+                return modeloTraspaso.obtenerPendientes();
+            }
+
+            @Override
+            protected void succeeded() {
+                // Esto se ejecuta en el hilo de JavaFX cuando termina
+                List<traspasoEntrada> datos = getValue();
+
+                // Actualizar las listas en el hilo de JavaFX
+                entradasTraspasoOriginal.setAll(datos);
+
+                // Si hay datos, aplicamos ordenamiento
+                if (!datos.isEmpty()) {
+                    aplicarOrdenamiento();
+                } else {
+                    entradasTraspaso.clear();
+                    contenidoTabla.refresh();
+                }
+
+                // Limpiar estado de filas desplegadas
+                filasDesplegadas.clear();
+                detallesPorEntrada.clear();
+            }
+
+            @Override
+            protected void failed() {
+                // Manejo de errores
+                Throwable ex = getException();
+                System.err.println("✗ Error al cargar traspasos: " + ex.getMessage());
+                ex.printStackTrace();
+
+                // Mostrar mensaje al usuario
+                Platform.runLater(() -> {
+                    mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                            "No se pudieron cargar los traspasos: " + ex.getMessage());
+                });
+            }
+        };
+
+        // Iniciar la tarea en un hilo separado
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true); // El hilo se cerrará cuando la aplicación cierre
+        hilo.start();
+    }
+
+    private void cargarTabla() {
+        // Usar la versión asíncrona en lugar de la síncrona
+        cargarTablaAsincrona();
     }
 
     private void abrirFormularioUbicaciones(List<traspasoEntrada> seleccionados,
@@ -584,14 +674,7 @@ public class MainController {
         filasDesplegadas.put(claveEntrada, false);
     }
 
-    private void cargarTabla() {
-        filasDesplegadas.clear();
-        detallesPorEntrada.clear();
-        List<traspasoEntrada> datos = modeloTraspaso.obtenerPendientes();
-        entradasTraspasoOriginal.setAll(datos);
-        entradasTraspaso.setAll(datos);
-        aplicarOrdenamiento();
-    }
+
 
     private void aplicarOrdenamiento() {
         List<traspasoEntrada> listaOrdenada = new ArrayList<>(entradasTraspasoOriginal);

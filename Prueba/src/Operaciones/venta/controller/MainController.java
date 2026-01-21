@@ -1,5 +1,8 @@
 package Operaciones.venta.controller;
 
+import Compartido.helper.RefrescoHelper;
+import Compartido.exportar.ReporteSalidaExporter;
+import javafx.scene.control.ButtonBar;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Operaciones.venta.model.model;
@@ -149,6 +152,99 @@ public class MainController {
         configurarTabla();
         configurarConfirmacion();
         configurarTotalVenta();
+        RefrescoHelper.setVistaActual("venta");
+        RefrescoHelper.registrarRefresco("venta", this::actualizarVenta);
+    }
+
+    private void actualizarVenta() {
+
+        // 1. Limpiar UI y datos locales
+        Platform.runLater(() -> {
+            // Limpiar lista de items de la venta
+            itemsVenta.clear();
+
+            // Limpiar combo box de clientes
+            if (buscador != null) {
+                buscador.setValue(null);
+                buscador.getEditor().clear();
+            }
+
+            // Limpiar campos
+            if (comentario != null) {
+                comentario.clear();
+            }
+
+            if (factura != null) {
+                factura.clear();
+            }
+
+            if (totalVenta != null) {
+                totalVenta.setText("0.00");
+            }
+
+            // Limpiar selección
+            if (miCheckBox != null) {
+                miCheckBox.setSelected(false);
+            }
+
+            if (contenidoTabla != null) {
+                contenidoTabla.getSelectionModel().clearSelection();
+                contenidoTabla.refresh();
+            }
+
+            // Resetear variable de estado
+            clienteSeleccionadoId = null;
+        });
+        refrescarClientes();
+    }
+
+    public void refrescarClientes() {
+        Task<List<String>> task = new Task<>() {
+            @Override
+            protected List<String> call() throws Exception {
+                return model.obtenerNombresClientes();
+            }
+
+            @Override
+            protected void succeeded() {
+                List<String> resultado = getValue();
+
+                Platform.runLater(() -> {
+                    // Actualizar las listas en el hilo de JavaFX
+                    if (resultado != null && !resultado.isEmpty()) {
+                        clientesCache.setAll(resultado);
+                        clientesFiltrados.setAll(clientesCache);
+
+                        // Mantener el cliente seleccionado si existe
+                        String seleccionActual = buscador.getValue();
+                        if (seleccionActual != null && clientesCache.contains(seleccionActual)) {
+                            buscador.setValue(seleccionActual);
+                            // Actualizar el ID del cliente
+                            clienteSeleccionadoId = model.obtenerIdClientePorNombre(seleccionActual);
+                        }
+                    } else {
+                        clientesCache.clear();
+                        clientesFiltrados.clear();
+                    }
+                });
+            }
+
+            @Override
+            protected void failed() {
+                Throwable ex = getException();
+                System.err.println("✗ Error al refrescar clientes: " + ex.getMessage());
+                ex.printStackTrace();
+
+                Platform.runLater(() -> {
+                    clientesCache.clear();
+                    clientesFiltrados.clear();
+                });
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void configurarAutocompleteClientes() {
@@ -270,6 +366,13 @@ public class MainController {
                         new ArrayList<>(itemsVenta)
                 );
                 if (registrado) {
+                    // Guardar copia de los items para el reporte ANTES de limpiar
+                    List<traspasoSalida> copiaItems = new ArrayList<>(itemsVenta);
+
+                    // Obtener nombre del cliente
+                    String nombreCliente = buscador.getValue();
+
+                    // Limpiar la tabla
                     itemsVenta.clear();
                     if (comentario != null) {
                         comentario.clear();
@@ -277,7 +380,10 @@ public class MainController {
                     if (factura != null) {
                         factura.clear();
                     }
-                    mostrarAlerta("Éxito", "La venta se registró correctamente.");
+
+                    // Mostrar opción para descargar reporte
+                    mostrarConfirmacionReporteVenta(facturaTexto, nombreCliente, nota, copiaItems);
+
                     if (buscador != null) {
                         buscador.setValue(null);
                         if (buscador.getEditor() != null) {
@@ -288,6 +394,34 @@ public class MainController {
                 } else {
                     mostrarAlerta("Error", "No se pudo registrar la venta.");
                 }
+            }
+        });
+    }
+
+    private void mostrarConfirmacionReporteVenta(String factura,
+                                                 String nombreCliente,
+                                                 String comentario,
+                                                 List<traspasoSalida> itemsVenta) {
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("Venta exitosa");
+        dialogo.setHeaderText("Venta registrada correctamente");
+        dialogo.setContentText("¿Deseas descargar el reporte de esta venta?");
+
+        ButtonType btnDescargar = new ButtonType("Descargar");
+        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
+
+        dialogo.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == btnDescargar) {
+                ReporteSalidaExporter.exportarReporteVenta(
+                        factura,
+                        nombreCliente,
+                        comentario,
+                        new ArrayList<>(itemsVenta),
+                        contenidoTabla != null && contenidoTabla.getScene() != null
+                                ? contenidoTabla.getScene().getWindow()
+                                : null
+                );
             }
         });
     }
@@ -498,40 +632,6 @@ public class MainController {
         }
     }
 
-    public void refrescarClientes() {
-        Task<List<String>> task = new Task<>() {
-            @Override
-            protected List<String> call() {
-                return model.obtenerNombresClientes();
-            }
-
-            @Override
-            protected void succeeded() {
-                List<String> resultado = getValue();
-                Platform.runLater(() -> {
-                    clientesCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
-                    clientesFiltrados.setAll(clientesCache);
-
-                    // Mantener el cliente seleccionado si existe
-                    String seleccionActual = buscador.getValue();
-                    if (seleccionActual != null && clientesCache.contains(seleccionActual)) {
-                        buscador.setValue(seleccionActual);
-                    }
-                });
-            }
-
-            @Override
-            protected void failed() {
-                clientesCache.clear();
-                clientesFiltrados.clear();
-            }
-        };
-
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true);
-        hilo.start();
-    }
-
     public void agregarYSeleccionarCliente(String nombreCliente) {
         if (nombreCliente == null || nombreCliente.trim().isEmpty()) {
             return;
@@ -610,7 +710,6 @@ public class MainController {
             }
         });
 
-        // 👉 LLAMA AL MÉTODO EXACTO que en proveedores
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoCliente.fxml", controlador, "Cliente");
     }
 }
