@@ -29,11 +29,12 @@ public class Model {
     public boolean verificarUsuario(String username, String password) {
         setConexion(conexion = c.conectar());
 
-        String sql = "SELECT * FROM usuarios WHERE userName = ? AND contrasenaUsuario = ?";
+        String sql = "SELECT * FROM usuarios WHERE userName = ? AND contrasenaUsuario = ? AND estado = ?";
 
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, password);
+            ps.setString(3, "activo");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -63,10 +64,11 @@ public class Model {
 
         setConexion(conexion = c.conectar());
 
-        String sql = "SELECT idUsuario FROM usuarios WHERE userName = ?";
+        String sql = "SELECT idUsuario FROM usuarios WHERE userName = ? AND estado = ?";
 
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, username);
+            ps.setString(2, "activo");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
