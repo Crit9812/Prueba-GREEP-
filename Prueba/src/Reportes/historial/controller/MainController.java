@@ -2,6 +2,9 @@ package Reportes.historial.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.exportar.exportador;
+import Compartido.helper.SelectorColumnasPopup;
+import Compartido.helper.SelectorOrdenPopup;
 import Reportes.historial.model.HistorialFactura;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -13,6 +16,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.Node;
 import javafx.scene.layout.*;
 import java.io.IOException;
 import java.sql.Connection;
@@ -27,6 +32,8 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 public class MainController {
 
@@ -41,6 +48,10 @@ public class MainController {
     @FXML private Label lblExportar;
     @FXML private Region expansorBusqueda;
     @FXML private TextField buscarFactura;
+
+    @FXML private ComboBox<String> comboFiltro;
+    @FXML private ComboBox<String> comboValor;
+    @FXML private HBox contenedorFiltros;
 
     @FXML private Region expansor;
     @FXML private Label lblVista;
@@ -64,8 +75,13 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<HistorialFactura> itemsHistorial = FXCollections.observableArrayList();
+    private final ObservableList<HistorialFactura> itemsHistorialOriginal = FXCollections.observableArrayList();
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter FORMATO_FECHA_ALT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private String criterioOrden = "fecha";
+    private String direccionOrden = "desc";
+    private final List<Filtro> filtrosActivos = new ArrayList<>();
+    private boolean restaurandoFiltros = false;
 
     @FXML
     public void initialize() {
@@ -113,6 +129,8 @@ public class MainController {
 
             paneNavbarController.setTitulo("Historial por factura", "#ffffff");
             configurarColumnas();
+            configurarFiltros();
+            configurarBusquedaFactura();
             cargarHistorial();
         });
     }
@@ -171,7 +189,9 @@ public class MainController {
 
         registros.sort(Comparator.comparing(this::obtenerFechaHoraOrden,
                 Comparator.nullsLast(Comparator.reverseOrder())));
-        itemsHistorial.setAll(registros);
+        itemsHistorialOriginal.setAll(registros);
+        actualizarValoresFiltro(comboFiltro.getValue());
+        aplicarFiltrosYBusqueda();
     }
 
     private List<HistorialFactura> obtenerEntradas(Connection conn) throws SQLException {
@@ -210,6 +230,285 @@ public class MainController {
         }
 
         return registros;
+    }
+
+    @FXML
+    private void mostrarSelectorColumnas(MouseEvent event) {
+        List<TableColumn<HistorialFactura, ?>> columnas = new ArrayList<>(contenidoTabla.getColumns());
+        SelectorColumnasPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
+                columnas, seleccion -> {
+                    for (Map.Entry<TableColumn<HistorialFactura, ?>, Boolean> entry : seleccion.entrySet()) {
+                        entry.getKey().setVisible(entry.getValue());
+                    }
+                });
+    }
+
+    private void configurarFiltros() {
+        comboFiltro.getItems().setAll(
+                "Movimiento",
+                "Factura",
+                "Fecha",
+                "Tipo",
+                "Usuario",
+                "Externo",
+                "Estado",
+                "Precio neto",
+                "Precio total"
+        );
+        comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (restaurandoFiltros) {
+                return;
+            }
+            actualizarValoresFiltro(newVal);
+        });
+    }
+
+    private void actualizarValoresFiltro(String campo) {
+        if (comboValor == null) {
+            return;
+        }
+        comboValor.getItems().clear();
+        if (!restaurandoFiltros) {
+            comboValor.setValue(null);
+        }
+        if (campo == null || campo.isBlank()) {
+            return;
+        }
+        List<String> valores = new ArrayList<>();
+        for (HistorialFactura item : itemsHistorialOriginal) {
+            String valor = obtenerValorCampo(item, campo);
+            if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
+                valores.add(valor);
+            }
+        }
+        comboValor.getItems().setAll(valores);
+    }
+
+    @FXML
+    private void agregarFiltro() {
+        String campo = comboFiltro.getValue();
+        String valor = comboValor.getValue();
+        if (campo == null || valor == null) {
+            mostrarAdvertencia(
+                    "Filtro incompleto",
+                    "Debes seleccionar un valor para el campo \"" + campo + "\"."
+            );
+            return;
+        }
+        if (filtrosActivos.size() >= 3) {
+            mostrarAdvertencia(
+                    "Límite de filtros",
+                    "Solo puedes aplicar hasta 3 filtros al mismo tiempo.\n" +
+                            "Elimina uno para agregar otro."
+            );
+            return;
+        }
+        for (Filtro filtro : filtrosActivos) {
+            if (filtro.campo.equals(campo)) {
+                mostrarAdvertencia(
+                        "Filtro duplicado",
+                        "Ya existe un filtro aplicado para el campo \"" + campo + "\".\n" +
+                                "Elimina el filtro actual si deseas cambiar su valor."
+                );
+                return;
+            }
+        }
+        Filtro filtro = new Filtro(campo, valor);
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+        aplicarFiltrosYBusqueda();
+    }
+
+    private Node crearChipFiltro(Filtro filtro) {
+        HBox chip = new HBox(6);
+        chip.setAlignment(javafx.geometry.Pos.CENTER);
+        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        Label texto = new Label(filtro.campo + ": " + filtro.valor);
+        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
+        Button quitar = new Button("x");
+        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
+        quitar.setOnAction(event -> {
+            filtrosActivos.remove(filtro);
+            contenedorFiltros.getChildren().remove(chip);
+            aplicarFiltrosYBusqueda();
+        });
+        chip.getChildren().addAll(texto, quitar);
+        return chip;
+    }
+
+    private void aplicarFiltrosYBusqueda() {
+        String filtroFactura = buscarFactura != null ? buscarFactura.getText() : "";
+        String criterioFactura = filtroFactura == null ? "" : filtroFactura.trim().toLowerCase();
+
+        List<HistorialFactura> filtrados = new ArrayList<>();
+        for (HistorialFactura item : itemsHistorialOriginal) {
+            boolean coincide = true;
+            for (Filtro filtro : filtrosActivos) {
+                String valor = obtenerValorCampo(item, filtro.campo);
+                if (valor == null || !valor.equals(filtro.valor)) {
+                    coincide = false;
+                    break;
+                }
+            }
+            if (coincide && !criterioFactura.isBlank()) {
+                String factura = valorTexto(item.getFactura()).toLowerCase();
+                coincide = factura.contains(criterioFactura);
+            }
+            if (coincide) {
+                filtrados.add(item);
+            }
+        }
+        itemsHistorial.setAll(filtrados);
+        aplicarOrdenamiento();
+    }
+
+    private String obtenerValorCampo(HistorialFactura item, String campo) {
+        switch (campo) {
+            case "Movimiento":
+                return item.getMovimiento();
+            case "Factura":
+                return item.getFactura();
+            case "Fecha":
+                return item.getFecha();
+            case "Tipo":
+                return item.getTipoMovimiento();
+            case "Usuario":
+                return item.getUsuario();
+            case "Externo":
+                return item.getExterno();
+            case "Estado":
+                return item.getEstado();
+            case "Precio neto":
+                return item.getPrecioNeto();
+            case "Precio total":
+                return item.getPrecioTotal();
+            default:
+                return "";
+        }
+    }
+
+    @FXML
+    private void exportarExcel() {
+        if (contenidoTabla.getItems().isEmpty()) {
+            mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
+            return;
+        }
+        exportador.exportarTabla(contenidoTabla, "Historial por factura", "excel",
+                obtenerFiltrosAplicados());
+    }
+
+    @FXML
+    private void descargarPdf() {
+        if (contenidoTabla.getItems().isEmpty()) {
+            mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
+            return;
+        }
+        exportador.exportarTabla(contenidoTabla, "Historial por factura", "pdf",
+                obtenerFiltrosAplicados());
+    }
+
+    @FXML
+    private void vistaPreviaPdf() {
+        if (contenidoTabla.getItems().isEmpty()) {
+            mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
+            return;
+        }
+        exportador.previsualizarPDF(contenidoTabla, "Historial por factura",
+                obtenerFiltrosAplicados());
+    }
+
+    private List<String> obtenerFiltrosAplicados() {
+        List<String> filtrosAplicados = new ArrayList<>();
+        for (Filtro filtro : filtrosActivos) {
+            filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
+        }
+        String filtroFactura = buscarFactura != null ? buscarFactura.getText() : "";
+        if (filtroFactura != null && !filtroFactura.isBlank()) {
+            filtrosAplicados.add("Factura contiene: " + filtroFactura.trim());
+        }
+        return filtrosAplicados;
+    }
+
+    private void mostrarAdvertencia(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.WARNING);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
+
+    @FXML
+    private void mostrarOrdenPopup(MouseEvent event) {
+        List<String> criterios = List.of(
+                "fecha",
+                "factura",
+                "movimiento",
+                "tipo",
+                "usuario",
+                "externo",
+                "total"
+        );
+        SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
+                criterios, criterioOrden, direccionOrden, seleccion -> {
+                    criterioOrden = seleccion.getCriterio();
+                    direccionOrden = seleccion.getDireccion();
+                    aplicarOrdenamiento();
+                });
+    }
+
+    private void aplicarOrdenamiento() {
+        Comparator<HistorialFactura> comparator;
+        Function<String, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
+
+        switch (criterioOrden) {
+            case "factura":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getFactura()));
+                break;
+            case "movimiento":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getMovimiento()));
+                break;
+            case "tipo":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getTipoMovimiento()));
+                break;
+            case "usuario":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getUsuario()));
+                break;
+            case "externo":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getExterno()));
+                break;
+            case "total":
+                comparator = Comparator.comparingDouble(item -> parseDoubleSeguro(item.getPrecioTotal()));
+                break;
+            case "fecha":
+            default:
+                comparator = Comparator.comparing(this::obtenerFechaHoraOrden,
+                        Comparator.nullsLast(Comparator.naturalOrder()));
+                break;
+        }
+
+        if ("desc".equalsIgnoreCase(direccionOrden)) {
+            comparator = comparator.reversed();
+        }
+
+        FXCollections.sort(itemsHistorial, comparator);
+    }
+
+    private double parseDoubleSeguro(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return 0;
+        }
+        try {
+            return Double.parseDouble(valor);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void configurarBusquedaFactura() {
+        if (buscarFactura == null) {
+            return;
+        }
+        buscarFactura.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosYBusqueda());
     }
 
     private List<HistorialFactura> obtenerSalidas(Connection conn) throws SQLException {
@@ -353,6 +652,16 @@ public class MainController {
             } catch (DateTimeParseException ignored) {
                 return null;
             }
+        }
+    }
+
+    private static class Filtro {
+        private final String campo;
+        private final String valor;
+
+        private Filtro(String campo, String valor) {
+            this.campo = campo;
+            this.valor = valor;
         }
     }
 }
