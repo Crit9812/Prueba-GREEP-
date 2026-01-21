@@ -442,7 +442,6 @@ public class MainController {
         List<String> criterios = List.of(
                 "movimiento",
                 "fecha",
-                "hora",
                 "clave",
                 "factura",
                 "tipo",
@@ -479,10 +478,6 @@ public class MainController {
                 break;
             case "externo":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getExterno()));
-                break;
-            case "hora":
-                comparator = Comparator.comparing(item -> parseHora(item.getHora()),
-                        Comparator.nullsLast(Comparator.naturalOrder()));
                 break;
             case "fecha":
             default:
