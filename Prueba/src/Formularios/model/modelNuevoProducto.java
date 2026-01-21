@@ -34,14 +34,18 @@ public class modelNuevoProducto {
         return productoDAO.actualizar(p);
     }
 
+    public boolean eliminarProducto(String id) {
+        return productoDAO.eliminar(id);
+    }
+
     // Metodo para buscar producto por ID
     public producto buscarProductoPorId(String id) {
         return productoDAO.buscarExacto("id", id);
     }
 
-    public String buscarProductoDuplicado(String idIgnorar, String nombre, String etiquetaId,
-                                          String marcaId, String categoria, String material,
-                                          String unidadMedida) {
+    public producto buscarProductoDuplicado(String idIgnorar, String nombre, String etiquetaId,
+                                            String marcaId, String categoria, String material,
+                                            String unidadMedida) {
         java.util.ArrayList<producto> productos = productoDAO.obtenerTodos();
         String nombreNormalizado = normalizarTexto(nombre);
         String etiquetaNormalizada = normalizarTexto(etiquetaId);
@@ -65,7 +69,7 @@ public class modelNuevoProducto {
                     && categoriaNormalizada.equals(normalizarTexto(productoActual.getCategoria()))
                     && materialNormalizado.equals(normalizarTexto(productoActual.getMaterial()))
                     && unidadNormalizada.equals(normalizarUnidadMedida(productoActual.getUnidadMedida()))) {
-                return productoActual.getIdProducto();
+                return productoActual;
             }
         }
         return null;

@@ -77,7 +77,6 @@
                                 </VBox>
 
                                 <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                    <Label text="Unidad de Medida"/>
                                     <VBox fx:id="contenedorUnidadMedida" spacing="5"/>
                                 </VBox>
                             </HBox>

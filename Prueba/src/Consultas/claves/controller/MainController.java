@@ -261,19 +261,33 @@ public class MainController {
 
     private void eliminarClave(String[] fila) {
         String idAlterno = fila[0];
+        int enEntradas = modeloClaves.contarEntradasPorClave(idAlterno);
+        int enSalidas = modeloClaves.contarSalidasPorClave(idAlterno);
+        if (enEntradas > 0 || enSalidas > 0) {
+            StringBuilder motivo = new StringBuilder(
+                    "No se puede desactivar la clave porque tiene registros relacionados (activos, pendientes o disponibles):");
+            if (enEntradas > 0) {
+                motivo.append("\n- Entradas: ").append(enEntradas);
+            }
+            if (enSalidas > 0) {
+                motivo.append("\n- Salidas: ").append(enSalidas);
+            }
+            mostrarAlertaWarning("Advertencia", motivo.toString());
+            return;
+        }
 
         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
         alerta.setTitle("Confirmar eliminación");
         alerta.setHeaderText(null);
-        alerta.setContentText("¿Está seguro que desea eliminar esta clave?");
+        alerta.setContentText("¿Está seguro que desea desactivar esta clave?");
 
         alerta.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (modeloClaves.eliminar(idAlterno)) {
                     contenidoTabla.getItems().remove(fila);
-                    mostrarAlertaInfo("Éxito", "Clave eliminada correctamente.");
+                    mostrarAlertaInfo("Éxito", "Clave desactivada correctamente.");
                 } else {
-                    mostrarAlertaError("Error", "No se pudo eliminar la clave.");
+                    mostrarAlertaError("Error", "No se pudo desactivar la clave.");
                 }
             }
         });
@@ -346,7 +360,9 @@ public class MainController {
         Alert alerta = new Alert(Alert.AlertType.WARNING);
         alerta.setTitle(titulo);
         alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
+        Label contenido = new Label(mensaje);
+        contenido.setWrapText(true);
+        alerta.getDialogPane().setContent(contenido);
         alerta.showAndWait();
     }
 }

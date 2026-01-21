@@ -43,6 +43,12 @@ public class controllerNuevoProducto {
     private String idEdicion = "";
     private String nombreImagenActual = "";
     private Runnable onSaved = null;
+    private boolean reactivarProducto = false;
+    private String idReactivacionPendiente = null;
+    private boolean permitirNuevoDuplicado = false;
+    private boolean reemplazarDuplicadoConNuevoId = false;
+    private String idDuplicadoParaReemplazar = null;
+    private boolean omitirConfirmacionReactivacion = false;
 
     private modelNuevoProducto modeloFormulario;
     private model modeloConsulta;
@@ -225,6 +231,16 @@ public class controllerNuevoProducto {
     @FXML
     public void guardarProducto() {
         try {
+            if (!modoEdicion) {
+                reactivarProducto = false;
+                idReactivacionPendiente = null;
+                permitirNuevoDuplicado = false;
+                reemplazarDuplicadoConNuevoId = false;
+                idDuplicadoParaReemplazar = null;
+                omitirConfirmacionReactivacion = false;
+            } else if (idReactivacionPendiente == null) {
+                reactivarProducto = false;
+            }
             // Validar campos obligatorios
             if (modoEdicion) {
                 // En modo edición, el ID ya está establecido
@@ -243,8 +259,12 @@ public class controllerNuevoProducto {
                 // Verificar si el ID ya existe
                 producto existente = modeloFormulario.buscarProductoPorId(idProducto);
                 if (existente != null) {
-                    mostrarError("Ese ID ya está registrado en otro producto.");
-                    return;
+                    if (esProductoDesactivado(existente)) {
+                        prepararSobrescritura(existente);
+                    } else {
+                        mostrarError("Ese ID ya está registrado en otro producto.");
+                        return;
+                    }
                 }
             }
 
@@ -298,7 +318,7 @@ public class controllerNuevoProducto {
             }
 
             if (!modoEdicion) {
-                String idDuplicado = modeloFormulario.buscarProductoDuplicado(
+                producto duplicado = modeloFormulario.buscarProductoDuplicado(
                         txtIdProducto.getText().trim(),
                         nombre,
                         etiquetaId,
@@ -307,10 +327,36 @@ public class controllerNuevoProducto {
                         material,
                         unidadMedida
                 );
-                if (idDuplicado != null && !idDuplicado.isBlank()) {
-                    mostrarError("Ese producto ya existe con el ID: " + idDuplicado);
+                if (duplicado != null && !permitirNuevoDuplicado) {
+                    String idNuevo = txtIdProducto.getText().trim();
+                    DecisionDuplicado decision = confirmarDuplicado(duplicado.getIdProducto(), idNuevo);
+                    if (decision == DecisionDuplicado.CANCELAR) {
+                        return;
+                    }
+                    if (decision == DecisionDuplicado.SOBRESCRIBIR) {
+                        prepararSobrescritura(duplicado);
+                        omitirConfirmacionReactivacion = true;
+                    } else if (decision == DecisionDuplicado.NUEVO) {
+                        permitirNuevoDuplicado = true;
+                        reemplazarDuplicadoConNuevoId = true;
+                        idDuplicadoParaReemplazar = duplicado.getIdProducto();
+                    }
+                }
+            }
+
+            if (!omitirConfirmacionReactivacion && reactivarProducto && idReactivacionPendiente != null) {
+                if (!confirmarReactivacion(idReactivacionPendiente)) {
                     return;
                 }
+            }
+
+            if (!modoEdicion && reemplazarDuplicadoConNuevoId && idDuplicadoParaReemplazar != null) {
+                if (!modeloFormulario.eliminarProducto(idDuplicadoParaReemplazar)) {
+                    mostrarError("No se pudo sobrescribir el producto existente.");
+                    return;
+                }
+                reemplazarDuplicadoConNuevoId = false;
+                idDuplicadoParaReemplazar = null;
             }
 
             // Manejar imagen
@@ -349,7 +395,11 @@ public class controllerNuevoProducto {
             if (modoEdicion) {
                 producto existente = modeloFormulario.buscarProductoPorId(p.getIdProducto());
                 if (existente != null) {
-                    p.setEstado(existente.getEstado());
+                    if (reactivarProducto) {
+                        p.setEstado("activo");
+                    } else {
+                        p.setEstado(existente.getEstado());
+                    }
                 }
             } else {
                 p.setEstado("activo");
@@ -599,6 +649,69 @@ public class controllerNuevoProducto {
     // AÑADIR este método para verificar si se creó un producto
     public boolean isProductoCreado() {
         return !productoIdCreado.isEmpty() && !productoNombreCreado.isEmpty();
+    }
+
+    private boolean esProductoDesactivado(producto productoExistente) {
+        if (productoExistente == null) {
+            return false;
+        }
+        String estado = productoExistente.getEstado();
+        if (estado == null) {
+            return false;
+        }
+        String estadoNormalizado = estado.trim().toLowerCase();
+        return !estadoNormalizado.equals("activo");
+    }
+
+    private void prepararSobrescritura(producto productoExistente) {
+        modoEdicion = true;
+        idEdicion = productoExistente.getIdProducto();
+        reactivarProducto = esProductoDesactivado(productoExistente);
+        idReactivacionPendiente = reactivarProducto ? idEdicion : null;
+        txtIdProducto.setText(idEdicion);
+        txtIdProducto.setDisable(true);
+    }
+
+    private boolean confirmarReactivacion(String idProducto) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Producto desactivado");
+        alert.setHeaderText("Este producto ya está registrado pero fue desactivado.");
+        alert.setContentText("¿Deseas reactivarlo con el ID " + idProducto + "?");
+        ButtonType botonAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(botonAceptar, botonCancelar);
+        return alert.showAndWait().filter(botonAceptar::equals).isPresent();
+    }
+
+    private DecisionDuplicado confirmarDuplicado(String idExistente, String idNuevo) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Producto duplicado");
+        alert.setHeaderText("Ya existe un producto con los mismos datos.");
+        alert.setContentText("ID existente: " + idExistente + "\nID nuevo: " + idNuevo
+                + "\n\n¿Qué deseas hacer?");
+
+        ButtonType botonSobrescribir = new ButtonType("Sobrescribir", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonNuevo = new ButtonType("Nuevo", ButtonBar.ButtonData.OTHER);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(botonSobrescribir, botonNuevo, botonCancelar);
+
+        return alert.showAndWait()
+                .map(respuesta -> {
+                    if (respuesta == botonSobrescribir) {
+                        return DecisionDuplicado.SOBRESCRIBIR;
+                    }
+                    if (respuesta == botonNuevo) {
+                        return DecisionDuplicado.NUEVO;
+                    }
+                    return DecisionDuplicado.CANCELAR;
+                })
+                .orElse(DecisionDuplicado.CANCELAR);
+    }
+
+    private enum DecisionDuplicado {
+        CANCELAR,
+        SOBRESCRIBIR,
+        NUEVO
     }
 
     private static class UnidadMedidaRow {

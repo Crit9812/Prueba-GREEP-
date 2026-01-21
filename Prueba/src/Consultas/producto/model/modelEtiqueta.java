@@ -58,7 +58,12 @@ public class modelEtiqueta {
 
     // Eliminar etiqueta
     public boolean eliminarEtiqueta(String id) {
-        return etiquetaDAO.eliminar(id);
+        etiqueta existente = buscarPorId(id);
+        if (existente == null) {
+            return false;
+        }
+        existente.setEstado("desactivado");
+        return etiquetaDAO.actualizar(existente);
     }
 
     public etiqueta buscarPorNombre(String nombre) {

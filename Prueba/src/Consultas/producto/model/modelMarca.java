@@ -58,7 +58,12 @@ public class modelMarca {
 
     // Eliminar marca
     public boolean eliminarMarca(String id) {
-        return marcaDAO.eliminar(id);
+        marca existente = buscarPorId(id);
+        if (existente == null) {
+            return false;
+        }
+        existente.setEstado("desactivado");
+        return marcaDAO.actualizar(existente);
     }
 
     public marca buscarPorNombre(String nombre) {
