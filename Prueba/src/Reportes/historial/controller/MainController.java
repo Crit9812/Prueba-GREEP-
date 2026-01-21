@@ -440,13 +440,14 @@ public class MainController {
     @FXML
     private void mostrarOrdenPopup(MouseEvent event) {
         List<String> criterios = List.of(
-                "fecha",
-                "factura",
                 "movimiento",
+                "fecha",
+                "hora",
+                "clave",
+                "factura",
                 "tipo",
                 "usuario",
-                "externo",
-                "total"
+                "externo"
         );
         SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
                 criterios, criterioOrden, direccionOrden, seleccion -> {
@@ -461,11 +462,14 @@ public class MainController {
         Function<String, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
 
         switch (criterioOrden) {
-            case "factura":
-                comparator = Comparator.comparing(item -> normalizar.apply(item.getFactura()));
-                break;
             case "movimiento":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getMovimiento()));
+                break;
+            case "clave":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveMovimiento()));
+                break;
+            case "factura":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getFactura()));
                 break;
             case "tipo":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getTipoMovimiento()));
@@ -476,8 +480,9 @@ public class MainController {
             case "externo":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getExterno()));
                 break;
-            case "total":
-                comparator = Comparator.comparingDouble(item -> parseDoubleSeguro(item.getPrecioTotal()));
+            case "hora":
+                comparator = Comparator.comparing(item -> parseHora(item.getHora()),
+                        Comparator.nullsLast(Comparator.naturalOrder()));
                 break;
             case "fecha":
             default:
@@ -491,17 +496,6 @@ public class MainController {
         }
 
         FXCollections.sort(itemsHistorial, comparator);
-    }
-
-    private double parseDoubleSeguro(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return 0;
-        }
-        try {
-            return Double.parseDouble(valor);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
     }
 
     private void configurarBusquedaFactura() {
