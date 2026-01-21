@@ -181,14 +181,18 @@
                         </padding>
                         <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
                             <columns>
-                                <TableColumn fx:id="colClaveMovimiento" text="Clave del movimiento" />
-                                <TableColumn fx:id="colFecha" text="Fecha" prefWidth="200" />
-                                <TableColumn fx:id="colHora" text="Hora" prefWidth="200" />
-                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="200"  />
-                                <TableColumn fx:id="colTotal" text="Total" prefWidth="140" />
-                                <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="170" />
+                                <TableColumn fx:id="colMovimiento" text="Movimiento" prefWidth="130" />
+                                <TableColumn fx:id="colClaveMovimiento" text="Clave del movimiento" prefWidth="160" />
+                                <TableColumn fx:id="colFactura" text="Factura" prefWidth="120" />
+                                <TableColumn fx:id="colFecha" text="Fecha" prefWidth="140" />
+                                <TableColumn fx:id="colHora" text="Hora" prefWidth="120" />
+                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="160" />
+                                <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="120" />
                                 <TableColumn fx:id="colExterno" text="Externo" prefWidth="140" />
-                                <TableColumn fx:id="colFacturaExterna" text="Factura externa" prefWidth="140" />
+                                <TableColumn fx:id="colPrecioNeto" text="Precio neto" prefWidth="130" />
+                                <TableColumn fx:id="colPrecioTotal" text="Precio total" prefWidth="130" />
+                                <TableColumn fx:id="colNota" text="Nota" prefWidth="180" />
+                                <TableColumn fx:id="colEstado" text="Estado" prefWidth="120" />
                             </columns>
                         </TableView>
                     </VBox>

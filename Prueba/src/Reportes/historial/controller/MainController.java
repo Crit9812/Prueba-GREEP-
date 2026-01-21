@@ -2,14 +2,31 @@ package Reportes.historial.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Reportes.historial.model.HistorialFactura;
+import conexion.Conexion;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.application.Platform;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class MainController {
 
@@ -30,9 +47,25 @@ public class MainController {
     @FXML private Label lblDescargar;
 
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
+    @FXML private TableView<HistorialFactura> contenidoTabla;
+    @FXML private TableColumn<HistorialFactura, String> colMovimiento;
+    @FXML private TableColumn<HistorialFactura, String> colClaveMovimiento;
+    @FXML private TableColumn<HistorialFactura, String> colFactura;
+    @FXML private TableColumn<HistorialFactura, String> colFecha;
+    @FXML private TableColumn<HistorialFactura, String> colHora;
+    @FXML private TableColumn<HistorialFactura, String> colTipoMovimiento;
+    @FXML private TableColumn<HistorialFactura, String> colUsuario;
+    @FXML private TableColumn<HistorialFactura, String> colExterno;
+    @FXML private TableColumn<HistorialFactura, String> colPrecioNeto;
+    @FXML private TableColumn<HistorialFactura, String> colPrecioTotal;
+    @FXML private TableColumn<HistorialFactura, String> colNota;
+    @FXML private TableColumn<HistorialFactura, String> colEstado;
 
     @FXML private encabezadoController paneNavbarController;
+
+    private final ObservableList<HistorialFactura> itemsHistorial = FXCollections.observableArrayList();
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter FORMATO_FECHA_ALT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @FXML
     public void initialize() {
@@ -79,7 +112,227 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Historial por factura", "#ffffff");
+            configurarColumnas();
+            cargarHistorial();
         });
     }
-}
 
+    private void configurarColumnas() {
+        colMovimiento.setCellValueFactory(new PropertyValueFactory<>("movimiento"));
+        colClaveMovimiento.setCellValueFactory(new PropertyValueFactory<>("claveMovimiento"));
+        colFactura.setCellValueFactory(new PropertyValueFactory<>("factura"));
+        colFecha.setCellValueFactory(new PropertyValueFactory<>("fecha"));
+        colHora.setCellValueFactory(new PropertyValueFactory<>("hora"));
+        colTipoMovimiento.setCellValueFactory(new PropertyValueFactory<>("tipoMovimiento"));
+        colUsuario.setCellValueFactory(new PropertyValueFactory<>("usuario"));
+        colExterno.setCellValueFactory(new PropertyValueFactory<>("externo"));
+        colPrecioNeto.setCellValueFactory(new PropertyValueFactory<>("precioNeto"));
+        colPrecioTotal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
+        colNota.setCellValueFactory(new PropertyValueFactory<>("nota"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+
+        TableColumn<HistorialFactura, ?>[] columnas = new TableColumn[] {
+                colMovimiento,
+                colClaveMovimiento,
+                colFactura,
+                colFecha,
+                colHora,
+                colTipoMovimiento,
+                colUsuario,
+                colExterno,
+                colPrecioNeto,
+                colPrecioTotal,
+                colNota,
+                colEstado
+        };
+
+        for (TableColumn<HistorialFactura, ?> columna : columnas) {
+            columna.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setItems(itemsHistorial);
+    }
+
+    private void cargarHistorial() {
+        itemsHistorial.clear();
+        List<HistorialFactura> registros = new ArrayList<>();
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return;
+            }
+
+            registros.addAll(obtenerEntradas(conn));
+            registros.addAll(obtenerSalidas(conn));
+            registros.addAll(obtenerAjustes(conn));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        registros.sort(Comparator.comparing(this::obtenerFechaHoraOrden,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        itemsHistorial.setAll(registros);
+    }
+
+    private List<HistorialFactura> obtenerEntradas(Connection conn) throws SQLException {
+        String query = "SELECT idEntrada, noFactura, fechaEntrada, horaEntrada, tipoEntrada, "
+                + "claveUsuarioEntrada, idRemitente, precioNetoEntrada, precioTotalEntrada, nota, Estado "
+                + "FROM entradas";
+        List<HistorialFactura> registros = new ArrayList<>();
+
+        try (PreparedStatement statement = conn.prepareStatement(query);
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                registros.add(new HistorialFactura(
+                        "Entrada",
+                        String.valueOf(rs.getInt("idEntrada")),
+                        valorTexto(rs.getObject("noFactura")),
+                        valorTexto(rs.getObject("fechaEntrada")),
+                        valorTexto(rs.getObject("horaEntrada")),
+                        valorTexto(rs.getObject("tipoEntrada")),
+                        valorTexto(rs.getObject("claveUsuarioEntrada")),
+                        valorTexto(rs.getObject("idRemitente")),
+                        valorTexto(rs.getObject("precioNetoEntrada")),
+                        valorTexto(rs.getObject("precioTotalEntrada")),
+                        valorTexto(rs.getObject("nota")),
+                        valorTexto(rs.getObject("Estado"))
+                ));
+            }
+        }
+
+        return registros;
+    }
+
+    private List<HistorialFactura> obtenerSalidas(Connection conn) throws SQLException {
+        String query = "SELECT idSalida, noFactura, fechaSalida, horaSalida, tipoSalida, "
+                + "claveUsuarioSalida, idDestinatario, precioNetoSalida, precioTotalSalida, nota, Estado "
+                + "FROM salidas";
+        List<HistorialFactura> registros = new ArrayList<>();
+
+        try (PreparedStatement statement = conn.prepareStatement(query);
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                registros.add(new HistorialFactura(
+                        "Salida",
+                        String.valueOf(rs.getInt("idSalida")),
+                        valorTexto(rs.getObject("noFactura")),
+                        valorTexto(rs.getObject("fechaSalida")),
+                        valorTexto(rs.getObject("horaSalida")),
+                        valorTexto(rs.getObject("tipoSalida")),
+                        valorTexto(rs.getObject("claveUsuarioSalida")),
+                        valorTexto(rs.getObject("idDestinatario")),
+                        valorTexto(rs.getObject("precioNetoSalida")),
+                        valorTexto(rs.getObject("precioTotalSalida")),
+                        valorTexto(rs.getObject("nota")),
+                        valorTexto(rs.getObject("Estado"))
+                ));
+            }
+        }
+
+        return registros;
+    }
+
+    private List<HistorialFactura> obtenerAjustes(Connection conn) throws SQLException {
+        String query = "SELECT idAjuste, idUsuario, fechaAjuste, horaAjuste, precioNeto, precioTotal, Nota "
+                + "FROM ajuste_inventario";
+        List<HistorialFactura> registros = new ArrayList<>();
+
+        try (PreparedStatement statement = conn.prepareStatement(query);
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                String horaAjuste = formatearHoraAjuste(rs.getObject("horaAjuste"));
+                registros.add(new HistorialFactura(
+                        "Ajuste",
+                        String.valueOf(rs.getInt("idAjuste")),
+                        "-",
+                        valorTexto(rs.getObject("fechaAjuste")),
+                        horaAjuste,
+                        "Ajuste de inventario",
+                        valorTexto(rs.getObject("idUsuario")),
+                        "-",
+                        valorTexto(rs.getObject("precioNeto")),
+                        valorTexto(rs.getObject("precioTotal")),
+                        valorTexto(rs.getObject("Nota")),
+                        "-"
+                ));
+            }
+        }
+
+        return registros;
+    }
+
+    private String formatearHoraAjuste(Object valor) {
+        if (valor == null) {
+            return "";
+        }
+        if (valor instanceof Number) {
+            long segundos = ((Number) valor).longValue();
+            if (segundos < 0) {
+                return "";
+            }
+            return LocalTime.ofSecondOfDay(segundos).format(FORMATO_HORA);
+        }
+        return valor.toString();
+    }
+
+    private String valorTexto(Object valor) {
+        if (valor == null) {
+            return "";
+        }
+        String texto = valor.toString();
+        return texto.isBlank() ? "" : texto;
+    }
+
+    private LocalDateTime obtenerFechaHoraOrden(HistorialFactura item) {
+        LocalDate fecha = parseFecha(item.getFecha());
+        if (fecha == null) {
+            return null;
+        }
+        LocalTime hora = parseHora(item.getHora());
+        if (hora == null) {
+            hora = LocalTime.MIDNIGHT;
+        }
+        return LocalDateTime.of(fecha, hora);
+    }
+
+    private LocalDate parseFecha(String fechaTexto) {
+        if (fechaTexto == null || fechaTexto.isBlank()) {
+            return null;
+        }
+        List<DateTimeFormatter> formatos = List.of(DateTimeFormatter.ISO_LOCAL_DATE, FORMATO_FECHA_ALT);
+        for (DateTimeFormatter formatter : formatos) {
+            try {
+                return LocalDate.parse(fechaTexto, formatter);
+            } catch (DateTimeParseException ignored) {
+                // Intentar con el siguiente formato
+            }
+        }
+        return null;
+    }
+
+    private LocalTime parseHora(String horaTexto) {
+        if (horaTexto == null || horaTexto.isBlank()) {
+            return null;
+        }
+        String texto = horaTexto.trim();
+        if (texto.chars().allMatch(Character::isDigit)) {
+            try {
+                long segundos = Long.parseLong(texto);
+                if (segundos >= 0) {
+                    return LocalTime.ofSecondOfDay(segundos);
+                }
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        try {
+            return LocalTime.parse(texto);
+        } catch (DateTimeParseException e) {
+            try {
+                return LocalTime.parse(texto, DateTimeFormatter.ofPattern("HH:mm"));
+            } catch (DateTimeParseException ignored) {
+                return null;
+            }
+        }
+    }
+}
