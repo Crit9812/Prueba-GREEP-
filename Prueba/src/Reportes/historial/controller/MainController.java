@@ -175,9 +175,18 @@ public class MainController {
     }
 
     private List<HistorialFactura> obtenerEntradas(Connection conn) throws SQLException {
-        String query = "SELECT idEntrada, noFactura, fechaEntrada, horaEntrada, tipoEntrada, "
-                + "claveUsuarioEntrada, idRemitente, precioNetoEntrada, precioTotalEntrada, nota, Estado "
-                + "FROM entradas";
+        String query = "SELECT e.idEntrada, e.noFactura, e.fechaEntrada, e.horaEntrada, e.tipoEntrada, "
+                + "e.claveUsuarioEntrada, e.idRemitente, e.precioNetoEntrada, e.precioTotalEntrada, e.nota, e.Estado, "
+                + "TRIM(CONCAT_WS(' ', u.nombreUsuario, u.apellidoPUsuario, u.apellidoMUsuario)) AS usuarioNombre, "
+                + "CASE "
+                + "WHEN LOWER(e.tipoEntrada) = 'compra' THEN p.Nombre "
+                + "WHEN LOWER(e.tipoEntrada) = 'traspaso' THEN s.nombre "
+                + "ELSE e.idRemitente "
+                + "END AS externoNombre "
+                + "FROM entradas e "
+                + "LEFT JOIN usuarios u ON e.claveUsuarioEntrada = u.idUsuario "
+                + "LEFT JOIN proveedores p ON e.idRemitente = p.id "
+                + "LEFT JOIN sucursales s ON e.idRemitente = s.id";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
@@ -190,8 +199,8 @@ public class MainController {
                         valorTexto(rs.getObject("fechaEntrada")),
                         valorTexto(rs.getObject("horaEntrada")),
                         valorTexto(rs.getObject("tipoEntrada")),
-                        valorTexto(rs.getObject("claveUsuarioEntrada")),
-                        valorTexto(rs.getObject("idRemitente")),
+                        valorTexto(rs.getObject("usuarioNombre")),
+                        valorTexto(rs.getObject("externoNombre")),
                         valorTexto(rs.getObject("precioNetoEntrada")),
                         valorTexto(rs.getObject("precioTotalEntrada")),
                         valorTexto(rs.getObject("nota")),
@@ -204,9 +213,18 @@ public class MainController {
     }
 
     private List<HistorialFactura> obtenerSalidas(Connection conn) throws SQLException {
-        String query = "SELECT idSalida, noFactura, fechaSalida, horaSalida, tipoSalida, "
-                + "claveUsuarioSalida, idDestinatario, precioNetoSalida, precioTotalSalida, nota, Estado "
-                + "FROM salidas";
+        String query = "SELECT s.idSalida, s.noFactura, s.fechaSalida, s.horaSalida, s.tipoSalida, "
+                + "s.claveUsuarioSalida, s.idDestinatario, s.precioNetoSalida, s.precioTotalSalida, s.nota, s.Estado, "
+                + "TRIM(CONCAT_WS(' ', u.nombreUsuario, u.apellidoPUsuario, u.apellidoMUsuario)) AS usuarioNombre, "
+                + "CASE "
+                + "WHEN LOWER(s.tipoSalida) = 'venta' THEN c.Nombre "
+                + "WHEN LOWER(s.tipoSalida) = 'traspaso' THEN su.nombre "
+                + "ELSE s.idDestinatario "
+                + "END AS externoNombre "
+                + "FROM salidas s "
+                + "LEFT JOIN usuarios u ON s.claveUsuarioSalida = u.idUsuario "
+                + "LEFT JOIN clientes c ON s.idDestinatario = c.id "
+                + "LEFT JOIN sucursales su ON s.idDestinatario = su.id";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
@@ -219,8 +237,8 @@ public class MainController {
                         valorTexto(rs.getObject("fechaSalida")),
                         valorTexto(rs.getObject("horaSalida")),
                         valorTexto(rs.getObject("tipoSalida")),
-                        valorTexto(rs.getObject("claveUsuarioSalida")),
-                        valorTexto(rs.getObject("idDestinatario")),
+                        valorTexto(rs.getObject("usuarioNombre")),
+                        valorTexto(rs.getObject("externoNombre")),
                         valorTexto(rs.getObject("precioNetoSalida")),
                         valorTexto(rs.getObject("precioTotalSalida")),
                         valorTexto(rs.getObject("nota")),
@@ -233,8 +251,10 @@ public class MainController {
     }
 
     private List<HistorialFactura> obtenerAjustes(Connection conn) throws SQLException {
-        String query = "SELECT idAjuste, idUsuario, fechaAjuste, horaAjuste, precioNeto, precioTotal, Nota "
-                + "FROM ajuste_inventario";
+        String query = "SELECT a.idAjuste, a.idUsuario, a.fechaAjuste, a.horaAjuste, a.precioNeto, a.precioTotal, a.Nota, "
+                + "TRIM(CONCAT_WS(' ', u.nombreUsuario, u.apellidoPUsuario, u.apellidoMUsuario)) AS usuarioNombre "
+                + "FROM ajuste_inventario a "
+                + "LEFT JOIN usuarios u ON a.idUsuario = u.idUsuario";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
@@ -248,7 +268,7 @@ public class MainController {
                         valorTexto(rs.getObject("fechaAjuste")),
                         horaAjuste,
                         "Ajuste de inventario",
-                        valorTexto(rs.getObject("idUsuario")),
+                        valorTexto(rs.getObject("usuarioNombre")),
                         "-",
                         valorTexto(rs.getObject("precioNeto")),
                         valorTexto(rs.getObject("precioTotal")),
