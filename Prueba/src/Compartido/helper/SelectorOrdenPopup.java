@@ -148,7 +148,19 @@ public class SelectorOrdenPopup {
             case "producto":
                 return "Producto";
             case "fecha":
-                return "Fecha";
+                return "Fecha y hora";
+            case "clave":
+                return "Clave";
+            case "factura":
+                return "Factura";
+            case "tipo":
+                return "Tipo";
+            case "usuario":
+                return "Usuario";
+            case "externo":
+                return "Externo";
+            case "movimiento":
+                return "Movimiento";
             case "sucursal":
                 return "Sucursal";
             case "ubicacion":
