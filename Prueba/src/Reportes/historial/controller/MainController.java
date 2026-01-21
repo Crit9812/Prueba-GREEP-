@@ -197,7 +197,7 @@ public class MainController {
     private List<HistorialFactura> obtenerEntradas(Connection conn) throws SQLException {
         String query = "SELECT e.idEntrada, e.noFactura, e.fechaEntrada, e.horaEntrada, e.tipoEntrada, "
                 + "e.claveUsuarioEntrada, e.idRemitente, e.precioNetoEntrada, e.precioTotalEntrada, e.nota, e.Estado, "
-                + "TRIM(CONCAT_WS(' ', u.nombreUsuario, u.apellidoPUsuario, u.apellidoMUsuario)) AS usuarioNombre, "
+                + "u.userName AS usuarioNombre, "
                 + "CASE "
                 + "WHEN LOWER(e.tipoEntrada) = 'compra' THEN p.Nombre "
                 + "WHEN LOWER(e.tipoEntrada) = 'traspaso' THEN s.nombre "
@@ -508,7 +508,7 @@ public class MainController {
     private List<HistorialFactura> obtenerSalidas(Connection conn) throws SQLException {
         String query = "SELECT s.idSalida, s.noFactura, s.fechaSalida, s.horaSalida, s.tipoSalida, "
                 + "s.claveUsuarioSalida, s.idDestinatario, s.precioNetoSalida, s.precioTotalSalida, s.nota, s.Estado, "
-                + "TRIM(CONCAT_WS(' ', u.nombreUsuario, u.apellidoPUsuario, u.apellidoMUsuario)) AS usuarioNombre, "
+                + "u.userName AS usuarioNombre, "
                 + "CASE "
                 + "WHEN LOWER(s.tipoSalida) = 'venta' THEN c.Nombre "
                 + "WHEN LOWER(s.tipoSalida) = 'traspaso' THEN su.nombre "
@@ -545,7 +545,7 @@ public class MainController {
 
     private List<HistorialFactura> obtenerAjustes(Connection conn) throws SQLException {
         String query = "SELECT a.idAjuste, a.idUsuario, a.fechaAjuste, a.horaAjuste, a.precioNeto, a.precioTotal, a.Nota, "
-                + "TRIM(CONCAT_WS(' ', u.nombreUsuario, u.apellidoPUsuario, u.apellidoMUsuario)) AS usuarioNombre "
+                + "u.userName AS usuarioNombre "
                 + "FROM ajuste_inventario a "
                 + "LEFT JOIN usuarios u ON a.idUsuario = u.idUsuario";
         List<HistorialFactura> registros = new ArrayList<>();
