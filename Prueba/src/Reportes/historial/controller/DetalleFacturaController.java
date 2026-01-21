@@ -776,6 +776,8 @@ public class DetalleFacturaController {
                 Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
                 String colId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
                 String colEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+                String colDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                        "detalleSalida", "detalle_salida", "detalle_salida_id");
                 if (colId == null) {
                     return;
                 }
@@ -783,8 +785,12 @@ public class DetalleFacturaController {
                     return;
                 }
                 if (articulo.esDetalleSalida()) {
+                    if (colDetalleSalida == null) {
+                        return;
+                    }
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
+                            "UPDATE articulo SET `" + colEstado + "` = ?, `" + colDetalleSalida
+                                    + "` = NULL WHERE `" + colId + "` = ?")) {
                         ps.setString(1, "disponible");
                         ps.setInt(2, articulo.idArticulo);
                         ps.executeUpdate();
