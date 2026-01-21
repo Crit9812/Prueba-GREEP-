@@ -4,24 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambio en formato de pdf al hacer traspaso de entrada.">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion del eliminado en cosas activas">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Prueba/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Prueba/Formularios/view/nuevoProducto.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/modelEtiqueta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/modelEtiqueta.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/model/modelMarca.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/model/modelMarca.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoProducto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoProducto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevoProducto.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/exportar/ReporteTraspasoExporter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/exportar/ReporteTraspasoExporter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +42,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/modify-product-form-for-measurement-input-dilwu8" />
+        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -109,7 +98,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#49 on Pruebas",
+    "git-widget-placeholder": "Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -214,7 +203,7 @@
       <workItem from="1765202120769" duration="36000" />
       <workItem from="1765202169057" duration="7000" />
       <workItem from="1768917288002" duration="21552000" />
-      <workItem from="1769003836964" duration="1057000" />
+      <workItem from="1769003836964" duration="12737000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />
@@ -528,7 +517,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768918090504</updated>
     </task>
-    <option name="localTasksCounter" value="40" />
+    <task id="LOCAL-00040" summary="Agregacion del eliminado en cosas activas">
+      <option name="closed" value="true" />
+      <created>1769004995286</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1769004995286</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -560,7 +557,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/codex/modify-product-form-for-measurement-input-dilwu8" />
+                        <option value="origin/Pruebas" />
                       </list>
                     </value>
                   </entry>
@@ -581,7 +578,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Merge remote-tracking branch 'origin/detached' into detached" />
     <MESSAGE value="subida de todos los archivos a una rama" />
     <MESSAGE value="comprar" />
     <MESSAGE value="Modificaciones de diseño en compras" />
@@ -606,7 +602,8 @@
     <MESSAGE value="Arreglo de los formularios" />
     <MESSAGE value="Agregado del controller de jess" />
     <MESSAGE value="cambio en formato de pdf al hacer traspaso de entrada." />
-    <option name="LAST_COMMIT_MESSAGE" value="cambio en formato de pdf al hacer traspaso de entrada." />
+    <MESSAGE value="Agregacion del eliminado en cosas activas" />
+    <option name="LAST_COMMIT_MESSAGE" value="Agregacion del eliminado en cosas activas" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

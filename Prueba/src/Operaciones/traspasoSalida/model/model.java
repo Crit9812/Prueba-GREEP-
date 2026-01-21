@@ -58,9 +58,9 @@ public class model {
         return null;
     }
 
-    public boolean registrarTraspasoSalida(String idDestinatario, String comentario, List<traspasoSalida> items) {
+    public String registrarTraspasoSalida(String idDestinatario, String comentario, List<traspasoSalida> items) {
         if (items == null || items.isEmpty()) {
-            return false;
+            return null;
         }
 
         try (Connection conn = new Conexion().conectar()) {
@@ -114,6 +114,12 @@ public class model {
 
             long idSalida = insertarRegistro(conn, "salidas", columnasSalida, valoresSalida);
 
+            // Validar que se obtuvo un ID válido
+            if (idSalida <= 0) {
+                conn.rollback();
+                return null;
+            }
+
             Map<String, String> columnasDetalleSalida = obtenerColumnas(conn, "detalle_Salida");
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
@@ -123,7 +129,7 @@ public class model {
                     "detalleSalida", "detalle_salida", "detalle_salida_id");
             if (colArticuloDetalleSalida == null) {
                 conn.rollback();
-                return false;
+                return null;
             }
 
             String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
@@ -148,7 +154,7 @@ public class model {
             if (colArticuloId == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
                     || colDetalleEntradaClaveEntrada == null || colEntradaEstado == null || colEntradaId == null) {
                 conn.rollback();
-                return false;
+                return null;
             }
 
             java.util.Set<Integer> detallesEntradaActualizados = new java.util.HashSet<>();
@@ -193,7 +199,7 @@ public class model {
 
                 if (item.getUbicaciones().isEmpty()) {
                     conn.rollback();
-                    return false;
+                    return null;
                 }
 
                 for (Operaciones.compra.model.UbicacionCompra ubicacion : item.getUbicaciones()) {
@@ -207,7 +213,7 @@ public class model {
                     Integer ubicacionId = resolverUbicacionId(conn, ubicacion.getUbicacion().trim());
                     if (ubicacionId == null) {
                         conn.rollback();
-                        return false;
+                        return null;
                     }
 
                     List<Integer> articulosParaActualizar = new ArrayList<>();
@@ -232,11 +238,7 @@ public class model {
                         sqlSelect.append(" AND a.").append(colArticuloLote).append(" = ?");
                     }
                     if (colArticuloCaducidad != null) {
-                        if (tieneCaducidad(item)) {
-                            sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
-                        } else {
-                            sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
-                        }
+                        sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
                     }
                     if (colArticuloUbicacion != null) {
                         sqlSelect.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
@@ -260,7 +262,7 @@ public class model {
                         if (colArticuloLote != null) {
                             ps.setString(index++, item.getLote());
                         }
-                        if (colArticuloCaducidad != null && tieneCaducidad(item)) {
+                        if (colArticuloCaducidad != null) {
                             ps.setDate(index++, parseDate(item.getCaducidad()));
                         }
                         if (colArticuloUbicacion != null) {
@@ -290,7 +292,7 @@ public class model {
 
                     if (articulosParaActualizar.size() < cantidad) {
                         conn.rollback();
-                        return false;
+                        return null;
                     }
 
                     String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
@@ -314,7 +316,7 @@ public class model {
                         int actualizadas = psUpdate.executeUpdate();
                         if (actualizadas < cantidad) {
                             conn.rollback();
-                            return false;
+                            return null;
                         }
                     }
 
@@ -336,13 +338,13 @@ public class model {
             }
 
             conn.commit();
-            return true;
+            // Retornar el idSalida real como string
+            return String.valueOf(idSalida);
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
     }
-
     private Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
         Map<String, String> columnas = new java.util.HashMap<>();
         DatabaseMetaData meta = conn.getMetaData();
@@ -383,10 +385,6 @@ public class model {
             }
         }
         return null;
-    }
-
-    private boolean tieneCaducidad(traspasoSalida item) {
-        return item != null && item.getCaducidad() != null && !item.getCaducidad().isBlank();
     }
 
     private long insertarRegistro(Connection conn, String tabla, Map<String, String> columnas, Map<String, Object> valores)

@@ -4,15 +4,7 @@ import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.Label;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Button;
-import javafx.scene.control.SplitPane;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import java.io.IOException;
@@ -21,7 +13,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.ComboBox;
 import Operaciones.traspasoSalida.model.model;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.beans.value.ObservableValue;
@@ -31,6 +22,9 @@ import javafx.util.Callback;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import Compartido.exportar.ReporteTraspasoSalidaExporter;
+import javafx.scene.control.ButtonBar;
+import java.util.ArrayList;
 
 public class MainController {
 
@@ -405,17 +399,41 @@ public class MainController {
         confirmacion.setTitle("Confirmación");
         confirmacion.setHeaderText("¿Deseas confirmar el traspaso de salida?");
         confirmacion.setContentText("Esta acción registrará el traspaso y marcará los artículos correspondientes.");
+
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 String nota = comentario != null ? comentario.getText() : "";
-                boolean registrado = model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, new ArrayList<>(itemsTraspaso));
-                if (registrado) {
+
+                // Obtener nombre de la sucursal destino
+                String nombreSucursalDestino = buscador.getValue();
+
+                // CAMBIAR ESTO:
+                // boolean registrado = model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, new ArrayList<>(itemsTraspaso));
+                // POR:
+                String idSalida = model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, new ArrayList<>(itemsTraspaso));
+
+                // CAMBIAR ESTO:
+                // if (registrado) {
+                // POR:
+                if (idSalida != null && !idSalida.isEmpty()) {
+
+                    // CAMBIAR ESTO:
+                    // String claveSalida = "TS-" + System.currentTimeMillis();
+                    // POR:
+                    String claveSalida = " " + idSalida;  // ID REAL de la tabla salidas
+
+                    // Guardar copia de los items para el reporte
+                    List<traspasoSalida> copiaItems = new ArrayList<>(itemsTraspaso);
+
+                    // Limpiar la tabla
                     itemsTraspaso.clear();
                     actualizarTotalTraspaso();
                     if (comentario != null) {
                         comentario.clear();
                     }
-                    mostrarAlerta("Éxito", "El traspaso de salida se registró correctamente.");
+
+                    mostrarConfirmacionReporte(claveSalida, nombreSucursalDestino, nota, copiaItems);
+
                 } else {
                     mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
                 }
@@ -452,6 +470,35 @@ public class MainController {
 
     public void refrescarTabla() {
         contenidoTabla.refresh();
+    }
+
+    // En MainController.java (traspasoSalida)
+    private void mostrarConfirmacionReporte(String claveSalida,
+                                            String nombreSucursalDestino,
+                                            String comentario,
+                                            List<traspasoSalida> itemsTraspaso) {
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("Registro exitoso");
+        dialogo.setHeaderText("Traspaso de salida registrado correctamente");
+        dialogo.setContentText("¿Deseas descargar el reporte de este traspaso?");
+
+        ButtonType btnDescargar = new ButtonType("Descargar");
+        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
+
+        dialogo.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == btnDescargar) {
+                ReporteTraspasoSalidaExporter.exportarReporte(
+                        claveSalida,
+                        nombreSucursalDestino,
+                        comentario,
+                        new ArrayList<>(itemsTraspaso),
+                        contenidoTabla != null && contenidoTabla.getScene() != null
+                                ? contenidoTabla.getScene().getWindow()
+                                : null
+                );
+            }
+        });
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {

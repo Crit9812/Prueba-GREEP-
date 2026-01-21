@@ -315,6 +315,9 @@ public class MainController {
                                             String mensaje,
                                             List<model.DetalleEntrada> detalles,
                                             java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
+
+        String comentario = modeloTraspaso.obtenerComentarioEntrada(claveEntrada);
+
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
         dialogo.setTitle("Registro exitoso");
         dialogo.setHeaderText(mensaje);
@@ -324,8 +327,14 @@ public class MainController {
         dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
         dialogo.showAndWait().ifPresent(respuesta -> {
             if (respuesta == btnDescargar) {
-                ReporteTraspasoExporter.exportarReporte(claveEntrada, detalles, ubicacionesPorProducto,
-                        contenidoTabla != null && contenidoTabla.getScene() != null ? contenidoTabla.getScene().getWindow() : null);
+                // PASAR EL COMENTARIO AL REPORTE - MODIFICADO
+                ReporteTraspasoExporter.exportarReporte(
+                        claveEntrada,
+                        detalles,
+                        ubicacionesPorProducto,
+                        contenidoTabla != null && contenidoTabla.getScene() != null ? contenidoTabla.getScene().getWindow() : null,
+                        comentario  // NUEVO PARÁMETRO
+                );
             }
         });
     }

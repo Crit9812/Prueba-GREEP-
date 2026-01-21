@@ -35,6 +35,37 @@ public class model {
         return lista;
     }
 
+    public String obtenerComentarioEntrada(String claveEntrada) {
+        String sql = "SELECT nota FROM entradas WHERE idEntrada = ?";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            // Convertir claveEntrada a int (idEntrada es numérico)
+            ps.setInt(1, Integer.parseInt(claveEntrada));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String comentario = rs.getString("nota");
+                    // Si es null o vacío, retornar string vacío
+                    return (comentario != null) ? comentario.trim() : "";
+                }
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Error: claveEntrada debe ser numérica - " + claveEntrada);
+            return "";
+        } catch (SQLException e) {
+            System.err.println("Error SQL al obtener comentario: " + e.getMessage());
+            e.printStackTrace();
+            return "";
+        } catch (Exception e) {
+            System.err.println("Error de conexión: " + e.getMessage());
+            e.printStackTrace();
+            return "";
+        }
+        return ""; // Si no encuentra el registro
+    }
+
     // Clase interna para representar los detalles de una entrada
     public static class DetalleEntrada {
         private String claveProducto;
@@ -63,7 +94,6 @@ public class model {
         public String getNombreSucursal() { return nombreSucursal; } // NUEVO GETTER
     }
 
-    // Método para obtener el nombre de la sucursal del remitente
     public String obtenerNombreSucursalPorEntrada(String claveEntrada) {
         String nombreSucursal = "";
 
@@ -243,7 +273,7 @@ public class model {
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 ps.setString(1, "traspaso");
-                ps.setString(2, "pendiente");
+                ps.setString(2, "revision");
 
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {

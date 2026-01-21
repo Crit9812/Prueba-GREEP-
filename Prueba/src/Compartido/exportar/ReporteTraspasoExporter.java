@@ -49,11 +49,55 @@ public class ReporteTraspasoExporter {
     private static final float LINE_HEIGHT = 14f;
     private static final float SECTION_SPACING = 20f;
     private static final float CELL_PADDING = 5f;
+    private static final float MIN_Y = MARGIN + 50f; // Margen inferior para contenido + espacio para pie
 
+    // Clase auxiliar para manejar resultados de paginación de tabla
+    private static class PaginacionResultado {
+        private int indiceSiguiente;
+        private boolean completa;
+        private float currentY;
+
+        public PaginacionResultado(int indiceSiguiente, boolean completa, float currentY) {
+            this.indiceSiguiente = indiceSiguiente;
+            this.completa = completa;
+            this.currentY = currentY;
+        }
+
+        public int getIndiceSiguiente() { return indiceSiguiente; }
+        public boolean isCompleta() { return completa; }
+        public float getCurrentY() { return currentY; }
+    }
+
+    // Clase auxiliar para manejar resultados de paginación de ubicaciones
+    private static class PaginacionResultadoUbicaciones {
+        private int indiceProductoSiguiente;
+        private int indiceUbicacionSiguiente;
+        private boolean completa;
+        private float currentY;
+        private String productoActual;
+
+        public PaginacionResultadoUbicaciones(int indiceProductoSiguiente, int indiceUbicacionSiguiente,
+                                              boolean completa, float currentY, String productoActual) {
+            this.indiceProductoSiguiente = indiceProductoSiguiente;
+            this.indiceUbicacionSiguiente = indiceUbicacionSiguiente;
+            this.completa = completa;
+            this.currentY = currentY;
+            this.productoActual = productoActual;
+        }
+
+        public int getIndiceProductoSiguiente() { return indiceProductoSiguiente; }
+        public int getIndiceUbicacionSiguiente() { return indiceUbicacionSiguiente; }
+        public boolean isCompleta() { return completa; }
+        public float getCurrentY() { return currentY; }
+        public String getProductoActual() { return productoActual; }
+    }
+
+    // Método principal modificado para aceptar comentario
     public static void exportarReporte(String claveEntrada,
                                        List<model.DetalleEntrada> detalles,
                                        Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
-                                       Window owner) {
+                                       Window owner,
+                                       String comentario) {  // NUEVO PARÁMETRO
         if (detalles == null || detalles.isEmpty()) {
             mostrarError("No hay detalles para exportar.");
             return;
@@ -71,99 +115,255 @@ public class ReporteTraspasoExporter {
         File archivo = new File(carpeta, "Reporte_Traspaso_" + claveEntrada + "_" + fechaHora + ".pdf");
 
         try {
-            generarReporte(archivo, claveEntrada, detalles, ubicacionesPorProducto);
-            mostrarExito("✅ Reporte generado exitosamente\n\n" +
+            generarReporte(archivo, claveEntrada, detalles, ubicacionesPorProducto, comentario);
+            mostrarExito("Reporte generado exitosamente\n\n" +
                     "Archivo: Reporte_Traspaso_" + claveEntrada + "_" + fechaHora + ".pdf\n" +
                     "Ubicación: " + archivo.getAbsolutePath());
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("❌ Error al generar el reporte:\n" + e.getMessage());
+            mostrarError("Error al generar el reporte:\n" + e.getMessage());
         }
+    }
+
+    // Sobrecarga para compatibilidad
+    public static void exportarReporte(String claveEntrada,
+                                       List<model.DetalleEntrada> detalles,
+                                       Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
+                                       Window owner) {
+        exportarReporte(claveEntrada, detalles, ubicacionesPorProducto, owner, ""); // Sin comentario
     }
 
     private static void generarReporte(File archivo,
                                        String claveEntrada,
                                        List<model.DetalleEntrada> detalles,
-                                       Map<String, List<UbicacionCompra>> ubicacionesPorProducto) throws IOException {
+                                       Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
+                                       String comentario) throws IOException {
         try (PDDocument document = new PDDocument()) {
-            // Configurar página
-            PDRectangle pageSize = PDRectangle.LETTER;
-            PDPage page = new PDPage(pageSize);
-            document.addPage(page);
+            int paginaActual = 1;
+            PDPage paginaActualObj = null;
+            PDPageContentStream contentStreamActual = null;
+            float currentY = 0;
+            float pageWidth = 0;
+            float pageHeight = 0;
 
-            PDPageContentStream contentStream = new PDPageContentStream(document, page);
+            // Variables de estado para control de flujo
+            boolean primeraPagina = true;
+            int indiceProducto = 0;
+            boolean tablaCompleta = false;
+            boolean hayUbicaciones = ubicacionesPorProducto != null && !ubicacionesPorProducto.isEmpty();
+            boolean ubicacionesPendientes = hayUbicaciones;
 
-            // Posiciones iniciales
-            float pageWidth = pageSize.getWidth();
-            float pageHeight = pageSize.getHeight();
-            float currentY = pageHeight - MARGIN;
+            // Estado para ubicaciones paginadas
+            int indiceProductoUbicacion = 0;
+            int indiceUbicacionDentroProducto = 0;
+            String productoActualUbicacion = null;
+            boolean primeraPaginaUbicaciones = true;
 
-            // Fuentes
-            PDType1Font fontTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-            PDType1Font fontNormalBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font fontTablaCabecera = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font fontTablaDatos = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            boolean todoCompleto = false;
+            boolean paginaCreadaEnEstaIteracion = false;
 
-            // 1. ENCABEZADO DEL REPORTE
-            currentY = dibujarEncabezado(contentStream, fontTitulo, pageWidth, currentY, claveEntrada);
+            while (!todoCompleto) {
+                paginaCreadaEnEstaIteracion = false;
 
-            // 2. INFORMACIÓN GENERAL
-            // Obtener quién envía (nombre de sucursal del primer detalle)
-            String quienEnvia = "";
-            if (!detalles.isEmpty()) {
-                // Si tu modelo tiene un método para obtener la sucursal, úsalo aquí
-                // Por ejemplo: detalles.get(0).getSucursalOrigen() o similar
-                quienEnvia = obtenerNombreSucursal(detalles.get(0));
+                // Si necesitamos una nueva página
+                if (paginaActualObj == null) {
+                    paginaActualObj = new PDPage(PDRectangle.LETTER);
+                    document.addPage(paginaActualObj);
+                    paginaCreadaEnEstaIteracion = true;
+
+                    // Cerrar el content stream anterior si existe
+                    if (contentStreamActual != null) {
+                        contentStreamActual.close();
+                    }
+
+                    contentStreamActual = new PDPageContentStream(document, paginaActualObj);
+                    pageWidth = paginaActualObj.getMediaBox().getWidth();
+                    pageHeight = paginaActualObj.getMediaBox().getHeight();
+                    currentY = pageHeight - MARGIN;
+
+                    // Dibujar encabezado en cada nueva página
+                    PDType1Font fontTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                    currentY = dibujarEncabezado(contentStreamActual, fontTitulo, pageWidth, currentY, claveEntrada, paginaActual);
+
+                    // Solo en la primera página: información general
+                    if (primeraPagina) {
+                        PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                        PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+
+                        // Obtener quién envía (nombre de sucursal del primer detalle)
+                        String quienEnvia = "";
+                        if (!detalles.isEmpty()) {
+                            quienEnvia = obtenerNombreSucursal(detalles.get(0));
+                        }
+
+                        currentY = dibujarInformacionGeneral(contentStreamActual, fontSubtitulo, fontNormal,
+                                pageWidth, currentY, detalles, quienEnvia, comentario);
+
+                        // Título de la tabla en primera página
+                        currentY = dibujarSeccionTabla(contentStreamActual, fontSubtitulo, pageWidth, currentY, "DETALLES DE PRODUCTOS");
+                        primeraPagina = false;
+                    }
+                }
+
+                // Si todavía tenemos productos en la tabla por dibujar
+                if (!tablaCompleta) {
+                    PDType1Font fontTablaCabecera = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                    PDType1Font fontTablaDatos = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                    PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+
+                    // Si no es la primera página y estamos empezando una nueva página de tabla
+                    if (indiceProducto > 0 && currentY == pageHeight - MARGIN - 80) {
+                        currentY = dibujarSeccionTabla(contentStreamActual, fontSubtitulo, pageWidth, currentY, "DETALLES DE PRODUCTOS (CONTINUACIÓN)");
+                    }
+
+                    PaginacionResultado resultadoTabla = dibujarTablaDetallesPaginada(
+                            contentStreamActual, fontTablaCabecera, fontTablaDatos,
+                            pageWidth, currentY, detalles, indiceProducto,
+                            indiceProducto == 0); // dibujarCabecera solo si es el inicio
+
+                    indiceProducto = resultadoTabla.getIndiceSiguiente();
+                    currentY = resultadoTabla.getCurrentY();
+
+                    // Verificar si terminamos la tabla
+                    if (indiceProducto >= detalles.size()) {
+                        tablaCompleta = true;
+
+                        // Verificar si hay espacio suficiente para empezar las ubicaciones en la misma página
+                        if (hayUbicaciones) {
+                            float espacioNecesarioParaUbicaciones = 100; // Título + espacio para un producto
+                            if (currentY - espacioNecesarioParaUbicaciones < MIN_Y) {
+                                // No hay espacio, necesitamos nueva página
+                                dibujarPiePagina(contentStreamActual,
+                                        new PDType1Font(Standard14Fonts.FontName.HELVETICA),
+                                        pageWidth, paginaActual);
+                                contentStreamActual.close();
+                                paginaActualObj = null;
+                                paginaActual++;
+                                continue;
+                            }
+                        } else {
+                            // No hay ubicaciones, terminar inmediatamente
+                            ubicacionesPendientes = false;
+                            dibujarPiePagina(contentStreamActual,
+                                    new PDType1Font(Standard14Fonts.FontName.HELVETICA),
+                                    pageWidth, paginaActual);
+                            contentStreamActual.close();
+                            todoCompleto = true;
+                            continue;
+                        }
+                    }
+                }
+
+                // Si la tabla está completa y hay ubicaciones pendientes
+                if (tablaCompleta && ubicacionesPendientes) {
+                    // Dibujar título de ubicaciones solo si es la primera página de ubicaciones
+                    if (primeraPaginaUbicaciones) {
+                        // Agregar espacio extra antes del título de ubicaciones
+                        currentY -= 10;
+
+                        // Dibujar título de ubicaciones
+                        PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                        currentY = dibujarSeccionTablaUbicaciones(contentStreamActual, fontSubtitulo, pageWidth, currentY, "UBICACIONES ASIGNADAS");
+                        primeraPaginaUbicaciones = false;
+                    }
+
+                    // Dibujar ubicaciones (pueden continuar en múltiples páginas)
+                    PDType1Font fontSubtitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+                    PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                    PDType1Font fontNormalBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+
+                    PaginacionResultadoUbicaciones resultadoUbicaciones = dibujarUbicacionesPaginadasMejorado(
+                            contentStreamActual, fontSubtitulo, fontNormal, fontNormalBold,
+                            pageWidth, currentY, ubicacionesPorProducto, detalles,
+                            indiceProductoUbicacion, indiceUbicacionDentroProducto,
+                            productoActualUbicacion);
+
+                    // Actualizar estado
+                    indiceProductoUbicacion = resultadoUbicaciones.getIndiceProductoSiguiente();
+                    indiceUbicacionDentroProducto = resultadoUbicaciones.getIndiceUbicacionSiguiente();
+                    productoActualUbicacion = resultadoUbicaciones.getProductoActual();
+                    currentY = resultadoUbicaciones.getCurrentY();
+
+                    // Verificar si terminamos todas las ubicaciones
+                    boolean ubicacionesCompletas = resultadoUbicaciones.isCompleta();
+
+                    if (ubicacionesCompletas) {
+                        ubicacionesPendientes = false;
+                        // Dibujar pie de página y terminar
+                        dibujarPiePagina(contentStreamActual,
+                                new PDType1Font(Standard14Fonts.FontName.HELVETICA),
+                                pageWidth, paginaActual);
+                        contentStreamActual.close();
+                        todoCompleto = true;
+                        continue;
+                    } else {
+                        // Las ubicaciones no caben completas, necesitamos nueva página
+                        dibujarPiePagina(contentStreamActual,
+                                new PDType1Font(Standard14Fonts.FontName.HELVETICA),
+                                pageWidth, paginaActual);
+                        contentStreamActual.close();
+                        paginaActualObj = null;
+                        paginaActual++;
+                        primeraPaginaUbicaciones = false;
+                        continue;
+                    }
+                }
+
+                // Si llegamos al final de la página pero aún tenemos contenido pendiente
+                if (currentY < MIN_Y && (!tablaCompleta || ubicacionesPendientes)) {
+                    // Dibujar pie de página en la página actual
+                    PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                    dibujarPiePagina(contentStreamActual, fontNormal, pageWidth, paginaActual);
+                    contentStreamActual.close();
+
+                    // Preparar para nueva página
+                    paginaActualObj = null;
+                    paginaActual++;
+                    continue;
+                }
             }
 
-            currentY = dibujarInformacionGeneral(contentStream, fontSubtitulo, fontNormal, pageWidth,
-                    currentY, detalles, quienEnvia);
+            // Cerrar el último content stream si aún está abierto
+            if (contentStreamActual != null) {
+                contentStreamActual.close();
+            }
+            int totalPaginas = document.getNumberOfPages();
+            if (totalPaginas > 0) {
+                if (paginaCreadaEnEstaIteracion && todoCompleto) {
+                    // Eliminar la última página
+                    document.removePage(totalPaginas - 1);
+                }
+            }
 
-            // 3. TABLA DE DETALLES
-            currentY = dibujarTablaDetalles(contentStream, fontTablaCabecera, fontTablaDatos,
-                    pageWidth, currentY, detalles);
-
-            // 4. UBICACIONES POR PRODUCTO
-            currentY = dibujarUbicaciones(contentStream, fontSubtitulo, fontNormal, fontNormalBold,
-                    pageWidth, currentY, ubicacionesPorProducto, detalles);
-
-            // 5. PIE DE PÁGINA
-            dibujarPiePagina(contentStream, fontNormal, pageWidth, pageHeight);
-
-            contentStream.close();
             document.save(archivo);
         }
     }
-
 
     private static float dibujarEncabezado(PDPageContentStream contentStream,
                                            PDType1Font fontTitulo,
                                            float pageWidth,
                                            float currentY,
-                                           String claveEntrada) throws IOException {
+                                           String claveEntrada,
+                                           int numeroPagina) throws IOException {
         // Fondo del encabezado con el nuevo color verde #91d485
         contentStream.setNonStrokingColor(COLOR_BANDA_SUPERIOR[0], COLOR_BANDA_SUPERIOR[1], COLOR_BANDA_SUPERIOR[2]);
         contentStream.addRect(MARGIN, currentY - 60, pageWidth - 2 * MARGIN, 60);
         contentStream.fill();
 
-        // Título
+        // Título - MODIFICADO: "REPORTE DE TRASPASO DE ENTRADA"
         contentStream.setNonStrokingColor(1, 1, 1); // Blanco
         contentStream.beginText();
         contentStream.setFont(fontTitulo, 20);
         contentStream.newLineAtOffset(MARGIN + 10, currentY - 30);
-        contentStream.showText("REPORTE DE TRASPASO");
+        contentStream.showText("REPORTE DE TRASPASO DE ENTRADA");
         contentStream.endText();
 
-        // Subtítulo
+        // Subtítulo con número de página
         contentStream.beginText();
         contentStream.setFont(fontTitulo, 14);
         contentStream.newLineAtOffset(MARGIN + 10, currentY - 50);
-        contentStream.showText("Clave: " + claveEntrada);
+        contentStream.showText("Clave: " + claveEntrada + " - Página " + numeroPagina);
         contentStream.endText();
-
-        // NOTA: Se quitaron fecha y hora de aquí (se moverán a información general)
 
         return currentY - 80;
     }
@@ -174,7 +374,8 @@ public class ReporteTraspasoExporter {
                                                    float pageWidth,
                                                    float currentY,
                                                    List<model.DetalleEntrada> detalles,
-                                                   String quienEnvia) throws IOException {
+                                                   String quienEnvia,
+                                                   String comentario) throws IOException {
         LocalDateTime ahora = LocalDateTime.now();
 
         // Título de sección en color #333
@@ -202,7 +403,7 @@ public class ReporteTraspasoExporter {
             }
         }
 
-        // Columna 1 (izquierda) - información básica en el orden solicitado
+        // Columna 1 (izquierda) - información básica
         float col1X = MARGIN + 10;
         contentStream.setNonStrokingColor(0, 0, 0); // Negro
 
@@ -220,30 +421,54 @@ public class ReporteTraspasoExporter {
         contentStream.showText("Hora: " + ahora.format(TIME_FORMATTER));
         contentStream.endText();
 
-        // 3. Quién envía el traspaso
+        // 3. Remitente
         contentStream.beginText();
         contentStream.setFont(fontNormal, 11);
         contentStream.newLineAtOffset(col1X, currentY - (2 * LINE_HEIGHT));
         contentStream.showText("Remitente: " + quienEnvia);
         contentStream.endText();
 
-        // 4. Total de productos
+        // 4. Destino - AÑADIDO: "Almacén"
         contentStream.beginText();
         contentStream.setFont(fontNormal, 11);
         contentStream.newLineAtOffset(col1X, currentY - (3 * LINE_HEIGHT));
-        contentStream.showText("Total de productos: " + totalProductos);
+        contentStream.showText("Destino: Almacén");
         contentStream.endText();
 
-        // 5. Cantidad total
+        // 5. Total de productos
         contentStream.beginText();
         contentStream.setFont(fontNormal, 11);
         contentStream.newLineAtOffset(col1X, currentY - (4 * LINE_HEIGHT));
+        contentStream.showText("Total de productos: " + totalProductos);
+        contentStream.endText();
+
+        // 6. Cantidad total
+        contentStream.beginText();
+        contentStream.setFont(fontNormal, 11);
+        contentStream.newLineAtOffset(col1X, currentY - (5 * LINE_HEIGHT));
         contentStream.showText("Cantidad total: " + totalCantidad + " unidades");
         contentStream.endText();
 
+        // 7. Comentario - AÑADIDO: Si hay comentario
+        float yPosDespuesComentario = currentY - (6 * LINE_HEIGHT);
+        if (comentario != null && !comentario.trim().isEmpty()) {
+            contentStream.beginText();
+            contentStream.setFont(fontNormal, 11);
+            contentStream.newLineAtOffset(col1X, currentY - (6 * LINE_HEIGHT));
+
+            // Truncar comentario si es muy largo
+            String comentarioMostrar = comentario;
+            if (comentarioMostrar.length() > 50) {
+                comentarioMostrar = comentarioMostrar.substring(0, 47) + "...";
+            }
+            contentStream.showText("Comentario: " + comentarioMostrar);
+            contentStream.endText();
+            yPosDespuesComentario = currentY - (7 * LINE_HEIGHT);
+        }
+
         // Columna 2 (derecha) - valor total alineado a la derecha
         String valorTotalTexto = "Valor total: $" + String.format("%,.2f", totalPrecio);
-        float textoAncho = fontSubtitulo.getStringWidth(valorTotalTexto) / 1000 * 12; // Tamaño 12
+        float textoAncho = fontSubtitulo.getStringWidth(valorTotalTexto) / 1000 * 12;
 
         // Calcular posición X para alinear a la derecha
         float col2X = pageWidth - MARGIN - textoAncho - 20;
@@ -255,55 +480,98 @@ public class ReporteTraspasoExporter {
         contentStream.showText(valorTotalTexto);
         contentStream.endText();
 
-        return currentY - 90; // Ajustado por las líneas adicionales
+        // Ajustar el retorno
+        float yFinal = comentario != null && !comentario.trim().isEmpty()
+                ? currentY - 120  // Con comentario
+                : currentY - 110; // Sin comentario
+
+        return yFinal;
     }
 
-    private static float dibujarTablaDetalles(PDPageContentStream contentStream,
-                                              PDType1Font fontCabecera,
-                                              PDType1Font fontDatos,
-                                              float pageWidth,
-                                              float currentY,
-                                              List<model.DetalleEntrada> detalles) throws IOException {
-        // Título de sección en color #333
+    private static float dibujarSeccionTabla(PDPageContentStream contentStream,
+                                             PDType1Font fontSubtitulo,
+                                             float pageWidth,
+                                             float currentY,
+                                             String tituloSeccion) throws IOException {
+        // Título de sección
         contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
         contentStream.beginText();
-        contentStream.setFont(fontCabecera, 14);
+        contentStream.setFont(fontSubtitulo, 14);
         contentStream.newLineAtOffset(MARGIN, currentY);
-        contentStream.showText("DETALLES DE PRODUCTOS");
+        contentStream.showText(tituloSeccion);
         contentStream.endText();
 
-        currentY -= 25;
+        return currentY - 25;
+    }
 
-        // Definir anchos de columnas
+    private static float dibujarSeccionTablaUbicaciones(PDPageContentStream contentStream,
+                                                        PDType1Font fontSubtitulo,
+                                                        float pageWidth,
+                                                        float currentY,
+                                                        String tituloSeccion) throws IOException {
+        // ESPACIO EXTRA antes del título
+        currentY -= 10;
+
+        // Título de sección
+        contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
+        contentStream.beginText();
+        contentStream.setFont(fontSubtitulo, 14);
+        contentStream.newLineAtOffset(MARGIN, currentY);
+        contentStream.showText(tituloSeccion);
+        contentStream.endText();
+
+        return currentY - 30; // Más espacio después del título
+    }
+
+    private static PaginacionResultado dibujarTablaDetallesPaginada(PDPageContentStream contentStream,
+                                                                    PDType1Font fontCabecera,
+                                                                    PDType1Font fontDatos,
+                                                                    float pageWidth,
+                                                                    float currentY,
+                                                                    List<model.DetalleEntrada> detalles,
+                                                                    int inicioIndice,
+                                                                    boolean dibujarCabecera) throws IOException {
+        // Definir anchos de columnas (manteniendo tus anchos originales)
         float[] columnWidths = {40, 90, 180, 70, 90, 90};
         float tableWidth = pageWidth - 2 * MARGIN;
         float[] scaledWidths = escalarAnchosColumnas(columnWidths, tableWidth);
 
-        // Cabecera de la tabla
-        String[] headers = {"#", "Clave", "Producto", "Cantidad", "Precio Unit.", "Precio Total"};
+        // Cabecera de la tabla (si es necesario)
+        if (dibujarCabecera && inicioIndice == 0) {
+            String[] headers = {"#", "Clave", "Producto", "Cantidad", "Precio Unit.", "Precio Total"};
 
-        // Dibujar fondo de cabecera
-        contentStream.setNonStrokingColor(COLOR_ENCABEZADO_TABLA[0], COLOR_ENCABEZADO_TABLA[1], COLOR_ENCABEZADO_TABLA[2]);
-        contentStream.addRect(MARGIN, currentY - 20, tableWidth, 20);
-        contentStream.fill();
+            // Dibujar fondo de cabecera
+            contentStream.setNonStrokingColor(COLOR_ENCABEZADO_TABLA[0], COLOR_ENCABEZADO_TABLA[1], COLOR_ENCABEZADO_TABLA[2]);
+            contentStream.addRect(MARGIN, currentY - 20, tableWidth, 20);
+            contentStream.fill();
 
-        // Dibujar texto de cabecera
-        contentStream.setNonStrokingColor(0, 0, 0);
-        float xPos = MARGIN;
-        for (int i = 0; i < headers.length; i++) {
-            contentStream.beginText();
-            contentStream.setFont(fontCabecera, 10);
-            contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
-            contentStream.showText(headers[i]);
-            contentStream.endText();
-            xPos += scaledWidths[i];
+            // Dibujar texto de cabecera
+            contentStream.setNonStrokingColor(0, 0, 0);
+            float xPos = MARGIN;
+            for (int i = 0; i < headers.length; i++) {
+                contentStream.beginText();
+                contentStream.setFont(fontCabecera, 10);
+                contentStream.newLineAtOffset(xPos + CELL_PADDING, currentY - 15);
+                contentStream.showText(headers[i]);
+                contentStream.endText();
+                xPos += scaledWidths[i];
+            }
+
+            currentY -= 25;
         }
 
-        currentY -= 25;
-
         // Dibujar filas de datos
-        int filaNum = 1;
-        for (model.DetalleEntrada detalle : detalles) {
+        int filaNum = inicioIndice + 1;
+        int i = inicioIndice;
+
+        for (; i < detalles.size(); i++) {
+            // Verificar si hay espacio para otra fila (incluyendo pie de página)
+            if (currentY - 25 < MIN_Y) {
+                break;
+            }
+
+            model.DetalleEntrada detalle = detalles.get(i);
+
             // Alternar colores de fila
             if (filaNum % 2 == 0) {
                 contentStream.setNonStrokingColor(COLOR_FILA_PAR[0], COLOR_FILA_PAR[1], COLOR_FILA_PAR[2]);
@@ -315,7 +583,7 @@ public class ReporteTraspasoExporter {
 
             // Dibujar datos
             contentStream.setNonStrokingColor(0, 0, 0);
-            xPos = MARGIN;
+            float xPos = MARGIN;
 
             // Columna 1: Número
             contentStream.beginText();
@@ -361,7 +629,7 @@ public class ReporteTraspasoExporter {
             contentStream.endText();
             xPos += scaledWidths[4];
 
-            // Columna 6: Precio Total (NO alineado a la derecha - vuelve a la alineación normal)
+            // Columna 6: Precio Total
             contentStream.setNonStrokingColor(COLOR_TOTALES[0], COLOR_TOTALES[1], COLOR_TOTALES[2]);
             contentStream.beginText();
             contentStream.setFont(fontCabecera, 10);
@@ -371,60 +639,95 @@ public class ReporteTraspasoExporter {
 
             currentY -= 25;
             filaNum++;
+        }
 
-            // Verificar si necesitamos nueva página
-            if (currentY < MARGIN + 100 && filaNum <= detalles.size()) {
-                // Por simplicidad, continuamos en la misma
+        // Dibujar bordes de la tabla solo si se dibujaron filas
+        if (i > inicioIndice) {
+            contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
+            contentStream.setLineWidth(0.5f);
+            float alturaTabla = (i - inicioIndice) * 25;
+            if (dibujarCabecera && inicioIndice == 0) {
+                alturaTabla += 25; // Incluir altura de cabecera
+            }
+            float yInicioTabla = currentY + alturaTabla + (dibujarCabecera && inicioIndice == 0 ? 0 : 25);
+            contentStream.addRect(MARGIN, yInicioTabla - alturaTabla, tableWidth, alturaTabla);
+            contentStream.stroke();
+        }
+
+        boolean completa = (i == detalles.size());
+        return new PaginacionResultado(i, completa, currentY);
+    }
+
+    private static PaginacionResultadoUbicaciones dibujarUbicacionesPaginadasMejorado(
+            PDPageContentStream contentStream,
+            PDType1Font fontSubtitulo,
+            PDType1Font fontNormal,
+            PDType1Font fontNormalBold,
+            float pageWidth,
+            float currentY,
+            Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
+            List<model.DetalleEntrada> detalles,
+            int indiceProductoInicio,
+            int indiceUbicacionInicio,
+            String productoContinuacion) throws IOException {
+
+        int indiceProductoActual = indiceProductoInicio;
+        int indiceUbicacionActual = indiceUbicacionInicio;
+        String productoActual = productoContinuacion;
+        boolean continuacionProducto = (productoContinuacion != null);
+
+        // Si estamos continuando un producto específico
+        if (continuacionProducto) {
+            // Buscar el producto que estamos continuando
+            for (int i = indiceProductoActual; i < detalles.size(); i++) {
+                model.DetalleEntrada detalle = detalles.get(i);
+                if (detalle.getProducto().equals(productoContinuacion)) {
+                    indiceProductoActual = i;
+                    break;
+                }
             }
         }
 
-        // Dibujar bordes de la tabla
-        contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
-        contentStream.setLineWidth(0.5f);
-        contentStream.addRect(MARGIN, currentY + 5, tableWidth, (detalles.size() + 1) * 25);
-        contentStream.stroke();
-
-        return currentY - SECTION_SPACING;
-    }
-
-    private static float dibujarUbicaciones(PDPageContentStream contentStream,
-                                            PDType1Font fontSubtitulo,
-                                            PDType1Font fontNormal,
-                                            PDType1Font fontNormalBold,
-                                            float pageWidth,
-                                            float currentY,
-                                            Map<String, List<UbicacionCompra>> ubicacionesPorProducto,
-                                            List<model.DetalleEntrada> detalles) throws IOException {
-        if (ubicacionesPorProducto == null || ubicacionesPorProducto.isEmpty()) {
-            return currentY;
-        }
-
-        // Título de sección en color #333
-        contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
-        contentStream.beginText();
-        contentStream.setFont(fontSubtitulo, 14);
-        contentStream.newLineAtOffset(MARGIN, currentY);
-        contentStream.showText("UBICACIONES ASIGNADAS");
-        contentStream.endText();
-
-        currentY -= 25;
-
-        // Para cada producto con ubicaciones
-        for (model.DetalleEntrada detalle : detalles) {
-            List<UbicacionCompra> ubicaciones = ubicacionesPorProducto.get(detalle.getClaveProducto());
+        // Recorrer productos
+        for (int i = indiceProductoActual; i < detalles.size(); i++) {
+            model.DetalleEntrada detalle = detalles.get(i);
+            List<UbicacionCompra> ubicaciones = ubicacionesPorProducto != null ?
+                    ubicacionesPorProducto.get(detalle.getClaveProducto()) : null;
 
             if (ubicaciones != null && !ubicaciones.isEmpty()) {
-                // Nombre del producto en color azul #0274be
+                // Si estamos continuando este producto desde una ubicación específica
+                boolean esMismoProductoContinuacion = continuacionProducto &&
+                        detalle.getProducto().equals(productoContinuacion);
+
+                // Calcular espacio necesario para el encabezado del producto
+                float espacioEncabezadoProducto = 20; // Nombre del producto
+                float espacioEncabezadoTabla = 25;    // Cabecera de tabla de ubicaciones
+
+                // Verificar si hay espacio para al menos el encabezado del producto
+                if (currentY - espacioEncabezadoProducto - espacioEncabezadoTabla < MIN_Y) {
+                    // No hay espacio ni para empezar este producto
+                    return new PaginacionResultadoUbicaciones(
+                            i, 0, false, currentY, productoActual);
+                }
+
+                // Dibujar nombre del producto (con indicador de continuación si aplica)
                 contentStream.setNonStrokingColor(COLOR_PRODUCTOS[0], COLOR_PRODUCTOS[1], COLOR_PRODUCTOS[2]);
                 contentStream.beginText();
                 contentStream.setFont(fontNormalBold, 11);
                 contentStream.newLineAtOffset(MARGIN + 10, currentY);
-                contentStream.showText("• " + detalle.getProducto() + " (" + detalle.getClaveProducto() + ")");
+
+                String textoProducto = "• " + detalle.getProducto() + " (" + detalle.getClaveProducto() + ")";
+                if (esMismoProductoContinuacion && indiceUbicacionActual > 0) {
+                    textoProducto += " (CONTINUACIÓN)";
+                }
+
+                contentStream.showText(textoProducto);
                 contentStream.endText();
 
                 currentY -= 20;
+                productoActual = detalle.getProducto();
 
-                // Encabezado de ubicaciones
+                // Dibujar encabezado de tabla de ubicaciones
                 float tablaUbicacionesWidth = pageWidth - 2 * MARGIN - 40;
                 float[] columnWidthsUbic = {200, 100};
                 float[] scaledUbicWidths = escalarAnchosColumnas(columnWidthsUbic, tablaUbicacionesWidth);
@@ -453,11 +756,28 @@ public class ReporteTraspasoExporter {
 
                 currentY -= 25;
 
-                // Datos de ubicaciones
-                int ubicFilaNum = 1;
-                for (UbicacionCompra ubicacion : ubicaciones) {
+                // Dibujar ubicaciones (puede ser desde un índice específico si es continuación)
+                int inicioUbicaciones = esMismoProductoContinuacion ? indiceUbicacionActual : 0;
+                int ubicacionesDibujadas = 0;
+
+                for (int j = inicioUbicaciones; j < ubicaciones.size(); j++) {
+                    // Verificar si hay espacio para otra fila
+                    if (currentY - 25 < MIN_Y) {
+                        // No hay espacio para más ubicaciones en esta página
+                        // Devolver estado para continuar en siguiente página
+                        boolean completadoProducto = (j == ubicaciones.size() - 1);
+                        int siguienteIndiceProducto = completadoProducto ? i + 1 : i;
+                        int siguienteIndiceUbicacion = completadoProducto ? 0 : j;
+
+                        return new PaginacionResultadoUbicaciones(
+                                siguienteIndiceProducto, siguienteIndiceUbicacion,
+                                false, currentY, productoActual);
+                    }
+
+                    UbicacionCompra ubicacion = ubicaciones.get(j);
+
                     // Alternar colores
-                    if (ubicFilaNum % 2 == 0) {
+                    if ((j + 1) % 2 == 0) {
                         contentStream.setNonStrokingColor(COLOR_FILA_PAR[0], COLOR_FILA_PAR[1], COLOR_FILA_PAR[2]);
                     } else {
                         contentStream.setNonStrokingColor(COLOR_FILA_IMPAR[0], COLOR_FILA_IMPAR[1], COLOR_FILA_IMPAR[2]);
@@ -483,20 +803,39 @@ public class ReporteTraspasoExporter {
                     contentStream.endText();
 
                     currentY -= 25;
-                    ubicFilaNum++;
+                    ubicacionesDibujadas++;
+                    indiceUbicacionActual = j + 1;
                 }
 
+                // Espacio después del producto
                 currentY -= 10;
+
+                // Reiniciar índice de ubicación para el siguiente producto
+                indiceUbicacionActual = 0;
+                continuacionProducto = false;
+                productoContinuacion = null;
+
+                // Si terminamos todas las ubicaciones de este producto
+                if (ubicacionesDibujadas == ubicaciones.size()) {
+                    // Continuar con el siguiente producto
+                    continue;
+                }
+            } else {
+                // Este producto no tiene ubicaciones, pasar al siguiente
+                indiceProductoActual = i + 1;
             }
         }
 
-        return currentY;
+        // Si llegamos aquí, hemos procesado todos los productos
+        boolean completado = (indiceProductoActual >= detalles.size());
+        return new PaginacionResultadoUbicaciones(
+                detalles.size(), 0, completado, currentY, null);
     }
 
     private static void dibujarPiePagina(PDPageContentStream contentStream,
                                          PDType1Font fontNormal,
                                          float pageWidth,
-                                         float pageHeight) throws IOException {
+                                         int paginaActual) throws IOException {
         // Línea separadora
         contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
         contentStream.setLineWidth(0.5f);
@@ -513,10 +852,11 @@ public class ReporteTraspasoExporter {
         contentStream.endText();
 
         // Número de página
+        String textoPagina = "Página " + paginaActual;
         contentStream.beginText();
         contentStream.setFont(fontNormal, 9);
         contentStream.newLineAtOffset(pageWidth - MARGIN - 50, MARGIN + 5);
-        contentStream.showText("Página 1 de 1");
+        contentStream.showText(textoPagina);
         contentStream.endText();
     }
 
@@ -556,7 +896,6 @@ public class ReporteTraspasoExporter {
     }
 
     private static String obtenerNombreSucursal(model.DetalleEntrada detalle) {
-        // Usar el nuevo método getNombreSucursal() que añadimos
         return detalle.getNombreSucursal() != null && !detalle.getNombreSucursal().isEmpty()
                 ? detalle.getNombreSucursal()
                 : "No especificado";
