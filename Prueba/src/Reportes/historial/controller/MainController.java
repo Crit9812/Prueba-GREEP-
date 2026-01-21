@@ -132,7 +132,45 @@ public class MainController {
             configurarFiltros();
             configurarBusquedaFactura();
             cargarHistorial();
+            configurarDobleClick();
         });
+    }
+
+    private void configurarDobleClick() {
+        if (contenidoTabla == null) {
+            return;
+        }
+
+        contenidoTabla.setRowFactory(table -> {
+            TableRow<HistorialFactura> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirDetalleHistorial(row.getItem());
+                }
+            });
+            return row;
+        });
+    }
+
+    private void abrirDetalleHistorial(HistorialFactura item) {
+        if (item == null) {
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Reportes/historial/view/detalle_view.fxml"));
+            Pane rootDetalle = loader.load();
+            DetalleFacturaController controller = loader.getController();
+            controller.setHistorial(item);
+
+            javafx.stage.Stage stage = new javafx.stage.Stage();
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.setTitle("Detalles de " + item.getMovimiento());
+            stage.setScene(new javafx.scene.Scene(rootDetalle));
+            controller.setStage(stage);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void configurarColumnas() {
