@@ -16,7 +16,12 @@ public class model {
     }
 
     public boolean eliminarCliente(int idCliente) {
-        return dao.eliminar(String.valueOf(idCliente));
+        cliente cliente = obtenerClientePorId(idCliente);
+        if (cliente == null) {
+            return false;
+        }
+        cliente.setStatus("desactivado");
+        return dao.actualizar(cliente);
     }
 
     public cliente obtenerClientePorId(int id) {

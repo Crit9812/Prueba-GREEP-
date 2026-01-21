@@ -122,7 +122,15 @@ public class MainController {
                 @Override
                 protected void updateItem(Void item, boolean empty) {
                     super.updateItem(item, empty);
-                    setGraphic(empty ? null : contenedor);
+                    if (empty) {
+                        setGraphic(null);
+                        return;
+                    }
+
+                    usuario usuarioSeleccionado = getTableView().getItems().get(getIndex());
+                    boolean esAdmin = usuarioSeleccionado != null
+                            && "1".equals(usuarioSeleccionado.getIdUsuario());
+                    setGraphic(esAdmin ? null : contenedor);
                 }
             });
 
