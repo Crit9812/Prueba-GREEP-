@@ -615,7 +615,8 @@ public class DetalleFacturaController {
                             HBox filaArticulo = new HBox(8);
                             Label texto = new Label(descripcion);
                             filaArticulo.getChildren().add(texto);
-                            if (articulo.esDisponible()) {
+                            boolean mostrarAcciones = articulo.esDetalleSalida() || articulo.esDisponible();
+                            if (mostrarAcciones) {
                                 Button btnEditar = new Button("Editar");
                                 btnEditar.setOnAction(event -> editarArticulo(articulo));
                                 Button btnEliminar = new Button("Eliminar");
@@ -773,17 +774,21 @@ public class DetalleFacturaController {
                 if (colId == null) {
                     return;
                 }
-                if (articulo.esDetalleEntrada() && colEstado != null) {
+                if (colEstado == null) {
+                    return;
+                }
+                if (articulo.esDetalleEntrada()) {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
                         ps.setString(1, "eliminado");
                         ps.setInt(2, articulo.idArticulo);
                         ps.executeUpdate();
                     }
-                } else {
+                } else if (articulo.esDetalleSalida()) {
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "DELETE FROM articulo WHERE `" + colId + "` = ?")) {
-                        ps.setInt(1, articulo.idArticulo);
+                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
+                        ps.setString(1, "disponible");
+                        ps.setInt(2, articulo.idArticulo);
                         ps.executeUpdate();
                     }
                 }
@@ -1108,6 +1113,10 @@ public class DetalleFacturaController {
 
         private boolean esDetalleEntrada() {
             return detalleEntradaId != null;
+        }
+
+        private boolean esDetalleSalida() {
+            return detalleSalidaId != null;
         }
 
         private static Integer parseInteger(Object valor) {
