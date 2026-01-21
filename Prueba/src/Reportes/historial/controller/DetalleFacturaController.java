@@ -345,6 +345,10 @@ public class DetalleFacturaController {
         String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
         String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
         String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+        String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
 
         String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
         String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
@@ -378,7 +382,9 @@ public class DetalleFacturaController {
                        %s AS factor,
                        %s AS ubicacion,
                        %s AS producto,
-                       %s AS estadoArticulo
+                       %s AS estadoArticulo,
+                       %s AS detalleEntrada,
+                       %s AS detalleSalida
                 FROM articulo a
                 JOIN detalle_Entrada d ON a.`%s` = d.`%s`
                 %s
@@ -395,6 +401,8 @@ public class DetalleFacturaController {
                 ubicacionExpr,
                 productoExpr,
                 columnaSeguro("a", colArticuloEstado),
+                columnaSeguro("a", colArticuloDetalleEntrada),
+                columnaSeguro("a", colArticuloDetalleSalida),
                 colArticuloDetalle,
                 colDetalleId,
                 joinUbicacion,
@@ -418,7 +426,9 @@ public class DetalleFacturaController {
                             valorTexto(rs.getObject("presentacion")),
                             valorTexto(rs.getObject("factor")),
                             valorTexto(rs.getObject("estadoArticulo")),
-                            rs.getInt("idArticulo")
+                            rs.getInt("idArticulo"),
+                            rs.getObject("detalleEntrada"),
+                            rs.getObject("detalleSalida")
                     ));
                 }
             }
@@ -446,6 +456,10 @@ public class DetalleFacturaController {
         String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
         String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
         String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+        String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
 
         String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
         String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
@@ -479,7 +493,9 @@ public class DetalleFacturaController {
                        %s AS factor,
                        %s AS ubicacion,
                        %s AS producto,
-                       %s AS estadoArticulo
+                       %s AS estadoArticulo,
+                       %s AS detalleEntrada,
+                       %s AS detalleSalida
                 FROM articulo a
                 JOIN detalle_Salida d ON a.`%s` = d.`%s`
                 %s
@@ -496,6 +512,8 @@ public class DetalleFacturaController {
                 ubicacionExpr,
                 productoExpr,
                 columnaSeguro("a", colArticuloEstado),
+                columnaSeguro("a", colArticuloDetalleEntrada),
+                columnaSeguro("a", colArticuloDetalleSalida),
                 colArticuloDetalle,
                 colDetalleId,
                 joinUbicacion,
@@ -519,7 +537,9 @@ public class DetalleFacturaController {
                             valorTexto(rs.getObject("presentacion")),
                             valorTexto(rs.getObject("factor")),
                             valorTexto(rs.getObject("estadoArticulo")),
-                            rs.getInt("idArticulo")
+                            rs.getInt("idArticulo"),
+                            rs.getObject("detalleEntrada"),
+                            rs.getObject("detalleSalida")
                     ));
                 }
             }
@@ -749,13 +769,23 @@ public class DetalleFacturaController {
                 }
                 Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
                 String colId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+                String colEstado = resolverColumna(columnasArticulo, "Estado", "estado");
                 if (colId == null) {
                     return;
                 }
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "DELETE FROM articulo WHERE `" + colId + "` = ?")) {
-                    ps.setInt(1, articulo.idArticulo);
-                    ps.executeUpdate();
+                if (articulo.esDetalleEntrada() && colEstado != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
+                        ps.setString(1, "eliminado");
+                        ps.setInt(2, articulo.idArticulo);
+                        ps.executeUpdate();
+                    }
+                } else {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM articulo WHERE `" + colId + "` = ?")) {
+                        ps.setInt(1, articulo.idArticulo);
+                        ps.executeUpdate();
+                    }
                 }
                 cargarDetalles();
             } catch (SQLException e) {
@@ -1052,9 +1082,12 @@ public class DetalleFacturaController {
         private final String factor;
         private final String estado;
         private final int idArticulo;
+        private final Integer detalleEntradaId;
+        private final Integer detalleSalidaId;
 
         private DetalleArticulo(String ubicacion, String lote, String caducidad,
-                                String presentacion, String factor, String estado, int idArticulo) {
+                                String presentacion, String factor, String estado, int idArticulo,
+                                Object detalleEntradaId, Object detalleSalidaId) {
             this.ubicacion = ubicacion;
             this.lote = lote;
             this.caducidad = caducidad;
@@ -1062,6 +1095,8 @@ public class DetalleFacturaController {
             this.factor = factor;
             this.estado = estado;
             this.idArticulo = idArticulo;
+            this.detalleEntradaId = parseInteger(detalleEntradaId);
+            this.detalleSalidaId = parseInteger(detalleSalidaId);
         }
 
         private boolean esDisponible() {
@@ -1069,6 +1104,28 @@ public class DetalleFacturaController {
                 return false;
             }
             return "disponible".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esDetalleEntrada() {
+            return detalleEntradaId != null;
+        }
+
+        private static Integer parseInteger(Object valor) {
+            if (valor == null) {
+                return null;
+            }
+            if (valor instanceof Number) {
+                return ((Number) valor).intValue();
+            }
+            String texto = valor.toString();
+            if (texto.isBlank()) {
+                return null;
+            }
+            try {
+                return Integer.valueOf(texto.trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
         }
     }
 }
