@@ -1,8 +1,5 @@
 package Operaciones.traspasoSalida.controller;
 
-import Compartido.helper.RefrescoHelper;
-import javafx.concurrent.Task;
-import javafx.collections.FXCollections;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
@@ -135,100 +132,8 @@ public class MainController {
         configurarTabla();
         configurarTotalTraspaso();
         configurarConfirmacion();
-        RefrescoHelper.setVistaActual("traspasoSalida");
-        RefrescoHelper.registrarRefresco("traspasoSalida", this::actualizarTraspasoSalida);
     }
 
-    private void actualizarTraspasoSalida() {
-
-        // 1. Limpiar UI y datos locales
-        Platform.runLater(() -> {
-            // Limpiar lista de items del traspaso
-            itemsTraspaso.clear();
-
-            // Limpiar combo box de sucursales
-            if (buscador != null) {
-                buscador.setValue(null);
-                buscador.getEditor().clear();
-            }
-
-            // Limpiar campos
-            if (comentario != null) {
-                comentario.clear();
-            }
-
-            if (totalTraspaso != null) {
-                totalTraspaso.setText("0.00");
-            }
-
-            // Limpiar selección
-            if (miCheckBox != null) {
-                miCheckBox.setSelected(false);
-            }
-
-            if (contenidoTabla != null) {
-                contenidoTabla.getSelectionModel().clearSelection();
-                contenidoTabla.refresh();
-            }
-            sucursalSeleccionadaId = null;
-        });
-        refrescarSucursales();
-    }
-    private void refrescarSucursales() {
-        Task<List<String>> task = new Task<>() {
-            @Override
-            protected List<String> call() throws Exception {
-                return model.obtenerNombresSucursales();
-            }
-
-            @Override
-            protected void succeeded() {
-                List<String> resultado = getValue();
-
-                Platform.runLater(() -> {
-                    // Actualizar las listas en el hilo de JavaFX
-                    if (resultado != null && !resultado.isEmpty()) {
-                        sucursalesCache.setAll(resultado);
-                        sucursalesFiltradas.setAll(sucursalesCache);
-                    } else {
-                        sucursalesCache.clear();
-                        sucursalesFiltradas.clear();
-                    }
-                });
-            }
-
-            @Override
-            protected void failed() {
-                Throwable ex = getException();
-                System.err.println("✗ Error al refrescar sucursales: " + ex.getMessage());
-                ex.printStackTrace();
-
-                Platform.runLater(() -> {
-                    sucursalesCache.clear();
-                    sucursalesFiltradas.clear();
-                });
-            }
-        };
-
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true);
-        hilo.start();
-    }
-    public void refrescarYSeleccionarSucursal(String nombreSucursal) {
-        if (nombreSucursal == null || nombreSucursal.trim().isEmpty()) {
-            return;
-        }
-        Platform.runLater(() -> {
-            refrescarSucursales();
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
-                    javafx.util.Duration.millis(500));
-            pause.setOnFinished(e -> {
-                buscador.setValue(nombreSucursal);
-                sucursalSeleccionadaId = model.obtenerIdSucursalPorNombre(nombreSucursal);
-            });
-            pause.play();
-        });
-    }
 
     private void configurarAutocompleteSucursales() {
         sucursalesCache = FXCollections.observableArrayList();
