@@ -39,6 +39,7 @@ public class DetalleFacturaController {
 
     private HistorialFactura historial;
     private Stage stage;
+    private Runnable onRefresh;
 
     @FXML
     public void initialize() {
@@ -56,6 +57,10 @@ public class DetalleFacturaController {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    public void setOnRefresh(Runnable onRefresh) {
+        this.onRefresh = onRefresh;
     }
 
     @FXML
@@ -771,6 +776,8 @@ public class DetalleFacturaController {
                 Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
                 String colId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
                 String colEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+                String colDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                        "detalleSalida", "detalle_salida", "detalle_salida_id");
                 if (colId == null) {
                     return;
                 }
@@ -778,12 +785,17 @@ public class DetalleFacturaController {
                     return;
                 }
                 if (articulo.esDetalleSalida()) {
+                    if (colDetalleSalida == null) {
+                        return;
+                    }
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
+                            "UPDATE articulo SET `" + colEstado + "` = ?, `" + colDetalleSalida
+                                    + "` = NULL WHERE `" + colId + "` = ?")) {
                         ps.setString(1, "disponible");
                         ps.setInt(2, articulo.idArticulo);
                         ps.executeUpdate();
                     }
+                    ajustarTotalesSalida(conn, articulo);
                 } else if (articulo.esDetalleEntrada()) {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
@@ -792,6 +804,7 @@ public class DetalleFacturaController {
                         ps.executeUpdate();
                     }
                 }
+                notificarActualizacion();
                 cargarDetalles();
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -907,10 +920,124 @@ public class DetalleFacturaController {
                 }
                 ps.executeUpdate();
             }
+            if (!esEntrada && linea.esVenta()) {
+                actualizarTotalesSalidaPorPrecio(conn, linea, nuevoPrecio, precioIva, cantidad);
+            }
+            notificarActualizacion();
             cargarDetalles();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void actualizarTotalesSalidaPorPrecio(Connection conn, DetalleLinea linea, BigDecimal nuevoPrecioUnitario,
+                                                  BigDecimal nuevoPrecioIva, BigDecimal cantidad) throws SQLException {
+        if (linea == null || linea.idDetalle <= 0) {
+            return;
+        }
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Salida");
+        String colDetalleId = resolverColumna(columnasDetalle, "idDetalleSalida", "id", "id_detalle_salida");
+        String colClaveSalida = resolverColumna(columnasDetalle, "claveSalida", "idSalida", "id_salida", "salida_id");
+        if (colDetalleId == null || colClaveSalida == null) {
+            return;
+        }
+
+        Integer claveSalidaId = null;
+        String sqlDetalle = "SELECT `" + colClaveSalida + "` AS claveSalida FROM detalle_Salida WHERE `"
+                + colDetalleId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlDetalle)) {
+            ps.setInt(1, linea.idDetalle);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    claveSalidaId = rs.getInt("claveSalida");
+                }
+            }
+        }
+
+        if (claveSalidaId == null || claveSalidaId <= 0) {
+            return;
+        }
+
+        BigDecimal precioUnitarioAnterior = parseDecimal(linea.precioUnitario);
+        BigDecimal precioIvaAnterior = parseDecimal(linea.precioIva);
+        if (precioUnitarioAnterior == null || precioIvaAnterior == null || cantidad == null) {
+            return;
+        }
+
+        BigDecimal deltaNeto = nuevoPrecioUnitario.subtract(precioUnitarioAnterior)
+                .multiply(cantidad)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal deltaTotal = nuevoPrecioIva.subtract(precioIvaAnterior)
+                .multiply(cantidad)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        Map<String, String> columnasSalida = obtenerColumnas(conn, "salidas");
+        String colSalidaId = resolverColumna(columnasSalida, "idSalida", "id", "id_salida");
+        String colPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto", "precio_neto");
+        String colPrecioTotal = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal", "precio_total");
+        if (colSalidaId == null || (colPrecioNeto == null && colPrecioTotal == null)) {
+            return;
+        }
+
+        BigDecimal precioNetoActual = null;
+        BigDecimal precioTotalActual = null;
+        String sqlSalida = String.format("""
+                SELECT %s AS precioNeto,
+                       %s AS precioTotal
+                FROM salidas
+                WHERE `%s` = ?
+                """,
+                colPrecioNeto != null ? "`" + colPrecioNeto + "`" : "NULL",
+                colPrecioTotal != null ? "`" + colPrecioTotal + "`" : "NULL",
+                colSalidaId
+        );
+        try (PreparedStatement ps = conn.prepareStatement(sqlSalida)) {
+            ps.setInt(1, claveSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    precioNetoActual = parseDecimal(rs.getObject("precioNeto"));
+                    precioTotalActual = parseDecimal(rs.getObject("precioTotal"));
+                }
+            }
+        }
+
+        StringBuilder updateSalida = new StringBuilder("UPDATE salidas SET ");
+        List<Object> valoresSalida = new ArrayList<>();
+        if (colPrecioNeto != null && precioNetoActual != null) {
+            BigDecimal nuevoNeto = precioNetoActual.add(deltaNeto);
+            if (nuevoNeto.compareTo(BigDecimal.ZERO) < 0) {
+                nuevoNeto = BigDecimal.ZERO;
+            }
+            agregarCampoActualizacion(updateSalida, valoresSalida, colPrecioNeto,
+                    nuevoNeto.setScale(2, RoundingMode.HALF_UP));
+        }
+        if (colPrecioTotal != null && precioTotalActual != null) {
+            BigDecimal nuevoTotal = precioTotalActual.add(deltaTotal);
+            if (nuevoTotal.compareTo(BigDecimal.ZERO) < 0) {
+                nuevoTotal = BigDecimal.ZERO;
+            }
+            agregarCampoActualizacion(updateSalida, valoresSalida, colPrecioTotal,
+                    nuevoTotal.setScale(2, RoundingMode.HALF_UP));
+        }
+        if (valoresSalida.isEmpty()) {
+            return;
+        }
+        updateSalida.append(" WHERE `").append(colSalidaId).append("` = ?");
+        valoresSalida.add(claveSalidaId);
+
+        try (PreparedStatement ps = conn.prepareStatement(updateSalida.toString())) {
+            for (int i = 0; i < valoresSalida.size(); i++) {
+                ps.setObject(i + 1, valoresSalida.get(i));
+            }
+            ps.executeUpdate();
+        }
+    }
+
+    private void notificarActualizacion() {
+        if (onRefresh == null) {
+            return;
+        }
+        Platform.runLater(onRefresh);
     }
 
     private BigDecimal obtenerTasaIva(String precioUnitario, String precioIvaTexto) {
@@ -924,6 +1051,157 @@ public class DetalleFacturaController {
             return BigDecimal.valueOf(0.16);
         }
         return rate;
+    }
+
+    private void ajustarTotalesSalida(Connection conn, DetalleArticulo articulo) throws SQLException {
+        if (articulo == null || articulo.detalleSalidaId == null) {
+            return;
+        }
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Salida");
+        String colDetalleId = resolverColumna(columnasDetalle, "idDetalleSalida", "id", "id_detalle_salida");
+        String colClaveSalida = resolverColumna(columnasDetalle, "claveSalida", "idSalida", "id_salida", "salida_id");
+        String colCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadSalida", "cantidad_salida");
+        String colPrecioUnitario = resolverColumna(columnasDetalle, "precioUnitarioSalida", "precioUnitario",
+                "precioSalida", "precio_salida", "precioSalidaUnitario");
+        String colPrecioIva = resolverColumna(columnasDetalle, "precioIVASalida", "precioIVA", "precioIva", "precio_iva");
+        String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotalSalida", "precioBrutoTotal",
+                "precio_bruto");
+        String colPrecioTotal = resolverColumna(columnasDetalle, "precioTotalSalida", "precioTotal", "precio_total");
+
+        if (colDetalleId == null || colClaveSalida == null || colCantidad == null
+                || colPrecioUnitario == null || colPrecioIva == null) {
+            return;
+        }
+
+        String sql = String.format("""
+                SELECT `%s` AS claveSalida,
+                       `%s` AS cantidad,
+                       `%s` AS precioUnitario,
+                       `%s` AS precioIva,
+                       %s AS precioBruto,
+                       %s AS precioTotal
+                FROM detalle_Salida
+                WHERE `%s` = ?
+                """,
+                colClaveSalida,
+                colCantidad,
+                colPrecioUnitario,
+                colPrecioIva,
+                colPrecioBruto != null ? "`" + colPrecioBruto + "`" : "NULL",
+                colPrecioTotal != null ? "`" + colPrecioTotal + "`" : "NULL",
+                colDetalleId
+        );
+
+        Integer claveSalidaId = null;
+        BigDecimal cantidad = null;
+        BigDecimal precioUnitario = null;
+        BigDecimal precioIva = null;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, articulo.detalleSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                claveSalidaId = rs.getInt("claveSalida");
+                cantidad = parseDecimal(rs.getObject("cantidad"));
+                precioUnitario = parseDecimal(rs.getObject("precioUnitario"));
+                precioIva = parseDecimal(rs.getObject("precioIva"));
+            }
+        }
+
+        if (cantidad == null || precioUnitario == null || precioIva == null) {
+            return;
+        }
+
+        BigDecimal nuevaCantidad = cantidad.subtract(BigDecimal.ONE);
+        if (nuevaCantidad.compareTo(BigDecimal.ZERO) < 0) {
+            nuevaCantidad = BigDecimal.ZERO;
+        }
+        BigDecimal nuevoBruto = precioUnitario.multiply(nuevaCantidad).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal nuevoTotal = precioIva.multiply(nuevaCantidad).setScale(2, RoundingMode.HALF_UP);
+
+        StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Salida SET ");
+        List<Object> valoresDetalle = new ArrayList<>();
+        agregarCampoActualizacion(updateDetalle, valoresDetalle, colCantidad, nuevaCantidad.intValue());
+        agregarCampoActualizacion(updateDetalle, valoresDetalle, colPrecioBruto, nuevoBruto);
+        agregarCampoActualizacion(updateDetalle, valoresDetalle, colPrecioTotal, nuevoTotal);
+        updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
+        valoresDetalle.add(articulo.detalleSalidaId);
+
+        try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
+            for (int i = 0; i < valoresDetalle.size(); i++) {
+                ps.setObject(i + 1, valoresDetalle.get(i));
+            }
+            ps.executeUpdate();
+        }
+
+        if (claveSalidaId == null || claveSalidaId <= 0) {
+            return;
+        }
+
+        Map<String, String> columnasSalida = obtenerColumnas(conn, "salidas");
+        String colSalidaId = resolverColumna(columnasSalida, "idSalida", "id", "id_salida");
+        String colPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto", "precio_neto");
+        String colPrecioTotalSalida = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal", "precio_total");
+
+        if (colSalidaId == null || (colPrecioNeto == null && colPrecioTotalSalida == null)) {
+            return;
+        }
+
+        BigDecimal precioNetoActual = null;
+        BigDecimal precioTotalActual = null;
+        String sqlSalida = String.format("""
+                SELECT %s AS precioNeto,
+                       %s AS precioTotal
+                FROM salidas
+                WHERE `%s` = ?
+                """,
+                colPrecioNeto != null ? "`" + colPrecioNeto + "`" : "NULL",
+                colPrecioTotalSalida != null ? "`" + colPrecioTotalSalida + "`" : "NULL",
+                colSalidaId
+        );
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlSalida)) {
+            ps.setInt(1, claveSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    precioNetoActual = parseDecimal(rs.getObject("precioNeto"));
+                    precioTotalActual = parseDecimal(rs.getObject("precioTotal"));
+                }
+            }
+        }
+
+        StringBuilder updateSalida = new StringBuilder("UPDATE salidas SET ");
+        List<Object> valoresSalida = new ArrayList<>();
+        if (colPrecioNeto != null && precioNetoActual != null) {
+            BigDecimal nuevoNeto = precioNetoActual.subtract(precioUnitario);
+            if (nuevoNeto.compareTo(BigDecimal.ZERO) < 0) {
+                nuevoNeto = BigDecimal.ZERO;
+            }
+            agregarCampoActualizacion(updateSalida, valoresSalida, colPrecioNeto,
+                    nuevoNeto.setScale(2, RoundingMode.HALF_UP));
+        }
+        if (colPrecioTotalSalida != null && precioTotalActual != null) {
+            BigDecimal nuevoTotalSalida = precioTotalActual.subtract(precioIva);
+            if (nuevoTotalSalida.compareTo(BigDecimal.ZERO) < 0) {
+                nuevoTotalSalida = BigDecimal.ZERO;
+            }
+            agregarCampoActualizacion(updateSalida, valoresSalida, colPrecioTotalSalida,
+                    nuevoTotalSalida.setScale(2, RoundingMode.HALF_UP));
+        }
+        if (valoresSalida.isEmpty()) {
+            return;
+        }
+        updateSalida.append(" WHERE `").append(colSalidaId).append("` = ?");
+        valoresSalida.add(claveSalidaId);
+
+        try (PreparedStatement ps = conn.prepareStatement(updateSalida.toString())) {
+            for (int i = 0; i < valoresSalida.size(); i++) {
+                ps.setObject(i + 1, valoresSalida.get(i));
+            }
+            ps.executeUpdate();
+        }
     }
 
     private void agregarCampoActualizacion(StringBuilder sql, List<Object> valores, String columna, Object valor) {
@@ -946,6 +1224,19 @@ public class DetalleFacturaController {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private BigDecimal parseDecimal(Object valor) {
+        if (valor == null) {
+            return null;
+        }
+        if (valor instanceof BigDecimal) {
+            return (BigDecimal) valor;
+        }
+        if (valor instanceof Number) {
+            return new BigDecimal(valor.toString());
+        }
+        return parseDecimal(valor.toString());
     }
 
     private Integer parseInteger(String valor) {

@@ -161,6 +161,7 @@ public class MainController {
             Pane rootDetalle = loader.load();
             DetalleFacturaController controller = loader.getController();
             controller.setHistorial(item);
+            controller.setOnRefresh(this::cargarHistorial);
 
             javafx.stage.Stage stage = new javafx.stage.Stage();
             stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
