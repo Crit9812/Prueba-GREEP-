@@ -39,6 +39,7 @@ public class DetalleFacturaController {
 
     private HistorialFactura historial;
     private Stage stage;
+    private Runnable onRefresh;
 
     @FXML
     public void initialize() {
@@ -56,6 +57,10 @@ public class DetalleFacturaController {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    public void setOnRefresh(Runnable onRefresh) {
+        this.onRefresh = onRefresh;
     }
 
     @FXML
@@ -793,6 +798,7 @@ public class DetalleFacturaController {
                         ps.executeUpdate();
                     }
                 }
+                notificarActualizacion();
                 cargarDetalles();
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -908,10 +914,18 @@ public class DetalleFacturaController {
                 }
                 ps.executeUpdate();
             }
+            notificarActualizacion();
             cargarDetalles();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private void notificarActualizacion() {
+        if (onRefresh == null) {
+            return;
+        }
+        Platform.runLater(onRefresh);
     }
 
     private BigDecimal obtenerTasaIva(String precioUnitario, String precioIvaTexto) {
