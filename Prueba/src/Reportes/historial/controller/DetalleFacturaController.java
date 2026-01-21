@@ -777,17 +777,17 @@ public class DetalleFacturaController {
                 if (colEstado == null) {
                     return;
                 }
-                if (articulo.esDetalleEntrada()) {
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
-                        ps.setString(1, "eliminado");
-                        ps.setInt(2, articulo.idArticulo);
-                        ps.executeUpdate();
-                    }
-                } else if (articulo.esDetalleSalida()) {
+                if (articulo.esDetalleSalida()) {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
                         ps.setString(1, "disponible");
+                        ps.setInt(2, articulo.idArticulo);
+                        ps.executeUpdate();
+                    }
+                } else if (articulo.esDetalleEntrada()) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
+                        ps.setString(1, "eliminado");
                         ps.setInt(2, articulo.idArticulo);
                         ps.executeUpdate();
                     }
