@@ -19,7 +19,12 @@ public class model {
     }
 
     public boolean eliminarUsuario(String id) {
-        return dao.eliminar(id);
+        usuario user = dao.buscarExacto("idUsuario", id);
+        if (user == null) {
+            return false;
+        }
+        user.setEstado("desactivado");
+        return dao.actualizar(user);
     }
 
     public boolean insertarUsuario(usuario u) {
