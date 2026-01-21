@@ -285,8 +285,8 @@ public class DetalleFacturaController {
                 columnaOrNull(colPrecioTotal),
                 columnaOrNull(colNota),
                 productoExpr,
-                joinProducto,
                 tipoSalidaExpr,
+                joinProducto,
                 joinSalida,
                 colClaveSalida
         );
