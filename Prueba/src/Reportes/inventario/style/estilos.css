@@ -41,6 +41,32 @@
     -fx-font-weight: bold;
 }
 
+.custom-check {
+    -fx-font-size: 10px;
+    -fx-text-fill: black;
+    -fx-cursor: hand;
+    -fx-label-padding: 0 0 0 10;
+}
+
+.custom-check .box {
+    -fx-border-color: #333;
+    -fx-border-width: 2px;
+    -fx-background-color: white;
+    -fx-padding: 5;
+}
+
+.custom-check .text {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: black;
+    -fx-underline: true;
+}
+
+.custom-check:selected .box {
+    -fx-background-color: #333;
+    -fx-border-color: #333;
+}
+
 .textfield {
     -fx-border-color: black;       /* Contorno negro */
     -fx-border-width: 1px;         /* Grosor del borde */
@@ -77,7 +103,6 @@
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
-
 
 
 

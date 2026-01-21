@@ -3,6 +3,7 @@ package Consultas.producto.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportarPlantilla;
+import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
 import Consultas.producto.model.producto;
@@ -60,7 +61,7 @@ public class MainController {
     @FXML private ImageView previewImage;
     @FXML private encabezadoController paneNavbarController;
 
-    private final model productoModel = new model();
+    private model productoModel;
 
     // Mapas concurrentes para alta velocidad y cache
     private Map<String, String> mapEtiquetas = new ConcurrentHashMap<>();
@@ -69,6 +70,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        productoModel = new model();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
             VBox navbarLoaded = loader.load();
@@ -163,6 +165,42 @@ public class MainController {
         });
 
         preloadDatosUltraRapido();
+        RefrescoHelper.setVistaActual("productos");
+        RefrescoHelper.registrarRefresco("productos", this::actualizarProductos);
+
+    }
+
+    private void actualizarProductos() {
+        System.out.println("=== EJECUTANDO ACTUALIZACIÓN DE PRODUCTOS ===");
+
+        // 1. Crear NUEVA instancia del modelo (esto forzará nueva conexión)
+        productoModel = new model();
+        System.out.println("Nuevo modelo creado");
+
+        // 2. Limpiar todas las cachés
+        cacheImagenes.clear();
+        mapEtiquetas.clear();
+        mapMarcas.clear();
+
+        // 3. Limpiar la UI
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            previewImage.setImage(null);
+            contenidoTabla.setItems(FXCollections.observableArrayList()); // Limpiar tabla temporalmente
+        });
+
+        // 4. Pequeña pausa para que se limpie la UI
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // 5. Recargar los datos con la nueva instancia
+        preloadDatosUltraRapido();
+
+        System.out.println("=== ACTUALIZACIÓN COMPLETADA ===");
     }
 
     private void preloadDatosUltraRapido() {
@@ -207,20 +245,71 @@ public class MainController {
     }
 
     private void eliminarProducto(producto p) {
+        int entradas = productoModel.contarEntradasPorProducto(p.getIdProducto());
+        int salidas = productoModel.contarSalidasPorProducto(p.getIdProducto());
+        int detallesEntrada = productoModel.contarDetallesEntradaPorProducto(p.getIdProducto());
+        int detallesSalida = productoModel.contarDetallesSalidaPorProducto(p.getIdProducto());
+        int articulosEntrada = productoModel.contarArticulosEntradaPorProducto(p.getIdProducto());
+        int articulosSalida = productoModel.contarArticulosSalidaPorProducto(p.getIdProducto());
+        int clavesActivas = productoModel.contarClavesPorProducto(p.getIdProducto());
+
+        if (entradas > 0 || salidas > 0 || detallesEntrada > 0 || detallesSalida > 0
+                || articulosEntrada > 0 || articulosSalida > 0 || clavesActivas > 0) {
+            StringBuilder motivo = new StringBuilder(
+                    "No se puede desactivar el producto porque tiene registros relacionados (activos, pendientes o disponibles):");
+            if (entradas > 0) {
+                motivo.append("\n- Entradas: ").append(entradas);
+            }
+            if (detallesEntrada > 0) {
+                motivo.append("\n- Detalles de entrada: ").append(detallesEntrada);
+            }
+            if (articulosEntrada > 0) {
+                motivo.append("\n- Artículos de entradas: ").append(articulosEntrada);
+            }
+            if (salidas > 0) {
+                motivo.append("\n- Salidas: ").append(salidas);
+            }
+            if (detallesSalida > 0) {
+                motivo.append("\n- Detalles de salida: ").append(detallesSalida);
+            }
+            if (articulosSalida > 0) {
+                motivo.append("\n- Artículos de salidas: ").append(articulosSalida);
+            }
+            if (clavesActivas > 0) {
+                motivo.append("\n- Claves activas: ").append(clavesActivas);
+            }
+            new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
+            return;
+        }
+
         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
         alerta.setTitle("Confirmar eliminación");
         alerta.setHeaderText(null);
-        alerta.setContentText("¿Está seguro que desea eliminar este producto?");
+        alerta.setContentText("¿Está seguro que desea desactivar este producto?");
         alerta.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (productoModel.eliminarProducto(p.getIdProducto())) {
                     contenidoTabla.getItems().remove(p);
-                    new Alert(Alert.AlertType.INFORMATION, "Producto eliminado correctamente").showAndWait();
+                    new Alert(Alert.AlertType.INFORMATION, "Producto desactivado correctamente").showAndWait();
                 } else {
-                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el producto.").showAndWait();
+                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar el producto.").showAndWait();
                 }
             }
         });
+    }
+
+    private void eliminarImagenProducto(producto p) {
+        String urlImagen = p.getUrlImagen();
+        if (urlImagen == null || urlImagen.isBlank()) {
+            return;
+        }
+
+        conexionFTP ftp = new conexionFTP();
+        ftp.deleteImageFromFTP(urlImagen);
+        cacheImagenes.remove(urlImagen);
+        if (previewImage.getImage() != null && urlImagen.equals(p.getUrlImagen())) {
+            previewImage.setImage(null);
+        }
     }
 
     // Mtodo para buscar un producto por su ID
@@ -280,6 +369,9 @@ public class MainController {
             stage.setTitle("Nuevo producto");
             stage.setScene(new Scene(root));
             stage.showAndWait();
+            if (ctrl.isProductoCreado()) {
+                preloadDatosUltraRapido();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -322,6 +414,8 @@ public class MainController {
             contenidoTabla.setItems(productos);
         }
     }
+
+
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("productos");

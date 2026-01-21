@@ -17,7 +17,7 @@ public class model {
 
     public List<String> obtenerNombresProveedores() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM proveedores ORDER BY nombre";
+        String sql = "SELECT nombre FROM proveedores WHERE status = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -35,7 +35,7 @@ public class model {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones ORDER BY nombre";
+        String sql = "SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -52,7 +52,7 @@ public class model {
     }
 
     public String obtenerIdProveedorPorNombre(String nombreProveedor) {
-        String sql = "SELECT id FROM proveedores WHERE nombre = ? LIMIT 1";
+        String sql = "SELECT id FROM proveedores WHERE nombre = ? AND status = 'activo' LIMIT 1";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -67,6 +67,61 @@ public class model {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public java.util.Optional<BigDecimal> obtenerPrecioEntradaUltimoProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return java.util.Optional.empty();
+        }
+
+        try (Connection conn = new Conexion().conectar()) {
+            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+
+            String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+            String colDetalleProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto", "producto_id");
+            String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+            String colPrecioEntrada = resolverColumna(columnasDetalle, "precioUnitario", "precioEntrada", "precio_entrada", "costoEntrada");
+
+            String colEntradaId = resolverColumna(columnasEntradas, "id", "idEntrada", "entrada_id");
+            String colEntradaFecha = resolverColumna(columnasEntradas, "fechaEntrada", "fecha", "fecha_entrada", "created_at");
+            String colEntradaHora = resolverColumna(columnasEntradas, "horaEntrada", "hora", "hora_entrada");
+
+            if (colDetalleId == null || colDetalleProducto == null || colDetalleEntrada == null || colPrecioEntrada == null
+                    || colEntradaId == null) {
+                return java.util.Optional.empty();
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT d.`").append(colPrecioEntrada).append("` AS precioEntrada ")
+                    .append("FROM detalle_Entrada d ")
+                    .append("JOIN entradas e ON e.`").append(colEntradaId).append("` = d.`").append(colDetalleEntrada).append("` ")
+                    .append("WHERE d.`").append(colDetalleProducto).append("` = ? ");
+
+            List<String> orden = new ArrayList<>();
+            if (colEntradaFecha != null) {
+                orden.add("e.`" + colEntradaFecha + "` DESC");
+            }
+            if (colEntradaHora != null) {
+                orden.add("e.`" + colEntradaHora + "` DESC");
+            }
+            orden.add("d.`" + colDetalleId + "` DESC");
+            sql.append("ORDER BY ").append(String.join(", ", orden)).append(" LIMIT 1");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                ps.setString(1, idProducto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        BigDecimal precioEntrada = rs.getBigDecimal("precioEntrada");
+                        return java.util.Optional.of(precioEntrada != null ? precioEntrada : BigDecimal.ZERO);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return java.util.Optional.empty();
     }
 
     public boolean registrarCompra(String idProveedor, String factura, String comentario, List<compra> items) {
@@ -96,8 +151,8 @@ public class model {
             if (colComentario != null) valoresEntrada.put(colComentario, comentario);
             if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
             if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
-            if (colTipo != null) valoresEntrada.put(colTipo, "Traspaso");
-            if (colEstado != null) valoresEntrada.put(colEstado, "Pendiente");
+            if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
+            if (colEstado != null) valoresEntrada.put(colEstado, "disponible");
             Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
             if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
                 valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
@@ -137,6 +192,7 @@ public class model {
                 String colPrecioIva = resolverColumna(columnasDetalle, "precioIVA", "precioIva", "precio_iva");
                 String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto", "precio_bruto");
                 String colPrecioTotalDetalle = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
+                String colNotaDetalle = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
 
                 if (colEntrada != null) valoresDetalle.put(colEntrada, idEntrada);
                 if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
@@ -145,6 +201,7 @@ public class model {
                 if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
                 if (colPrecioTotalDetalle != null) valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
+                if (colNotaDetalle != null) valoresDetalle.put(colNotaDetalle, item.getNota());
 
                 long idDetalleEntrada = insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 
@@ -161,7 +218,6 @@ public class model {
                 }
 
                 for (Map.Entry<String, Integer> entry : cantidadesPorUbicacion.entrySet()) {
-                    String colArticuloProducto = resolverColumna(columnasArticulo, "idProducto", "id_producto", "producto_id");
                     String colArticuloDetalleEntrada = resolverColumna(
                             columnasArticulo,
                             "idDetalleEntrada",
@@ -176,6 +232,7 @@ public class model {
                     String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
                     String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
                     String colArticuloSegmentado = resolverColumna(columnasArticulo, "segmentado");
+                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
                     Integer ubicacionId = resolverUbicacionId(conn, entry.getKey());
                     int cantidadUbicacion = entry.getValue();
@@ -183,7 +240,6 @@ public class model {
                     for (int i = 0; i < cantidadUbicacion; i++) {
                         Map<String, Object> valoresArticulo = new LinkedHashMap<>();
 
-                        if (colArticuloProducto != null) valoresArticulo.put(colArticuloProducto, item.getClaveProducto());
                         if (colArticuloDetalleEntrada != null) valoresArticulo.put(colArticuloDetalleEntrada, idDetalleEntrada);
                         if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
                         if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
@@ -191,6 +247,7 @@ public class model {
                         if (colArticuloPresentacion != null) valoresArticulo.put(colArticuloPresentacion, item.getPresentacion());
                         if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, parseInteger(item.getFactor()));
                         if (colArticuloSegmentado != null) valoresArticulo.put(colArticuloSegmentado, esSegmentado(item.getPresentacion()));
+                        if (colArticuloEstado != null) valoresArticulo.put(colArticuloEstado, "disponible");
 
                         insertarRegistro(conn, "articulo", columnasArticulo, valoresArticulo);
                     }
@@ -327,7 +384,7 @@ public class model {
         } catch (NumberFormatException ignored) {
         }
 
-        String sql = "SELECT id FROM ubicaciones WHERE nombre = ? LIMIT 1";
+        String sql = "SELECT id FROM ubicaciones WHERE LOWER(nombre) = LOWER(?) LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, texto);
             try (ResultSet rs = ps.executeQuery()) {
@@ -336,9 +393,10 @@ public class model {
                 }
             }
         }
-        String insertar = "INSERT INTO ubicaciones (nombre) VALUES (?)";
+        String insertar = "INSERT INTO ubicaciones (nombre, estado) VALUES (?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(insertar, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, texto);
+            ps.setString(2, "activo");
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {

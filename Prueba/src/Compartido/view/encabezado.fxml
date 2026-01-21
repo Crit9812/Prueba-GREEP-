@@ -23,7 +23,7 @@
                 </graphic>
                 <tooltip><Tooltip text="Cerrar Sesión"/></tooltip>
             </Button>
-            <Button styleClass="botones-navbar-top" >
+            <Button styleClass="botones-navbar-top" onAction="#actualizar">
                 <graphic>
                     <ImageView fx:id="iconoNavbar2">
                         <image><Image url="@/img/cloud.png"/></image>

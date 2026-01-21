@@ -26,7 +26,7 @@
                                     <Insets left="25"/>
                                 </HBox.margin>
                             </CheckBox>
-                            <Button fx:id="btnEliminar" styleClass="botones">
+                            <Button fx:id="btnEliminar" styleClass="botones" onMouseClicked="#eliminarSeleccionados">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image><Image url="@/img/eliminar.png"/></image>
@@ -44,7 +44,7 @@
 
                             <Region fx:id="expansor"/>
 
-                           <Button fx:id="btnAgregar" styleClass="botones" onMouseClicked="#formularioNuevoCliente">
+                           <Button fx:id="btnAgregar" styleClass="botones" onMouseClicked="#abrirFormularioAgregar">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image><Image url="@/img/agregar.png"/></image>
@@ -56,6 +56,22 @@
                             </Button>
                             <Label fx:id="lblAgregar" text="Agregar" styleClass="labels">
                                 <HBox.margin>
+                                    <Insets left="10"/>
+                                </HBox.margin>
+                            </Label>
+
+                            <Button fx:id="btnQuitar" styleClass="botones" onMouseClicked="#abrirFormularioQuitar">
+                                <graphic>
+                                    <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
+                                        <image><Image url="@/img/quitar1.png"/></image>
+                                    </ImageView>
+                                </graphic>
+                                <HBox.margin>
+                                    <Insets left="30"/>
+                                </HBox.margin>
+                            </Button>
+                            <Label fx:id="lblQuitar" text="Quitar" styleClass="labels">
+                                <HBox.margin>
                                     <Insets  top="0" right="40" bottom="0" left="10"/>
                                 </HBox.margin>
                             </Label>
@@ -65,26 +81,70 @@
                     <!-- TABLA -->
                     <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
                         <padding>
-                            <Insets left="40" right="40"/>
+                            <Insets left="40" right="40" top="30"/>
                         </padding>
                         <TableView fx:id="contenidoTabla" styleClass="contenidoTabla">
                             <columns>
                                 <TableColumn fx:id="colSelect" prefWidth="70" />
+                                <TableColumn fx:id="colTipo" text="Tipo" prefWidth="140" />
                                 <TableColumn fx:id="colClaveProduct" text="Clave del producto" prefWidth="70" />
                                 <TableColumn fx:id="colProducto" text="Producto" prefWidth="250" />
                                 <TableColumn fx:id="colDescripcionProducto" text="Descripcion" prefWidth="250" />
+                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="250" />
                                 <TableColumn fx:id="colLote" text="Lote" prefWidth="250" />
                                 <TableColumn fx:id="colCaducidad" text="Caducidad" prefWidth="360" />
                                 <TableColumn fx:id="colUbicacion" text="Ubicación" prefWidth="360" />
+                                <TableColumn fx:id="colNota" text="Nota" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioUnitario" text="Precio unitario" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioIva" text="Precio con IVA" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioBruto" text="Precio bruto" prefWidth="360" />
                                 <TableColumn fx:id="colPrecioTotaal" text="Precio total" prefWidth="360" />
                             </columns>
                         </TableView>
+                        <HBox alignment="CENTER_RIGHT">
+                            <Label fx:id="lblTotal" text="Total:" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <TextField fx:id="totalAjuste"
+                                       editable="false"
+                                       styleClass="factura"
+                                       promptText="Total">
+                            </TextField>
+                        </HBox>
                     </VBox>
-                    <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
-                        <Button fx:id="botonConfirmar" styleClass="botonConfirmar"> Confirmar </Button>
+
+                    <!-- COMENTARIO (SEPARADO DEL TOTAL) -->
+                    <HBox fx:id="contenedorComentario"
+                          spacing="8"
+                          alignment="CENTER_LEFT">
+
+
+                        <Label fx:id="lblComentario" text="Comentario:" styleClass="labels">
+                            <HBox.margin>
+                                <Insets left="40"/>
+                            </HBox.margin>
+                        </Label>
+
+                        <TextField fx:id="comentario" HBox.hgrow="ALWAYS" prefHeight="35">
+                            <HBox.margin>
+                                <Insets right="25" left="8" top="20"/>
+                            </HBox.margin>
+                        </TextField>
+
+                        <HBox fx:id="contenedorBtnConfirmar" alignment="CENTER_RIGHT">
+                            <VBox alignment="CENTER_RIGHT" spacing="8">
+                                <Button fx:id="botonConfirmar"
+                                        styleClass="botonConfirmar"
+                                        text="Confirmar"
+                                        onAction="#guardarAjuste">
+                                    <VBox.margin>
+                                        <Insets right="40" top="20"/>
+                                    </VBox.margin>
+                                </Button>
+                            </VBox>
+                        </HBox>
                     </HBox>
                 </VBox>
             </SplitPane>

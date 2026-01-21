@@ -127,7 +127,11 @@
                                              minWidth="100"
                                              maxWidth="100"
                                              resizable="false" />
-                                <TableColumn fx:id="colProducto" text="Producto" />
+                                <TableColumn fx:id="colProducto" text="Producto"
+                                             prefWidth="170"
+                                             minWidth="170"
+                                             maxWidth="170"
+                                             resizable="false"/>
                                 <TableColumn fx:id="colIDProvedor" text="idProveedor"
                                              prefWidth="100"
                                              minWidth="100"

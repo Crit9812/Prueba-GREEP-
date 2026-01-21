@@ -43,6 +43,7 @@ public class productoCboxController {
     // Mapa para almacenar las descripciones de las claves alternas
     private final Map<String, String> mapaDescripcionesClaves = new HashMap<>();
     private String idProveedorFiltro;
+    private boolean soloDisponibles;
 
     public productoCboxController() {
         this.modelProductoCbox = new modelProductoCbox();
@@ -54,13 +55,36 @@ public class productoCboxController {
      */
     public void inicializar(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna) {
         this.idProveedorFiltro = null;
+        this.soloDisponibles = false;
+        inicializarBase(cbId, cbNombre, cbClaveAlterna);
+    }
+
+    public void inicializarDisponibles(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna) {
+        this.idProveedorFiltro = null;
+        this.soloDisponibles = true;
         inicializarBase(cbId, cbNombre, cbClaveAlterna);
     }
 
     public void inicializarConProveedor(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna,
                                         String idProveedor) {
         this.idProveedorFiltro = idProveedor;
+        this.soloDisponibles = false;
         inicializarBase(cbId, cbNombre, cbClaveAlterna);
+    }
+
+    public String getUrlImagenSeleccionada() {
+        String id = getIdSeleccionado();
+        if (id == null || id.isBlank() || productos == null) {
+            return null;
+        }
+
+        for (Map<String, String> producto : productos) {
+            if (id.equals(producto.get("id"))) {
+                return producto.get("urlImagen");
+            }
+        }
+
+        return null;
     }
 
     private void inicializarBase(ComboBox<String> cbId, ComboBox<String> cbNombre, ComboBox<String> cbClaveAlterna) {
@@ -183,6 +207,9 @@ public class productoCboxController {
                 if (idProveedorFiltro != null && !idProveedorFiltro.isBlank()) {
                     return modelProductoCbox.obtenerProductosPorProveedor(idProveedorFiltro);
                 }
+                if (soloDisponibles) {
+                    return modelProductoCbox.obtenerProductosDisponibles();
+                }
                 return modelProductoCbox.obtenerTodosProductos();
             }
 
@@ -205,6 +232,9 @@ public class productoCboxController {
             protected List<Map<String, String>> call() throws Exception {
                 if (idProveedorFiltro != null && !idProveedorFiltro.isBlank()) {
                     return modelProductoCbox.obtenerClavesAlternasPorProveedor(idProveedorFiltro);
+                }
+                if (soloDisponibles) {
+                    return modelProductoCbox.obtenerClavesAlternasDisponibles();
                 }
                 return modelProductoCbox.obtenerTodasClavesAlternas();
             }
@@ -605,6 +635,12 @@ public class productoCboxController {
         String id = getIdSeleccionado();
         return (id != null && productos != null) ?
                 modelProductoCbox.obtenerUnidadMedidaPorId(id, productos) : "";
+    }
+
+    public String getCategoriaSeleccionada() {
+        String id = getIdSeleccionado();
+        return (id != null && productos != null) ?
+                modelProductoCbox.obtenerCategoriaPorId(id, productos) : "";
     }
 
     public boolean validarSeleccion() {

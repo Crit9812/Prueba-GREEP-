@@ -6,13 +6,13 @@ import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
 
-public class model { //njjgj
+public class model {
 
     private final GenericDAO<cliente> dao = new GenericDAO<>(cliente.class);
 
     public ObservableList<cliente> obtenerClientes() {
         ArrayList<cliente> lista = dao.obtenerTodos();
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
     public boolean eliminarCliente(int idCliente) {
@@ -25,6 +25,16 @@ public class model { //njjgj
 
     public ObservableList<cliente> buscarExacto(String nombre) {
         ArrayList<cliente> lista = dao.buscarParcial("nombre", nombre);
-        return FXCollections.observableArrayList(lista);
+        return FXCollections.observableArrayList(filtrarActivos(lista));
+    }
+
+    private ArrayList<cliente> filtrarActivos(ArrayList<cliente> lista) {
+        ArrayList<cliente> activos = new ArrayList<>();
+        for (cliente c : lista) {
+            if (c != null && "activo".equalsIgnoreCase(c.getStatus())) {
+                activos.add(c);
+            }
+        }
+        return activos;
     }
 }

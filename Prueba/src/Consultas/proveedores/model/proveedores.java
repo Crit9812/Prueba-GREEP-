@@ -57,7 +57,10 @@ public class proveedores {
     private String correo;
 
     @Column(name = "telefono")
-    private Integer telefono;
+    private String telefono;
+
+    @Column(name = "status")
+    private String status;
 
     // Constructor vacío requerido por reflection
     public proveedores() {}
@@ -66,7 +69,7 @@ public class proveedores {
                        String curp, String razonSocial, String domicilio,
                        int cp, String colonia, int numeroInt, int numeroExt,
                        String ciudad, String estado, String localidad,
-                       String pais, String correo, int telefono) {
+                       String pais, String correo, String telefono) {
 
         this.id = id;
         this.nombre = nombre;
@@ -136,6 +139,9 @@ public class proveedores {
     public String getCorreo() { return correo; }
     public void setCorreo(String correo) { this.correo = correo; }
 
-    public Integer getTelefono() { return telefono; }
-    public void setTelefono(Integer telefono) { this.telefono = telefono; }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

@@ -2,12 +2,28 @@ package Operaciones.ajusteInventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Operaciones.ajusteInventario.model.model;
+import Operaciones.compra.model.compra;
+import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.ListChangeListener;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.Callback;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class MainController {
 
@@ -17,14 +33,39 @@ public class MainController {
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
+    @FXML private HBox contenedorComentario;
+    @FXML private TableView<Object> contenidoTabla;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
     @FXML private Label lblAgregar;
     @FXML private Region expansor;
+    @FXML private TextField totalAjuste;
+    @FXML private TextField comentario;
+    @FXML private CheckBox miCheckBox;
 
     @FXML private encabezadoController paneNavbarController;
+
+    @FXML private TableColumn<Object, Boolean> colSelect;
+    @FXML private TableColumn<Object, String> colTipo;
+    @FXML private TableColumn<Object, String> colClaveProduct;
+    @FXML private TableColumn<Object, String> colProducto;
+    @FXML private TableColumn<Object, String> colDescripcionProducto;
+    @FXML private TableColumn<Object, Number> colCantidad;
+    @FXML private TableColumn<Object, String> colLote;
+    @FXML private TableColumn<Object, String> colCaducidad;
+    @FXML private TableColumn<Object, String> colUbicacion;
+    @FXML private TableColumn<Object, String> colNota;
+    @FXML private TableColumn<Object, String> colPrecioUnitario;
+    @FXML private TableColumn<Object, String> colPrecioIva;
+    @FXML private TableColumn<Object, String> colPrecioBruto;
+    @FXML private TableColumn<Object, String> colPrecioTotaal;
+
+    private final ObservableList<compra> itemsEntrada = FXCollections.observableArrayList();
+    private final ObservableList<traspasoSalida> itemsSalida = FXCollections.observableArrayList();
+    private final ObservableList<Object> itemsAjuste = FXCollections.observableArrayList();
+    private boolean actualizandoSeleccionTodo = false;
+    private final model ajusteModel = new model();
 
     @FXML
     public void initialize() {
@@ -73,19 +114,507 @@ public class MainController {
 
 
             // Tabla
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.77));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-            contenedorBtnConfirmar.maxWidthProperty().bind(contenedor.widthProperty().multiply(0.95));
+
+            // Comentario
+            if (contenedorComentario != null) {
+                contenedorComentario.maxWidthProperty().bind(contenedor.widthProperty());
+            }
+            if (comentario != null) {
+                HBox.setHgrow(comentario, Priority.ALWAYS);
+                comentario.setMaxWidth(Double.MAX_VALUE);
+            }
+
+            // Botón confirmar
+            contenedorBtnConfirmar.setMinWidth(Region.USE_PREF_SIZE);
+            contenedorBtnConfirmar.setMaxWidth(Region.USE_PREF_SIZE);
+            HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Ajuste de Inventario", "#ffffff");
 
         });
+        configurarTabla();
+        configurarListeners();
+        configurarSeleccionTodo();
+        configurarTotalAjuste();
     }
 
+    private void abrirFormularioEdicion(Object item) {
+        try {
+            if (item instanceof compra) {
+                // Para items de entrada
+                abrirFormularioEdicionEntrada((compra) item);
+            } else if (item instanceof traspasoSalida) {
+                // Para items de salida
+                abrirFormularioEdicionSalida((traspasoSalida) item);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de edición.");
+        }
+    }
+
+    private void abrirFormularioEdicionEntrada(compra itemParaEditar) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
+            Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
+            controlador.setItemsCompra(itemsEntrada);
+            controlador.setTituloFormulario("Editar Entrada");
+            controlador.setModoAjusteInventario(true);
+            controlador.setItemParaEditar(itemParaEditar); // Esto es importante para modo edición
+            loader.setController(controlador);
+
+            Pane formulario = loader.load();
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Editar Entrada");
+            stage.setScene(new javafx.scene.Scene(formulario));
+            stage.initOwner(root.getScene().getWindow());
+            stage.setResizable(false);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de edición.");
+        }
+    }
+
+    private void abrirFormularioEdicionSalida(traspasoSalida itemParaEditar) {
+        try {
+            Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
+            controlador.setItemsVenta(itemsSalida);
+            controlador.setTituloFormulario("Editar Salida");
+            controlador.setModoSoloNormal(true);
+            controlador.setModoAjusteInventario(true);
+            controlador.setItemParaEditar(itemParaEditar); // Asegúrate de que este método exista en controllerNuevaVenta
+
+            // Llamar al formulario de nueva venta en modo edición
+            controllerFormularios.controllerFormulario.llamarFormulario(
+                    "/Formularios/view/nuevaVenta.fxml",
+                    controlador,
+                    "Editar Salida"
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de edición.");
+        }
+    }
+
+    private void configurarTabla() {
+        contenidoTabla.setItems(itemsAjuste);
+        contenidoTabla.setEditable(true);
+
+        // Configurar columna de selección (CheckBox)
+        colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<Object, Boolean>, ObservableValue<Boolean>>() {
+            @Override
+            public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<Object, Boolean> param) {
+                Object item = param.getValue();
+                if (item instanceof compra) {
+                    return ((compra) item).seleccionadoProperty();
+                }
+                if (item instanceof traspasoSalida) {
+                    return ((traspasoSalida) item).seleccionadoProperty();
+                }
+                return new SimpleBooleanProperty(false);
+            }
+        });
+        colSelect.setCellFactory(CheckBoxTableCell.forTableColumn(colSelect));
+        colSelect.setEditable(true);
+
+        // Configurar columna Tipo
+        colTipo.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return new SimpleStringProperty("Entrada");
+            }
+            if (item instanceof traspasoSalida) {
+                return new SimpleStringProperty("Salida");
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Clave Producto
+        colClaveProduct.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).claveProductoProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).claveProductoProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Producto
+        colProducto.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).productoProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).productoProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Descripción Producto
+        colDescripcionProducto.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).descripcionProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).descripcionProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Cantidad
+        colCantidad.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).cantidadProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).cantidadProperty();
+            }
+            return new SimpleIntegerProperty(0);
+        });
+
+        // Configurar columna Lote
+        colLote.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).loteProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).loteProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Caducidad
+        colCaducidad.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).caducidadProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).caducidadProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Ubicación
+        colUbicacion.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).ubicacionResumenProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).ubicacionResumenProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Nota
+        colNota.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).notaProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).notaProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Precio Unitario
+        colPrecioUnitario.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).precioEntradaProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).precioEntradaProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Precio IVA
+        colPrecioIva.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).precioIvaProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).precioIvaProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Precio Bruto
+        colPrecioBruto.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).precioBrutoProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).precioBrutoProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar columna Precio Total
+        colPrecioTotaal.setCellValueFactory(param -> {
+            Object item = param.getValue();
+            if (item instanceof compra) {
+                return ((compra) item).precioTotalProperty();
+            }
+            if (item instanceof traspasoSalida) {
+                return ((traspasoSalida) item).precioTotalProperty();
+            }
+            return new SimpleStringProperty("");
+        });
+
+        // Configurar alineación central para todas las columnas
+        TableColumn<Object, ?>[] columnas = new TableColumn[]{
+                colSelect, colTipo, colClaveProduct, colProducto, colDescripcionProducto,
+                colCantidad, colLote, colCaducidad, colUbicacion, colNota,
+                colPrecioUnitario, colPrecioIva, colPrecioBruto, colPrecioTotaal
+        };
+
+        for (TableColumn<Object, ?> col : columnas) {
+            col.setStyle("-fx-alignment: CENTER;");
+        }
+
+        contenidoTabla.setRowFactory(table -> {
+            TableRow<Object> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    Object item = row.getItem();
+                    abrirFormularioEdicion(item);
+                }
+            });
+            return row;
+        });
+    }
+
+    private void configurarListeners() {
+        itemsEntrada.addListener((ListChangeListener<compra>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (compra item : change.getAddedSubList()) {
+                        item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalAjuste());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
+                    }
+                }
+            }
+            refrescarTabla();
+        });
+
+        itemsSalida.addListener((ListChangeListener<traspasoSalida>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (traspasoSalida item : change.getAddedSubList()) {
+                        item.precioTotalProperty().addListener((obs, oldVal, newVal) -> actualizarTotalAjuste());
+                        item.seleccionadoProperty().addListener((obs, oldVal, newVal) -> actualizarSeleccionTodo());
+                    }
+                }
+            }
+            refrescarTabla();
+        });
+    }
+
+    private void configurarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (actualizandoSeleccionTodo) {
+                return;
+            }
+            for (compra item : itemsEntrada) {
+                item.setSeleccionado(newVal);
+            }
+            for (traspasoSalida item : itemsSalida) {
+                item.setSeleccionado(newVal);
+            }
+            contenidoTabla.refresh();
+        });
+        actualizarSeleccionTodo();
+    }
+
+    public void refrescarTabla() {
+        itemsAjuste.setAll(itemsEntrada);
+        itemsAjuste.addAll(itemsSalida);
+        contenidoTabla.refresh();
+        actualizarTotalAjuste();
+    }
+
+    private void configurarTotalAjuste() {
+        if (totalAjuste != null) {
+            totalAjuste.setEditable(false);
+            totalAjuste.setText("0.00");
+            totalAjuste.setStyle("");
+        }
+        actualizarTotalAjuste();
+    }
+
+    private void actualizarTotalAjuste() {
+        if (totalAjuste == null) {
+            return;
+        }
+        BigDecimal totalEntradas = BigDecimal.ZERO;
+        for (compra item : itemsEntrada) {
+            totalEntradas = totalEntradas.add(parseDecimal(item.getPrecioTotal()));
+        }
+        BigDecimal totalSalidas = BigDecimal.ZERO;
+        for (traspasoSalida item : itemsSalida) {
+            totalSalidas = totalSalidas.add(parseDecimal(item.getPrecioTotal()));
+        }
+        BigDecimal total = totalEntradas.subtract(totalSalidas);
+        totalAjuste.setText(total.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        if (total.compareTo(BigDecimal.ZERO) < 0) {
+            totalAjuste.setStyle("-fx-text-fill: #d32f2f;");
+        } else {
+            totalAjuste.setStyle("");
+        }
+    }
+
+    private BigDecimal parseDecimal(String valor) {
+        if (valor == null) {
+            return BigDecimal.ZERO;
+        }
+        String limpio = valor.replace(",", "").trim();
+        if (limpio.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
+    }
 
     @FXML
-    public void formularioNuevoCliente() {
-        Formularios.controller.controllerNuevoAjuste controlador = new Formularios.controller.controllerNuevoAjuste();
-        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoAjuste.fxml",controlador,"Ajuste");
+    public void abrirFormularioAgregar() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
+            Formularios.controller.controllerCompraEmergente controlador = new Formularios.controller.controllerCompraEmergente();
+            controlador.setItemsCompra(itemsEntrada);
+            controlador.setTituloFormulario("Agregar");
+            controlador.setModoAjusteInventario(true);
+            loader.setController(controlador);
+
+            Pane formulario = loader.load();
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Agregar");
+            stage.setScene(new javafx.scene.Scene(formulario));
+            stage.initOwner(root.getScene().getWindow());
+            stage.setResizable(false);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo abrir el formulario de agregar.");
+        }
+    }
+
+    @FXML
+    public void abrirFormularioQuitar() {
+        Formularios.controller.controllerNuevaVenta controlador = new Formularios.controller.controllerNuevaVenta();
+        controlador.setItemsVenta(itemsSalida);
+        controlador.setTituloFormulario("Quitar");
+        controlador.setModoSoloNormal(true);
+        controlador.setModoAjusteInventario(true);
+        controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevaVenta.fxml", controlador, "Quitar");
+    }
+
+    @FXML
+    public void eliminarSeleccionados() {
+        if (itemsEntrada.isEmpty() && itemsSalida.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+
+        boolean algunSeleccionado = itemsEntrada.stream().anyMatch(compra::isSeleccionado)
+                || itemsSalida.stream().anyMatch(traspasoSalida::isSeleccionado);
+        if (!algunSeleccionado) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
+
+        if (!confirmarEliminacion()) {
+            return;
+        }
+
+        itemsEntrada.removeIf(compra::isSeleccionado);
+        itemsSalida.removeIf(traspasoSalida::isSeleccionado);
+        refrescarTabla();
+        actualizarSeleccionTodo();
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
+
+    @FXML
+    public void guardarAjuste() {
+        if (itemsEntrada.isEmpty() && itemsSalida.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay ajustes para registrar.");
+            return;
+        }
+
+        String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
+        boolean registrado = ajusteModel.registrarAjuste(itemsEntrada, itemsSalida, comentarioTexto);
+        if (registrado) {
+            mostrarAlerta("Éxito", "Ajuste registrado correctamente.");
+            itemsEntrada.clear();
+            itemsSalida.clear();
+            itemsAjuste.clear();
+            if (comentario != null) {
+                comentario.clear();
+            }
+            actualizarTotalAjuste();
+            actualizarSeleccionTodo();
+        } else {
+            mostrarAlerta("Error", "No se pudo registrar el ajuste.");
+        }
+    }
+
+    private boolean confirmarEliminacion() {
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro de borrar los elementos seleccionados?");
+
+        ButtonType botonAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType botonCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alerta.getButtonTypes().setAll(botonAceptar, botonCancelar);
+
+        return alerta.showAndWait().orElse(botonCancelar) == botonAceptar;
+    }
+
+    private void actualizarSeleccionTodo() {
+        if (miCheckBox == null) {
+            return;
+        }
+        try {
+            actualizandoSeleccionTodo = true;
+            boolean hayItems = !itemsEntrada.isEmpty() || !itemsSalida.isEmpty();
+            boolean seleccionado = hayItems
+                    && itemsEntrada.stream().allMatch(compra::isSeleccionado)
+                    && itemsSalida.stream().allMatch(traspasoSalida::isSeleccionado);
+            miCheckBox.setSelected(seleccionado);
+        } finally {
+            actualizandoSeleccionTodo = false;
+        }
     }
 }

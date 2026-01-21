@@ -4,6 +4,7 @@ import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
+import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
 import Consultas.sucursales.model.model;
@@ -54,10 +55,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     // EXACTAMENTE IGUAL que productos: instancia única
-    private final model sucursalModel = new model();
+    private  model sucursalModel;
 
     @FXML
     public void initialize() {
+        sucursalModel = new model();
         Platform.runLater(() -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
@@ -128,17 +130,37 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         sucursal seleccionado = getTableView().getItems().get(getIndex());
+                        int enEntradas = sucursalModel.contarEntradasPorSucursal(seleccionado.getId());
+                        int enSalidas = sucursalModel.contarSalidasPorSucursal(seleccionado.getId());
+                        if (enEntradas > 0 || enSalidas > 0) {
+                            StringBuilder motivo = new StringBuilder(
+                                    "No se puede desactivar la sucursal porque tiene registros relacionados (activos, pendientes o disponibles):");
+                            if (enEntradas > 0) {
+                                motivo.append("\n- Entradas: ").append(enEntradas);
+                            }
+                            if (enSalidas > 0) {
+                                motivo.append("\n- Salidas: ").append(enSalidas);
+                            }
+                            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
+                            alertaAdvertencia.setTitle("Advertencia");
+                            alertaAdvertencia.setHeaderText(null);
+                            Label contenido = new Label(motivo.toString());
+                            contenido.setWrapText(true);
+                            alertaAdvertencia.getDialogPane().setContent(contenido);
+                            alertaAdvertencia.showAndWait();
+                            return;
+                        }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                         alerta.setTitle("Confirmar eliminación");
                         alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea eliminar esta sucursal?");
+                        alerta.setContentText("¿Está seguro que desea desactivar esta sucursal?");
                         alerta.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.OK) {
                                 if (sucursalModel.eliminarSucursal(seleccionado.getId())) {
                                     contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Sucursal eliminada correctamente").showAndWait();
+                                    new Alert(Alert.AlertType.INFORMATION, "Sucursal desactivada correctamente").showAndWait();
                                 } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar la sucursal").showAndWait();
+                                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar la sucursal").showAndWait();
                                 }
                             }
                         });
@@ -179,6 +201,35 @@ public class MainController {
                 buscarSucursales(newValue);
             });
         });
+        RefrescoHelper.setVistaActual("sucursales");
+        RefrescoHelper.registrarRefresco("sucursales", this::actualizarSucursales);
+    }
+
+    // ========== NUEVO MÉTODO DE ACTUALIZACIÓN (IGUAL QUE CLIENTES) ==========
+    private void actualizarSucursales() {
+        System.out.println("========================================");
+        System.out.println("ACTUALIZANDO SUCURSALES");
+        System.out.println("Hora: " + new java.util.Date());
+        System.out.println("========================================");
+
+        // 1. Crear NUEVA instancia del modelo
+        sucursalModel = new model();
+        System.out.println("✓ Nuevo modelo de sucursales creado");
+
+        // 2. Limpiar UI
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+            System.out.println("✓ UI limpiada");
+        });
+
+        // 3. Recargar datos
+        cargarSucursalesEnTabla();
+
+        System.out.println("========================================");
+        System.out.println("ACTUALIZACIÓN DE SUCURSALES COMPLETADA");
+        System.out.println("========================================");
     }
 
     // MÉeODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos

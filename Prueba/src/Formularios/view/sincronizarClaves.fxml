@@ -21,26 +21,29 @@
         <VBox spacing="12" alignment="TOP_LEFT" style="-fx-padding: 12;">
             <HBox spacing="12">
                 <VBox spacing="6">
+                    <Label text="Clave de proveedor (ID):"/>
+                    <ComboBox fx:id="cbProveedorId" editable="true" prefWidth="160"/>
+                </VBox>
+
+                <VBox spacing="6">
                     <Label text="Proveedor (Nombre):"/>
                     <ComboBox fx:id="cbProveedorNombre" editable="true" prefWidth="320"/>
                 </VBox>
 
-                <VBox spacing="6">
-                    <Label text="Clave de proveedor (ID):"/>
-                    <ComboBox fx:id="cbProveedorId" editable="true" prefWidth="160"/>
-                </VBox>
+
             </HBox>
 
             <HBox spacing="12" alignment="CENTER_LEFT">
                 <VBox spacing="6">
-                    <Label text="Producto (Nombre):"/>
-                    <ComboBox fx:id="cbProductoNombre" editable="true" prefWidth="320"/>
-                </VBox>
-
-                <VBox spacing="6">
                     <Label text="Clave producto (Greep) - ID:"/>
                     <ComboBox fx:id="cbProductoId" editable="true" prefWidth="160"/>
                 </VBox>
+
+                <VBox spacing="6">
+                    <Label text="Producto (Nombre):"/>
+                    <TextField fx:id="cbProductoNombre" editable="false" prefWidth="320"/>
+                </VBox>
+
             </HBox>
 
             <HBox spacing="12">
@@ -59,8 +62,8 @@
 
     <bottom>
         <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 12;">
-            <Button text="Guardar" fx:id="btnGuardar" styleClass="boton" onAction="#onGuardar"/>
             <Button text="Cancelar" fx:id="btnCancelar" styleClass="boton" onAction="#onCancelar"/>
+            <Button text="Guardar" fx:id="btnGuardar" styleClass="boton" onAction="#onGuardar"/>
         </HBox>
     </bottom>
 </BorderPane>

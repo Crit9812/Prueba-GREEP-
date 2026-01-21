@@ -19,9 +19,12 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import Compartido.exportar.exportador;
+import Compartido.helper.RefrescoHelper;
+import controllerFormularios.controllerFormulario;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import Compartido.exportar.exportador;
+
 
 import java.io.IOException;
 
@@ -57,10 +60,11 @@ public class MainController {
     @FXML private encabezadoController paneNavbarController;
 
     // EXACTAMENTE IGUAL que productos: instancia única
-    private final model clienteModel = new model();
+    private model clienteModel;
 
     @FXML
     public void initialize() {
+        clienteModel = new model();
         Platform.runLater(() -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
@@ -180,9 +184,39 @@ public class MainController {
                 buscarClientes(newValue);
             });
 
+            RefrescoHelper.setVistaActual("clientes");
+            RefrescoHelper.registrarRefresco("clientes", this::actualizarClientes);
+
             // Carga Inicial en background como productos
             cargarClientesEnTabla();
         });
+    }
+
+    // ========== NUEVO MÉTODO DE ACTUALIZACIÓN ==========
+    private void actualizarClientes() {
+        System.out.println("========================================");
+        System.out.println("ACTUALIZANDO CLIENTES");
+        System.out.println("Hora: " + new java.util.Date());
+        System.out.println("========================================");
+
+        // 1. Crear NUEVA instancia del modelo
+        clienteModel = new model();
+        System.out.println("✓ Nuevo modelo de clientes creado");
+
+        // 2. Limpiar UI
+        Platform.runLater(() -> {
+            buscador.clear();
+            contenidoTabla.getSelectionModel().clearSelection();
+            contenidoTabla.setItems(FXCollections.observableArrayList());
+            System.out.println("✓ UI limpiada");
+        });
+
+        // 3. Recargar datos
+        cargarClientesEnTabla();
+
+        System.out.println("========================================");
+        System.out.println("ACTUALIZACIÓN DE CLIENTES COMPLETADA");
+        System.out.println("========================================");
     }
 
     // MetODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
@@ -190,8 +224,6 @@ public class MainController {
         Task<ObservableList<cliente>> task = new Task<>() {
             @Override
             protected ObservableList<cliente> call() {
-                // En productos es: productoModel.obtenerProductos()
-                // Aquí es exactamente igual pero con clienteModel
                 return FXCollections.observableArrayList(clienteModel.obtenerClientes());
             }
 
@@ -204,7 +236,7 @@ public class MainController {
         new Thread(task).start();
     }
 
-    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
+    // MeTODO EXACTAMENTE IGUAL que buscarProductos() en productos
     private void buscarClientes(String texto) {
         if (texto == null || texto.trim().isEmpty()) {
             cargarClientesEnTabla();
@@ -223,26 +255,49 @@ public class MainController {
 
     private void abrirFormulario(cliente clienteEditar) {
         try {
+            // 1. Cargar FXML con controlador manual
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoCliente.fxml"));
-            Parent vista = loader.load();
 
-            controllerNuevoCliente ctrl = loader.getController();
-            if (clienteEditar != null) ctrl.cargarCliente(clienteEditar);
+            // 2. Crear controlador manualmente
+            controllerNuevoCliente ctrl = new controllerNuevoCliente();
+            loader.setController(ctrl);
 
+            // 3. Cargar el FXML - esto llama al initialize() del controlador
+            Parent formularioRoot = loader.load();
+
+            // 4. AHORA configurar el cliente (después de initialize())
+            if (clienteEditar != null) {
+                ctrl.cargarCliente(clienteEditar);
+            } else {
+                // Si tienes el método prepararNuevoCliente, llamarlo
+                try {
+                    ctrl.prepararNuevoCliente();
+                } catch (Exception e) {
+                    // Si no existe el método, no pasa nada
+                }
+            }
+
+            // 5. Configurar callback para guardar
+            ctrl.setOnSaved(() -> {
+                cargarClientesEnTabla();
+            });
+
+            // 6. Mostrar ventana
+            String titulo = clienteEditar == null ? "Nuevo Cliente" : "Editar Cliente";
             Stage stage = new Stage();
-            stage.setTitle(clienteEditar == null ? "Nuevo Cliente" : "Editar Cliente");
-            stage.setScene(new Scene(vista));
+            stage.setTitle(titulo);
+            stage.setScene(new Scene(formularioRoot));
+            stage.initModality(Modality.APPLICATION_MODAL);
             stage.setResizable(false);
-            stage.centerOnScreen();
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.initOwner(root.getScene().getWindow());
+            stage.setAlwaysOnTop(true);
 
+            stage.setOnHidden(e -> cargarClientesEnTabla());
             stage.showAndWait();
-            // Recargar como en productos
-            cargarClientesEnTabla();
 
         } catch (Exception e) {
             e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR,
+                    "Error: " + e.getMessage()).show();
         }
     }
 

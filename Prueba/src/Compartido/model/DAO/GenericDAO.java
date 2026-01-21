@@ -305,7 +305,7 @@ public class GenericDAO<T> {
         return lista;
     }
 
-    // --------------------- Métodos específicos a cada caso -------------------
+    // --------------------- Métodos auxiliares -------------------
 
     // Metodo generalizado para construir descripciones concatenando campos
     public static String construirDescripcion(String... campos) {
@@ -327,108 +327,7 @@ public class GenericDAO<T> {
         return sb.toString();
     }
 
-    // Metodo común para procesar una fila de ResultSet para claves completas
-    private String[] procesarFilaClaveCompleta(ResultSet rs) throws SQLException {
-        String[] fila = new String[6];
-
-        // Obtener campos individuales
-        String idAlterno = rs.getString("idAlterno");
-        String idProducto = rs.getString("idProducto");
-        String producto = rs.getString("producto");
-
-        // Manejar idProveedor que puede ser null
-        Object provIdObj = rs.getObject("idProveedor");
-        String idProveedor = provIdObj == null ? "" : provIdObj.toString();
-
-        String proveedor = rs.getString("proveedor");
-
-        // Construir descripción usando el método generalizado
-        String marca = rs.getString("marca");
-        String etiqueta = rs.getString("etiqueta");
-        String unidadMedida = rs.getString("unidadMedida");
-        String descripcionProducto = rs.getString("descripcionProducto");
-
-        String descripcion = construirDescripcion(marca, etiqueta, unidadMedida, descripcionProducto);
-
-        // Asignar valores al array
-        fila[0] = idAlterno != null ? idAlterno : "";
-        fila[1] = idProducto != null ? idProducto : "";
-        fila[2] = producto != null ? producto : "";
-        fila[3] = idProveedor;
-        fila[4] = proveedor != null ? proveedor : "";
-        fila[5] = descripcion;
-
-        return fila;
-    }
-
-    public ArrayList<String[]> obtenerClavesCompletas() {
-        ArrayList<String[]> resultados = new ArrayList<>();
-
-        String sql = "SELECT c.idAlterno AS idAlterno, " +
-                "       c.idProducto AS idProducto, " +
-                "       p.nombre AS producto, " +
-                "       c.idProveedor AS idProveedor, " +
-                "       pr.Nombre AS proveedor, " +
-                "       m.nombre AS marca, " +
-                "       e.nombre AS etiqueta, " +
-                "       p.unidadMedida AS unidadMedida, " +
-                "       p.descripcion AS descripcionProducto " +
-                "FROM claves c " +
-                "LEFT JOIN productos p ON c.idProducto = p.id " +
-                "LEFT JOIN proveedores pr ON c.idProveedor = pr.id " +
-                "LEFT JOIN marcas m ON p.marca = m.id " +
-                "LEFT JOIN etiquetas e ON p.etiqueta = e.id";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                resultados.add(procesarFilaClaveCompleta(rs));
-            }
-        } catch (Exception e) {
-            System.out.println("Error en obtenerClavesCompletas: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return resultados;
-    }
-
-    public ArrayList<String[]> buscarClavesCompletas(String textoBusqueda) {
-        ArrayList<String[]> resultados = new ArrayList<>();
-
-        String sql = "SELECT c.idAlterno AS idAlterno, " +
-                "       c.idProducto AS idProducto, " +
-                "       p.nombre AS producto, " +
-                "       c.idProveedor AS idProveedor, " +
-                "       pr.Nombre AS proveedor, " +
-                "       m.nombre AS marca, " +
-                "       e.nombre AS etiqueta, " +
-                "       p.unidadMedida AS unidadMedida, " +
-                "       p.descripcion AS descripcionProducto " +
-                "FROM claves c " +
-                "LEFT JOIN productos p ON c.idProducto = p.id " +
-                "LEFT JOIN proveedores pr ON c.idProveedor = pr.id " +
-                "LEFT JOIN marcas m ON p.marca = m.id " +
-                "LEFT JOIN etiquetas e ON p.etiqueta = e.id " +
-                "WHERE LOWER(c.idAlterno) LIKE ? OR LOWER(c.idProducto) LIKE ?";
-
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            String busqueda = "%" + textoBusqueda.toLowerCase() + "%";
-            ps.setString(1, busqueda);  // c.idAlterno
-            ps.setString(2, busqueda);  // c.idProducto
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    resultados.add(procesarFilaClaveCompleta(rs));
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Error en buscarClavesCompletas: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return resultados;
-    }
+    // --------------------- Métodos  -------------------
 
     public ArrayList<Map<String, String>> obtenerProductosConMarcaEtiqueta() {
         ArrayList<Map<String, String>> resultados = new ArrayList<>();
@@ -471,6 +370,574 @@ public class GenericDAO<T> {
         }
 
         return resultados;
+    }
+
+    public static class ValidacionDisponibilidadSalida {
+        private final boolean entradaCompletada;
+        private final int disponiblesSinSalida;
+
+        public ValidacionDisponibilidadSalida(boolean entradaCompletada, int disponiblesSinSalida) {
+            this.entradaCompletada = entradaCompletada;
+            this.disponiblesSinSalida = disponiblesSinSalida;
+        }
+
+        public boolean isEntradaCompletada() {
+            return entradaCompletada;
+        }
+
+        public int getDisponiblesSinSalida() {
+            return disponiblesSinSalida;
+        }
+    }
+
+    public static ValidacionDisponibilidadSalida validarEntradaYDisponibilidadLoteProducto(Connection conn,
+                                                                                           String lote,
+                                                                                           String idProducto) {
+        if (conn == null || lote == null || idProducto == null) {
+            return new ValidacionDisponibilidadSalida(false, 0);
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return new ValidacionDisponibilidadSalida(false, 0);
+            }
+
+            String disponibleCond = "(a.`%s` IS NULL OR a.`%s` = 0)".formatted(
+                    colArticuloDetalleSalida,
+                    colArticuloDetalleSalida
+            );
+            if (colArticuloEstado != null) {
+                disponibleCond = disponibleCond + " AND LOWER(a.`" + colArticuloEstado + "`) = ?";
+            }
+
+            String sql = """
+                SELECT
+                    COUNT(*) AS total_articulos,
+                    SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS disponibles
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.`%s` = a.`%s`
+                WHERE a.`%s` = ? AND de.`%s` = ?
+            """.formatted(
+                    disponibleCond,
+                    colDetalleEntradaId,
+                    colArticuloDetalleEntrada,
+                    colArticuloLote,
+                    colDetalleEntradaProducto
+            );
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                int index = 1;
+                if (colArticuloEstado != null) {
+                    ps.setString(index++, "disponible");
+                }
+                ps.setString(index++, lote);
+                ps.setString(index, idProducto);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        int completados = rs.getInt("total_articulos");
+                        int disponibles = rs.getInt("disponibles");
+                        return new ValidacionDisponibilidadSalida(completados > 0, disponibles);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en validarEntradaYDisponibilidadLoteProducto: " + e.getMessage());
+        }
+
+        return new ValidacionDisponibilidadSalida(false, 0);
+    }
+
+    public static int contarDisponiblesSinSalidaPorLoteProducto(Connection conn, String lote, String idProducto) {
+        if (conn == null || lote == null || idProducto == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? AND de.`")
+                    .append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                ps.setString(index++, idProducto);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorLoteProducto: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarDisponiblesSinSalidaPorLoteProductoCaducidad(Connection conn, String lote, String idProducto,
+                                                                         java.time.LocalDate caducidad) {
+        if (conn == null || lote == null || idProducto == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloCaducidad == null || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? AND a.`")
+                    .append(colArticuloLote).append("` = ? ");
+            if (caducidad == null) {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` IS NULL ");
+            } else {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` = ? ");
+            }
+            sql.append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, idProducto);
+                ps.setString(index++, lote);
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorLoteProductoCaducidad: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor(Connection conn, String lote,
+                                                                                  String idProducto,
+                                                                                  String presentacion, int factor) {
+        if (conn == null || lote == null || idProducto == null || presentacion == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
+            String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloPresentacion == null || colArticuloFactor == null
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? ")
+                    .append("AND de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloPresentacion).append("` = ? ")
+                    .append("AND a.`").append(colArticuloFactor).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                ps.setString(index++, idProducto);
+                ps.setString(index++, presentacion);
+                ps.setInt(index++, factor);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor: "
+                    + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(Connection conn, String lote,
+                                                                          java.time.LocalDate caducidad,
+                                                                          String ubicacionNombre) {
+        if (conn == null || lote == null || ubicacionNombre == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasUbicaciones = obtenerColumnas(conn, "ubicaciones");
+
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colUbicacionId = resolverColumna(columnasUbicaciones, "id", "idUbicacion", "ubicacion_id",
+                    "id_ubicacion");
+            String colUbicacionNombre = resolverColumna(columnasUbicaciones, "nombre", "nombreUbicacion", "ubicacion");
+
+            if (colArticuloDetalleSalida == null || colArticuloLote == null || colArticuloCaducidad == null
+                    || colArticuloUbicacion == null || colUbicacionId == null || colUbicacionNombre == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                    .append("` = a.`").append(colArticuloUbicacion).append("` ")
+                    .append("WHERE a.`").append(colArticuloLote).append("` = ? ");
+            if (caducidad == null) {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` IS NULL ");
+            } else {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` = ? ");
+            }
+            sql.append("AND u.`").append(colUbicacionNombre).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, lote);
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                ps.setString(index++, ubicacionNombre);
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorLoteCaducidadUbicacion: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(Connection conn, String idProducto,
+                                                                                  String lote,
+                                                                                  java.time.LocalDate caducidad,
+                                                                                  String ubicacionNombre) {
+        if (conn == null || idProducto == null || lote == null || ubicacionNombre == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasUbicaciones = obtenerColumnas(conn, "ubicaciones");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            String colUbicacionId = resolverColumna(columnasUbicaciones, "id", "idUbicacion", "ubicacion_id",
+                    "id_ubicacion");
+            String colUbicacionNombre = resolverColumna(columnasUbicaciones, "nombre", "nombreUbicacion", "ubicacion");
+            String colUbicacionEstado = resolverColumna(columnasUbicaciones, "estado", "Estado");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloCaducidad == null || colArticuloUbicacion == null || colDetalleEntradaId == null
+                    || colDetalleEntradaProducto == null || colUbicacionId == null || colUbicacionNombre == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                    .append("` = a.`").append(colArticuloUbicacion).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloLote).append("` = ? ");
+            if (caducidad == null) {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` IS NULL ");
+            } else {
+                sql.append("AND a.`").append(colArticuloCaducidad).append("` = ? ");
+            }
+            sql.append("AND u.`").append(colUbicacionNombre).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+            if (colUbicacionEstado != null) {
+                sql.append(" AND LOWER(u.`").append(colUbicacionEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, idProducto);
+                ps.setString(index++, lote);
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                ps.setString(index++, ubicacionNombre);
+                if (colArticuloEstado != null) {
+                    ps.setString(index++, "disponible");
+                }
+                if (colUbicacionEstado != null) {
+                    ps.setString(index, "activo");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion: "
+                    + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    public static int contarDisponiblesSinSalidaDetalle(Connection conn, String idProducto, String lote,
+                                                        java.time.LocalDate caducidad, String presentacion, int factor,
+                                                        String ubicacionNombre) {
+        if (conn == null || idProducto == null || lote == null || presentacion == null || ubicacionNombre == null) {
+            return 0;
+        }
+
+        try {
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasUbicaciones = obtenerColumnas(conn, "ubicaciones");
+
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                    "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
+            String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            String colUbicacionId = resolverColumna(columnasUbicaciones, "id", "idUbicacion", "ubicacion_id",
+                    "id_ubicacion");
+            String colUbicacionNombre = resolverColumna(columnasUbicaciones, "nombre", "nombreUbicacion", "ubicacion");
+
+            if (colArticuloDetalleEntrada == null || colArticuloDetalleSalida == null || colArticuloLote == null
+                    || colArticuloCaducidad == null || colArticuloPresentacion == null || colArticuloFactor == null
+                    || colArticuloUbicacion == null || colDetalleEntradaId == null || colDetalleEntradaProducto == null
+                    || colUbicacionId == null || colUbicacionNombre == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM articulo a ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ")
+                    .append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                    .append("` = a.`").append(colArticuloUbicacion).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = ? ")
+                    .append("AND a.`").append(colArticuloLote).append("` = ? ")
+                    .append("AND a.`").append(colArticuloPresentacion).append("` = ? ")
+                    .append("AND a.`").append(colArticuloFactor).append("` = ? ")
+                    .append("AND u.`").append(colUbicacionNombre).append("` = ? ")
+                    .append("AND (a.`").append(colArticuloDetalleSalida).append("` IS NULL OR a.`")
+                    .append(colArticuloDetalleSalida).append("` = 0)");
+            if (caducidad == null) {
+                sql.append(" AND a.`").append(colArticuloCaducidad).append("` IS NULL");
+            } else {
+                sql.append(" AND a.`").append(colArticuloCaducidad).append("` = ?");
+            }
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, idProducto);
+                ps.setString(index++, lote);
+                ps.setString(index++, presentacion);
+                ps.setInt(index++, factor);
+                ps.setString(index++, ubicacionNombre);
+                if (caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                if (colArticuloEstado != null) {
+                    ps.setString(index, "disponible");
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDisponiblesSinSalidaDetalle: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    private static Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
+        Map<String, String> columnas = new HashMap<>();
+        DatabaseMetaData meta = conn.getMetaData();
+
+        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre == null) {
+                    continue;
+                }
+                String nombreLimpio = nombre.trim();
+                columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
+            }
+        }
+
+        return columnas;
+    }
+
+    private static String resolverColumna(Map<String, String> columnas, String... candidatos) {
+        if (columnas == null || candidatos == null) {
+            return null;
+        }
+        for (String candidato : candidatos) {
+            if (candidato == null) {
+                continue;
+            }
+            String key = candidato.trim().toLowerCase();
+            if (columnas.containsKey(key)) {
+                return columnas.get(key);
+            }
+        }
+        return null;
     }
 
 }

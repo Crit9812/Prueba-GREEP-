@@ -15,7 +15,7 @@ public class controllerSincronizacionClaves {
     @FXML private ComboBox<String> cbProveedorNombre;
     @FXML private ComboBox<Integer> cbProveedorId;
     @FXML private ComboBox<String> cbProductoId;
-    @FXML private ComboBox<String> cbProductoNombre;
+    @FXML private TextField cbProductoNombre;
     @FXML private TextField txtClaveAlterna;
     @FXML private TextField txtDescripcion;
     @FXML private Button btnGuardar;
@@ -34,6 +34,9 @@ public class controllerSincronizacionClaves {
     // cambios en la PK y ejecutar la lógica apropiada en el model.
     private String originalIdAlterno = null;
     private boolean modoEdicion = false;
+    private String claveAlternaCreada = "";
+    private controllerCompraEmergente parentController;
+
 
     @FXML
     public void initialize() {
@@ -92,22 +95,21 @@ public class controllerSincronizacionClaves {
 
         // Producto: preferimos el id (posición 1)
         String productoId = fila[1] == null ? "" : fila[1];
+        // Dentro del bloque de producto:
         if (!productoId.isBlank()) {
             cbProductoId.getSelectionModel().select(productoId);
             cbProductoId.getEditor().setText(productoId);
             // buscar nombre del producto asociado (si existe)
             String nombreProd = productoIdToName.get(productoId);
             if (nombreProd != null) {
-                cbProductoNombre.getSelectionModel().select(nombreProd);
-                cbProductoNombre.getEditor().setText(nombreProd);
+                cbProductoNombre.setText(nombreProd); // NUEVO
             }
             rellenarDescripcionProducto(productoId);
         } else {
             // fallback por nombre (posición 2)
             String nombreProd = fila[2] == null ? "" : fila[2];
             if (!nombreProd.isBlank()) {
-                cbProductoNombre.getSelectionModel().select(nombreProd);
-                cbProductoNombre.getEditor().setText(nombreProd);
+                cbProductoNombre.setText(nombreProd); // NUEVO
                 String id = productoNameToId.get(nombreProd);
                 if (id != null) {
                     cbProductoId.getSelectionModel().select(id);
@@ -202,9 +204,7 @@ public class controllerSincronizacionClaves {
             nombres.add(nombre);
             ids.add(id);
         }
-        cbProductoNombre.getItems().setAll(nombres);
         cbProductoId.getItems().setAll(ids);
-        cbProductoNombre.setEditable(true);
         cbProductoId.setEditable(true);
     }
 
@@ -234,11 +234,17 @@ public class controllerSincronizacionClaves {
             sincronizarProveedorPorId(id);
         });
 
-        // PRODUCTO: nombre -> id
-        cbProductoNombre.getEditor().focusedProperty().addListener((obs, was, isNow) -> {
-            if (!isNow) validarYSincronizarProductoDesdeNombre();
+        cbProductoId.getEditor().focusedProperty().addListener((obs, was, isNow) -> {
+            if (!isNow) validarYSincronizarProductoDesdeId();
         });
-        cbProductoNombre.setOnAction(e -> sincronizarProductoPorNombre(cbProductoNombre.getEditor().getText()));
+        cbProductoId.setOnAction(e -> {
+            String id = cbProductoId.getValue();
+            if (id == null) {
+                String text = cbProductoId.getEditor().getText();
+                if (!text.isBlank()) id = text.trim();
+            }
+            sincronizarProductoPorId(id);
+        });
 
         // PRODUCTO: id -> nombre (id es String)
         cbProductoId.getEditor().focusedProperty().addListener((obs, was, isNow) -> {
@@ -307,33 +313,8 @@ public class controllerSincronizacionClaves {
         }
     }
 
-    private void sincronizarProductoPorNombre(String nombre) {
-        if (nombre == null || nombre.trim().isEmpty()) {
-            cbProductoId.getSelectionModel().clearSelection();
-            cbProductoId.getEditor().clear();
-            txtDescripcion.clear();
-            return;
-        }
-        String id = productoNameToId.get(nombre);
-        if (id == null) {
-            Optional<Map.Entry<String,String>> found = productoNameToId.entrySet().stream()
-                    .filter(en -> en.getKey().equalsIgnoreCase(nombre.trim()))
-                    .findFirst();
-            if (found.isPresent()) id = found.get().getValue();
-        }
-        if (id == null) {
-            mostrarAdvertencia("Producto no encontrado: " + nombre);
-            return;
-        }
-        cbProductoId.getSelectionModel().select(id);
-        cbProductoId.getEditor().setText(id);
-        rellenarDescripcionProducto(id);
-    }
-
     private void sincronizarProductoPorId(String id) {
         if (id == null || id.isBlank()) {
-            cbProductoNombre.getSelectionModel().clearSelection();
-            cbProductoNombre.getEditor().clear();
             txtDescripcion.clear();
             return;
         }
@@ -342,15 +323,8 @@ public class controllerSincronizacionClaves {
             mostrarAdvertencia("Producto con ID " + id + " no encontrado.");
             return;
         }
-        cbProductoNombre.getSelectionModel().select(nombre);
-        cbProductoNombre.getEditor().setText(nombre);
+        cbProductoNombre.setText(nombre); // NUEVO
         rellenarDescripcionProducto(id);
-    }
-
-    private void validarYSincronizarProductoDesdeNombre() {
-        String nombre = cbProductoNombre.getEditor().getText();
-        if (nombre == null || nombre.isBlank()) return;
-        sincronizarProductoPorNombre(nombre);
     }
 
     private void validarYSincronizarProductoDesdeId() {
@@ -400,6 +374,22 @@ public class controllerSincronizacionClaves {
                 return;
             }
             String idClaveCatalogo = claveAltText.trim();
+            if (!modoEdicion || (originalIdAlterno != null && !originalIdAlterno.equals(idClaveCatalogo))) {
+                Map<String, String> detalle = model.obtenerDetalleClave(idClaveCatalogo);
+                if (detalle != null) {
+                    String proveedor = detalle.getOrDefault("proveedor", "");
+                    String producto = detalle.getOrDefault("producto", "");
+                    if (proveedor == null || proveedor.isBlank()) {
+                        proveedor = "Sin proveedor";
+                    }
+                    if (producto == null || producto.isBlank()) {
+                        producto = "Sin producto";
+                    }
+                    mostrarAdvertencia("La clave alterna ya está registrada con el proveedor \"" +
+                            proveedor + "\" y el producto \"" + producto + "\".");
+                    return;
+                }
+            }
 
             // proveedor
             Integer proveedorId = null;
@@ -424,7 +414,7 @@ public class controllerSincronizacionClaves {
             if (prodIdText != null && !prodIdText.isBlank()) {
                 productoId = prodIdText.trim();
             } else {
-                String prodNameText = cbProductoNombre.getEditor().getText();
+                String prodNameText = cbProductoNombre.getText(); // NUEVO
                 if (prodNameText != null && !prodNameText.isBlank()) {
                     productoId = productoNameToId.get(prodNameText);
                 }
@@ -436,13 +426,22 @@ public class controllerSincronizacionClaves {
 
             boolean ok = model.guardarClave(originalIdAlterno, idClaveCatalogo, proveedorId, productoId);
             if (ok) {
+                // ALMACENAR LA CLAVE CREADA
+                this.claveAlternaCreada = idClaveCatalogo;
+
                 String mensaje = modoEdicion ?
                         "Clave actualizada correctamente." :
                         "Clave guardada correctamente.";
 
                 mostrarInfo(mensaje);
+
+                // NOTIFICAR AL CONTROLADOR PADRE SI EXISTE
+                if (parentController != null) {
+                    parentController.actualizarClaveAlternaCreada(idClaveCatalogo);
+                }
+
                 cerrarVentana();
-            } else {
+            }else {
                 String mensajeError = modoEdicion ?
                         "No se pudo actualizar la clave (conflicto o error)." :
                         "No se pudo guardar la clave (conflicto o error).";
@@ -485,5 +484,101 @@ public class controllerSincronizacionClaves {
         a.setHeaderText(null);
         a.setContentText(msg);
         a.showAndWait();
+    }
+
+    // Metodo para establecer proveedor seleccionado desde el formulario de compra
+    public void setProveedorSeleccionado(String proveedorId, String proveedorNombre) {
+        if (proveedorId != null && proveedorNombre != null) {
+            try {
+                // Intentar convertir el proveedorId a Integer
+                Integer id = Integer.parseInt(proveedorId.trim());
+
+                // Verificar si el proveedor existe en nuestros datos
+                String nombreExistente = proveedorIdToName.get(id);
+
+                if (nombreExistente == null) {
+                    // Si no existe, agregarlo temporalmente a los combobox
+                    proveedorIdToName.put(id, proveedorNombre);
+                    proveedorNameToId.put(proveedorNombre, id);
+
+                    // Actualizar los combobox
+                    if (!cbProveedorId.getItems().contains(id)) {
+                        cbProveedorId.getItems().add(id);
+                    }
+                    if (!cbProveedorNombre.getItems().contains(proveedorNombre)) {
+                        cbProveedorNombre.getItems().add(proveedorNombre);
+                    }
+                }
+
+                // Seleccionar automáticamente el proveedor
+                cbProveedorId.getSelectionModel().select(id);
+                cbProveedorId.getEditor().setText(String.valueOf(id));
+
+                cbProveedorNombre.getSelectionModel().select(proveedorNombre);
+                cbProveedorNombre.getEditor().setText(proveedorNombre);
+
+                // Actualizar el título si es necesario
+                if (titulo != null) {
+                    String textoActual = titulo.getText();
+                    if (!textoActual.contains(proveedorNombre)) {
+                        titulo.setText(textoActual + " - " + proveedorNombre);
+                    }
+                }
+
+            } catch (NumberFormatException e) {
+                // Si el ID no es numérico, solo establecer el nombre
+                cbProveedorNombre.getSelectionModel().select(proveedorNombre);
+                cbProveedorNombre.getEditor().setText(proveedorNombre);
+
+                // Mostrar advertencia pero continuar
+                System.out.println("Advertencia: ID de proveedor no numérico: " + proveedorId);
+            }
+        }
+    }
+
+    // Método para cargar datos iniciales después de establecer el proveedor
+    public void inicializarConProveedor(String proveedorId, String proveedorNombre) {
+        setProveedorSeleccionado(proveedorId, proveedorNombre);
+    }
+
+    public void setProductoSeleccionado(String productoId, String productoNombre) {
+        if (productoId != null && productoNombre != null) {
+            try {
+                String nombreExistente = productoIdToName.get(productoId);
+
+                if (nombreExistente == null) {
+                    // Si no existe, agregarlo temporalmente a los mapas
+                    productoIdToName.put(productoId, productoNombre);
+                    productoNameToId.put(productoNombre, productoId);
+
+                    // Actualizar solo el combobox de ID
+                    if (!cbProductoId.getItems().contains(productoId)) {
+                        cbProductoId.getItems().add(productoId);
+                    }
+                }
+
+                // Seleccionar automáticamente el producto
+                cbProductoId.getSelectionModel().select(productoId);
+                cbProductoId.getEditor().setText(productoId);
+
+                cbProductoNombre.setText(productoNombre); // NUEVO
+
+                // Cargar descripción del producto
+                rellenarDescripcionProducto(productoId);
+
+            } catch (Exception e) {
+                System.out.println("Error al establecer producto: " + e.getMessage());
+            }
+        }
+    }
+
+
+    public String getClaveAlternaCreada() {
+        return claveAlternaCreada;
+    }
+
+    // Método para establecer el controlador padre
+    public void setParentController(controllerCompraEmergente parent) {
+        this.parentController = parent;
     }
 }

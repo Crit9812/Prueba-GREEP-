@@ -6,7 +6,6 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             xmlns="http://javafx.com/javafx"
-            fx:controller="Formularios.controller.controllerNuevoCliente"
             prefWidth="600" prefHeight="400"
             style="-fx-background-color: white; -fx-padding: 20;"
             stylesheets="@/Formularios/style/estilos.css">
@@ -86,7 +85,7 @@
 
                     <VBox spacing="5">
                         <Label text="Colonia:"/>
-                        <TextField fx:id="txtColonia" prefWidth="250" maxWidth="250"/>
+                        <ComboBox fx:id="cmbColonia" prefWidth="250" maxWidth="250"/>
                     </VBox>
                 </HBox>
             </HBox>

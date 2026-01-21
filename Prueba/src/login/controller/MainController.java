@@ -4,14 +4,11 @@ import controllerInterfaz.ControllerInterfaz;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.scene.control.Alert;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.control.TextField;
 import javafx.util.Duration;
 import login.model.Model;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.Button;
 import Compartido.controller.alertaController;
@@ -151,16 +148,20 @@ public class MainController {
                 Integer idUsuario = modelo.obtenerIdUsuario(username);
                 Compartido.sesion.SesionUsuario.setIdUsuario(idUsuario);
 
-                //System.out.println("usuario: "+idUsuario);
-
-                Operaciones.controller.MainController controlador =
-                        new Operaciones.controller.MainController();
+                Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
 
                 ControllerInterfaz.cambiarVista(
                         "/Operaciones/view/main_view.fxml",
                         "/Operaciones/style/estilos.css",
                         controlador
                 );
+                /*VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
+
+                ControllerInterfaz.cambiarVista(
+                        "/VentanaPrincipal/view/main_view.fxml",
+                        "/VentanaPrincipal/style/estilos.css",
+                        controlador
+                );*/
 
             } else {
                 alertaController.mostrarAlerta(

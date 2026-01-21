@@ -1,40 +1,70 @@
 package Consultas.clasificacion.model;
 
+import Compartido.model.DAO.Column;
+import Compartido.model.DAO.PrimaryKey;
+import Compartido.model.DAO.Table;
+import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+@Table(name = "etiquetas")
 public class etiquetas {
 
-    private final IntegerProperty id;
-    private final StringProperty nombre;
+    @PrimaryKey
+    @Column(name = "id")
+    private Integer id;
 
-    public etiquetas(int id, String nombre) {
-        this.id = new SimpleIntegerProperty(id);
-        this.nombre = new SimpleStringProperty(nombre);
+    @Column(name = "nombre")
+    private String nombre;
+
+    @Column(name = "estado")
+    private String estado;
+
+    // Properties para JavaFX
+    private transient IntegerProperty idProperty;
+    private transient StringProperty nombreProperty;
+
+    public etiquetas() {}
+
+    public etiquetas(Integer id, String nombre) {
+        this.id = id;
+        this.nombre = nombre;
     }
 
-    // ===== GETTERS =====
-    public int getId() {
-        return id.get();
+    public Integer getId() { return id; }
+    public void setId(Integer id) {
+        this.id = id;
+        if (idProperty != null) {
+            idProperty.set(id);
+        }
     }
 
-    public String getNombre() {
-        return nombre.get();
-    }
-
-    // ===== SETTERS =====
+    public String getNombre() { return nombre; }
     public void setNombre(String nombre) {
-        this.nombre.set(nombre);
+        this.nombre = nombre;
+        if (nombreProperty != null) {
+            nombreProperty.set(nombre);
+        }
     }
 
-    // ===== PROPERTIES =====
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
+
+    // Métodos property para JavaFX
     public IntegerProperty idProperty() {
-        return id;
+        if (idProperty == null) {
+            idProperty = new SimpleIntegerProperty(id);
+        }
+        return idProperty;
     }
 
     public StringProperty nombreProperty() {
-        return nombre;
+        if (nombreProperty == null) {
+            nombreProperty = new SimpleStringProperty(nombre);
+        }
+        return nombreProperty;
     }
 }
+

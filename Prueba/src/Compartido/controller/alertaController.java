@@ -9,6 +9,7 @@ import javafx.util.Duration;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.KeyCode;
 
+// Clase para mostrar un mensaje de alerta
 public class alertaController {
 
     @FXML private VBox capaAlerta;
@@ -21,8 +22,6 @@ public class alertaController {
         Platform.runLater(() -> {
             alertaModal.maxWidthProperty().bind(capaAlerta.widthProperty().multiply(0.30));
             alertaModal.maxHeightProperty().bind(capaAlerta.heightProperty().multiply(0.25));
-
-            // inicialmente no intercepta eventos
             capaAlerta.setMouseTransparent(true);
         });
     }

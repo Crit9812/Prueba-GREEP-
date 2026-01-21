@@ -141,6 +141,9 @@ public class navbarController {
     }
 
     private void showLabel(Label label, Button boton) {
+        if (overlayPane == null || label == null || boton == null) {
+            return;
+        }
         label.setVisible(true);
         label.setManaged(true);
 
