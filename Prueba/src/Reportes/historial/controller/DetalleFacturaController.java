@@ -152,6 +152,7 @@ public class DetalleFacturaController {
         String colPrecioIva = resolverColumna(columnasDetalle, "precioIVA", "precioIva", "precio_iva");
         String colPrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
         String colNota = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
+        String colEstado = resolverColumna(columnasDetalle, "estado", "Estado");
 
         String colProductoId = resolverColumna(columnasProducto, "id", "idProducto", "claveProducto");
         String colProductoNombre = resolverColumna(columnasProducto, "nombre", "Nombre", "producto");
@@ -167,6 +168,8 @@ public class DetalleFacturaController {
                 ? "p.`" + colProductoNombre + "`"
                 : "d.`" + colProducto + "`";
 
+        String filtroEstado = colEstado != null ? " AND LOWER(d.`" + colEstado + "`) = 'activo'" : "";
+
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
                        d.`%s` AS claveProducto,
@@ -179,6 +182,7 @@ public class DetalleFacturaController {
                 FROM detalle_Entrada d
                 %s
                 WHERE d.`%s` = ?
+                %s
                 ORDER BY producto, idDetalle
                 """,
                 colDetalleId,
@@ -190,7 +194,8 @@ public class DetalleFacturaController {
                 columnaOrNull(colNota),
                 productoExpr,
                 joinProducto,
-                colClaveEntrada
+                colClaveEntrada,
+                filtroEstado
         );
 
         List<DetalleLinea> lineas = new ArrayList<>();
@@ -240,6 +245,7 @@ public class DetalleFacturaController {
         String colPrecioIva = resolverColumna(columnasDetalle, "precioIVASalida", "precioIVA", "precioIva", "precio_iva");
         String colPrecioTotal = resolverColumna(columnasDetalle, "precioTotalSalida", "precioTotal", "precio_total");
         String colNota = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
+        String colEstado = resolverColumna(columnasDetalle, "estado", "Estado");
 
         String colProductoId = resolverColumna(columnasProducto, "id", "idProducto", "claveProducto");
         String colProductoNombre = resolverColumna(columnasProducto, "nombre", "Nombre", "producto");
@@ -266,6 +272,8 @@ public class DetalleFacturaController {
                 ? "s.`" + colTipoSalida + "`"
                 : "NULL";
 
+        String filtroEstado = colEstado != null ? " AND LOWER(d.`" + colEstado + "`) = 'activo'" : "";
+
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
                        d.`%s` AS claveProducto,
@@ -280,6 +288,7 @@ public class DetalleFacturaController {
                 %s
                 %s
                 WHERE d.`%s` = ?
+                %s
                 ORDER BY producto, idDetalle
                 """,
                 colDetalleId,
@@ -293,7 +302,8 @@ public class DetalleFacturaController {
                 tipoSalidaExpr,
                 joinProducto,
                 joinSalida,
-                colClaveSalida
+                colClaveSalida,
+                filtroEstado
         );
 
         List<DetalleLinea> lineas = new ArrayList<>();
