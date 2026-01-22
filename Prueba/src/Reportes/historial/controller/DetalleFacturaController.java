@@ -806,6 +806,7 @@ public class DetalleFacturaController {
                         ps.executeUpdate();
                     }
                     ajustarTotalesSalida(conn, articulo);
+                    actualizarEstadoDetalleSalidaSiVacio(conn, articulo.detalleSalidaId);
                 } else if (articulo.esDetalleEntrada()) {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
@@ -1210,6 +1211,45 @@ public class DetalleFacturaController {
             for (int i = 0; i < valoresSalida.size(); i++) {
                 ps.setObject(i + 1, valoresSalida.get(i));
             }
+            ps.executeUpdate();
+        }
+    }
+
+    private void actualizarEstadoDetalleSalidaSiVacio(Connection conn, Integer detalleSalidaId) throws SQLException {
+        if (detalleSalidaId == null || detalleSalidaId <= 0) {
+            return;
+        }
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Salida");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+
+        String colDetalleId = resolverColumna(columnasDetalle, "idDetalleSalida", "id", "id_detalle_salida");
+        String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
+        String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+
+        if (colDetalleId == null || colDetalleEstado == null || colArticuloDetalleSalida == null) {
+            return;
+        }
+
+        String sqlConteo = "SELECT COUNT(*) FROM articulo WHERE `" + colArticuloDetalleSalida + "` = ?";
+        int total = 0;
+        try (PreparedStatement ps = conn.prepareStatement(sqlConteo)) {
+            ps.setInt(1, detalleSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    total = rs.getInt(1);
+                }
+            }
+        }
+
+        if (total > 0) {
+            return;
+        }
+
+        String sqlUpdate = "UPDATE detalle_Salida SET `" + colDetalleEstado + "` = ? WHERE `" + colDetalleId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+            ps.setString(1, "desactivado");
+            ps.setInt(2, detalleSalidaId);
             ps.executeUpdate();
         }
     }
