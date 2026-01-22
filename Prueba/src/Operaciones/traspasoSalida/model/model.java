@@ -180,6 +180,7 @@ public class model {
                 String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
                 String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
                 String colDetalleFactor = resolverColumna(columnasDetalleSalida, "factor");
+                String colDetalleEstado = resolverColumna(columnasDetalleSalida, "estado", "Estado");
 
                 if (colSalida != null) valoresDetalle.put(colSalida, idSalida);
                 if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
@@ -194,6 +195,7 @@ public class model {
                 if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));
                 if (colDetallePresentacion != null) valoresDetalle.put(colDetallePresentacion, item.getPresentacion());
                 if (colDetalleFactor != null) valoresDetalle.put(colDetalleFactor, item.getFactor());
+                if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
 
                 long idDetalleSalida = insertarRegistro(conn, "detalle_Salida", columnasDetalleSalida, valoresDetalle);
 
