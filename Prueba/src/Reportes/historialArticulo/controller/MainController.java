@@ -51,19 +51,19 @@ public class MainController {
     @FXML private Label lblDescargar;
 
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
-    @FXML private TableColumn colFecha;
-    @FXML private TableColumn colHora;
-    @FXML private TableColumn colTipoMovimiento;
-    @FXML private TableColumn colAntes;
-    @FXML private TableColumn colDespues;
-    @FXML private TableColumn colEntradas;
-    @FXML private TableColumn colSalidas;
-    @FXML private TableColumn colProveedor;
-    @FXML private TableColumn colFacturaEntrada;
-    @FXML private TableColumn colCliente;
-    @FXML private TableColumn colFacturaSalida;
-    @FXML private TableColumn colUsuario;
+    @FXML private TableView<?> contenidoTabla;
+    @FXML private TableColumn<?, ?> colFecha;
+    @FXML private TableColumn<?, ?> colHora;
+    @FXML private TableColumn<?, ?> colTipoMovimiento;
+    @FXML private TableColumn<?, ?> colAntes;
+    @FXML private TableColumn<?, ?> colDespues;
+    @FXML private TableColumn<?, ?> colEntradas;
+    @FXML private TableColumn<?, ?> colSalidas;
+    @FXML private TableColumn<?, ?> colProveedor;
+    @FXML private TableColumn<?, ?> colFacturaEntrada;
+    @FXML private TableColumn<?, ?> colCliente;
+    @FXML private TableColumn<?, ?> colFacturaSalida;
+    @FXML private TableColumn<?, ?> colUsuario;
 
     @FXML private encabezadoController paneNavbarController;
 
@@ -301,10 +301,10 @@ public class MainController {
 
     @FXML
     private void mostrarSelectorColumnas(MouseEvent event) {
-        List<TableColumn> columnas = new ArrayList<>(contenidoTabla.getColumns());
+        List<TableColumn<?, ?>> columnas = new ArrayList<>(contenidoTabla.getColumns());
         SelectorColumnasPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
                 columnas, seleccion -> {
-                    for (Map.Entry<TableColumn, Boolean> entry : seleccion.entrySet()) {
+                    for (Map.Entry<TableColumn<?, ?>, Boolean> entry : seleccion.entrySet()) {
                         entry.getKey().setVisible(entry.getValue());
                     }
                 });
@@ -335,7 +335,7 @@ public class MainController {
     }
 
     private void aplicarOrdenamiento() {
-        TableColumn columna = obtenerColumnaOrden();
+        TableColumn<?, ?> columna = obtenerColumnaOrden();
         if (columna == null) {
             return;
         }
@@ -346,8 +346,8 @@ public class MainController {
         contenidoTabla.sort();
     }
 
-    private TableColumn obtenerColumnaOrden() {
-        Map<String, TableColumn> columnas = new HashMap<>();
+    private TableColumn<?, ?> obtenerColumnaOrden() {
+        Map<String, TableColumn<?, ?>> columnas = new HashMap<>();
         columnas.put("fecha", colFecha);
         columnas.put("hora", colHora);
         columnas.put("movimiento", colTipoMovimiento);
