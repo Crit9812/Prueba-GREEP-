@@ -581,6 +581,7 @@ public class MainController {
 
     private List<HistorialFactura> obtenerAjustes(Connection conn) throws SQLException {
         String query = "SELECT a.idAjuste, a.idUsuario, a.fechaAjuste, a.horaAjuste, a.precioNeto, a.precioTotal, a.Nota, "
+                + "a.Estado, "
                 + "u.userName AS usuarioNombre "
                 + "FROM ajuste_inventario a "
                 + "LEFT JOIN usuarios u ON a.idUsuario = u.idUsuario";
@@ -602,7 +603,7 @@ public class MainController {
                         valorTexto(rs.getObject("precioNeto")),
                         valorTexto(rs.getObject("precioTotal")),
                         valorTexto(rs.getObject("Nota")),
-                        "-"
+                        valorTexto(rs.getObject("Estado"))
                 ));
             }
         }
