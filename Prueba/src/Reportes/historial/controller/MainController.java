@@ -246,7 +246,7 @@ public class MainController {
                 + "LEFT JOIN usuarios u ON e.claveUsuarioEntrada = u.idUsuario "
                 + "LEFT JOIN proveedores p ON e.idRemitente = p.id "
                 + "LEFT JOIN sucursales s ON e.idRemitente = s.id "
-                + "WHERE LOWER(e.Estado) IN ('pendiente', 'finalizado', 'disponible')";
+                + "WHERE LOWER(e.Estado) IN ('pendiente', 'finalizado', 'disponible', 'cancelado')";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
@@ -553,7 +553,7 @@ public class MainController {
                 + "LEFT JOIN usuarios u ON s.claveUsuarioSalida = u.idUsuario "
                 + "LEFT JOIN clientes c ON s.idDestinatario = c.id "
                 + "LEFT JOIN sucursales su ON s.idDestinatario = su.id "
-                + "WHERE LOWER(s.Estado) IN ('pendiente', 'finalizado', 'disponible')";
+                + "WHERE LOWER(s.Estado) IN ('pendiente', 'finalizado', 'disponible', 'cancelado')";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);

@@ -472,7 +472,9 @@ public class DetalleFacturaController {
                 ? "p.`" + colProductoNombre + "`"
                 : "d.`" + colProducto + "`";
 
-        String filtroEstado = colEstado != null ? " AND LOWER(d.`" + colEstado + "`) = 'activo'" : "";
+        String ordenEstado = colEstado != null
+                ? "CASE WHEN LOWER(d.`" + colEstado + "`) = 'activo' THEN 0 ELSE 1 END, "
+                : "";
 
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
@@ -486,8 +488,7 @@ public class DetalleFacturaController {
                 FROM detalle_Entrada d
                 %s
                 WHERE d.`%s` = ?
-                %s
-                ORDER BY producto, idDetalle
+                ORDER BY %sproducto, idDetalle
                 """,
                 colDetalleId,
                 colProducto,
@@ -499,7 +500,7 @@ public class DetalleFacturaController {
                 productoExpr,
                 joinProducto,
                 colClaveEntrada,
-                filtroEstado
+                ordenEstado
         );
 
         List<DetalleLinea> lineas = new ArrayList<>();
@@ -576,7 +577,9 @@ public class DetalleFacturaController {
                 ? "s.`" + colTipoSalida + "`"
                 : "NULL";
 
-        String filtroEstado = colEstado != null ? " AND LOWER(d.`" + colEstado + "`) = 'activo'" : "";
+        String ordenEstado = colEstado != null
+                ? "CASE WHEN LOWER(d.`" + colEstado + "`) = 'activo' THEN 0 ELSE 1 END, "
+                : "";
 
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
@@ -592,8 +595,7 @@ public class DetalleFacturaController {
                 %s
                 %s
                 WHERE d.`%s` = ?
-                %s
-                ORDER BY producto, idDetalle
+                ORDER BY %sproducto, idDetalle
                 """,
                 colDetalleId,
                 colProducto,
@@ -607,7 +609,7 @@ public class DetalleFacturaController {
                 joinProducto,
                 joinSalida,
                 colClaveSalida,
-                filtroEstado
+                ordenEstado
         );
 
         List<DetalleLinea> lineas = new ArrayList<>();
@@ -692,8 +694,8 @@ public class DetalleFacturaController {
                 ? "p.`" + colProductoNombre + "`"
                 : "d.`" + colDetalleProducto + "`";
 
-        String filtroEstado = colArticuloEstado != null
-                ? " AND LOWER(a.`" + colArticuloEstado + "`) <> 'eliminado'"
+        String ordenEstado = colArticuloEstado != null
+                ? "CASE WHEN LOWER(a.`" + colArticuloEstado + "`) = 'eliminado' THEN 1 ELSE 0 END, "
                 : "";
 
         String sql = String.format("""
@@ -713,8 +715,7 @@ public class DetalleFacturaController {
                 %s
                 %s
                 WHERE d.`%s` = ?
-                %s
-                ORDER BY producto, lote, caducidad, ubicacion, idArticulo
+                ORDER BY %sproducto, lote, caducidad, ubicacion, idArticulo
                 """,
                 colDetalleId,
                 columnaSeguro("a", colArticuloId),
@@ -732,7 +733,7 @@ public class DetalleFacturaController {
                 joinUbicacion,
                 joinProducto,
                 colClaveEntrada,
-                filtroEstado
+                ordenEstado
         );
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -809,6 +810,10 @@ public class DetalleFacturaController {
                 ? "p.`" + colProductoNombre + "`"
                 : "d.`" + colDetalleProducto + "`";
 
+        String ordenEstado = colArticuloEstado != null
+                ? "CASE WHEN LOWER(a.`" + colArticuloEstado + "`) = 'eliminado' THEN 1 ELSE 0 END, "
+                : "";
+
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
                        %s AS idArticulo,
@@ -826,7 +831,7 @@ public class DetalleFacturaController {
                 %s
                 %s
                 WHERE d.`%s` = ?
-                ORDER BY producto, lote, caducidad, ubicacion, idArticulo
+                ORDER BY %sproducto, lote, caducidad, ubicacion, idArticulo
                 """,
                 colDetalleId,
                 columnaSeguro("a", colArticuloId),
@@ -843,7 +848,8 @@ public class DetalleFacturaController {
                 colDetalleId,
                 joinUbicacion,
                 joinProducto,
-                colClaveSalida
+                colClaveSalida,
+                ordenEstado
         );
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
