@@ -1615,13 +1615,15 @@ public class DetalleFacturaController {
                 "entrada_id");
         String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
         if (colDetalleId == null || colDetalleEstado == null || colArticuloDetalleEntrada == null
                 || colDetalleClaveEntrada == null) {
             return;
         }
 
-        String sqlConteo = "SELECT COUNT(*) FROM articulo WHERE `" + colArticuloDetalleEntrada + "` = ?";
+        String sqlConteo = "SELECT COUNT(*) FROM articulo WHERE `" + colArticuloDetalleEntrada + "` = ?"
+                + (colArticuloEstado != null ? " AND LOWER(`" + colArticuloEstado + "`) <> 'eliminado'" : "");
         int total = 0;
         try (PreparedStatement ps = conn.prepareStatement(sqlConteo)) {
             ps.setInt(1, detalleEntradaId);
