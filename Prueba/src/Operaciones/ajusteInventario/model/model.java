@@ -68,25 +68,34 @@ public class model {
                     BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
                     BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
 
-                    totalNeto = totalNeto.add(precioUnitario.multiply(cantidad));
-                    if (precioTotal.compareTo(BigDecimal.ZERO) > 0) {
-                        totalGeneral = totalGeneral.add(precioTotal);
-                    } else {
-                        totalGeneral = totalGeneral.add(precioBruto.multiply(cantidad));
-                    }
+                    BigDecimal totalBrutoEntrada = precioBruto.compareTo(BigDecimal.ZERO) > 0
+                            ? precioBruto
+                            : precioUnitario.multiply(cantidad);
+                    BigDecimal totalConIvaEntrada = precioTotal.compareTo(BigDecimal.ZERO) > 0
+                            ? precioTotal
+                            : totalBrutoEntrada;
+
+                    totalNeto = totalNeto.add(totalBrutoEntrada);
+                    totalGeneral = totalGeneral.add(totalConIvaEntrada);
                 }
             }
 
             if (!sinSalidas) {
                 for (traspasoSalida item : salidas) {
+                    BigDecimal cantidad = BigDecimal.valueOf(item.getCantidad());
+                    BigDecimal precioUnitario = parseDecimal(item.getPrecioEntrada());
                     BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
                     BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
-                    totalNeto = totalNeto.subtract(precioBruto);
-                    if (precioTotal.compareTo(BigDecimal.ZERO) > 0) {
-                        totalGeneral = totalGeneral.subtract(precioTotal);
-                    } else {
-                        totalGeneral = totalGeneral.subtract(precioBruto);
-                    }
+
+                    BigDecimal totalBrutoSalida = precioBruto.compareTo(BigDecimal.ZERO) > 0
+                            ? precioBruto
+                            : precioUnitario.multiply(cantidad);
+                    BigDecimal totalConIvaSalida = precioTotal.compareTo(BigDecimal.ZERO) > 0
+                            ? precioTotal
+                            : totalBrutoSalida;
+
+                    totalNeto = totalNeto.subtract(totalBrutoSalida);
+                    totalGeneral = totalGeneral.subtract(totalConIvaSalida);
                 }
             }
 
