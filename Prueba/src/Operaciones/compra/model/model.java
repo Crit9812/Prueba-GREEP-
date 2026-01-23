@@ -193,6 +193,7 @@ public class model {
                 String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto", "precio_bruto");
                 String colPrecioTotalDetalle = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
                 String colNotaDetalle = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
+                String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
 
                 if (colEntrada != null) valoresDetalle.put(colEntrada, idEntrada);
                 if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
@@ -202,6 +203,7 @@ public class model {
                 if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
                 if (colPrecioTotalDetalle != null) valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
                 if (colNotaDetalle != null) valoresDetalle.put(colNotaDetalle, item.getNota());
+                if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
 
                 long idDetalleEntrada = insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 

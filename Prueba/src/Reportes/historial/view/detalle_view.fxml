@@ -47,6 +47,8 @@
             <padding>
                 <Insets top="10" bottom="20"/>
             </padding>
+            <Button fx:id="btnCancelarEntrada" text="Cancelar entrada" onAction="#cancelarEntrada"/>
+            <Button fx:id="btnCancelar" text="Cancelar" onAction="#cancelarSalida"/>
             <Button fx:id="btnCerrar" text="Cerrar" onAction="#cerrarVentana"/>
         </HBox>
     </bottom>

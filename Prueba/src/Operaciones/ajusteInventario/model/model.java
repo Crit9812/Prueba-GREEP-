@@ -127,6 +127,7 @@ public class model {
         String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto", "precio_bruto");
         String colPrecioTotalDetalle = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
         String colNotaDetalle = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
+        String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
 
         String colArticuloDetalleEntrada = resolverColumna(
                 columnasArticulo,
@@ -155,6 +156,7 @@ public class model {
             if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
             if (colPrecioTotalDetalle != null) valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
             if (colNotaDetalle != null) valoresDetalle.put(colNotaDetalle, item.getNota());
+            if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
 
             long idDetalleEntrada = insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
 
@@ -240,6 +242,7 @@ public class model {
             String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
             String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
             String colDetalleFactor = resolverColumna(columnasDetalleSalida, "factor");
+            String colDetalleEstado = resolverColumna(columnasDetalleSalida, "estado", "Estado");
 
             if (colSalida != null) valoresDetalle.put(colSalida, idAjuste);
             if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
@@ -253,6 +256,7 @@ public class model {
             if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));
             if (colDetallePresentacion != null) valoresDetalle.put(colDetallePresentacion, item.getPresentacion());
             if (colDetalleFactor != null) valoresDetalle.put(colDetalleFactor, item.getFactor());
+            if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
 
             long idDetalleSalida = insertarRegistro(conn, "detalle_Salida", columnasDetalleSalida, valoresDetalle);
 
