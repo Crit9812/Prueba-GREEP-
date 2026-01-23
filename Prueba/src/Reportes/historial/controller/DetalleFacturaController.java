@@ -792,13 +792,15 @@ public class DetalleFacturaController {
                     card.getChildren().add(listaArticulos);
                 }
 
-                if ("Entrada".equalsIgnoreCase(linea.tipo) && todosDisponibles) {
+                boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
+                boolean puedeEditarEntrada = "Entrada".equalsIgnoreCase(linea.tipo)
+                        && (todosDisponibles || (esAjuste && linea.tieneArticulosSinPendienteOVendido()));
+                if (puedeEditarEntrada) {
                     Button btnEditarPrecio = new Button("Editar precio unitario");
                     btnEditarPrecio.setOnAction(event -> editarPrecioEntrada(linea));
                     card.getChildren().add(btnEditarPrecio);
                 }
 
-                boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
                 if ("Salida".equalsIgnoreCase(linea.tipo)
                         && (linea.esVenta() || esAjuste)) {
                     Button btnEditarPrecio = new Button("Editar precio salida");
@@ -1849,18 +1851,24 @@ public class DetalleFacturaController {
             if (articulos.isEmpty()) {
                 return false;
             }
-            boolean tieneDisponible = false;
             for (DetalleArticulo articulo : articulos) {
-                if (articulo.esDisponible()) {
-                    tieneDisponible = true;
-                    continue;
+                if (!articulo.esDisponible()) {
+                    return false;
                 }
+            }
+            return true;
+        }
+
+        private boolean tieneArticulosSinPendienteOVendido() {
+            if (articulos.isEmpty()) {
+                return false;
+            }
+            for (DetalleArticulo articulo : articulos) {
                 if (articulo.esPendiente() || articulo.esVendido()) {
                     return false;
                 }
-                return false;
             }
-            return tieneDisponible;
+            return true;
         }
     }
 
