@@ -53,6 +53,10 @@ public class MainController {
     @FXML private Region expansorBusqueda;
     @FXML private ComboBox<ProductoOpcion> buscarProducto;
 
+    @FXML private ComboBox<String> comboFiltro;
+    @FXML private ComboBox<String> comboValor;
+    @FXML private HBox contenedorFiltros;
+
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
@@ -77,6 +81,9 @@ public class MainController {
     private final ObservableList<ProductoOpcion> productosCache = FXCollections.observableArrayList();
     private final ObservableList<ProductoOpcion> productosFiltrados = FXCollections.observableArrayList();
     private final ObservableList<HistorialArticuloItem> historialItems = FXCollections.observableArrayList();
+    private final ObservableList<HistorialArticuloItem> historialItemsOriginal = FXCollections.observableArrayList();
+    private final List<Filtro> filtrosActivos = new ArrayList<>();
+    private boolean restaurandoFiltros = false;
     private boolean actualizandoBusqueda = false;
     private String criterioOrden = "fecha";
     private String direccionOrden = "desc";
@@ -130,6 +137,7 @@ public class MainController {
             paneNavbarController.setTitulo("Historial por artículo", "#ffffff");
             configurarColumnas();
             configurarBuscadorProducto();
+            configurarFiltros();
         });
     }
 
@@ -222,6 +230,143 @@ public class MainController {
                 cargarHistorialArticulo(newVal.getId());
             }
         });
+    }
+
+    private void configurarFiltros() {
+        if (comboFiltro == null || comboValor == null) {
+            return;
+        }
+        comboFiltro.getItems().setAll(
+                "Fecha",
+                "Hora",
+                "Movimiento",
+                "Proveedor",
+                "Factura entrada",
+                "Cliente",
+                "Factura salida",
+                "Usuario"
+        );
+        comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (restaurandoFiltros) {
+                return;
+            }
+            actualizarValoresFiltro(newVal);
+        });
+    }
+
+    private void actualizarValoresFiltro(String campo) {
+        if (comboValor == null) {
+            return;
+        }
+        comboValor.getItems().clear();
+        if (!restaurandoFiltros) {
+            comboValor.setValue(null);
+        }
+        if (campo == null || campo.isBlank()) {
+            return;
+        }
+        List<String> valores = new ArrayList<>();
+        for (HistorialArticuloItem item : historialItemsOriginal) {
+            String valor = obtenerValorCampo(item, campo);
+            if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
+                valores.add(valor);
+            }
+        }
+        comboValor.getItems().setAll(valores);
+    }
+
+    @FXML
+    private void agregarFiltro() {
+        String campo = comboFiltro.getValue();
+        String valor = comboValor.getValue();
+        if (campo == null || valor == null) {
+            mostrarAdvertencia(
+                    "Filtro incompleto",
+                    "Debes seleccionar un valor para el campo \"" + campo + "\"."
+            );
+            return;
+        }
+        if (filtrosActivos.size() >= 3) {
+            mostrarAdvertencia(
+                    "Límite de filtros",
+                    "Solo puedes aplicar hasta 3 filtros al mismo tiempo.\n" +
+                            "Elimina uno para agregar otro."
+            );
+            return;
+        }
+        for (Filtro filtro : filtrosActivos) {
+            if (filtro.campo.equals(campo)) {
+                mostrarAdvertencia(
+                        "Filtro duplicado",
+                        "Ya existe un filtro aplicado para el campo \"" + campo + "\".\n" +
+                                "Elimina el filtro actual si deseas cambiar su valor."
+                );
+                return;
+            }
+        }
+        Filtro filtro = new Filtro(campo, valor);
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+        aplicarFiltros();
+    }
+
+    private Node crearChipFiltro(Filtro filtro) {
+        HBox chip = new HBox(6);
+        chip.setAlignment(javafx.geometry.Pos.CENTER);
+        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        Label texto = new Label(filtro.campo + ": " + filtro.valor);
+        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
+        Button quitar = new Button("x");
+        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
+        quitar.setOnAction(event -> {
+            filtrosActivos.remove(filtro);
+            contenedorFiltros.getChildren().remove(chip);
+            aplicarFiltros();
+        });
+        chip.getChildren().addAll(texto, quitar);
+        return chip;
+    }
+
+    private void aplicarFiltros() {
+        List<HistorialArticuloItem> filtrados = new ArrayList<>();
+        for (HistorialArticuloItem item : historialItemsOriginal) {
+            boolean coincide = true;
+            for (Filtro filtro : filtrosActivos) {
+                String valor = obtenerValorCampo(item, filtro.campo);
+                if (valor == null || !valor.equals(filtro.valor)) {
+                    coincide = false;
+                    break;
+                }
+            }
+            if (coincide) {
+                filtrados.add(item);
+            }
+        }
+        historialItems.setAll(filtrados);
+        aplicarOrdenamiento();
+    }
+
+    private String obtenerValorCampo(HistorialArticuloItem item, String campo) {
+        switch (campo) {
+            case "Fecha":
+                return item.getFecha();
+            case "Hora":
+                return item.getHora();
+            case "Movimiento":
+                return item.getTipoMovimiento();
+            case "Proveedor":
+                return item.getProveedor();
+            case "Factura entrada":
+                return item.getFacturaEntrada();
+            case "Cliente":
+                return item.getCliente();
+            case "Factura salida":
+                return item.getFacturaSalida();
+            case "Usuario":
+                return item.getUsuario();
+            default:
+                return "";
+        }
     }
 
     private void filtrarProductos(String texto) {
@@ -448,8 +593,26 @@ public class MainController {
             existencias = despues;
         }
 
-        historialItems.setAll(nuevos);
-        aplicarOrdenamiento();
+        historialItemsOriginal.setAll(nuevos);
+        reiniciarFiltros();
+        aplicarFiltros();
+    }
+
+    private void reiniciarFiltros() {
+        restaurandoFiltros = true;
+        filtrosActivos.clear();
+        if (contenedorFiltros != null) {
+            contenedorFiltros.getChildren().clear();
+        }
+        if (comboFiltro != null) {
+            comboFiltro.setValue(null);
+        }
+        if (comboValor != null) {
+            comboValor.getItems().clear();
+            comboValor.setValue(null);
+        }
+        restaurandoFiltros = false;
+        actualizarValoresFiltro(comboFiltro != null ? comboFiltro.getValue() : null);
     }
 
     private List<MovimientoArticulo> obtenerEntradasArticulo(Connection conn, String idProducto) throws SQLException {
@@ -615,6 +778,9 @@ public class MainController {
             filtrosAplicados.add("Producto: " + seleccionado.getTextoVisible());
         } else if (texto != null && !texto.isBlank()) {
             filtrosAplicados.add("Producto contiene: " + texto.trim());
+        }
+        for (Filtro filtro : filtrosActivos) {
+            filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
         }
         return filtrosAplicados;
     }
@@ -784,5 +950,15 @@ public class MainController {
         public String getCliente() { return cliente; }
         public String getFacturaSalida() { return facturaSalida; }
         public String getUsuario() { return usuario; }
+    }
+
+    private static class Filtro {
+        private final String campo;
+        private final String valor;
+
+        private Filtro(String campo, String valor) {
+            this.campo = campo;
+            this.valor = valor;
+        }
     }
 }
