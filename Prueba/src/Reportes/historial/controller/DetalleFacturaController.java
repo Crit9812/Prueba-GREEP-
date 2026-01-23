@@ -36,6 +36,7 @@ public class DetalleFacturaController {
     @FXML private CheckBox chkDetallado;
     @FXML private Button btnCerrar;
     @FXML private Button btnCancelar;
+    @FXML private Button btnCancelarEntrada;
     @FXML private ScrollPane scrollPane;
 
     private HistorialFactura historial;
@@ -206,6 +207,161 @@ public class DetalleFacturaController {
         });
     }
 
+    @FXML
+    private void cancelarEntrada() {
+        if (historial == null || !"Entrada".equalsIgnoreCase(historial.getMovimiento())) {
+            return;
+        }
+        Integer entradaId = parseInteger(historial.getClaveMovimiento());
+        if (entradaId == null || entradaId <= 0) {
+            return;
+        }
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Cancelar entrada");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Deseas cancelar la entrada seleccionada?");
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != ButtonType.OK) {
+                return;
+            }
+            try (Connection conn = new Conexion().conectar()) {
+                if (conn == null) {
+                    return;
+                }
+                conn.setAutoCommit(false);
+
+                try {
+                    Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+                    Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+                    Map<String, String> columnasEntrada = obtenerColumnas(conn, "entradas");
+
+                    String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+                    String colDetalleClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada",
+                            "entrada_id");
+                    String colDetalleCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
+                    String colDetallePrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto",
+                            "precio_bruto");
+                    String colDetallePrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
+                    String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
+
+                    String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                            "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+                    String colEntradaId = resolverColumna(columnasEntrada, "idEntrada", "id", "id_entrada");
+                    String colEntradaPrecioNeto = resolverColumna(columnasEntrada, "precioNetoEntrada", "precioNeto", "precio_neto");
+                    String colEntradaPrecioTotal = resolverColumna(columnasEntrada, "precioTotalEntrada", "precioTotal",
+                            "precio_total");
+                    String colEntradaEstado = resolverColumna(columnasEntrada, "Estado", "estado");
+
+                    if (colDetalleId == null || colDetalleClaveEntrada == null || colEntradaId == null || colEntradaEstado == null) {
+                        conn.rollback();
+                        return;
+                    }
+
+                    if (colArticuloDetalleEntrada == null || colArticuloEstado == null) {
+                        conn.rollback();
+                        return;
+                    }
+
+                    String sqlBloqueo = "SELECT COUNT(*) FROM articulo a "
+                            + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleId + "` "
+                            + "WHERE d.`" + colDetalleClaveEntrada + "` = ? "
+                            + "AND LOWER(a.`" + colArticuloEstado + "`) IN ('pendiente', 'vendido')";
+                    int bloqueados = 0;
+                    try (PreparedStatement ps = conn.prepareStatement(sqlBloqueo)) {
+                        ps.setInt(1, entradaId);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                bloqueados = rs.getInt(1);
+                            }
+                        }
+                    }
+
+                    if (bloqueados > 0) {
+                        conn.rollback();
+                        mostrarAdvertencia("No se puede cancelar",
+                                "Ya hay productos vendidos o traspasados en esta entrada.");
+                        return;
+                    }
+
+                    List<Integer> detallesEntrada = new ArrayList<>();
+                    String sqlDetalles = "SELECT `" + colDetalleId + "` AS idDetalle FROM detalle_Entrada WHERE `"
+                            + colDetalleClaveEntrada + "` = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(sqlDetalles)) {
+                        ps.setInt(1, entradaId);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                detallesEntrada.add(rs.getInt("idDetalle"));
+                            }
+                        }
+                    }
+
+                    if (!detallesEntrada.isEmpty()) {
+                        String sqlActualizarArticulo = "UPDATE articulo SET `" + colArticuloEstado + "` = ? "
+                                + "WHERE `" + colArticuloDetalleEntrada + "` = ?";
+                        try (PreparedStatement ps = conn.prepareStatement(sqlActualizarArticulo)) {
+                            for (Integer detalleId : detallesEntrada) {
+                                ps.setString(1, "eliminado");
+                                ps.setInt(2, detalleId);
+                                ps.addBatch();
+                            }
+                            ps.executeBatch();
+                        }
+                    }
+
+                    if (!detallesEntrada.isEmpty()) {
+                        StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Entrada SET ");
+                        List<Object> valoresDetalle = new ArrayList<>();
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleCantidad, 0);
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioBruto, BigDecimal.ZERO);
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioTotal, BigDecimal.ZERO);
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleEstado, "desactivado");
+                        if (!valoresDetalle.isEmpty()) {
+                            updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
+                            try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
+                                for (Integer detalleId : detallesEntrada) {
+                                    int index = 1;
+                                    for (Object valor : valoresDetalle) {
+                                        ps.setObject(index++, valor);
+                                    }
+                                    ps.setInt(index, detalleId);
+                                    ps.addBatch();
+                                }
+                                ps.executeBatch();
+                            }
+                        }
+                    }
+
+                    StringBuilder updateEntrada = new StringBuilder("UPDATE entradas SET ");
+                    List<Object> valoresEntrada = new ArrayList<>();
+                    agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioNeto, BigDecimal.ZERO);
+                    agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioTotal, BigDecimal.ZERO);
+                    agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaEstado, "cancelado");
+                    if (!valoresEntrada.isEmpty()) {
+                        updateEntrada.append(" WHERE `").append(colEntradaId).append("` = ?");
+                        valoresEntrada.add(entradaId);
+                        try (PreparedStatement ps = conn.prepareStatement(updateEntrada.toString())) {
+                            for (int i = 0; i < valoresEntrada.size(); i++) {
+                                ps.setObject(i + 1, valoresEntrada.get(i));
+                            }
+                            ps.executeUpdate();
+                        }
+                    }
+
+                    conn.commit();
+                    notificarActualizacion();
+                    cargarDetalles();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void actualizarTitulo() {
         if (lblTitulo == null) {
             return;
@@ -225,6 +381,12 @@ public class DetalleFacturaController {
         btnCancelar.setVisible(esSalida);
         btnCancelar.setManaged(esSalida);
         btnCancelar.setDisable(!esSalida);
+        if (btnCancelarEntrada != null) {
+            boolean esEntrada = historial != null && "Entrada".equalsIgnoreCase(historial.getMovimiento());
+            btnCancelarEntrada.setVisible(esEntrada);
+            btnCancelarEntrada.setManaged(esEntrada);
+            btnCancelarEntrada.setDisable(!esEntrada);
+        }
     }
 
     private void cargarDetalles() {
