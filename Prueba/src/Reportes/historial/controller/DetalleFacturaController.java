@@ -530,6 +530,10 @@ public class DetalleFacturaController {
                 ? "p.`" + colProductoNombre + "`"
                 : "d.`" + colDetalleProducto + "`";
 
+        String filtroEstado = colArticuloEstado != null
+                ? " AND LOWER(a.`" + colArticuloEstado + "`) = 'disponible'"
+                : "";
+
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
                        %s AS idArticulo,
@@ -547,6 +551,7 @@ public class DetalleFacturaController {
                 %s
                 %s
                 WHERE d.`%s` = ?
+                %s
                 ORDER BY producto, lote, caducidad, ubicacion, idArticulo
                 """,
                 colDetalleId,
@@ -564,7 +569,8 @@ public class DetalleFacturaController {
                 colDetalleId,
                 joinUbicacion,
                 joinProducto,
-                colClaveEntrada
+                colClaveEntrada,
+                filtroEstado
         );
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
