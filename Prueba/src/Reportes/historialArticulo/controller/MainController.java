@@ -76,6 +76,13 @@ public class MainController {
     @FXML private TableColumn<HistorialArticuloItem, String> colFacturaSalida;
     @FXML private TableColumn<HistorialArticuloItem, String> colUsuario;
 
+    @FXML private Label lblClave;
+    @FXML private Label lblDescripcion;
+    @FXML private Label lblPresentacion;
+    @FXML private Label lblFactor;
+    @FXML private Label lblExistencias;
+    @FXML private Label lblPeriodo;
+
     @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<ProductoOpcion> productosCache = FXCollections.observableArrayList();
@@ -228,6 +235,8 @@ public class MainController {
                 buscarProducto.getEditor().setText(newVal.getTextoVisible());
                 actualizandoBusqueda = false;
                 cargarHistorialArticulo(newVal.getId());
+            } else {
+                limpiarDetalleProducto();
             }
         });
     }
@@ -467,6 +476,18 @@ public class MainController {
         return String.join(", ", partes);
     }
 
+    private String construirDescripcion(String marca, String etiqueta, String clasificacion,
+                                        String unidad, String material, String descripcion) {
+        List<String> partes = new ArrayList<>();
+        agregarParte(partes, marca);
+        agregarParte(partes, etiqueta);
+        agregarParte(partes, clasificacion);
+        agregarParte(partes, unidad);
+        agregarParte(partes, material);
+        agregarParte(partes, descripcion);
+        return String.join(", ", partes);
+    }
+
     private void agregarParte(List<String> partes, String valor) {
         if (valor != null && !valor.isBlank()) {
             partes.add(valor.trim());
@@ -540,6 +561,7 @@ public class MainController {
     private void cargarHistorialArticulo(String idProducto) {
         if (idProducto == null || idProducto.isBlank()) {
             historialItems.clear();
+            limpiarDetalleProducto();
             return;
         }
 
@@ -548,9 +570,11 @@ public class MainController {
         try (Connection conn = new Conexion().conectar()) {
             if (conn == null) {
                 historialItems.clear();
+                limpiarDetalleProducto();
                 return;
             }
 
+            cargarDetalleProducto(conn, idProducto);
             movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
             movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
         } catch (SQLException e) {
@@ -738,6 +762,75 @@ public class MainController {
             hora = LocalTime.MIN;
         }
         return LocalDateTime.of(fecha, hora);
+    }
+
+    private void cargarDetalleProducto(Connection conn, String idProducto) throws SQLException {
+        String sqlProducto = "SELECT p.id, p.categoria, p.material, p.unidadMedida, p.descripcion, "
+                + "m.nombre AS marca, e.nombre AS etiqueta "
+                + "FROM productos p "
+                + "LEFT JOIN marcas m ON m.id = p.marca "
+                + "LEFT JOIN etiquetas e ON e.id = p.etiqueta "
+                + "WHERE p.id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlProducto)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String descripcion = construirDescripcion(
+                            valorTexto(rs.getObject("marca")),
+                            valorTexto(rs.getObject("etiqueta")),
+                            valorTexto(rs.getObject("categoria")),
+                            valorTexto(rs.getObject("unidadMedida")),
+                            valorTexto(rs.getObject("material")),
+                            valorTexto(rs.getObject("descripcion"))
+                    );
+                    lblClave.setText("Clave: " + idProducto);
+                    lblDescripcion.setText("Descripción: " + descripcion);
+                }
+            }
+        }
+
+        String sqlPresentacion = "SELECT a.presentacion, a.factor "
+                + "FROM articulo a "
+                + "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada "
+                + "WHERE de.claveProducto = ? "
+                + "ORDER BY a.idArticulo DESC "
+                + "LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sqlPresentacion)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String presentacion = valorTexto(rs.getObject("presentacion"));
+                    String factor = valorTexto(rs.getObject("factor"));
+                    lblPresentacion.setText("Presentación: " + presentacion);
+                    lblFactor.setText("Factor: " + factor);
+                }
+            }
+        }
+
+        String sqlExistencias = "SELECT COUNT(*) AS total "
+                + "FROM articulo a "
+                + "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada "
+                + "WHERE de.claveProducto = ? AND LOWER(a.Estado) = 'disponible'";
+        try (PreparedStatement ps = conn.prepareStatement(sqlExistencias)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    lblExistencias.setText("Existencias: " + rs.getInt("total"));
+                }
+            }
+        }
+    }
+
+    private void limpiarDetalleProducto() {
+        lblClave.setText("Clave:");
+        lblDescripcion.setText("Descripción:");
+        lblPresentacion.setText("Presentación:");
+        lblFactor.setText("Factor:");
+        lblExistencias.setText("Existencias:");
+        if (lblPeriodo != null) {
+            lblPeriodo.setText("Periodo:");
+        }
     }
 
     @FXML
