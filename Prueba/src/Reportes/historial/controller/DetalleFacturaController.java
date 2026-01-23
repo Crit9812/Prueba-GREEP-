@@ -1252,6 +1252,56 @@ public class DetalleFacturaController {
             ps.setInt(2, detalleSalidaId);
             ps.executeUpdate();
         }
+
+        String colClaveSalida = resolverColumna(columnasDetalle, "claveSalida", "idSalida", "id_salida", "salida_id");
+        if (colClaveSalida == null) {
+            return;
+        }
+
+        Integer salidaId = null;
+        String sqlSalida = "SELECT `" + colClaveSalida + "` AS claveSalida FROM detalle_Salida WHERE `" + colDetalleId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlSalida)) {
+            ps.setInt(1, detalleSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    salidaId = rs.getInt("claveSalida");
+                }
+            }
+        }
+
+        if (salidaId == null || salidaId <= 0) {
+            return;
+        }
+
+        String sqlConteoDetalles = "SELECT COUNT(*) FROM detalle_Salida WHERE `" + colClaveSalida + "` = ? "
+                + "AND LOWER(`" + colDetalleEstado + "`) = 'activo'";
+        int detallesActivos = 0;
+        try (PreparedStatement ps = conn.prepareStatement(sqlConteoDetalles)) {
+            ps.setInt(1, salidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    detallesActivos = rs.getInt(1);
+                }
+            }
+        }
+
+        if (detallesActivos > 0) {
+            return;
+        }
+
+        Map<String, String> columnasSalida = obtenerColumnas(conn, "salidas");
+        String colSalidaId = resolverColumna(columnasSalida, "idSalida", "id", "id_salida");
+        String colSalidaEstado = resolverColumna(columnasSalida, "Estado", "estado");
+        if (colSalidaId == null || colSalidaEstado == null) {
+            return;
+        }
+
+        String sqlCancelarSalida = "UPDATE salidas SET `" + colSalidaEstado + "` = ? WHERE `" + colSalidaId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlCancelarSalida)) {
+            ps.setString(1, "cancelado");
+            ps.setInt(2, salidaId);
+            ps.executeUpdate();
+        }
     }
 
     private void agregarCampoActualizacion(StringBuilder sql, List<Object> valores, String columna, Object valor) {
