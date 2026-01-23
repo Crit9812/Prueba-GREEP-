@@ -35,6 +35,7 @@ public class DetalleFacturaController {
     @FXML private VBox contenedorDetalles;
     @FXML private CheckBox chkDetallado;
     @FXML private Button btnCerrar;
+    @FXML private Button btnCancelar;
     @FXML private ScrollPane scrollPane;
 
     private HistorialFactura historial;
@@ -47,11 +48,13 @@ public class DetalleFacturaController {
             chkDetallado.selectedProperty().addListener((obs, oldVal, newVal) -> cargarDetalles());
         }
         actualizarTitulo();
+        actualizarBotonCancelar();
     }
 
     public void setHistorial(HistorialFactura historial) {
         this.historial = historial;
         actualizarTitulo();
+        actualizarBotonCancelar();
         cargarDetalles();
     }
 
@@ -74,6 +77,135 @@ public class DetalleFacturaController {
         }
     }
 
+    @FXML
+    private void cancelarSalida() {
+        if (historial == null || !"Salida".equalsIgnoreCase(historial.getMovimiento())) {
+            return;
+        }
+        Integer salidaId = parseInteger(historial.getClaveMovimiento());
+        if (salidaId == null || salidaId <= 0) {
+            return;
+        }
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Cancelar salida");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Deseas cancelar la salida seleccionada?");
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != ButtonType.OK) {
+                return;
+            }
+            try (Connection conn = new Conexion().conectar()) {
+                if (conn == null) {
+                    return;
+                }
+                conn.setAutoCommit(false);
+
+                try {
+                    Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Salida");
+                    Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+                    Map<String, String> columnasSalida = obtenerColumnas(conn, "salidas");
+
+                    String colDetalleId = resolverColumna(columnasDetalle, "idDetalleSalida", "id", "id_detalle_salida");
+                    String colDetalleClaveSalida = resolverColumna(columnasDetalle, "claveSalida", "idSalida", "id_salida",
+                            "salida_id");
+                    String colDetalleCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadSalida", "cantidad_salida");
+                    String colDetallePrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotalSalida",
+                            "precioBrutoTotal", "precio_bruto");
+                    String colDetallePrecioTotal = resolverColumna(columnasDetalle, "precioTotalSalida", "precioTotal",
+                            "precio_total");
+                    String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
+
+                    String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                            "detalleSalida", "detalle_salida", "detalle_salida_id");
+                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+                    String colSalidaId = resolverColumna(columnasSalida, "idSalida", "id", "id_salida");
+                    String colSalidaPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto", "precio_neto");
+                    String colSalidaPrecioTotal = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal",
+                            "precio_total");
+                    String colSalidaEstado = resolverColumna(columnasSalida, "Estado", "estado");
+
+                    if (colDetalleId == null || colDetalleClaveSalida == null || colSalidaId == null || colSalidaEstado == null) {
+                        conn.rollback();
+                        return;
+                    }
+
+                    List<Integer> detallesSalida = new ArrayList<>();
+                    String sqlDetalles = "SELECT `" + colDetalleId + "` AS idDetalle FROM detalle_Salida WHERE `"
+                            + colDetalleClaveSalida + "` = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(sqlDetalles)) {
+                        ps.setInt(1, salidaId);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                detallesSalida.add(rs.getInt("idDetalle"));
+                            }
+                        }
+                    }
+
+                    if (colArticuloDetalleSalida != null && colArticuloEstado != null && !detallesSalida.isEmpty()) {
+                        String sqlActualizarArticulo = "UPDATE articulo SET `" + colArticuloEstado + "` = ?, `"
+                                + colArticuloDetalleSalida + "` = NULL WHERE `" + colArticuloDetalleSalida + "` = ?";
+                        try (PreparedStatement ps = conn.prepareStatement(sqlActualizarArticulo)) {
+                            for (Integer detalleId : detallesSalida) {
+                                ps.setString(1, "disponible");
+                                ps.setInt(2, detalleId);
+                                ps.addBatch();
+                            }
+                            ps.executeBatch();
+                        }
+                    }
+
+                    if (!detallesSalida.isEmpty()) {
+                        StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Salida SET ");
+                        List<Object> valoresDetalle = new ArrayList<>();
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleCantidad, 0);
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioBruto, BigDecimal.ZERO);
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioTotal, BigDecimal.ZERO);
+                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleEstado, "desactivado");
+                        if (!valoresDetalle.isEmpty()) {
+                            updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
+                            try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
+                                for (Integer detalleId : detallesSalida) {
+                                    int index = 1;
+                                    for (Object valor : valoresDetalle) {
+                                        ps.setObject(index++, valor);
+                                    }
+                                    ps.setInt(index, detalleId);
+                                    ps.addBatch();
+                                }
+                                ps.executeBatch();
+                            }
+                        }
+                    }
+
+                    StringBuilder updateSalida = new StringBuilder("UPDATE salidas SET ");
+                    List<Object> valoresSalida = new ArrayList<>();
+                    agregarCampoActualizacion(updateSalida, valoresSalida, colSalidaPrecioNeto, BigDecimal.ZERO);
+                    agregarCampoActualizacion(updateSalida, valoresSalida, colSalidaPrecioTotal, BigDecimal.ZERO);
+                    agregarCampoActualizacion(updateSalida, valoresSalida, colSalidaEstado, "cancelado");
+                    if (!valoresSalida.isEmpty()) {
+                        updateSalida.append(" WHERE `").append(colSalidaId).append("` = ?");
+                        valoresSalida.add(salidaId);
+                        try (PreparedStatement ps = conn.prepareStatement(updateSalida.toString())) {
+                            for (int i = 0; i < valoresSalida.size(); i++) {
+                                ps.setObject(i + 1, valoresSalida.get(i));
+                            }
+                            ps.executeUpdate();
+                        }
+                    }
+
+                    conn.commit();
+                    notificarActualizacion();
+                    cargarDetalles();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void actualizarTitulo() {
         if (lblTitulo == null) {
             return;
@@ -83,6 +215,16 @@ public class DetalleFacturaController {
             return;
         }
         lblTitulo.setText("Detalles - " + historial.getMovimiento());
+    }
+
+    private void actualizarBotonCancelar() {
+        if (btnCancelar == null) {
+            return;
+        }
+        boolean esSalida = historial != null && "Salida".equalsIgnoreCase(historial.getMovimiento());
+        btnCancelar.setVisible(esSalida);
+        btnCancelar.setManaged(esSalida);
+        btnCancelar.setDisable(!esSalida);
     }
 
     private void cargarDetalles() {
