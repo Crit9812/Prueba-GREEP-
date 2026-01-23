@@ -12,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -424,18 +425,22 @@ public class MainController {
     }
 
     private Node crearChipFiltro(Filtro filtro) {
-        HBox chip = new HBox(6);
+        HBox chip = new HBox(5); // spacing igual que en FXML
         chip.setAlignment(javafx.geometry.Pos.CENTER);
-        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        chip.getStyleClass().add("chip"); // Aquí aplicas la clase CSS
+
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
-        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
-        Button quitar = new Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
+        texto.getStyleClass().add("chip-text"); // Si tienes clase específica para texto
+
+        Button quitar = new Button("✕");
+        quitar.getStyleClass().add("chip-close"); // La misma clase que en FXML
+
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
             aplicarFiltros();
         });
+
         chip.getChildren().addAll(texto, quitar);
         return chip;
     }

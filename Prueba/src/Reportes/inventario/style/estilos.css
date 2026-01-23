@@ -105,4 +105,30 @@
 }
 
 
+.chip {
+    -fx-background-color: #333;
+    -fx-background-radius: 20;
+    -fx-padding: 5 10;
+    -fx-alignment: center;
+}
+
+.chip Label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.chip-close {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+
+.chip-close:hover {
+    -fx-text-fill: #999696;
+}
+
+
 

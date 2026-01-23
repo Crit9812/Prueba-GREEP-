@@ -56,18 +56,35 @@ public class SelectorColumnasPopup {
 
         CheckBox seleccionarTodo = new CheckBox("Seleccionar todo");
         seleccionarTodo.setStyle("-fx-font-size: 11pt; -fx-text-fill: black;");
+
+        // Estado inicial
         boolean todosSeleccionados = checks.values().stream().allMatch(CheckBox::isSelected);
         seleccionarTodo.setSelected(todosSeleccionados);
-        seleccionarTodo.selectedProperty().addListener((obs, oldVal, newVal) -> {
+
+        // 1. Listener SIMPLE para "Seleccionar todo"
+        seleccionarTodo.setOnAction(event -> {
+            boolean nuevoEstado = seleccionarTodo.isSelected();
             for (CheckBox checkBox : checks.values()) {
-                checkBox.setSelected(newVal);
+                checkBox.setSelected(nuevoEstado);
             }
         });
+
+        // 2. Listener SIMPLE para cada checkbox individual
         for (CheckBox checkBox : checks.values()) {
-            checkBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
-                boolean allSelected = checks.values().stream().allMatch(CheckBox::isSelected);
-                if (seleccionarTodo.isSelected() != allSelected) {
-                    seleccionarTodo.setSelected(allSelected);
+            checkBox.setOnAction(event -> {
+                // Contar cuántos están seleccionados
+                long seleccionados = checks.values().stream()
+                        .filter(CheckBox::isSelected)
+                        .count();
+
+                // Actualizar "Seleccionar todo" según corresponda
+                if (seleccionados == checks.size()) {
+                    seleccionarTodo.setSelected(true);
+                } else if (seleccionados == 0) {
+                    seleccionarTodo.setSelected(false);
+                } else {
+                    // Estado indeterminado - desmarcar "Seleccionar todo"
+                    seleccionarTodo.setSelected(false);
                 }
             });
         }

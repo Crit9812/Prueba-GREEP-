@@ -4,12 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion de cambios de jessica">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion de cambios en operaciones de jessica">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/exportar/ReporteTraspasoExporter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/exportar/ReporteTraspasoExporter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/helper/SelectorColumnasPopup.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/helper/SelectorColumnasPopup.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,7 +41,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/add-default-active-status-to-records" />
+        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -204,7 +204,8 @@
       <workItem from="1768917288002" duration="21552000" />
       <workItem from="1769003836964" duration="16189000" />
       <workItem from="1769032482642" duration="5951000" />
-      <workItem from="1769198174687" duration="6696000" />
+      <workItem from="1769198174687" duration="7935000" />
+      <workItem from="1769191210060" duration="496000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />
@@ -550,7 +551,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769039714166</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="Agregacion de cambios en operaciones de jessica">
+      <option name="closed" value="true" />
+      <created>1769205501060</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1769205501060</updated>
+    </task>
+    <option name="localTasksCounter" value="45" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -603,7 +612,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Agregada parte de compra completa" />
     <MESSAGE value="Agregada parte de compra completa y cambio al cerrar formulario" />
     <MESSAGE value="Agregado de tabla en claves y cambioes en compras y ventas" />
     <MESSAGE value="Agregado de tabla en claves y cambioes en compras y ventas." />
@@ -628,7 +636,8 @@
     <MESSAGE value="Agregacion traspasos de jessica" />
     <MESSAGE value="Agregacion de operaciones de jessica" />
     <MESSAGE value="Agregacion de cambios de jessica" />
-    <option name="LAST_COMMIT_MESSAGE" value="Agregacion de cambios de jessica" />
+    <MESSAGE value="Agregacion de cambios en operaciones de jessica" />
+    <option name="LAST_COMMIT_MESSAGE" value="Agregacion de cambios en operaciones de jessica" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
