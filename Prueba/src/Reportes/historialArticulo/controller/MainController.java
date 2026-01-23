@@ -13,6 +13,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.Node;
 import javafx.scene.layout.*;
@@ -22,7 +23,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -51,27 +58,30 @@ public class MainController {
     @FXML private Label lblDescargar;
 
     @FXML private VBox contenedorTabla;
-    @FXML private TableView<Object> contenidoTabla;
-    @FXML private TableColumn<Object, ?> colFecha;
-    @FXML private TableColumn<Object, ?> colHora;
-    @FXML private TableColumn<Object, ?> colTipoMovimiento;
-    @FXML private TableColumn<Object, ?> colAntes;
-    @FXML private TableColumn<Object, ?> colDespues;
-    @FXML private TableColumn<Object, ?> colEntradas;
-    @FXML private TableColumn<Object, ?> colSalidas;
-    @FXML private TableColumn<Object, ?> colProveedor;
-    @FXML private TableColumn<Object, ?> colFacturaEntrada;
-    @FXML private TableColumn<Object, ?> colCliente;
-    @FXML private TableColumn<Object, ?> colFacturaSalida;
-    @FXML private TableColumn<Object, ?> colUsuario;
+    @FXML private TableView<HistorialArticuloItem> contenidoTabla;
+    @FXML private TableColumn<HistorialArticuloItem, String> colFecha;
+    @FXML private TableColumn<HistorialArticuloItem, String> colHora;
+    @FXML private TableColumn<HistorialArticuloItem, String> colTipoMovimiento;
+    @FXML private TableColumn<HistorialArticuloItem, String> colAntes;
+    @FXML private TableColumn<HistorialArticuloItem, String> colDespues;
+    @FXML private TableColumn<HistorialArticuloItem, String> colEntradas;
+    @FXML private TableColumn<HistorialArticuloItem, String> colSalidas;
+    @FXML private TableColumn<HistorialArticuloItem, String> colProveedor;
+    @FXML private TableColumn<HistorialArticuloItem, String> colFacturaEntrada;
+    @FXML private TableColumn<HistorialArticuloItem, String> colCliente;
+    @FXML private TableColumn<HistorialArticuloItem, String> colFacturaSalida;
+    @FXML private TableColumn<HistorialArticuloItem, String> colUsuario;
 
     @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<ProductoOpcion> productosCache = FXCollections.observableArrayList();
     private final ObservableList<ProductoOpcion> productosFiltrados = FXCollections.observableArrayList();
+    private final ObservableList<HistorialArticuloItem> historialItems = FXCollections.observableArrayList();
     private boolean actualizandoBusqueda = false;
     private String criterioOrden = "fecha";
     private String direccionOrden = "desc";
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     @FXML
     public void initialize() {
@@ -118,8 +128,26 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Historial por artículo", "#ffffff");
+            configurarColumnas();
             configurarBuscadorProducto();
         });
+    }
+
+    private void configurarColumnas() {
+        colFecha.setCellValueFactory(new PropertyValueFactory<>("fecha"));
+        colHora.setCellValueFactory(new PropertyValueFactory<>("hora"));
+        colTipoMovimiento.setCellValueFactory(new PropertyValueFactory<>("tipoMovimiento"));
+        colAntes.setCellValueFactory(new PropertyValueFactory<>("antes"));
+        colDespues.setCellValueFactory(new PropertyValueFactory<>("despues"));
+        colEntradas.setCellValueFactory(new PropertyValueFactory<>("entradas"));
+        colSalidas.setCellValueFactory(new PropertyValueFactory<>("salidas"));
+        colProveedor.setCellValueFactory(new PropertyValueFactory<>("proveedor"));
+        colFacturaEntrada.setCellValueFactory(new PropertyValueFactory<>("facturaEntrada"));
+        colCliente.setCellValueFactory(new PropertyValueFactory<>("cliente"));
+        colFacturaSalida.setCellValueFactory(new PropertyValueFactory<>("facturaSalida"));
+        colUsuario.setCellValueFactory(new PropertyValueFactory<>("usuario"));
+
+        contenidoTabla.setItems(historialItems);
     }
 
     private void configurarBuscadorProducto() {
@@ -191,6 +219,7 @@ public class MainController {
                 actualizandoBusqueda = true;
                 buscarProducto.getEditor().setText(newVal.getTextoVisible());
                 actualizandoBusqueda = false;
+                cargarHistorialArticulo(newVal.getId());
             }
         });
     }
@@ -301,10 +330,10 @@ public class MainController {
 
     @FXML
     private void mostrarSelectorColumnas(MouseEvent event) {
-        List<TableColumn<Object, ?>> columnas = new ArrayList<>(contenidoTabla.getColumns());
+        List<TableColumn<HistorialArticuloItem, ?>> columnas = new ArrayList<>(contenidoTabla.getColumns());
         SelectorColumnasPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
                 columnas, seleccion -> {
-                    for (Map.Entry<TableColumn<Object, ?>, Boolean> entry : seleccion.entrySet()) {
+                    for (Map.Entry<TableColumn<HistorialArticuloItem, ?>, Boolean> entry : seleccion.entrySet()) {
                         entry.getKey().setVisible(entry.getValue());
                     }
                 });
@@ -335,7 +364,7 @@ public class MainController {
     }
 
     private void aplicarOrdenamiento() {
-        TableColumn<Object, ?> columna = obtenerColumnaOrden();
+        TableColumn<HistorialArticuloItem, ?> columna = obtenerColumnaOrden();
         if (columna == null) {
             return;
         }
@@ -346,8 +375,8 @@ public class MainController {
         contenidoTabla.sort();
     }
 
-    private TableColumn<Object, ?> obtenerColumnaOrden() {
-        Map<String, TableColumn<Object, ?>> columnas = new HashMap<>();
+    private TableColumn<HistorialArticuloItem, ?> obtenerColumnaOrden() {
+        Map<String, TableColumn<HistorialArticuloItem, ?>> columnas = new HashMap<>();
         columnas.put("fecha", colFecha);
         columnas.put("hora", colHora);
         columnas.put("movimiento", colTipoMovimiento);
@@ -361,6 +390,191 @@ public class MainController {
         columnas.put("facturaSalida", colFacturaSalida);
         columnas.put("usuario", colUsuario);
         return columnas.get(criterioOrden);
+    }
+
+    private void cargarHistorialArticulo(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            historialItems.clear();
+            return;
+        }
+
+        List<MovimientoArticulo> movimientos = new ArrayList<>();
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                historialItems.clear();
+                return;
+            }
+
+            movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
+            movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        movimientos.sort(Comparator.comparing(MovimientoArticulo::getFechaHora,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+
+        List<HistorialArticuloItem> nuevos = new ArrayList<>();
+        int existencias = 0;
+        for (MovimientoArticulo mov : movimientos) {
+            int antes = existencias;
+            int despues;
+            String entradas = "";
+            String salidas = "";
+
+            if (mov.getCantidad() >= 0) {
+                despues = existencias + mov.getCantidad();
+                entradas = String.valueOf(mov.getCantidad());
+            } else {
+                despues = existencias - Math.abs(mov.getCantidad());
+                salidas = String.valueOf(Math.abs(mov.getCantidad()));
+            }
+
+            nuevos.add(new HistorialArticuloItem(
+                    mov.getFecha(),
+                    mov.getHora(),
+                    mov.getTipoMovimiento(),
+                    String.valueOf(antes),
+                    String.valueOf(despues),
+                    entradas,
+                    salidas,
+                    mov.getProveedor(),
+                    mov.getFacturaEntrada(),
+                    mov.getCliente(),
+                    mov.getFacturaSalida(),
+                    mov.getUsuario()
+            ));
+            existencias = despues;
+        }
+
+        historialItems.setAll(nuevos);
+        aplicarOrdenamiento();
+    }
+
+    private List<MovimientoArticulo> obtenerEntradasArticulo(Connection conn, String idProducto) throws SQLException {
+        String sql = "SELECT e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
+                + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
+                + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
+                + "de.cantidad "
+                + "FROM detalle_Entrada de "
+                + "JOIN entradas e ON e.idEntrada = de.claveEntrada "
+                + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
+                + "LEFT JOIN proveedores p ON p.id = e.idRemitente "
+                + "LEFT JOIN sucursales s ON s.id = e.idRemitente "
+                + "WHERE de.claveProducto = ?";
+
+        List<MovimientoArticulo> movimientos = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String proveedor = valorTexto(rs.getObject("proveedorNombre"));
+                    if (proveedor.isBlank()) {
+                        proveedor = valorTexto(rs.getObject("sucursalNombre"));
+                    }
+                    movimientos.add(new MovimientoArticulo(
+                            valorTexto(rs.getObject("fechaEntrada")),
+                            valorTexto(rs.getObject("horaEntrada")),
+                            "Entrada",
+                            obtenerCantidad(rs.getObject("cantidad")),
+                            proveedor,
+                            valorTexto(rs.getObject("noFactura")),
+                            "",
+                            "",
+                            valorTexto(rs.getObject("usuarioNombre"))
+                    ));
+                }
+            }
+        }
+
+        return movimientos;
+    }
+
+    private List<MovimientoArticulo> obtenerSalidasArticulo(Connection conn, String idProducto) throws SQLException {
+        String sql = "SELECT s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
+                + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
+                + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
+                + "ds.cantidad "
+                + "FROM detalle_Salida ds "
+                + "JOIN salidas s ON s.idSalida = ds.claveSalida "
+                + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
+                + "LEFT JOIN clientes c ON c.id = s.idDestinatario "
+                + "LEFT JOIN sucursales su ON su.id = s.idDestinatario "
+                + "WHERE ds.claveProductoSalida = ?";
+
+        List<MovimientoArticulo> movimientos = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String cliente = valorTexto(rs.getObject("clienteNombre"));
+                    if (cliente.isBlank()) {
+                        cliente = valorTexto(rs.getObject("sucursalNombre"));
+                    }
+                    movimientos.add(new MovimientoArticulo(
+                            valorTexto(rs.getObject("fechaSalida")),
+                            valorTexto(rs.getObject("horaSalida")),
+                            "Salida",
+                            -obtenerCantidad(rs.getObject("cantidad")),
+                            "",
+                            "",
+                            cliente,
+                            valorTexto(rs.getObject("noFactura")),
+                            valorTexto(rs.getObject("usuarioNombre"))
+                    ));
+                }
+            }
+        }
+
+        return movimientos;
+    }
+
+    private int obtenerCantidad(Object valor) {
+        if (valor == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(valor.toString());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private String valorTexto(Object valor) {
+        return valor == null ? "" : valor.toString();
+    }
+
+    private LocalDateTime obtenerFechaHora(String fechaTexto, String horaTexto) {
+        if ((fechaTexto == null || fechaTexto.isBlank()) && (horaTexto == null || horaTexto.isBlank())) {
+            return null;
+        }
+        LocalDate fecha = null;
+        LocalTime hora = null;
+        if (fechaTexto != null && !fechaTexto.isBlank()) {
+            try {
+                fecha = LocalDate.parse(fechaTexto, FORMATO_FECHA);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        if (horaTexto != null && !horaTexto.isBlank()) {
+            try {
+                hora = LocalTime.parse(horaTexto, FORMATO_HORA);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        if (fecha == null && hora == null) {
+            return null;
+        }
+        if (fecha == null) {
+            fecha = LocalDate.MIN;
+        }
+        if (hora == null) {
+            hora = LocalTime.MIN;
+        }
+        return LocalDateTime.of(fecha, hora);
     }
 
     @FXML
@@ -432,6 +646,10 @@ public class MainController {
             clavesAlternas.add(clave.trim());
         }
 
+        private String getId() {
+            return id;
+        }
+
         private String getTextoVisible() {
             String base = id + " - " + nombre;
             if (descripcion.isBlank()) {
@@ -455,5 +673,116 @@ public class MainController {
             }
             return getTextoVisible().toLowerCase(Locale.ROOT).contains(normalizado);
         }
+    }
+
+    private class MovimientoArticulo {
+        private final String fecha;
+        private final String hora;
+        private final String tipoMovimiento;
+        private final int cantidad;
+        private final String proveedor;
+        private final String facturaEntrada;
+        private final String cliente;
+        private final String facturaSalida;
+        private final String usuario;
+
+        private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, int cantidad,
+                                   String proveedor, String facturaEntrada, String cliente,
+                                   String facturaSalida, String usuario) {
+            this.fecha = fecha;
+            this.hora = hora;
+            this.tipoMovimiento = tipoMovimiento;
+            this.cantidad = cantidad;
+            this.proveedor = proveedor;
+            this.facturaEntrada = facturaEntrada;
+            this.cliente = cliente;
+            this.facturaSalida = facturaSalida;
+            this.usuario = usuario;
+        }
+
+        private LocalDateTime getFechaHora() {
+            return obtenerFechaHora(fecha, hora);
+        }
+
+        private String getFecha() {
+            return fecha;
+        }
+
+        private String getHora() {
+            return hora;
+        }
+
+        private String getTipoMovimiento() {
+            return tipoMovimiento;
+        }
+
+        private int getCantidad() {
+            return cantidad;
+        }
+
+        private String getProveedor() {
+            return proveedor;
+        }
+
+        private String getFacturaEntrada() {
+            return facturaEntrada;
+        }
+
+        private String getCliente() {
+            return cliente;
+        }
+
+        private String getFacturaSalida() {
+            return facturaSalida;
+        }
+
+        private String getUsuario() {
+            return usuario;
+        }
+    }
+
+    public static class HistorialArticuloItem {
+        private final String fecha;
+        private final String hora;
+        private final String tipoMovimiento;
+        private final String antes;
+        private final String despues;
+        private final String entradas;
+        private final String salidas;
+        private final String proveedor;
+        private final String facturaEntrada;
+        private final String cliente;
+        private final String facturaSalida;
+        private final String usuario;
+
+        public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String antes, String despues,
+                                     String entradas, String salidas, String proveedor, String facturaEntrada,
+                                     String cliente, String facturaSalida, String usuario) {
+            this.fecha = fecha;
+            this.hora = hora;
+            this.tipoMovimiento = tipoMovimiento;
+            this.antes = antes;
+            this.despues = despues;
+            this.entradas = entradas;
+            this.salidas = salidas;
+            this.proveedor = proveedor;
+            this.facturaEntrada = facturaEntrada;
+            this.cliente = cliente;
+            this.facturaSalida = facturaSalida;
+            this.usuario = usuario;
+        }
+
+        public String getFecha() { return fecha; }
+        public String getHora() { return hora; }
+        public String getTipoMovimiento() { return tipoMovimiento; }
+        public String getAntes() { return antes; }
+        public String getDespues() { return despues; }
+        public String getEntradas() { return entradas; }
+        public String getSalidas() { return salidas; }
+        public String getProveedor() { return proveedor; }
+        public String getFacturaEntrada() { return facturaEntrada; }
+        public String getCliente() { return cliente; }
+        public String getFacturaSalida() { return facturaSalida; }
+        public String getUsuario() { return usuario; }
     }
 }
