@@ -531,7 +531,7 @@ public class DetalleFacturaController {
                 : "d.`" + colDetalleProducto + "`";
 
         String filtroEstado = colArticuloEstado != null
-                ? " AND LOWER(a.`" + colArticuloEstado + "`) = 'disponible'"
+                ? " AND LOWER(a.`" + colArticuloEstado + "`) <> 'eliminado'"
                 : "";
 
         String sql = String.format("""
