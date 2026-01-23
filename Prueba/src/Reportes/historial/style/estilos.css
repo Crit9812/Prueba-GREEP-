@@ -67,6 +67,18 @@
     -fx-font-weight: bold;
 }
 
+
+.table-view .table-row-cell .text {
+    -fx-fill: black; /* color de texto de todas las celdas */
+}
+
+/* Evitar azul de selección */
+.table-view .table-row-cell:filled:selected,
+.table-view .table-row-cell:filled:selected:focused {
+    -fx-text-fill: black; /* aunque no siempre funciona sin el anterior */
+    -fx-background-color: #91d485;
+}
+
 .table-view {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;

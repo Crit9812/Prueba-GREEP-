@@ -246,7 +246,7 @@ public class MainController {
                 + "LEFT JOIN usuarios u ON e.claveUsuarioEntrada = u.idUsuario "
                 + "LEFT JOIN proveedores p ON e.idRemitente = p.id "
                 + "LEFT JOIN sucursales s ON e.idRemitente = s.id "
-                + "WHERE LOWER(e.Estado) IN ('pendiente', 'finalizado', 'disponible')";
+                + "WHERE LOWER(e.Estado) IN ('pendiente', 'finalizado', 'disponible', 'cancelado')";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
@@ -553,7 +553,7 @@ public class MainController {
                 + "LEFT JOIN usuarios u ON s.claveUsuarioSalida = u.idUsuario "
                 + "LEFT JOIN clientes c ON s.idDestinatario = c.id "
                 + "LEFT JOIN sucursales su ON s.idDestinatario = su.id "
-                + "WHERE LOWER(s.Estado) IN ('pendiente', 'finalizado', 'disponible')";
+                + "WHERE LOWER(s.Estado) IN ('pendiente', 'finalizado', 'disponible', 'cancelado')";
         List<HistorialFactura> registros = new ArrayList<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
@@ -581,6 +581,7 @@ public class MainController {
 
     private List<HistorialFactura> obtenerAjustes(Connection conn) throws SQLException {
         String query = "SELECT a.idAjuste, a.idUsuario, a.fechaAjuste, a.horaAjuste, a.precioNeto, a.precioTotal, a.Nota, "
+                + "a.Estado, "
                 + "u.userName AS usuarioNombre "
                 + "FROM ajuste_inventario a "
                 + "LEFT JOIN usuarios u ON a.idUsuario = u.idUsuario";
@@ -602,7 +603,7 @@ public class MainController {
                         valorTexto(rs.getObject("precioNeto")),
                         valorTexto(rs.getObject("precioTotal")),
                         valorTexto(rs.getObject("Nota")),
-                        "-"
+                        valorTexto(rs.getObject("Estado"))
                 ));
             }
         }
