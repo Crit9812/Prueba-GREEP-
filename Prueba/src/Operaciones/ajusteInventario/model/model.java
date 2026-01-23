@@ -43,6 +43,7 @@ public class model {
             String colPrecioNeto = resolverColumna(columnasAjuste, "precioNeto", "precio_neto");
             String colPrecioTotal = resolverColumna(columnasAjuste, "precioTotal", "precio_total");
             String colNota = resolverColumna(columnasAjuste, "Nota", "nota", "comentario", "observaciones");
+            String colEstado = resolverColumna(columnasAjuste, "estado", "Estado");
 
             Integer idUsuario = SesionUsuario.getIdUsuario();
             if (colUsuario != null && idUsuario != null) {
@@ -56,6 +57,9 @@ public class model {
             }
             if (colNota != null) {
                 valoresAjuste.put(colNota, comentario != null ? comentario : "");
+            }
+            if (colEstado != null) {
+                valoresAjuste.put(colEstado, "activo");
             }
 
             BigDecimal totalNeto = BigDecimal.ZERO;
