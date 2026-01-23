@@ -24,11 +24,11 @@ import java.util.Map;
 
 public class model {
 
-    public boolean registrarAjuste(List<compra> entradas, List<traspasoSalida> salidas, String comentario) {
+    public String registrarAjuste(List<compra> entradas, List<traspasoSalida> salidas, String comentario) {
         boolean sinEntradas = entradas == null || entradas.isEmpty();
         boolean sinSalidas = salidas == null || salidas.isEmpty();
         if (sinEntradas && sinSalidas) {
-            return false;
+            return null;
         }
 
         try (Connection conn = new Conexion().conectar()) {
@@ -108,10 +108,10 @@ public class model {
             }
 
             conn.commit();
-            return true;
+            return String.valueOf(idAjuste);
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
     }
 

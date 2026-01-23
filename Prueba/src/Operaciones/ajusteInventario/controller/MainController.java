@@ -1,5 +1,6 @@
 package Operaciones.ajusteInventario.controller;
 
+import Compartido.exportar.ReporteAjusteExporter;
 import Compartido.helper.RefrescoHelper;
 import javafx.concurrent.Task;
 import Compartido.controller.encabezadoController;
@@ -26,6 +27,8 @@ import javafx.util.Callback;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainController {
 
@@ -604,9 +607,17 @@ public class MainController {
         }
 
         String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
-        boolean registrado = ajusteModel.registrarAjuste(itemsEntrada, itemsSalida, comentarioTexto);
-        if (registrado) {
-            mostrarAlerta("Éxito", "Ajuste registrado correctamente.");
+        List<Object> copiaItems = new ArrayList<>(itemsAjuste);
+
+        String idAjuste = ajusteModel.registrarAjuste(itemsEntrada, itemsSalida, comentarioTexto);
+
+        if (idAjuste != null && !idAjuste.isEmpty()) {
+            String claveAjuste = "" + idAjuste;
+
+            // 3. Mostrar diálogo de confirmación y exportación
+            mostrarConfirmacionReporte(claveAjuste, comentarioTexto, copiaItems);
+
+            // 4. Limpiar la interfaz SOLO si se registró exitosamente
             itemsEntrada.clear();
             itemsSalida.clear();
             itemsAjuste.clear();
@@ -615,11 +626,35 @@ public class MainController {
             }
             actualizarTotalAjuste();
             actualizarSeleccionTodo();
+
         } else {
             mostrarAlerta("Error", "No se pudo registrar el ajuste.");
         }
     }
 
+    private void mostrarConfirmacionReporte(String claveAjuste, String comentario, List<Object> itemsAjuste) {
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("Registro exitoso");
+        dialogo.setHeaderText("Ajuste de inventario registrado correctamente");
+        dialogo.setContentText("ID del ajuste: " + claveAjuste + "\n\n¿Deseas descargar el reporte de este ajuste?");
+
+        ButtonType btnDescargar = new ButtonType("Descargar");
+        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
+
+        dialogo.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == btnDescargar) {
+                ReporteAjusteExporter.exportarReporteAjuste(
+                        claveAjuste,
+                        comentario,
+                        new ArrayList<>(itemsAjuste),
+                        contenidoTabla != null && contenidoTabla.getScene() != null
+                                ? contenidoTabla.getScene().getWindow()
+                                : null
+                );
+            }
+        });
+    }
     private boolean confirmarEliminacion() {
         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
         alerta.setTitle("Confirmar eliminación");

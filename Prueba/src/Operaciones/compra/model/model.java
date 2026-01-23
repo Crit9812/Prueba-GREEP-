@@ -410,6 +410,26 @@ public class model {
         return null;
     }
 
+    public String obtenerClaveCompraReciente(String idProveedor, String factura) {
+        String sql = "SELECT idEntrada FROM entradas WHERE idRemitente = ? AND noFactura = ? ORDER BY fechaEntrada DESC, horaEntrada DESC LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idProveedor);
+            ps.setString(2, factura);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("idEntrada");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private int esSegmentado(String presentacion) {
         return 0;
     }

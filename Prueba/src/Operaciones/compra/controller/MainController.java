@@ -1,29 +1,28 @@
 package Operaciones.compra.controller;
 
+import Compartido.exportar.PDFCommons;
+//import Compartido.exportar.ReporteEntradaExporter;
+import Compartido.exportar.ReporteEntradaExporter;
 import Compartido.helper.RefrescoHelper;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.Label;
-import javafx.scene.control.SplitPane;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.control.ComboBox;
 import Operaciones.compra.model.model;
 import Operaciones.compra.model.compra;
-import javafx.scene.control.Alert;
-import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.beans.value.ObservableValue;
-import javafx.scene.control.CheckBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
@@ -401,8 +400,6 @@ public class MainController {
         }
     }
 
-
-
     @FXML
     public void guardarCompras() {
         if (itemsCompra.isEmpty()) {
@@ -430,9 +427,22 @@ public class MainController {
 
         String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
 
+        // 1. Registrar la compra
         boolean registrado = model.registrarCompra(idProveedor, numeroFactura, comentarioTexto, itemsCompra);
+
         if (registrado) {
-            mostrarAlerta("Éxito", "Compra registrada correctamente.");
+            // 2. Obtener la clave de la compra recién registrada (CON PARÁMETROS)
+            String claveCompra = model.obtenerClaveCompraReciente(idProveedor, numeroFactura);
+
+            // 3. Si no se encontró la clave, usar un fallback
+            if (claveCompra == null) {
+                claveCompra = "COMP_" + System.currentTimeMillis();
+            }
+
+            // 4. Guardar copia de los items para el reporte
+            List<compra> copiaItems = new ArrayList<>(itemsCompra);
+
+            // 5. Limpiar la interfaz
             itemsCompra.clear();
             if (factura != null) factura.clear();
             if (comentario != null) comentario.clear();
@@ -440,6 +450,10 @@ public class MainController {
             proveedorSeleccionadoId = null;
             buscador.setDisable(false);
             buscador.setValue(null);
+
+            // 6. Mostrar diálogo para exportar
+            mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
+
         } else {
             mostrarAlerta("Error", "No se pudo registrar la compra.");
         }
@@ -591,13 +605,13 @@ public class MainController {
                                 proveedoresFiltrados.addAll(proveedoresCache);
                             }
 
-                            // 👉 CRÍTICO: Establecer el valor ANTES de reactivar el listener
+                            // CRÍTICO: Establecer el valor ANTES de reactivar el listener
                             buscador.setValue(nombreProveedor);
 
                             // Obtener y establecer el ID
                             proveedorSeleccionadoId = model.obtenerIdProveedorPorNombre(nombreProveedor);
 
-                            // 👉 También actualizar el texto del editor
+                            //También actualizar el texto del editor
                             buscador.getEditor().setText(nombreProveedor);
 
                             // Forzar un refresh del combobox
@@ -611,7 +625,7 @@ public class MainController {
                 hilo.start();
 
             } finally {
-                // 👉 Reactivar el listener después de un breve retardo
+                // Reactivar el listener después de un breve retardo
                 new Thread(() -> {
                     try {
                         Thread.sleep(100); // Pequeña pausa para asegurar
@@ -642,4 +656,34 @@ public class MainController {
 
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoProveedor.fxml", controlador, "Proveedor");
     }
+
+    private void mostrarConfirmacionReporte(String claveCompra,
+                                            String nombreProveedor,
+                                            String comentario,
+                                            List<compra> itemsCompra) {
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("Registro exitoso");
+        dialogo.setHeaderText("Compra registrada correctamente");
+        dialogo.setContentText("¿Deseas descargar el reporte de esta compra?");
+
+        ButtonType btnDescargar = new ButtonType("Descargar");
+        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
+
+        dialogo.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == btnDescargar) {
+                ReporteEntradaExporter.exportarReporteCompra(
+                        claveCompra,
+                        nombreProveedor,
+                        comentario,
+                        new ArrayList<>(itemsCompra),
+                        contenidoTabla != null && contenidoTabla.getScene() != null
+                                ? contenidoTabla.getScene().getWindow()
+                                : null
+                );
+            }
+        });
+    }
+
+
 }
