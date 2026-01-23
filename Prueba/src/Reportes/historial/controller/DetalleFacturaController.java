@@ -794,7 +794,7 @@ public class DetalleFacturaController {
 
                 boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
                 boolean puedeEditarEntrada = "Entrada".equalsIgnoreCase(linea.tipo)
-                        && (todosDisponibles || (esAjuste && linea.tieneArticulosSinPendienteOVendido()));
+                        && linea.tieneArticulosSinPendienteOVendido();
                 if (puedeEditarEntrada) {
                     Button btnEditarPrecio = new Button("Editar precio unitario");
                     btnEditarPrecio.setOnAction(event -> editarPrecioEntrada(linea));
@@ -1867,6 +1867,9 @@ public class DetalleFacturaController {
                 if (articulo.esPendiente() || articulo.esVendido()) {
                     return false;
                 }
+                if (!articulo.esDisponible() && !articulo.esAjustado()) {
+                    return false;
+                }
             }
             return true;
         }
@@ -1916,6 +1919,13 @@ public class DetalleFacturaController {
                 return false;
             }
             return "vendido".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esAjustado() {
+            if (estado == null) {
+                return false;
+            }
+            return "ajustado".equalsIgnoreCase(estado.trim());
         }
 
         private boolean esDetalleEntrada() {
