@@ -1849,12 +1849,18 @@ public class DetalleFacturaController {
             if (articulos.isEmpty()) {
                 return false;
             }
+            boolean tieneDisponible = false;
             for (DetalleArticulo articulo : articulos) {
-                if (!articulo.esDisponible()) {
+                if (articulo.esDisponible()) {
+                    tieneDisponible = true;
+                    continue;
+                }
+                if (articulo.esPendiente() || articulo.esVendido()) {
                     return false;
                 }
+                return false;
             }
-            return true;
+            return tieneDisponible;
         }
     }
 
@@ -1888,6 +1894,20 @@ public class DetalleFacturaController {
                 return false;
             }
             return "disponible".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esPendiente() {
+            if (estado == null) {
+                return false;
+            }
+            return "pendiente".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esVendido() {
+            if (estado == null) {
+                return false;
+            }
+            return "vendido".equalsIgnoreCase(estado.trim());
         }
 
         private boolean esDetalleEntrada() {
