@@ -176,7 +176,7 @@ public class MainController {
                 "LEFT JOIN clientes c ON c.id = s.idDestinatario " +
                 "LEFT JOIN productos p ON p.id = ds.claveProductoSalida " +
                 "LEFT JOIN etiquetas et ON et.id = p.etiqueta " +
-                "WHERE s.tipoSalida = 'venta' AND s.Estado = 'finalizado' " +
+                "WHERE s.tipoSalida = 'venta' AND s.Estado <> 'cancelado' " +
                 "GROUP BY s.noFactura, ds.claveProductoSalida, pr.Nombre, c.Nombre, " +
                 "p.nombre, p.categoria, p.material, p.unidadMedida, et.nombre, p.descripcion " +
                 "ORDER BY s.noFactura, ds.claveProductoSalida";
