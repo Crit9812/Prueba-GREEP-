@@ -72,6 +72,14 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+
+                            <Region fx:id="expansorBusqueda"/>
+
+                            <TextField fx:id="buscarFactura" text="" styleClass="textfield" >
+                                <HBox.margin>
+                                    <Insets right="40"/>
+                                </HBox.margin>
+                            </TextField>
                         </HBox>
 
                         <!-- Fila 2 -->
@@ -174,18 +182,18 @@
                         <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
                             <columns>
                                 <TableColumn fx:id="colClaveProducto" text="Clave de producto" />
-                                <TableColumn fx:id="colDescripcion" text="Descripción" prefWidth="200" />
+                                <TableColumn fx:id="colNombreProducto" text="Nombre del producto" prefWidth="200" />
                                 <TableColumn fx:id="colCategoria" text="Categoria" prefWidth="200"  />
-                                <TableColumn fx:id="colEtiqueta" text="Etiqueta" prefWidth="140" />
-                                <TableColumn fx:id="colPresentacion" text="Presentación" prefWidth="170" />
-                                <TableColumn fx:id="colFactor" text="Factor" prefWidth="140" />
-                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="140" />
-                                <TableColumn fx:id="colPrecioCompra" text="Precio de compra" prefWidth="170" />
-                                <TableColumn fx:id="colTotalCompra" text="Total de compra" prefWidth="200" />
-                                <TableColumn fx:id="colPrecioVenta" text="Precio de venta" prefWidth="140" />
-                                <TableColumn fx:id="colTotalVenta" text="Total de venta" prefWidth="140" />
+                                <TableColumn fx:id="colDescripcion" text="Descripción del producto" prefWidth="250" />
+                                <TableColumn fx:id="colPresentacion" text="Presentación" prefWidth="140" />
+                                <TableColumn fx:id="colFactor" text="Factor" prefWidth="100" />
+                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="110" />
+                                <TableColumn fx:id="colTotalCompra" text="Total de compra" prefWidth="150" />
+                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="180" />
+                                <TableColumn fx:id="colTotalVenta" text="Total de venta" prefWidth="150" />
+                                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="180" />
                                 <TableColumn fx:id="colPorcentajeUtilidad" text="Porcentaje utilidad" prefWidth="170" />
-                                <TableColumn fx:id="colUtilidad" text="Utilidad" prefWidth="200" />
+                                <TableColumn fx:id="colUtilidad" text="Utilidad (MXN)" prefWidth="150" />
                             </columns>
                         </TableView>
                     </VBox>
