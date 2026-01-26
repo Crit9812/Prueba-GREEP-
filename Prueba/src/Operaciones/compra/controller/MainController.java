@@ -138,7 +138,6 @@ public class MainController {
         configurarSeleccionTodo();
         configurarBloqueoProveedor();
         configurarTotalCompra();
-
         RefrescoHelper.setVistaActual("compra");
         RefrescoHelper.registrarRefresco("compra", this::actualizarCompra);
     }

@@ -221,6 +221,7 @@ public class model {
                     List<Integer> articulosParaActualizar = new ArrayList<>();
                     List<Integer> detallesEntrada = new ArrayList<>();
 
+                    // Busca esta sección en el método registrarTraspasoSalida (alrededor de la línea 162-179)
                     StringBuilder sqlSelect = new StringBuilder("SELECT a.")
                             .append(colArticuloId)
                             .append(", a.")
@@ -240,7 +241,13 @@ public class model {
                         sqlSelect.append(" AND a.").append(colArticuloLote).append(" = ?");
                     }
                     if (colArticuloCaducidad != null) {
-                        sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        // CORRECCIÓN: Manejar caso cuando caducidad es null
+                        Date caducidad = parseDate(item.getCaducidad());
+                        if (caducidad != null) {
+                            sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        } else {
+                            sqlSelect.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                        }
                     }
                     if (colArticuloUbicacion != null) {
                         sqlSelect.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
@@ -265,7 +272,10 @@ public class model {
                             ps.setString(index++, item.getLote());
                         }
                         if (colArticuloCaducidad != null) {
-                            ps.setDate(index++, parseDate(item.getCaducidad()));
+                            Date caducidad = parseDate(item.getCaducidad());
+                            if (caducidad != null) {
+                                ps.setDate(index++, caducidad);
+                            }
                         }
                         if (colArticuloUbicacion != null) {
                             ps.setInt(index++, ubicacionId);
@@ -438,11 +448,17 @@ public class model {
     }
 
     private Date parseDate(String fecha) {
-        if (fecha == null || fecha.isBlank()) {
+        if (fecha == null || fecha.isBlank() ||
+                fecha.equalsIgnoreCase("null") ||
+                fecha.equalsIgnoreCase("n/a") ||
+                fecha.trim().isEmpty()) {
             return null;
         }
+
+        String fechaLimpia = fecha.trim();
+
         try {
-            return Date.valueOf(fecha);
+            return Date.valueOf(fechaLimpia);
         } catch (Exception e) {
             return null;
         }

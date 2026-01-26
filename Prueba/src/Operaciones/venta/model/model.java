@@ -176,7 +176,10 @@ public class model {
                     valoresDetalle.put(colNotaDetalle, item.getNota());
                 }
                 if (colDetalleLote != null) valoresDetalle.put(colDetalleLote, item.getLote());
-                if (colDetalleCaducidad != null) valoresDetalle.put(colDetalleCaducidad, parseDate(item.getCaducidad()));
+                if (colDetalleCaducidad != null) {
+                    Date caducidadDetalle = parseDate(item.getCaducidad());
+                    valoresDetalle.put(colDetalleCaducidad, caducidadDetalle); // Puede ser null
+                }
                 if (colDetallePresentacion != null) valoresDetalle.put(colDetallePresentacion, item.getPresentacion());
                 if (colDetalleFactor != null) valoresDetalle.put(colDetalleFactor, item.getFactor());
                 if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
@@ -229,7 +232,12 @@ public class model {
                         sql.append(" AND a.").append(colArticuloLote).append(" = ?");
                     }
                     if (colArticuloCaducidad != null) {
-                        sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        Date caducidad = parseDate(item.getCaducidad());
+                        if (caducidad != null) {
+                            sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        } else {
+                            sql.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                        }
                     }
                     if (colArticuloUbicacion != null) {
                         sql.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
@@ -255,7 +263,10 @@ public class model {
                             ps.setString(index++, item.getLote());
                         }
                         if (colArticuloCaducidad != null) {
-                            ps.setDate(index++, parseDate(item.getCaducidad()));
+                            Date caducidad = parseDate(item.getCaducidad());
+                            if (caducidad != null) {
+                                ps.setDate(index++, caducidad);
+                            }
                         }
                         if (colArticuloUbicacion != null) {
                             ps.setInt(index++, ubicacionId);
@@ -389,7 +400,12 @@ public class model {
             sql.append(" AND a.").append(colArticuloLote).append(" = ?");
         }
         if (colArticuloCaducidad != null) {
-            sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+            Date caducidad = parseDate(item.getCaducidad());
+            if (caducidad != null) {
+                sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+            } else {
+                sql.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+            }
         }
         if (colArticuloPresentacion != null) {
             sql.append(" AND a.").append(colArticuloPresentacion).append(" = ?");
@@ -409,7 +425,10 @@ public class model {
                 ps.setString(index++, item.getLote());
             }
             if (colArticuloCaducidad != null) {
-                ps.setDate(index++, parseDate(item.getCaducidad()));
+                Date caducidad = parseDate(item.getCaducidad());
+                if (caducidad != null) {
+                    ps.setDate(index++, caducidad);
+                }
             }
             if (colArticuloPresentacion != null) {
                 ps.setString(index++, item.getPresentacion());
@@ -600,11 +619,17 @@ public class model {
     }
 
     private Date parseDate(String fecha) {
-        if (fecha == null || fecha.isBlank()) {
+        if (fecha == null || fecha.isBlank() ||
+                fecha.equalsIgnoreCase("null") ||
+                fecha.equalsIgnoreCase("n/a") ||
+                fecha.trim().isEmpty()) {
             return null;
         }
+
+        String fechaLimpia = fecha.trim();
+
         try {
-            return Date.valueOf(fecha);
+            return Date.valueOf(fechaLimpia);
         } catch (Exception e) {
             return null;
         }

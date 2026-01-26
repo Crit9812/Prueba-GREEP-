@@ -223,8 +223,8 @@ public class MainController {
                 + "LEFT JOIN proveedores p ON e.idRemitente = p.id "
                 + "LEFT JOIN productos pr ON pr.id = ds.claveProductoSalida "
                 + "LEFT JOIN etiquetas et ON et.id = pr.etiqueta "
-                + "WHERE LOWER(s.tipoSalida) = 'venta' "
-                + "AND LOWER(s.Estado) IN ('pendiente', 'finalizado', 'disponible', 'cancelado')";
+                + "WHERE LOWER(TRIM(s.tipoSalida)) = 'venta' "
+                + "AND LOWER(TRIM(s.Estado)) = 'finalizado'";
         Map<String, UtilidadAcumulado> acumulados = new LinkedHashMap<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);

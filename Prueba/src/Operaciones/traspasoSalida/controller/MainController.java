@@ -1,5 +1,8 @@
 package Operaciones.traspasoSalida.controller;
 
+import Compartido.helper.RefrescoHelper;
+import javafx.concurrent.Task;
+import javafx.collections.FXCollections;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import javafx.fxml.FXML;
@@ -132,6 +135,129 @@ public class MainController {
         configurarTabla();
         configurarTotalTraspaso();
         configurarConfirmacion();
+        RefrescoHelper.setVistaActual("traspasoSalida");
+        RefrescoHelper.registrarRefresco("traspasoSalida", this::actualizarTraspasoSalida);
+    }
+
+    // Añade estos métodos en la clase MainController (traspasoSalida):
+
+    /**
+     * Verifica si ya existe un producto con la misma clave y lote en la lista de traspaso.
+     * @param claveProducto Clave del producto
+     * @param lote Lote del producto
+     * @return true si ya existe, false en caso contrario
+     */
+    public boolean existeProductoLote(String claveProducto, String lote) {
+        return existeProductoLote(claveProducto, lote, null);
+    }
+
+    /**
+     * Verifica si ya existe un producto con la misma clave y lote en la lista de traspaso,
+     * excluyendo un item específico (útil para edición).
+     * @param claveProducto Clave del producto
+     * @param lote Lote del producto
+     * @param itemExcluir Item a excluir de la búsqueda (generalmente el que se está editando)
+     * @return true si ya existe, false en caso contrario
+     */
+    public boolean existeProductoLote(String claveProducto, String lote, traspasoSalida itemExcluir) {
+        if (claveProducto == null || claveProducto.isBlank() || lote == null || lote.isBlank()) {
+            return false;
+        }
+
+        String claveNormalizada = claveProducto.trim();
+        String loteNormalizado = lote.trim();
+
+        return itemsTraspaso.stream()
+                .anyMatch(item -> item != null
+                        && item != itemExcluir
+                        && claveNormalizada.equals(item.getClaveProducto())
+                        && loteNormalizado.equals(item.getLote()));
+    }
+
+    private void actualizarTraspasoSalida() {
+        Platform.runLater(() -> {
+            itemsTraspaso.clear();
+            if (buscador != null) {
+                buscador.setValue(null);
+                buscador.getEditor().clear();
+            }
+            if (comentario != null) {
+                comentario.clear();
+            }
+            if (totalTraspaso != null) {
+                totalTraspaso.setText("0.00");
+            }
+            if (miCheckBox != null) {
+                miCheckBox.setSelected(false);
+            }
+            if (contenidoTabla != null) {
+                contenidoTabla.getSelectionModel().clearSelection();
+                contenidoTabla.refresh();
+            }
+            sucursalSeleccionadaId = null;
+        });
+        refrescarSucursales();
+    }
+
+    private void refrescarSucursales() {
+        Task<List<String>> task = new Task<>() {
+            @Override
+            protected List<String> call() throws Exception {
+                System.out.println("✓ Refrescando lista de sucursales en segundo plano...");
+                return model.obtenerNombresSucursales();
+            }
+
+            @Override
+            protected void succeeded() {
+                List<String> resultado = getValue();
+
+                Platform.runLater(() -> {
+                    // Actualizar las listas en el hilo de JavaFX
+                    if (resultado != null && !resultado.isEmpty()) {
+                        sucursalesCache.setAll(resultado);
+                        sucursalesFiltradas.setAll(sucursalesCache);
+                        System.out.println("✓ " + resultado.size() + " sucursales cargadas");
+                    } else {
+                        sucursalesCache.clear();
+                        sucursalesFiltradas.clear();
+                        System.out.println("✓ No hay sucursales disponibles");
+                    }
+                });
+            }
+
+            @Override
+            protected void failed() {
+                Throwable ex = getException();
+                System.err.println("✗ Error al refrescar sucursales: " + ex.getMessage());
+                ex.printStackTrace();
+
+                Platform.runLater(() -> {
+                    sucursalesCache.clear();
+                    sucursalesFiltradas.clear();
+                });
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    public void refrescarYSeleccionarSucursal(String nombreSucursal) {
+        if (nombreSucursal == null || nombreSucursal.trim().isEmpty()) {
+            return;
+        }
+
+        Platform.runLater(() -> {
+            refrescarSucursales();
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.millis(500));
+            pause.setOnFinished(e -> {
+                buscador.setValue(nombreSucursal);
+                sucursalSeleccionadaId = model.obtenerIdSucursalPorNombre(nombreSucursal);
+            });
+            pause.play();
+        });
     }
 
 
