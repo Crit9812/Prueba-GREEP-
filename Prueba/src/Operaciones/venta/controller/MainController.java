@@ -1,5 +1,6 @@
 package Operaciones.venta.controller;
 
+import Compartido.helper.RefrescoHelper;
 import Compartido.exportar.ReporteSalidaExporter;
 import javafx.scene.control.ButtonBar;
 import Compartido.controller.encabezadoController;
@@ -151,6 +152,84 @@ public class MainController {
         configurarTabla();
         configurarConfirmacion();
         configurarTotalVenta();
+        RefrescoHelper.setVistaActual("venta");
+        RefrescoHelper.registrarRefresco("venta", this::actualizarVenta);
+    }
+    private void actualizarVenta() {
+        Platform.runLater(() -> {
+            itemsVenta.clear();
+            if (buscador != null) {
+                buscador.setValue(null);
+                buscador.getEditor().clear();
+            }
+            if (comentario != null) {
+                comentario.clear();
+            }
+            if (factura != null) {
+                factura.clear();
+            }
+            if (totalVenta != null) {
+                totalVenta.setText("0.00");
+            }
+            if (miCheckBox != null) {
+                miCheckBox.setSelected(false);
+            }
+            if (contenidoTabla != null) {
+                contenidoTabla.getSelectionModel().clearSelection();
+                contenidoTabla.refresh();
+            }
+            clienteSeleccionadoId = null;
+        });
+        refrescarClientes();
+    }
+
+    public void refrescarClientes() {
+        Task<List<String>> task = new Task<>() {
+            @Override
+            protected List<String> call() throws Exception {
+                return model.obtenerNombresClientes();
+            }
+
+            @Override
+            protected void succeeded() {
+                List<String> resultado = getValue();
+
+                Platform.runLater(() -> {
+                    // Actualizar las listas en el hilo de JavaFX
+                    if (resultado != null && !resultado.isEmpty()) {
+                        clientesCache.setAll(resultado);
+                        clientesFiltrados.setAll(clientesCache);
+
+                        // Mantener el cliente seleccionado si existe
+                        String seleccionActual = buscador.getValue();
+                        if (seleccionActual != null && clientesCache.contains(seleccionActual)) {
+                            buscador.setValue(seleccionActual);
+                            // Actualizar el ID del cliente
+                            clienteSeleccionadoId = model.obtenerIdClientePorNombre(seleccionActual);
+                        }
+                    } else {
+                        clientesCache.clear();
+                        clientesFiltrados.clear();
+                    }
+                });
+            }
+
+            @Override
+            protected void failed() {
+                Throwable ex = getException();
+                System.err.println("✗ Error al refrescar clientes: " + ex.getMessage());
+                ex.printStackTrace();
+
+                Platform.runLater(() -> {
+                    clientesCache.clear();
+                    clientesFiltrados.clear();
+                });
+            }
+        };
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void configurarAutocompleteClientes() {
@@ -222,8 +301,7 @@ public class MainController {
         });
     }
 
-    @FXML
-    public void abrirFormularioVenta() {
+    @FXML public void abrirFormularioVenta() {
         abrirFormularioVenta(null);
     }
 
@@ -536,40 +614,6 @@ public class MainController {
         } finally {
             actualizandoSeleccion = false;
         }
-    }
-
-    public void refrescarClientes() {
-        Task<List<String>> task = new Task<>() {
-            @Override
-            protected List<String> call() {
-                return model.obtenerNombresClientes();
-            }
-
-            @Override
-            protected void succeeded() {
-                List<String> resultado = getValue();
-                Platform.runLater(() -> {
-                    clientesCache.setAll(resultado != null ? resultado : java.util.Collections.emptyList());
-                    clientesFiltrados.setAll(clientesCache);
-
-                    // Mantener el cliente seleccionado si existe
-                    String seleccionActual = buscador.getValue();
-                    if (seleccionActual != null && clientesCache.contains(seleccionActual)) {
-                        buscador.setValue(seleccionActual);
-                    }
-                });
-            }
-
-            @Override
-            protected void failed() {
-                clientesCache.clear();
-                clientesFiltrados.clear();
-            }
-        };
-
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true);
-        hilo.start();
     }
 
     public void agregarYSeleccionarCliente(String nombreCliente) {

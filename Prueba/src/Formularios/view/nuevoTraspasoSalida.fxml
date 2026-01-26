@@ -68,10 +68,13 @@
                     </HBox>
 
                     <TabPane fx:id="tabPaneModo" tabClosingPolicy="UNAVAILABLE" styleClass="modo-tabs">
+                        <VBox.margin>
+                            <Insets bottom="15"/>
+                        </VBox.margin>
                         <tabs>
                             <Tab fx:id="tabNormal" text="Normal">
                                 <content>
-                                    <VBox spacing="55" style="-fx-padding: 25 0 0 0;">
+                                    <VBox spacing="15" style="-fx-padding: 10;">
                                         <!-- Lote, Caducidad, Cantidad -->
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
@@ -81,10 +84,6 @@
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Caducidad:"/>
                                                 <DatePicker fx:id="dpCaducidad" promptText="Selecciona fecha"/>
-                                            </VBox>
-                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                                <Label text="Cantidad:"/>
-                                                <TextField fx:id="txtCantidad"/>
                                             </VBox>
                                         </HBox>
 
@@ -97,6 +96,10 @@
                                             <VBox spacing="5">
                                                 <Label text="Factor:"/>
                                                 <TextField fx:id="txtFactor" prefWidth="80" maxWidth="80"/>
+                                            </VBox>
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Cantidad:"/>
+                                                <TextField fx:id="txtCantidad"/>
                                             </VBox>
                                         </HBox>
 
@@ -125,62 +128,118 @@
                                             </VBox>
                                         </HBox>
 
-                                        <!-- Precios -->
+                                        <!-- Nota -->
+                                        <HBox spacing="20">
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Nota:"/>
+                                                <TextField fx:id="txtNota" style="-fx-min-height: 40;"/>
+                                            </VBox>
+                                        </HBox>
+
+                                        <!-- Precios entrada -->
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Precio entrada:"/>
                                                 <TextField fx:id="txtPrecioEntrada"/>
                                             </VBox>
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                                <Label text="Precio con IVA:"/>
-                                                <TextField fx:id="txtPrecioIVA"/>
-                                            </VBox>
-                                            <VBox spacing="5">
-                                                <Label text="Precio bruto:"/>
-                                                <TextField fx:id="txtPrecioBruto" prefWidth="150" maxWidth="150"/>
+                                                <Label text="Precio entrada con IVA:"/>
+                                                <TextField fx:id="txtPrecioEntradaIva"/>
                                             </VBox>
                                         </HBox>
 
-                                        <!-- Precio total -->
-                                        <HBox alignment="CENTER_RIGHT" spacing="20">
-                                            <VBox spacing="5">
-                                                <Label text="Precio total:"/>
-                                                <TextField fx:id="txtPrecioTotal" prefWidth="150" maxWidth="150"/>
+                                        <!-- Primera fila de precios de salida -->
+                                        <HBox spacing="20">
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio salida:"/>
+                                                <TextField fx:id="txtPrecioSalida"/>
                                             </VBox>
+                                            <VBox spacing="5" prefWidth="80">
+                                                <Label text="IVA"/>
+                                                <CheckBox fx:id="checkBoxIVA" alignment="CENTER_LEFT"/>
+                                            </VBox>
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio con IVA:"/>
+                                                <TextField fx:id="txtPrecioIVA"/>
+                                            </VBox>
+                                        </HBox>
+
+                                        <!-- Segunda fila de precios totales -->
+                                        <HBox spacing="20">
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio bruto:"/>
+                                                <TextField fx:id="txtPrecioBruto"/>
+                                            </VBox>
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio total:"/>
+                                                <TextField fx:id="txtPrecioTotal"/>
+                                            </VBox>
+                                            <!-- Espacio vacío para mantener alineación -->
+                                            <Pane HBox.hgrow="ALWAYS"/>
                                         </HBox>
                                     </VBox>
                                 </content>
                             </Tab>
+
                             <Tab fx:id="tabRapido" text="Rápido">
                                 <content>
-                                    <VBox spacing="55" style="-fx-padding: 25 0 0 0;">
-                                        <HBox spacing="20">
+
+                                    <VBox spacing="15" style="-fx-padding: 10;">
+                                        <HBox alignment="CENTER_RIGHT" spacing="20">
+                                            <VBox spacing="5">
+                                                <Label text="Presentación:"/>
+                                                <ComboBox fx:id="cbPresentacionRapida" prefWidth="110" maxWidth="110"/>
+                                            </VBox>
+                                            <VBox spacing="5">
+                                                <Label text="Factor:"/>
+                                                <TextField fx:id="txtFactorRapido" prefWidth="80" maxWidth="80"/>
+                                            </VBox>
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Cantidad:"/>
                                                 <TextField fx:id="txtCantidadRapida"/>
                                             </VBox>
                                         </HBox>
 
+                                        <!-- Precios entrada -->
                                         <HBox spacing="20">
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Precio entrada:"/>
                                                 <TextField fx:id="txtPrecioEntradaRapida"/>
                                             </VBox>
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                                <Label text="Precio con IVA:"/>
-                                                <TextField fx:id="txtPrecioIVARapida"/>
-                                            </VBox>
-                                            <VBox spacing="5">
-                                                <Label text="Precio bruto:"/>
-                                                <TextField fx:id="txtPrecioBrutoRapida" prefWidth="150" maxWidth="150"/>
+                                                <Label text="Precio entrada con IVA:"/>
+                                                <TextField fx:id="txtPrecioEntradaIvaRapida"/>
                                             </VBox>
                                         </HBox>
 
-                                        <HBox alignment="CENTER_RIGHT" spacing="20">
-                                            <VBox spacing="5">
-                                                <Label text="Precio total:"/>
-                                                <TextField fx:id="txtPrecioTotalRapida" prefWidth="150" maxWidth="150"/>
+                                        <!-- Primera fila de precios de salida -->
+                                        <HBox spacing="20">
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio salida:"/>
+                                                <TextField fx:id="txtPrecioSalidaRapida"/>
                                             </VBox>
+                                            <VBox spacing="5" prefWidth="80">
+                                                <Label text="IVA"/>
+                                                <CheckBox fx:id="checkBoxIVARapida" alignment="CENTER_LEFT"/>
+                                            </VBox>
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio con IVA:"/>
+                                                <TextField fx:id="txtPrecioIVARapida"/>
+                                            </VBox>
+                                        </HBox>
+
+                                        <!-- Segunda fila de precios totales -->
+                                        <HBox spacing="20">
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio bruto:"/>
+                                                <TextField fx:id="txtPrecioBrutoRapida"/>
+                                            </VBox>
+                                            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                                <Label text="Precio total:"/>
+                                                <TextField fx:id="txtPrecioTotalRapida"/>
+                                            </VBox>
+                                            <!-- Espacio vacío para mantener alineación -->
+                                            <Pane HBox.hgrow="ALWAYS"/>
                                         </HBox>
                                     </VBox>
                                 </content>
