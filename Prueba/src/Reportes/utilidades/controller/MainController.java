@@ -76,8 +76,10 @@ public class MainController {
     @FXML private TableColumn<UtilidadItem, String> colCantidad;
     @FXML private TableColumn<UtilidadItem, String> colTotalCompra;
     @FXML private TableColumn<UtilidadItem, String> colProveedor;
+    @FXML private TableColumn<UtilidadItem, String> colFacturaCompra;
     @FXML private TableColumn<UtilidadItem, String> colTotalVenta;
     @FXML private TableColumn<UtilidadItem, String> colCliente;
+    @FXML private TableColumn<UtilidadItem, String> colFacturaVenta;
     @FXML private TableColumn<UtilidadItem, String> colPorcentajeUtilidad;
     @FXML private TableColumn<UtilidadItem, String> colUtilidadPesos;
 
@@ -152,8 +154,10 @@ public class MainController {
         colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         colTotalCompra.setCellValueFactory(new PropertyValueFactory<>("totalCompra"));
         colProveedor.setCellValueFactory(new PropertyValueFactory<>("proveedor"));
+        colFacturaCompra.setCellValueFactory(new PropertyValueFactory<>("facturaCompra"));
         colTotalVenta.setCellValueFactory(new PropertyValueFactory<>("totalVenta"));
         colCliente.setCellValueFactory(new PropertyValueFactory<>("cliente"));
+        colFacturaVenta.setCellValueFactory(new PropertyValueFactory<>("facturaVenta"));
         colPorcentajeUtilidad.setCellValueFactory(new PropertyValueFactory<>("porcentajeUtilidad"));
         colUtilidadPesos.setCellValueFactory(new PropertyValueFactory<>("utilidadPesos"));
 
@@ -167,8 +171,10 @@ public class MainController {
                 colCantidad,
                 colTotalCompra,
                 colProveedor,
+                colFacturaCompra,
                 colTotalVenta,
                 colCliente,
+                colFacturaVenta,
                 colPorcentajeUtilidad,
                 colUtilidadPesos
         };
@@ -217,8 +223,8 @@ public class MainController {
                 + "LEFT JOIN proveedores p ON e.idRemitente = p.id "
                 + "LEFT JOIN productos pr ON pr.id = ds.claveProductoSalida "
                 + "LEFT JOIN etiquetas et ON et.id = pr.etiqueta "
-                + "WHERE LOWER(s.tipoSalida) = 'venta' "
-                + "AND LOWER(s.Estado) IN ('pendiente', 'finalizado', 'disponible', 'cancelado')";
+                + "WHERE LOWER(TRIM(s.tipoSalida)) = 'venta' "
+                + "AND LOWER(TRIM(s.Estado)) = 'finalizado'";
         Map<String, UtilidadAcumulado> acumulados = new LinkedHashMap<>();
 
         try (PreparedStatement statement = conn.prepareStatement(query);
