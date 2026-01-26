@@ -76,8 +76,10 @@ public class MainController {
     @FXML private TableColumn<UtilidadItem, String> colCantidad;
     @FXML private TableColumn<UtilidadItem, String> colTotalCompra;
     @FXML private TableColumn<UtilidadItem, String> colProveedor;
+    @FXML private TableColumn<UtilidadItem, String> colFacturaCompra;
     @FXML private TableColumn<UtilidadItem, String> colTotalVenta;
     @FXML private TableColumn<UtilidadItem, String> colCliente;
+    @FXML private TableColumn<UtilidadItem, String> colFacturaVenta;
     @FXML private TableColumn<UtilidadItem, String> colPorcentajeUtilidad;
     @FXML private TableColumn<UtilidadItem, String> colUtilidadPesos;
 
@@ -152,8 +154,10 @@ public class MainController {
         colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         colTotalCompra.setCellValueFactory(new PropertyValueFactory<>("totalCompra"));
         colProveedor.setCellValueFactory(new PropertyValueFactory<>("proveedor"));
+        colFacturaCompra.setCellValueFactory(new PropertyValueFactory<>("facturaCompra"));
         colTotalVenta.setCellValueFactory(new PropertyValueFactory<>("totalVenta"));
         colCliente.setCellValueFactory(new PropertyValueFactory<>("cliente"));
+        colFacturaVenta.setCellValueFactory(new PropertyValueFactory<>("facturaVenta"));
         colPorcentajeUtilidad.setCellValueFactory(new PropertyValueFactory<>("porcentajeUtilidad"));
         colUtilidadPesos.setCellValueFactory(new PropertyValueFactory<>("utilidadPesos"));
 
@@ -167,8 +171,10 @@ public class MainController {
                 colCantidad,
                 colTotalCompra,
                 colProveedor,
+                colFacturaCompra,
                 colTotalVenta,
                 colCliente,
+                colFacturaVenta,
                 colPorcentajeUtilidad,
                 colUtilidadPesos
         };
