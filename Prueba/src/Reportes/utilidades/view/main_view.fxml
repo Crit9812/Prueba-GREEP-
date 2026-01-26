@@ -21,7 +21,7 @@
                     <VBox fx:id="opciones"  styleClass="opciones">
                         <!-- Fila 1 -->
                         <HBox fx:id="fila1" spacing="0" alignment="CENTER_LEFT">
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#mostrarSelectorColumnas">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true" >
                                         <image>
@@ -33,12 +33,12 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblQuitar" text="Modificar columnas" styleClass="labels">
+                            <Label fx:id="lblQuitar" text="Modificar columnas" styleClass="labels" onMouseClicked="#mostrarSelectorColumnas">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#mostrarOrdenPopup">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -50,12 +50,12 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblOrdenar" text="Ordenar" styleClass="labels">
+                            <Label fx:id="lblOrdenar" text="Ordenar" styleClass="labels" onMouseClicked="#mostrarOrdenPopup">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#exportarExcel">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -67,7 +67,7 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblExportar" text="Exportar" styleClass="labels">
+                            <Label fx:id="lblExportar" text="Exportar" styleClass="labels" onMouseClicked="#exportarExcel">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
@@ -84,17 +84,17 @@
 
                         <!-- Fila 2 -->
                         <HBox fx:id="fila2">
-                            <TextField text="Filtrar por:" styleClass="textfield">
+                            <ComboBox fx:id="comboFiltro" promptText="Filtrar por" styleClass="textfield">
                                 <HBox.margin>
                                     <Insets left="30"/>
                                 </HBox.margin>
-                            </TextField>
-                            <TextField text="Valor:" styleClass="textfield">
+                            </ComboBox>
+                            <ComboBox fx:id="comboValor" promptText="Valor" styleClass="textfield">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
-                            </TextField>
-                            <Button styleClass="botones">
+                            </ComboBox>
+                            <Button styleClass="botones" onMouseClicked="#agregarFiltro">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -109,7 +109,7 @@
 
                             <Region fx:id="expansor"/>
 
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#vistaPreviaPdf">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -118,12 +118,12 @@
                                     </ImageView>
                                 </graphic>
                             </Button>
-                            <Label fx:id="lblVista" text="Vista previa" styleClass="labels">
+                            <Label fx:id="lblVista" text="Vista previa" styleClass="labels" onMouseClicked="#vistaPreviaPdf">
                                 <HBox.margin>
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
-                            <Button styleClass="botones">
+                            <Button styleClass="botones" onMouseClicked="#descargarPdf">
                                 <graphic>
                                     <ImageView fitWidth="20" fitHeight="18" preserveRatio="true">
                                         <image>
@@ -135,43 +135,16 @@
                                     <Insets left="30"/>
                                 </HBox.margin>
                             </Button>
-                            <Label fx:id="lblDescargar" text="Descargar" styleClass="labels">
+                            <Label fx:id="lblDescargar" text="Descargar" styleClass="labels" onMouseClicked="#descargarPdf">
                                 <HBox.margin>
                                     <Insets  top="0" right="40" bottom="0" left="10"/>
                                 </HBox.margin>
                             </Label>
                         </HBox>
-                    </VBox>
-
-                    <VBox fx:id="informacion">
-                        <!-- Fila para los filtros -->
-                        <FlowPane fx:id="contenedorFiltros" hgap="10" alignment="CENTER_LEFT">
-                            <VBox.margin>
-                                <Insets top="10"/>
-                            </VBox.margin>
-                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
-                                <FlowPane.margin>
-                                    <Insets left="40"/>
-                                </FlowPane.margin>
-                                <Label text="Categoría: Libros"/>
-                                <Button text="✕"  styleClass="chip-close"/>
-                            </HBox>
-                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
-                                <Label text="Precio: $50"/>
-                                <Button text="✕"  styleClass="chip-close"/>
-                            </HBox>
-                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
-                                <Label text="En stock"/>
-                                <Button text="✕" styleClass="chip-close"/>
-                            </HBox>
-                        </FlowPane>
-                        <!-- Fila 3 -->
-                        <HBox fx:id="fila3" spacing="0" alignment="CENTER_RIGHT" >
-                            <Label fx:id="lblPeriodo" text="Periodo:" styleClass="labels">
-                                <HBox.margin>
-                                    <Insets top="-10" right="40"/>
-                                </HBox.margin>
-                            </Label>
+                        <HBox fx:id="contenedorFiltros" spacing="10">
+                            <HBox.margin>
+                                <Insets left="70" top="10" bottom="0"/>
+                            </HBox.margin>
                         </HBox>
                     </VBox>
 
