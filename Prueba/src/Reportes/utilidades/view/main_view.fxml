@@ -163,8 +163,10 @@
                                 <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="140" />
                                 <TableColumn fx:id="colTotalCompra" text="Total de compra" prefWidth="200" />
                                 <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="200" />
+                                <TableColumn fx:id="colFacturaCompra" text="Factura de compra" prefWidth="180" />
                                 <TableColumn fx:id="colTotalVenta" text="Total de venta" prefWidth="170" />
                                 <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
+                                <TableColumn fx:id="colFacturaVenta" text="Factura de venta" prefWidth="180" />
                                 <TableColumn fx:id="colPorcentajeUtilidad" text="Porcentaje de utilidad" prefWidth="190" />
                                 <TableColumn fx:id="colUtilidadPesos" text="Utilidad en pesos" prefWidth="200" />
                             </columns>
