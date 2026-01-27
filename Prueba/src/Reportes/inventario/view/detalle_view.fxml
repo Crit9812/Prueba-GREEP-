@@ -9,6 +9,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import java.lang.String?>
 
 <BorderPane xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
@@ -17,7 +18,7 @@
             prefWidth="760"
             styleClass="detalle-root">
     <stylesheets>
-        <URL value="@/Reportes/inventario/style/detalle.css"/>
+        <String fx:value="@/Reportes/inventario/style/detalle.css"/>
     </stylesheets>
     <top>
         <VBox spacing="10" styleClass="detalle-header">
