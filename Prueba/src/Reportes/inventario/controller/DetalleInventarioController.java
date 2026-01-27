@@ -309,14 +309,21 @@ public class DetalleInventarioController {
         VBox contenido = new VBox(8);
         TextField txtUbicacion = new TextField(valorTexto(articulo.ubicacion));
         TextField txtLote = new TextField(valorTexto(articulo.lote));
-        TextField txtCaducidad = new TextField(valorTexto(articulo.caducidad));
+        javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
+        if (articulo.caducidad != null && !articulo.caducidad.isBlank()) {
+            try {
+                dpCaducidad.setValue(java.time.LocalDate.parse(articulo.caducidad.trim()));
+            } catch (java.time.format.DateTimeParseException ignored) {
+                dpCaducidad.setValue(null);
+            }
+        }
         TextField txtPresentacion = new TextField(valorTexto(articulo.presentacion));
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
 
         contenido.getChildren().addAll(
                 new Label("Ubicación:"), txtUbicacion,
                 new Label("Lote:"), txtLote,
-                new Label("Caducidad (YYYY-MM-DD):"), txtCaducidad,
+                new Label("Caducidad:"), dpCaducidad,
                 new Label("Presentación:"), txtPresentacion,
                 new Label("Factor:"), txtFactor
         );
@@ -357,7 +364,8 @@ public class DetalleInventarioController {
                         ps.setInt(1, ubicacionId);
                     }
                     ps.setString(2, txtLote.getText());
-                    ps.setString(3, txtCaducidad.getText());
+                    String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
+                    ps.setString(3, caducidadTexto);
                     ps.setString(4, txtPresentacion.getText());
                     ps.setString(5, txtFactor.getText());
                     ps.setInt(6, articulo.idArticulo);

@@ -226,14 +226,21 @@ public class MainController {
 
         javafx.scene.control.TextField txtUbicacion = new javafx.scene.control.TextField(item.getUbicacion());
         javafx.scene.control.TextField txtLote = new javafx.scene.control.TextField(item.getLote());
-        javafx.scene.control.TextField txtCaducidad = new javafx.scene.control.TextField(item.getCaducidad());
+        javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
+        if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
+            try {
+                dpCaducidad.setValue(java.time.LocalDate.parse(item.getCaducidad().trim()));
+            } catch (java.time.format.DateTimeParseException ignored) {
+                dpCaducidad.setValue(null);
+            }
+        }
         javafx.scene.control.TextField txtPresentacion = new javafx.scene.control.TextField(item.getPresentacion());
         javafx.scene.control.TextField txtFactor = new javafx.scene.control.TextField(item.getFactor());
 
         VBox contenido = new VBox(8,
                 new Label("Ubicación:"), txtUbicacion,
                 new Label("Lote:"), txtLote,
-                new Label("Caducidad (YYYY-MM-DD):"), txtCaducidad,
+                new Label("Caducidad:"), dpCaducidad,
                 new Label("Presentación:"), txtPresentacion,
                 new Label("Factor:"), txtFactor
         );
@@ -252,8 +259,9 @@ public class MainController {
             if (respuesta != javafx.scene.control.ButtonType.OK) {
                 return;
             }
+            String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
             actualizarArticuloInventario(idArticulo, txtUbicacion.getText(), txtLote.getText(),
-                    txtCaducidad.getText(), txtPresentacion.getText(), txtFactor.getText());
+                    caducidadTexto, txtPresentacion.getText(), txtFactor.getText());
         });
     }
 
