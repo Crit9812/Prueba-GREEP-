@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Casi competo pero con detalles">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,7 +93,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "Pruebas",
+    "git-widget-placeholder": "#109 on codex/add-product-details-modal-i…yr0sc",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
