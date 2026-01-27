@@ -18,7 +18,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -34,6 +34,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -55,7 +58,8 @@ public class MainController {
     @FXML private Label lblOrdenar;
     @FXML private Label lblExportar;
     @FXML private Region expansorBusqueda;
-    @FXML private TextField buscarFactura;
+    @FXML private DatePicker fechaInicio;
+    @FXML private DatePicker fechaFin;
 
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
@@ -91,6 +95,7 @@ public class MainController {
     private boolean restaurandoFiltros = false;
     private String criterioOrden = "producto";
     private String direccionOrden = "asc";
+    private static final DateTimeFormatter FORMATO_FECHA_ALT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @FXML
     public void initialize() {
@@ -124,8 +129,10 @@ public class MainController {
             HBox.setHgrow(expansorBusqueda, Priority.ALWAYS);
             expansorBusqueda.setMinWidth(10);
 
-            buscarFactura.prefWidthProperty().bind(root.widthProperty().multiply(0.18));
-            buscarFactura.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            fechaInicio.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+            fechaInicio.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            fechaFin.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+            fechaFin.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -139,7 +146,7 @@ public class MainController {
             paneNavbarController.setTitulo("Utilidades", "#ffffff");
             configurarColumnas();
             configurarFiltros();
-            configurarBusquedaFactura();
+            configurarFiltroFechas();
             cargarUtilidades();
         });
     }
@@ -205,7 +212,7 @@ public class MainController {
     }
 
     private List<UtilidadItem> obtenerUtilidades(Connection conn) throws SQLException {
-        String query = "SELECT s.idSalida, s.noFactura AS facturaVenta, s.idDestinatario, "
+        String query = "SELECT s.idSalida, s.noFactura AS facturaVenta, s.fechaSalida AS fechaSalida, s.idDestinatario, "
                 + "c.Nombre AS cliente, ds.idDetalleSalida, ds.claveProductoSalida AS claveProducto, "
                 + "ds.precioUnitarioSalida, ds.precioTotalSalida, ds.cantidad AS cantidadSalida, "
                 + "a.idDetalleEntrada, a.presentacion, a.factor, "
@@ -237,6 +244,7 @@ public class MainController {
                 String facturaCompra = valorTexto(rs.getObject("facturaCompra"));
                 String proveedor = valorTexto(rs.getObject("proveedor"));
                 String cliente = valorTexto(rs.getObject("cliente"));
+                String fechaSalida = valorTexto(rs.getObject("fechaSalida"));
                 String nombreProducto = valorTexto(rs.getObject("nombreProducto"));
                 String categoria = valorTexto(rs.getObject("categoria"));
                 String presentacion = valorTexto(rs.getObject("presentacion"));
@@ -263,7 +271,8 @@ public class MainController {
                         facturaCompra,
                         proveedor,
                         facturaVenta,
-                        cliente
+                        cliente,
+                        fechaSalida
                 ));
                 acumulado.cantidad++;
                 acumulado.totalCompra += costoUnitario;
@@ -291,7 +300,8 @@ public class MainController {
                     formatoPorcentaje(porcentaje),
                     formatoNumero(utilidadPesos),
                     acumulado.facturaCompra,
-                    acumulado.facturaVenta
+                    acumulado.facturaVenta,
+                    acumulado.fechaSalida
             ));
         }
 
@@ -438,8 +448,8 @@ public class MainController {
     }
 
     private void aplicarFiltrosYBusqueda() {
-        String filtroFactura = buscarFactura != null ? buscarFactura.getText() : "";
-        String criterioFactura = filtroFactura == null ? "" : filtroFactura.trim().toLowerCase(Locale.ROOT);
+        LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
+        LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
 
         List<UtilidadItem> filtrados = new ArrayList<>();
         for (UtilidadItem item : utilidadesOriginal) {
@@ -451,10 +461,18 @@ public class MainController {
                     break;
                 }
             }
-            if (coincide && !criterioFactura.isBlank()) {
-                String facturaVenta = valorTexto(item.getFacturaVenta()).toLowerCase(Locale.ROOT);
-                String facturaCompra = valorTexto(item.getFacturaCompra()).toLowerCase(Locale.ROOT);
-                coincide = facturaVenta.contains(criterioFactura) || facturaCompra.contains(criterioFactura);
+            if (coincide && (fechaInicioSeleccionada != null || fechaFinSeleccionada != null)) {
+                LocalDate fechaItem = parseFecha(item.getFechaSalida());
+                if (fechaItem == null) {
+                    coincide = false;
+                } else {
+                    if (fechaInicioSeleccionada != null && fechaItem.isBefore(fechaInicioSeleccionada)) {
+                        coincide = false;
+                    }
+                    if (coincide && fechaFinSeleccionada != null && fechaItem.isAfter(fechaFinSeleccionada)) {
+                        coincide = false;
+                    }
+                }
             }
             if (coincide) {
                 filtrados.add(item);
@@ -585,11 +603,12 @@ public class MainController {
         FXCollections.sort(utilidades, comparator);
     }
 
-    private void configurarBusquedaFactura() {
-        if (buscarFactura == null) {
+    private void configurarFiltroFechas() {
+        if (fechaInicio == null || fechaFin == null) {
             return;
         }
-        buscarFactura.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosYBusqueda());
+        fechaInicio.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosYBusqueda());
+        fechaFin.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosYBusqueda());
     }
 
     @FXML
@@ -627,9 +646,11 @@ public class MainController {
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
         }
-        String filtroFactura = buscarFactura != null ? buscarFactura.getText() : "";
-        if (filtroFactura != null && !filtroFactura.isBlank()) {
-            filtrosAplicados.add("Factura contiene: " + filtroFactura.trim());
+        if (fechaInicio != null && fechaInicio.getValue() != null) {
+            filtrosAplicados.add("Fecha desde: " + fechaInicio.getValue());
+        }
+        if (fechaFin != null && fechaFin.getValue() != null) {
+            filtrosAplicados.add("Fecha hasta: " + fechaFin.getValue());
         }
         return filtrosAplicados;
     }
@@ -694,6 +715,21 @@ public class MainController {
         }
     }
 
+    private LocalDate parseFecha(String fechaTexto) {
+        if (fechaTexto == null || fechaTexto.isBlank()) {
+            return null;
+        }
+        List<DateTimeFormatter> formatos = List.of(DateTimeFormatter.ISO_LOCAL_DATE, FORMATO_FECHA_ALT);
+        for (DateTimeFormatter formatter : formatos) {
+            try {
+                return LocalDate.parse(fechaTexto.trim(), formatter);
+            } catch (DateTimeParseException ignored) {
+                // Intentar con el siguiente formato
+            }
+        }
+        return null;
+    }
+
     private static class Filtro {
         private final String campo;
         private final String valor;
@@ -717,6 +753,7 @@ public class MainController {
         private final String proveedor;
         private final String facturaVenta;
         private final String cliente;
+        private final String fechaSalida;
         private int cantidad;
         private double totalCompra;
         private double totalVenta;
@@ -732,7 +769,8 @@ public class MainController {
                                   String facturaCompra,
                                   String proveedor,
                                   String facturaVenta,
-                                  String cliente) {
+                                  String cliente,
+                                  String fechaSalida) {
             this.salidaId = salidaId;
             this.entradaId = entradaId;
             this.claveProducto = claveProducto;
@@ -745,6 +783,7 @@ public class MainController {
             this.proveedor = proveedor;
             this.facturaVenta = facturaVenta;
             this.cliente = cliente;
+            this.fechaSalida = fechaSalida;
         }
     }
 }

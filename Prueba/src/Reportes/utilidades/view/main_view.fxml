@@ -75,11 +75,21 @@
 
                             <Region fx:id="expansorBusqueda"/>
 
-                            <TextField fx:id="buscarFactura" text="" styleClass="textfield" >
+                            <DatePicker fx:id="fechaInicio" promptText="Desde" styleClass="textfield">
+                                <HBox.margin>
+                                    <Insets right="8"/>
+                                </HBox.margin>
+                            </DatePicker>
+                            <Label text="-" styleClass="labels" style="-fx-underline: false;">
+                                <HBox.margin>
+                                    <Insets right="8"/>
+                                </HBox.margin>
+                            </Label>
+                            <DatePicker fx:id="fechaFin" promptText="Hasta" styleClass="textfield">
                                 <HBox.margin>
                                     <Insets right="40"/>
                                 </HBox.margin>
-                            </TextField>
+                            </DatePicker>
                         </HBox>
 
                         <!-- Fila 2 -->
