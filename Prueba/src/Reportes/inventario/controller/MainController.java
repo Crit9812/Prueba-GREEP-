@@ -163,7 +163,417 @@ public class MainController {
             configurarInventarioDetallado();
             configurarFiltros();
             cargarInventarioDisponible(false);
+            configurarDobleClick();
         });
+    }
+
+    private void configurarDobleClick() {
+        if (contenidoTabla == null) {
+            return;
+        }
+
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<ItemInventario> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    if (chkInventarioDetallado != null && chkInventarioDetallado.isSelected()) {
+                        abrirEdicionArticulo(row.getItem());
+                    } else {
+                        abrirDetalleInventario(row.getItem());
+                    }
+                }
+            });
+            return row;
+        });
+    }
+
+    private void abrirDetalleInventario(ItemInventario item) {
+        if (item == null) {
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Reportes/inventario/view/detalle_view.fxml"));
+            Pane rootDetalle = loader.load();
+            DetalleInventarioController controller = loader.getController();
+            controller.setItemInventario(item);
+            controller.setOnRefresh(() -> cargarInventarioDisponible(chkInventarioDetallado.isSelected()));
+
+            javafx.stage.Stage stage = new javafx.stage.Stage();
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.setTitle("Detalle de inventario");
+            stage.setScene(new javafx.scene.Scene(rootDetalle));
+            controller.setStage(stage);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void abrirEdicionArticulo(ItemInventario item) {
+        if (item == null || item.getIdArticulo() == null || item.getIdArticulo().isBlank()) {
+            return;
+        }
+        Integer idArticulo = parseInteger(item.getIdArticulo());
+        if (idArticulo == null || idArticulo <= 0) {
+            return;
+        }
+        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
+        dialog.setTitle("Editar artículo");
+        aplicarEstilosDialogo(dialog);
+        javafx.scene.control.ButtonType deleteType = new javafx.scene.control.ButtonType(
+                "Eliminar", javafx.scene.control.ButtonBar.ButtonData.LEFT);
+        dialog.getDialogPane().getButtonTypes().addAll(deleteType, javafx.scene.control.ButtonType.OK,
+                javafx.scene.control.ButtonType.CANCEL);
+
+        javafx.scene.control.TextField txtUbicacion = new javafx.scene.control.TextField(item.getUbicacion());
+        javafx.scene.control.TextField txtLote = new javafx.scene.control.TextField(item.getLote());
+        javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
+        if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
+            try {
+                dpCaducidad.setValue(java.time.LocalDate.parse(item.getCaducidad().trim()));
+            } catch (java.time.format.DateTimeParseException ignored) {
+                dpCaducidad.setValue(null);
+            }
+        }
+        javafx.scene.control.TextField txtPresentacion = new javafx.scene.control.TextField(item.getPresentacion());
+        javafx.scene.control.TextField txtFactor = new javafx.scene.control.TextField(item.getFactor());
+
+        VBox contenido = new VBox(8,
+                new Label("Ubicación:"), txtUbicacion,
+                new Label("Lote:"), txtLote,
+                new Label("Caducidad:"), dpCaducidad,
+                new Label("Presentación:"), txtPresentacion,
+                new Label("Factor:"), txtFactor
+        );
+        dialog.getDialogPane().setContent(contenido);
+
+        javafx.scene.control.Button deleteButton =
+                (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(deleteType);
+        if (deleteButton != null) {
+            deleteButton.getStyleClass().add("detalle-button-danger");
+        }
+
+        dialog.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == deleteType) {
+                eliminarArticuloInventario(idArticulo);
+                return;
+            }
+            if (respuesta != javafx.scene.control.ButtonType.OK) {
+                return;
+            }
+            String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
+            actualizarArticuloInventario(idArticulo, txtUbicacion.getText(), txtLote.getText(),
+                    caducidadTexto, txtPresentacion.getText(), txtFactor.getText());
+        });
+    }
+
+    private void actualizarArticuloInventario(int idArticulo, String ubicacionTexto, String lote,
+                                              String caducidad, String presentacion, String factor) {
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return;
+            }
+
+            Integer ubicacionId = null;
+            if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT id FROM ubicaciones WHERE nombre = ?")) {
+                    ps.setString(1, ubicacionTexto.trim());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            ubicacionId = rs.getInt(1);
+                        }
+                    }
+                }
+                if (ubicacionId == null) {
+                    mostrarAdvertencia("Ubicación inválida", "No se encontró la ubicación ingresada.");
+                    return;
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE articulo SET ubicacion = ?, lote = ?, caducidad = ?, presentacion = ?, factor = ? " +
+                            "WHERE idArticulo = ?")) {
+                if (ubicacionId == null) {
+                    ps.setNull(1, java.sql.Types.INTEGER);
+                } else {
+                    ps.setInt(1, ubicacionId);
+                }
+                ps.setString(2, lote);
+                ps.setString(3, caducidad);
+                ps.setString(4, presentacion);
+                ps.setString(5, factor);
+                ps.setInt(6, idArticulo);
+                ps.executeUpdate();
+            }
+            cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void eliminarArticuloInventario(int idArticulo) {
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Eliminar artículo");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Deseas eliminar el artículo seleccionado?");
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != javafx.scene.control.ButtonType.OK) {
+                return;
+            }
+            try (Connection conn = new Conexion().conectar()) {
+                if (conn == null) {
+                    return;
+                }
+                conn.setAutoCommit(false);
+
+                try {
+                    Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+                    Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+                    Map<String, String> columnasEntrada = obtenerColumnas(conn, "entradas");
+
+                    String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+                    String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                            "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+
+                    String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+                    String colDetalleClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada",
+                            "entrada_id");
+                    String colDetalleCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
+                    String colDetallePrecioUnitario = resolverColumna(columnasDetalle, "precioUnitario", "precioEntrada",
+                            "precio_entrada");
+                    String colDetallePrecioIva = resolverColumna(columnasDetalle, "precioIVA", "precioIva", "precio_iva");
+                    String colDetallePrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto",
+                            "precio_bruto");
+                    String colDetallePrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
+
+                    String colEntradaId = resolverColumna(columnasEntrada, "idEntrada", "id", "id_entrada");
+                    String colEntradaPrecioNeto = resolverColumna(columnasEntrada, "precioNetoEntrada", "precioNeto",
+                            "precio_neto");
+                    String colEntradaPrecioTotal = resolverColumna(columnasEntrada, "precioTotalEntrada", "precioTotal",
+                            "precio_total");
+
+                    if (colArticuloId == null || colArticuloEstado == null || colArticuloDetalleEntrada == null
+                            || colDetalleId == null || colDetalleClaveEntrada == null
+                            || colDetalleCantidad == null || colDetallePrecioUnitario == null || colDetallePrecioIva == null) {
+                        conn.rollback();
+                        return;
+                    }
+
+                    Integer detalleEntradaId = null;
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "SELECT `" + colArticuloDetalleEntrada + "` AS detalleEntrada FROM articulo WHERE `" +
+                                    colArticuloId + "` = ?")) {
+                        ps.setInt(1, idArticulo);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                detalleEntradaId = rs.getInt("detalleEntrada");
+                            }
+                        }
+                    }
+
+                    if (detalleEntradaId == null || detalleEntradaId <= 0) {
+                        conn.rollback();
+                        return;
+                    }
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET `" + colArticuloEstado + "` = ? WHERE `" + colArticuloId + "` = ?")) {
+                        ps.setString(1, "eliminado");
+                        ps.setInt(2, idArticulo);
+                        ps.executeUpdate();
+                    }
+
+                    Integer entradaId = null;
+                    BigDecimal cantidad = null;
+                    BigDecimal precioUnitario = null;
+                    BigDecimal precioIva = null;
+
+                    String sqlDetalle = String.format("""
+                            SELECT `%s` AS claveEntrada,
+                                   `%s` AS cantidad,
+                                   `%s` AS precioUnitario,
+                                   `%s` AS precioIva
+                            FROM detalle_Entrada
+                            WHERE `%s` = ?
+                            """,
+                            colDetalleClaveEntrada,
+                            colDetalleCantidad,
+                            colDetallePrecioUnitario,
+                            colDetallePrecioIva,
+                            colDetalleId
+                    );
+                    try (PreparedStatement ps = conn.prepareStatement(sqlDetalle)) {
+                        ps.setInt(1, detalleEntradaId);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                entradaId = rs.getInt("claveEntrada");
+                                cantidad = parseDecimal(rs.getObject("cantidad"));
+                                precioUnitario = parseDecimal(rs.getObject("precioUnitario"));
+                                precioIva = parseDecimal(rs.getObject("precioIva"));
+                            }
+                        }
+                    }
+
+                    if (cantidad == null || precioUnitario == null || precioIva == null) {
+                        conn.rollback();
+                        return;
+                    }
+
+                    BigDecimal nuevaCantidad = cantidad.subtract(BigDecimal.ONE);
+                    if (nuevaCantidad.compareTo(BigDecimal.ZERO) < 0) {
+                        nuevaCantidad = BigDecimal.ZERO;
+                    }
+                    BigDecimal nuevoBruto = precioUnitario.multiply(nuevaCantidad).setScale(2, java.math.RoundingMode.HALF_UP);
+                    BigDecimal nuevoTotal = precioIva.multiply(nuevaCantidad).setScale(2, java.math.RoundingMode.HALF_UP);
+
+                    StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Entrada SET ");
+                    List<Object> valoresDetalle = new ArrayList<>();
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleCantidad, nuevaCantidad.intValue());
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioBruto, nuevoBruto);
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioTotal, nuevoTotal);
+                    updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
+                    valoresDetalle.add(detalleEntradaId);
+
+                    try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
+                        for (int i = 0; i < valoresDetalle.size(); i++) {
+                            ps.setObject(i + 1, valoresDetalle.get(i));
+                        }
+                        ps.executeUpdate();
+                    }
+
+                    if (entradaId != null && entradaId > 0 && colEntradaId != null
+                            && (colEntradaPrecioNeto != null || colEntradaPrecioTotal != null)) {
+                        BigDecimal precioNetoActual = null;
+                        BigDecimal precioTotalActual = null;
+                        String sqlEntrada = String.format("""
+                                SELECT %s AS precioNeto,
+                                       %s AS precioTotal
+                                FROM entradas
+                                WHERE `%s` = ?
+                                """,
+                                colEntradaPrecioNeto != null ? "`" + colEntradaPrecioNeto + "`" : "NULL",
+                                colEntradaPrecioTotal != null ? "`" + colEntradaPrecioTotal + "`" : "NULL",
+                                colEntradaId
+                        );
+                        try (PreparedStatement ps = conn.prepareStatement(sqlEntrada)) {
+                            ps.setInt(1, entradaId);
+                            try (ResultSet rs = ps.executeQuery()) {
+                                if (rs.next()) {
+                                    precioNetoActual = parseDecimal(rs.getObject("precioNeto"));
+                                    precioTotalActual = parseDecimal(rs.getObject("precioTotal"));
+                                }
+                            }
+                        }
+
+                        StringBuilder updateEntrada = new StringBuilder("UPDATE entradas SET ");
+                        List<Object> valoresEntrada = new ArrayList<>();
+                        if (colEntradaPrecioNeto != null && precioNetoActual != null) {
+                            BigDecimal nuevoNeto = precioNetoActual.subtract(precioUnitario);
+                            if (nuevoNeto.compareTo(BigDecimal.ZERO) < 0) {
+                                nuevoNeto = BigDecimal.ZERO;
+                            }
+                            agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioNeto,
+                                    nuevoNeto.setScale(2, java.math.RoundingMode.HALF_UP));
+                        }
+                        if (colEntradaPrecioTotal != null && precioTotalActual != null) {
+                            BigDecimal nuevoTotalEntrada = precioTotalActual.subtract(precioIva);
+                            if (nuevoTotalEntrada.compareTo(BigDecimal.ZERO) < 0) {
+                                nuevoTotalEntrada = BigDecimal.ZERO;
+                            }
+                            agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioTotal,
+                                    nuevoTotalEntrada.setScale(2, java.math.RoundingMode.HALF_UP));
+                        }
+                        if (!valoresEntrada.isEmpty()) {
+                            updateEntrada.append(" WHERE `").append(colEntradaId).append("` = ?");
+                            valoresEntrada.add(entradaId);
+                            try (PreparedStatement ps = conn.prepareStatement(updateEntrada.toString())) {
+                                for (int i = 0; i < valoresEntrada.size(); i++) {
+                                    ps.setObject(i + 1, valoresEntrada.get(i));
+                                }
+                                ps.executeUpdate();
+                            }
+                        }
+                    }
+
+                    conn.commit();
+                    cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private Integer parseInteger(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(valor.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private java.math.BigDecimal parseDecimal(Object valor) {
+        if (valor == null) {
+            return java.math.BigDecimal.ZERO;
+        }
+        String limpio = valor.toString().replace(",", "").trim();
+        if (limpio.isBlank()) {
+            return java.math.BigDecimal.ZERO;
+        }
+        try {
+            return new java.math.BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+
+    private Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
+        Map<String, String> columnas = new java.util.HashMap<>();
+        java.sql.DatabaseMetaData metaData = conn.getMetaData();
+        try (ResultSet rs = metaData.getColumns(null, null, tabla, null)) {
+            while (rs.next()) {
+                String nombre = rs.getString("COLUMN_NAME");
+                if (nombre != null) {
+                    columnas.put(nombre.toLowerCase(), nombre);
+                }
+            }
+        }
+        return columnas;
+    }
+
+    private String resolverColumna(Map<String, String> columnas, String... alternativas) {
+        if (columnas == null || alternativas == null) {
+            return null;
+        }
+        for (String alternativa : alternativas) {
+            if (alternativa == null) {
+                continue;
+            }
+            String encontrada = columnas.get(alternativa.toLowerCase());
+            if (encontrada != null) {
+                return encontrada;
+            }
+        }
+        return null;
+    }
+
+    private void agregarCampoActualizacion(StringBuilder sql, List<Object> valores, String columna, Object valor) {
+        if (columna == null) {
+            return;
+        }
+        if (!valores.isEmpty()) {
+            sql.append(", ");
+        }
+        sql.append("`").append(columna).append("` = ?");
+        valores.add(valor);
     }
 
     private void configurarColumnasTabla() {
@@ -567,6 +977,27 @@ public class MainController {
         alerta.showAndWait();
     }
 
+    private void aplicarEstilosDialogo(javafx.scene.control.Dialog<?> dialog) {
+        if (dialog == null || dialog.getDialogPane() == null) {
+            return;
+        }
+        dialog.getDialogPane().getStyleClass().add("detalle-dialog");
+        java.net.URL stylesheet = getClass().getResource("/Reportes/inventario/style/detalle.css");
+        if (stylesheet != null) {
+            dialog.getDialogPane().getStylesheets().add(stylesheet.toExternalForm());
+        }
+        javafx.scene.control.Button btnOk =
+                (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
+        javafx.scene.control.Button btnCancel =
+                (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CANCEL);
+        if (btnOk != null) {
+            btnOk.getStyleClass().add("detalle-button");
+        }
+        if (btnCancel != null) {
+            btnCancel.getStyleClass().add("detalle-button-outline");
+        }
+    }
+
     @FXML
     private void mostrarOrdenPopup(MouseEvent event) {
         boolean detallado = chkInventarioDetallado.isSelected();
@@ -629,6 +1060,7 @@ public class MainController {
 
         String sql = detallado ? """
             SELECT
+                a.idArticulo AS idArticulo,
                 p.id AS claveProducto,
                 p.nombre AS producto,
                 m.nombre AS marca,
@@ -650,6 +1082,7 @@ public class MainController {
             WHERE a.Estado = 'disponible'
             """ : """
             SELECT
+                NULL AS idArticulo,
                 p.id AS claveProducto,
                 COUNT(a.idArticulo) AS cantidad,
                 p.nombre AS producto,
@@ -691,6 +1124,7 @@ public class MainController {
 
             while (rs.next()) {
                 itemsInventarioOriginal.add(new ItemInventario(
+                        rs.getString("idArticulo"),
                         rs.getString("claveProducto"),
                         detallado ? "" : rs.getString("cantidad"),
                         rs.getString("producto"),
