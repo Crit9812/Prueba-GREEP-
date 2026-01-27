@@ -6,15 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion de cambios en operaciones de jessica">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevaVenta.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/model/modelNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/view/nuevoTraspasoSalida.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/view/nuevoTraspasoSalida.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,7 +37,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/add-purchase-and-sales-invoice-columns" />
+        <entry key="$PROJECT_DIR$/.." value="codex/add-purchase-and-sales-invoice-columns-eiqpku" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -102,7 +93,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#106 on codex/add-purchase-and-sales-invo…iqpku",
+    "git-widget-placeholder": "Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -211,7 +202,7 @@
       <workItem from="1769032482642" duration="5951000" />
       <workItem from="1769198174687" duration="7935000" />
       <workItem from="1769191210060" duration="496000" />
-      <workItem from="1769463326384" duration="3374000" />
+      <workItem from="1769463326384" duration="6681000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />
@@ -565,7 +556,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769205501060</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Agregacion de cambios en operaciones de jessica">
+      <option name="closed" value="true" />
+      <created>1769468718862</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1769468718862</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
