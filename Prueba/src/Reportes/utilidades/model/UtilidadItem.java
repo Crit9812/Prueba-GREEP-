@@ -19,6 +19,7 @@ public class UtilidadItem {
     private final StringProperty utilidadPesos = new SimpleStringProperty();
     private final StringProperty facturaCompra = new SimpleStringProperty();
     private final StringProperty facturaVenta = new SimpleStringProperty();
+    private final StringProperty fechaSalida = new SimpleStringProperty();
 
     public UtilidadItem(String claveProducto,
                         String nombreProducto,
@@ -34,7 +35,8 @@ public class UtilidadItem {
                         String porcentajeUtilidad,
                         String utilidadPesos,
                         String facturaCompra,
-                        String facturaVenta) {
+                        String facturaVenta,
+                        String fechaSalida) {
         this.claveProducto.set(claveProducto);
         this.nombreProducto.set(nombreProducto);
         this.categoria.set(categoria);
@@ -50,6 +52,7 @@ public class UtilidadItem {
         this.utilidadPesos.set(utilidadPesos);
         this.facturaCompra.set(facturaCompra);
         this.facturaVenta.set(facturaVenta);
+        this.fechaSalida.set(fechaSalida);
     }
 
     public String getClaveProducto() {
@@ -230,5 +233,17 @@ public class UtilidadItem {
 
     public void setFacturaVenta(String facturaVenta) {
         this.facturaVenta.set(facturaVenta);
+    }
+
+    public String getFechaSalida() {
+        return fechaSalida.get();
+    }
+
+    public StringProperty fechaSalidaProperty() {
+        return fechaSalida;
+    }
+
+    public void setFechaSalida(String fechaSalida) {
+        this.fechaSalida.set(fechaSalida);
     }
 }
