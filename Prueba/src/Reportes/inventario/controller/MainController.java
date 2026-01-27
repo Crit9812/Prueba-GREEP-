@@ -163,7 +163,46 @@ public class MainController {
             configurarInventarioDetallado();
             configurarFiltros();
             cargarInventarioDisponible(false);
+            configurarDobleClick();
         });
+    }
+
+    private void configurarDobleClick() {
+        if (contenidoTabla == null) {
+            return;
+        }
+
+        contenidoTabla.setRowFactory(table -> {
+            javafx.scene.control.TableRow<ItemInventario> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    abrirDetalleInventario(row.getItem());
+                }
+            });
+            return row;
+        });
+    }
+
+    private void abrirDetalleInventario(ItemInventario item) {
+        if (item == null) {
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Reportes/inventario/view/detalle_view.fxml"));
+            Pane rootDetalle = loader.load();
+            DetalleInventarioController controller = loader.getController();
+            controller.setItemInventario(item);
+            controller.setOnRefresh(() -> cargarInventarioDisponible(chkInventarioDetallado.isSelected()));
+
+            javafx.stage.Stage stage = new javafx.stage.Stage();
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.setTitle("Detalle de inventario");
+            stage.setScene(new javafx.scene.Scene(rootDetalle));
+            controller.setStage(stage);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void configurarColumnasTabla() {
