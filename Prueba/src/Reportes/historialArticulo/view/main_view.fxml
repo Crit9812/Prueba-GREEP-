@@ -143,26 +143,37 @@
 
                     <VBox fx:id="informacion"  styleClass="informacion">
                         <!-- Fila filtros -->
-                        <FlowPane fx:id="contenedorFiltros" hgap="10" alignment="CENTER_LEFT">
+                        <HBox fx:id="filaFiltros" alignment="CENTER_LEFT" spacing="10">
                             <VBox.margin>
                                 <Insets top="10"/>
                             </VBox.margin>
-                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
-                                <FlowPane.margin>
-                                    <Insets left="40" bottom="5"/>
-                                </FlowPane.margin>
-                                <Label text="Categoría: Libros"/>
-                                <Button text="✕"  styleClass="chip-close"/>
+                            <HBox fx:id="contenedorPeriodo" alignment="CENTER_LEFT" spacing="10">
+                                <HBox.margin>
+                                    <Insets left="40"/>
+                                </HBox.margin>
+                                <Label fx:id="lblPeriodo" text="Periodo:" styleClass="labels"/>
+                                <TextField fx:id="fechaDesde" promptText="Desde" styleClass="textfield"/>
+                                <TextField fx:id="fechaHasta" promptText="Hasta" styleClass="textfield"/>
                             </HBox>
-                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
-                                <Label text="Precio: $50"/>
-                                <Button text="✕"  styleClass="chip-close"/>
-                            </HBox>
-                            <HBox alignment="CENTER" spacing="5" styleClass="chip">
-                                <Label text="En stock"/>
-                                <Button text="✕" styleClass="chip-close"/>
-                            </HBox>
-                        </FlowPane>
+                            <Region fx:id="expansorFiltros" HBox.hgrow="ALWAYS" minWidth="10"/>
+                            <FlowPane fx:id="contenedorFiltros" hgap="10" alignment="CENTER_LEFT">
+                                <HBox alignment="CENTER" spacing="5" styleClass="chip">
+                                    <FlowPane.margin>
+                                        <Insets bottom="5"/>
+                                    </FlowPane.margin>
+                                    <Label text="Categoría: Libros"/>
+                                    <Button text="✕"  styleClass="chip-close"/>
+                                </HBox>
+                                <HBox alignment="CENTER" spacing="5" styleClass="chip">
+                                    <Label text="Precio: $50"/>
+                                    <Button text="✕"  styleClass="chip-close"/>
+                                </HBox>
+                                <HBox alignment="CENTER" spacing="5" styleClass="chip">
+                                    <Label text="En stock"/>
+                                    <Button text="✕" styleClass="chip-close"/>
+                                </HBox>
+                            </FlowPane>
+                        </HBox>
 
                         <GridPane xmlns="http://javafx.com/javafx/17"
                                   xmlns:fx="http://javafx.com/fxml"
@@ -190,7 +201,6 @@
                                 </GridPane.margin>
                             </Label>
                             <Label fx:id="lblExistencias" text="Existencias:" GridPane.rowIndex="1" GridPane.columnIndex="1" styleClass="labels"/>
-                            <Label fx:id="lblPeriodo" text="Periodo:" GridPane.rowIndex="1" GridPane.columnIndex="2" styleClass="labels"/>
                         </GridPane>
 
 
