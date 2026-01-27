@@ -27,6 +27,8 @@ import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.concurrent.Task;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -86,6 +88,10 @@ public class controllerCompraEmergente {
     private int contadorFilas = 0;
     private boolean modoAjusteInventario = false;
     private final modelNuevoTraspasoSalida modeloPreciosAjuste = new modelNuevoTraspasoSalida();
+    private String prefillProductoId;
+    private String prefillProductoNombre;
+    private String prefillDescripcion;
+    private String prefillUbicacion;
 
     @FXML
     public void initialize() {
@@ -111,6 +117,8 @@ public class controllerCompraEmergente {
         if (itemParaEditar != null) {
             cargarItemParaEditar();
         }
+
+        aplicarPrefill();
 
         Platform.runLater(() -> cbClaveProducto.requestFocus());
     }
@@ -151,6 +159,76 @@ public class controllerCompraEmergente {
 
     public void setModoAjusteInventario(boolean modoAjusteInventario) {
         this.modoAjusteInventario = modoAjusteInventario;
+    }
+
+    public void setProductoPrefill(String idProducto, String nombreProducto, String descripcion) {
+        this.prefillProductoId = idProducto;
+        this.prefillProductoNombre = nombreProducto;
+        this.prefillDescripcion = descripcion;
+        if (inicializado) {
+            aplicarPrefill();
+        }
+    }
+
+    public void setUbicacionPrefill(String ubicacion) {
+        this.prefillUbicacion = ubicacion;
+        if (inicializado) {
+            aplicarPrefillUbicacion();
+        }
+    }
+
+    private void aplicarPrefill() {
+        aplicarPrefillProducto();
+        aplicarPrefillUbicacion();
+    }
+
+    private void aplicarPrefillProducto() {
+        if (prefillProductoId == null || prefillProductoNombre == null || productoController == null) {
+            return;
+        }
+        intentarAplicarSeleccion(8);
+    }
+
+    private void intentarAplicarSeleccion(int intentosRestantes) {
+        boolean seleccionado = productoController.setSeleccion(prefillProductoId, prefillProductoNombre);
+        if (seleccionado) {
+            if (txtDescripcion != null && prefillDescripcion != null && !prefillDescripcion.isBlank()) {
+                txtDescripcion.setText(prefillDescripcion);
+            }
+            return;
+        }
+        if (intentosRestantes <= 0) {
+            if (cbClaveProducto != null) {
+                cbClaveProducto.setValue(prefillProductoId);
+            }
+            if (cbProductoNombre != null) {
+                cbProductoNombre.setValue(prefillProductoNombre);
+            }
+            if (txtDescripcion != null && prefillDescripcion != null && !prefillDescripcion.isBlank()) {
+                txtDescripcion.setText(prefillDescripcion);
+            }
+            return;
+        }
+        PauseTransition pausa = new PauseTransition(Duration.millis(200));
+        pausa.setOnFinished(event -> intentarAplicarSeleccion(intentosRestantes - 1));
+        pausa.play();
+    }
+
+    private void aplicarPrefillUbicacion() {
+        if (prefillUbicacion == null || prefillUbicacion.isBlank()) {
+            return;
+        }
+        if (filasUbicacion.isEmpty()) {
+            return;
+        }
+        UbicacionRow fila = filasUbicacion.get(0);
+        if (fila == null || fila.combo == null) {
+            return;
+        }
+        fila.combo.setValue(prefillUbicacion);
+        if (fila.combo.getEditor() != null) {
+            fila.combo.getEditor().setText(prefillUbicacion);
+        }
     }
 
     private void configurarPresentaciones() {
