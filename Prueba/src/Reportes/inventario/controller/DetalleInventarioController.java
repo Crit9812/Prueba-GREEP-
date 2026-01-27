@@ -1,10 +1,13 @@
 package Reportes.inventario.controller;
 
 import Formularios.controller.controllerCompraEmergente;
+import Operaciones.ajusteInventario.model.model;
+import Operaciones.compra.model.compra;
 import Reportes.inventario.model.ItemInventario;
 import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -260,11 +263,13 @@ public class DetalleInventarioController {
         if ("Sin ubicación".equalsIgnoreCase(ubicacionPrefill)) {
             ubicacionPrefill = null;
         }
+        ObservableList<compra> itemsEntrada = FXCollections.observableArrayList();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
             controllerCompraEmergente controlador = new controllerCompraEmergente();
-            controlador.setItemsCompra(FXCollections.observableArrayList());
+            controlador.setItemsCompra(itemsEntrada);
             controlador.setTituloFormulario("Agregar artículo");
+            controlador.setModoAjusteInventario(true);
             controlador.setProductoPrefill(itemInventario.getClaveProducto(), itemInventario.getProducto(),
                     itemInventario.getDescripcion());
             controlador.setUbicacionPrefill(ubicacionPrefill);
@@ -280,6 +285,14 @@ public class DetalleInventarioController {
             }
             modal.setResizable(false);
             modal.showAndWait();
+            if (!itemsEntrada.isEmpty()) {
+                model ajusteModel = new model();
+                String ajusteId = ajusteModel.registrarAjuste(itemsEntrada, List.of(), "");
+                if (ajusteId != null && !ajusteId.isBlank()) {
+                    notificarActualizacion();
+                    cargarDetalles();
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
