@@ -442,6 +442,9 @@ public class MainController {
         });
 
         chip.getChildren().addAll(texto, quitar);
+        if (contenedorFiltros.getChildren().isEmpty()) {
+            HBox.setMargin(chip, new Insets(0, 0, 0, 25));
+        }
         return chip;
     }
 

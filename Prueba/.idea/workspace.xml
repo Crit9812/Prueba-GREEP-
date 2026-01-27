@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Agregacion de cambios en operaciones de jessica">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Casi competo pero con detalles">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +39,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/add-purchase-and-sales-invoice-columns-eiqpku" />
+        <entry key="$PROJECT_DIR$/.." value="codex/remove-textfield-and-add-date-filters" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -203,6 +205,7 @@
       <workItem from="1769198174687" duration="7935000" />
       <workItem from="1769191210060" duration="496000" />
       <workItem from="1769463326384" duration="6681000" />
+      <workItem from="1769522123737" duration="3870000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />
@@ -564,7 +567,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769468718862</updated>
     </task>
-    <option name="localTasksCounter" value="46" />
+    <task id="LOCAL-00046" summary="Casi competo pero con detalles">
+      <option name="closed" value="true" />
+      <created>1769522735368</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1769522735368</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -617,7 +628,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Agregada parte de compra completa y cambio al cerrar formulario" />
     <MESSAGE value="Agregado de tabla en claves y cambioes en compras y ventas" />
     <MESSAGE value="Agregado de tabla en claves y cambioes en compras y ventas." />
     <MESSAGE value="Modificaciones no funcionales en venta precios" />
@@ -642,7 +652,8 @@
     <MESSAGE value="Agregacion de operaciones de jessica" />
     <MESSAGE value="Agregacion de cambios de jessica" />
     <MESSAGE value="Agregacion de cambios en operaciones de jessica" />
-    <option name="LAST_COMMIT_MESSAGE" value="Agregacion de cambios en operaciones de jessica" />
+    <MESSAGE value="Casi competo pero con detalles" />
+    <option name="LAST_COMMIT_MESSAGE" value="Casi competo pero con detalles" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

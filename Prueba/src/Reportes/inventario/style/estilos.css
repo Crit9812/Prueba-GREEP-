@@ -130,5 +130,14 @@
     -fx-text-fill: #999696;
 }
 
+.table-view .table-row-cell .text {
+    -fx-fill: black;
+}
+
+.table-view .table-row-cell:filled:selected,
+.table-view .table-row-cell:filled:selected:focused {
+    -fx-text-fill: black;
+    -fx-background-color: #91d485;
+}
 
 
