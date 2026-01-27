@@ -20,7 +20,7 @@
             prefWidth="700"
             styleClass="detalle-root">
     <stylesheets>
-        <String fx:value="@Reportes/inventario/style/detalle.css"/>
+        <String fx:value="@../style/detalle.css"/>
     </stylesheets>
     <top>
         <VBox spacing="10" styleClass="detalle-header">
