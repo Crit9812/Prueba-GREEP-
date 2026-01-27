@@ -686,6 +686,12 @@ public class MainController {
             comboValor.getItems().clear();
             comboValor.setValue(null);
         }
+        if (fechaInicio != null) {
+            fechaInicio.setValue(null);
+        }
+        if (fechaFin != null) {
+            fechaFin.setValue(null);
+        }
         restaurandoFiltros = false;
         actualizarValoresFiltro(comboFiltro != null ? comboFiltro.getValue() : null);
     }
