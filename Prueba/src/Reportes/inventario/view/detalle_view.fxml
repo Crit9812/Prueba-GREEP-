@@ -9,6 +9,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.shape.Rectangle?>
 <?import java.lang.String?>
 
 <BorderPane xmlns="http://javafx.com/javafx/17"
@@ -25,25 +27,39 @@
             <padding>
                 <Insets top="20" right="20" bottom="10" left="20"/>
             </padding>
+            <Rectangle height="3" width="2000" arcHeight="3" arcWidth="3" styleClass="detalle-header-line"/>
             <Label fx:id="lblNombre"
                    text="Producto"
                    styleClass="detalle-title"/>
-            <GridPane hgap="12" vgap="6" styleClass="detalle-grid">
-                <Label text="Marca:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
-                <Label fx:id="lblMarca" GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="detalle-value"/>
+            <HBox spacing="12">
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <GridPane hgap="12" vgap="6" styleClass="detalle-grid">
+                        <Label text="Marca:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
+                        <Label fx:id="lblMarca" GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="detalle-value"/>
 
-                <Label text="Material:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
-                <Label fx:id="lblMaterial" GridPane.rowIndex="1" GridPane.columnIndex="1" styleClass="detalle-value"/>
+                        <Label text="Material:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
+                        <Label fx:id="lblMaterial" GridPane.rowIndex="1" GridPane.columnIndex="1" styleClass="detalle-value"/>
 
-                <Label text="Unidad de medida:" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
-                <Label fx:id="lblUnidad" GridPane.rowIndex="2" GridPane.columnIndex="1" styleClass="detalle-value"/>
+                        <Label text="Unidad de medida:" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
+                        <Label fx:id="lblUnidad" GridPane.rowIndex="2" GridPane.columnIndex="1" styleClass="detalle-value"/>
+                    </GridPane>
+                </VBox>
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <GridPane hgap="12" vgap="6" styleClass="detalle-grid">
+                        <Label text="Clasificación:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
+                        <Label fx:id="lblClasificacion" GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="detalle-value"/>
 
-                <Label text="Clasificación:" GridPane.rowIndex="3" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
-                <Label fx:id="lblClasificacion" GridPane.rowIndex="3" GridPane.columnIndex="1" styleClass="detalle-value"/>
-
-                <Label text="Descripción:" GridPane.rowIndex="4" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
-                <Label fx:id="lblDescripcion" GridPane.rowIndex="4" GridPane.columnIndex="1" wrapText="true" styleClass="detalle-value"/>
-            </GridPane>
+                        <Label text="Descripción:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="detalle-subtitle"/>
+                        <Label fx:id="lblDescripcion" GridPane.rowIndex="1" GridPane.columnIndex="1" wrapText="true" styleClass="detalle-value"/>
+                    </GridPane>
+                </VBox>
+                <VBox alignment="CENTER" spacing="6">
+                    <StackPane styleClass="detalle-chip">
+                        <Label text="Inventario" styleClass="detalle-chip-label"/>
+                    </StackPane>
+                    <Region prefHeight="1" styleClass="detalle-separator"/>
+                </VBox>
+            </HBox>
         </VBox>
     </top>
     <center>

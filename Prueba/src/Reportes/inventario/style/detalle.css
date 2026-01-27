@@ -9,10 +9,28 @@
     -fx-border-width: 0 0 1 0;
 }
 
+.detalle-header-line {
+    -fx-background-color: #111111;
+    -fx-pref-height: 3px;
+    -fx-min-height: 3px;
+}
+
 .detalle-title {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
     -fx-text-fill: #1f1f1f;
+}
+
+.detalle-chip {
+    -fx-background-color: #111111;
+    -fx-background-radius: 999;
+    -fx-padding: 4 12;
+}
+
+.detalle-chip-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
 }
 
 .detalle-subtitle {
@@ -46,6 +64,10 @@
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 6, 0.1, 0, 2);
+}
+
+.detalle-card:hover {
+    -fx-border-color: #bdbdbd;
 }
 
 .detalle-card-title {
@@ -119,4 +141,10 @@
     -fx-border-radius: 6;
     -fx-border-color: #bdbdbd;
     -fx-background-color: #ffffff;
+}
+
+.detalle-separator {
+    -fx-background-color: #e3e3e3;
+    -fx-pref-height: 1px;
+    -fx-min-height: 1px;
 }
