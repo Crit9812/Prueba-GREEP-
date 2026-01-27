@@ -82,9 +82,27 @@
 
                         <!-- Fila 2 -->
                         <HBox fx:id="fila2">
+                            <DatePicker fx:id="fechaInicio" promptText="Desde" styleClass="textfield">
+                                <HBox.margin>
+                                    <Insets left="30" right="8"/>
+                                </HBox.margin>
+                            </DatePicker>
+                            <Label text="-" styleClass="labels" style="-fx-underline: false;">
+                                <HBox.margin>
+                                    <Insets right="8"/>
+                                </HBox.margin>
+                            </Label>
+                            <DatePicker fx:id="fechaFin" promptText="Hasta" styleClass="textfield">
+                                <HBox.margin>
+                                    <Insets right="30"/>
+                                </HBox.margin>
+                            </DatePicker>
+
+                            <Region fx:id="expansorFiltros"/>
+
                             <ComboBox fx:id="comboFiltro" promptText="Filtrar por" styleClass="textfield">
                                 <HBox.margin>
-                                    <Insets left="30"/>
+                                    <Insets left="10"/>
                                 </HBox.margin>
                             </ComboBox>
                             <ComboBox fx:id="comboValor" promptText="Valor" styleClass="textfield">

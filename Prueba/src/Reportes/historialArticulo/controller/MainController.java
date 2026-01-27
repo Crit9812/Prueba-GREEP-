@@ -53,6 +53,9 @@ public class MainController {
     @FXML private Region expansorBusqueda;
     @FXML private ComboBox<ProductoOpcion> buscarProducto;
 
+    @FXML private DatePicker fechaInicio;
+    @FXML private DatePicker fechaFin;
+    @FXML private Region expansorFiltros;
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
     @FXML private HBox contenedorFiltros;
@@ -132,6 +135,14 @@ public class MainController {
             buscarProducto.prefWidthProperty().bind(root.widthProperty().multiply(0.18));
             buscarProducto.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
 
+            fechaInicio.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+            fechaInicio.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            fechaFin.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+            fechaFin.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+
+            HBox.setHgrow(expansorFiltros, Priority.ALWAYS);
+            expansorFiltros.setMinWidth(10);
+
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
 
@@ -145,6 +156,7 @@ public class MainController {
             configurarColumnas();
             configurarBuscadorProducto();
             configurarFiltros();
+            configurarFiltrosFecha();
         });
     }
 
@@ -337,6 +349,9 @@ public class MainController {
     }
 
     private void aplicarFiltros() {
+        LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
+        LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
+
         List<HistorialArticuloItem> filtrados = new ArrayList<>();
         for (HistorialArticuloItem item : historialItemsOriginal) {
             boolean coincide = true;
@@ -345,6 +360,19 @@ public class MainController {
                 if (valor == null || !valor.equals(filtro.valor)) {
                     coincide = false;
                     break;
+                }
+            }
+            if (coincide && (fechaInicioSeleccionada != null || fechaFinSeleccionada != null)) {
+                LocalDate fechaItem = parseFecha(item.getFecha());
+                if (fechaItem == null) {
+                    coincide = false;
+                } else {
+                    if (fechaInicioSeleccionada != null && fechaItem.isBefore(fechaInicioSeleccionada)) {
+                        coincide = false;
+                    }
+                    if (coincide && fechaFinSeleccionada != null && fechaItem.isAfter(fechaFinSeleccionada)) {
+                        coincide = false;
+                    }
                 }
             }
             if (coincide) {
@@ -397,6 +425,14 @@ public class MainController {
         if (!filtrados.isEmpty() && buscarProducto.isFocused()) {
             buscarProducto.show();
         }
+    }
+
+    private void configurarFiltrosFecha() {
+        if (fechaInicio == null || fechaFin == null) {
+            return;
+        }
+        fechaInicio.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        fechaFin.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
     }
 
     private List<ProductoOpcion> cargarProductosActivos() {
@@ -635,6 +671,12 @@ public class MainController {
             comboValor.getItems().clear();
             comboValor.setValue(null);
         }
+        if (fechaInicio != null) {
+            fechaInicio.setValue(null);
+        }
+        if (fechaFin != null) {
+            fechaFin.setValue(null);
+        }
         restaurandoFiltros = false;
         actualizarValoresFiltro(comboFiltro != null ? comboFiltro.getValue() : null);
     }
@@ -764,6 +806,17 @@ public class MainController {
         return LocalDateTime.of(fecha, hora);
     }
 
+    private LocalDate parseFecha(String fechaTexto) {
+        if (fechaTexto == null || fechaTexto.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(fechaTexto, FORMATO_FECHA);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
     private void cargarDetalleProducto(Connection conn, String idProducto) throws SQLException {
         String sqlProducto = "SELECT p.id, p.categoria, p.material, p.unidadMedida, p.descripcion, "
                 + "m.nombre AS marca, e.nombre AS etiqueta "
@@ -874,6 +927,12 @@ public class MainController {
         }
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
+        }
+        if (fechaInicio != null && fechaInicio.getValue() != null) {
+            filtrosAplicados.add("Fecha desde: " + fechaInicio.getValue());
+        }
+        if (fechaFin != null && fechaFin.getValue() != null) {
+            filtrosAplicados.add("Fecha hasta: " + fechaFin.getValue());
         }
         return filtrosAplicados;
     }
