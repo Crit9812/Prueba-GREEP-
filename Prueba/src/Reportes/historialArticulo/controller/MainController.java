@@ -60,6 +60,9 @@ public class MainController {
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
+    @FXML private DatePicker fechaInicio;
+    @FXML private DatePicker fechaFin;
+    @FXML private Region expansorPeriodo;
 
     @FXML private VBox contenedorTabla;
     @FXML private TableView<HistorialArticuloItem> contenidoTabla;
@@ -135,6 +138,18 @@ public class MainController {
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
 
+            HBox.setHgrow(expansorPeriodo, Priority.ALWAYS);
+            expansorPeriodo.setMinWidth(10);
+
+            if (fechaInicio != null) {
+                fechaInicio.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+                fechaInicio.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            }
+            if (fechaFin != null) {
+                fechaFin.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+                fechaFin.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            }
+
             lblVista.setMinWidth(Region.USE_PREF_SIZE);
             lblDescargar.setMinWidth(Region.USE_PREF_SIZE);
 
@@ -145,6 +160,7 @@ public class MainController {
             configurarColumnas();
             configurarBuscadorProducto();
             configurarFiltros();
+            configurarFiltroFechas();
         });
     }
 
@@ -337,6 +353,9 @@ public class MainController {
     }
 
     private void aplicarFiltros() {
+        LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
+        LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
+
         List<HistorialArticuloItem> filtrados = new ArrayList<>();
         for (HistorialArticuloItem item : historialItemsOriginal) {
             boolean coincide = true;
@@ -347,12 +366,44 @@ public class MainController {
                     break;
                 }
             }
+            if (coincide && (fechaInicioSeleccionada != null || fechaFinSeleccionada != null)) {
+                LocalDate fechaItem = parseFecha(item.getFecha());
+                if (fechaItem == null) {
+                    coincide = false;
+                } else {
+                    if (fechaInicioSeleccionada != null && fechaItem.isBefore(fechaInicioSeleccionada)) {
+                        coincide = false;
+                    }
+                    if (coincide && fechaFinSeleccionada != null && fechaItem.isAfter(fechaFinSeleccionada)) {
+                        coincide = false;
+                    }
+                }
+            }
             if (coincide) {
                 filtrados.add(item);
             }
         }
         historialItems.setAll(filtrados);
         aplicarOrdenamiento();
+    }
+
+    private void configurarFiltroFechas() {
+        if (fechaInicio == null || fechaFin == null) {
+            return;
+        }
+        fechaInicio.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        fechaFin.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+    }
+
+    private LocalDate parseFecha(String fechaTexto) {
+        if (fechaTexto == null || fechaTexto.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(fechaTexto.trim(), FORMATO_FECHA);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     private String obtenerValorCampo(HistorialArticuloItem item, String campo) {
