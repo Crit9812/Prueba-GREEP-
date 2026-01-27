@@ -499,14 +499,6 @@ public class MainController {
         });
     }
 
-    private void mostrarAdvertencia(String titulo, String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
-    }
-
     private Integer parseInteger(String valor) {
         if (valor == null || valor.isBlank()) {
             return null;
