@@ -16,18 +16,18 @@
 <BorderPane xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="Reportes.inventario.controller.DetalleInventarioController"
-            prefHeight="520"
-            prefWidth="760"
+            prefHeight="480"
+            prefWidth="700"
             styleClass="detalle-root">
     <stylesheets>
-        <String fx:value="@/Reportes/inventario/style/detalle.css"/>
+        <String fx:value="@Reportes/inventario/style/detalle.css"/>
     </stylesheets>
     <top>
         <VBox spacing="10" styleClass="detalle-header">
             <padding>
                 <Insets top="20" right="20" bottom="10" left="20"/>
             </padding>
-            <Rectangle height="3" width="2000" arcHeight="3" arcWidth="3" styleClass="detalle-header-line"/>
+            <Rectangle height="3" width="700" arcHeight="3" arcWidth="3" styleClass="detalle-header-line"/>
             <Label fx:id="lblNombre"
                    text="Producto"
                    styleClass="detalle-title"/>
