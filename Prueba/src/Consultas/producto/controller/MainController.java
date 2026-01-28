@@ -280,6 +280,7 @@ public class MainController {
         alerta.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (productoModel.eliminarProducto(p.getIdProducto())) {
+                    eliminarImagenProducto(p);
                     contenidoTabla.getItems().remove(p);
                     new Alert(Alert.AlertType.INFORMATION, "Producto desactivado correctamente").showAndWait();
                 } else {
@@ -287,6 +288,20 @@ public class MainController {
                 }
             }
         });
+    }
+
+    private void eliminarImagenProducto(producto p) {
+        String urlImagen = p.getUrlImagen();
+        if (urlImagen == null || urlImagen.isBlank()) {
+            return;
+        }
+
+        conexionFTP ftp = new conexionFTP();
+        ftp.deleteImageFromFTP(urlImagen);
+        cacheImagenes.remove(urlImagen);
+        if (previewImage.getImage() != null && urlImagen.equals(p.getUrlImagen())) {
+            previewImage.setImage(null);
+        }
     }
 
     // Mtodo para buscar un producto por su ID
