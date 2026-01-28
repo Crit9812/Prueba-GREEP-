@@ -54,7 +54,7 @@ public class DetalleInventarioController {
     private ItemInventario itemInventario;
     private Stage stage;
     private Runnable onRefresh;
-    private final ObservableList<String> presentaciones = FXCollections.observableArrayList(
+    private static final List<String> PRESENTACIONES_COMPRA = List.of(
             "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
     );
 
@@ -328,7 +328,7 @@ public class DetalleInventarioController {
             }
         }
         ComboBox<String> cbPresentacion = new ComboBox<>();
-        cbPresentacion.setItems(presentaciones);
+        cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
         cbPresentacion.setPromptText("Selecciona presentación");
         String presentacionActual = valorTexto(articulo.presentacion);
         if (!presentacionActual.isBlank()) {
