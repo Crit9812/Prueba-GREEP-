@@ -16,6 +16,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -53,6 +54,9 @@ public class DetalleInventarioController {
     private ItemInventario itemInventario;
     private Stage stage;
     private Runnable onRefresh;
+    private static final List<String> PRESENTACIONES_COMPRA = List.of(
+            "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
+    );
 
     @FXML
     public void initialize() {
@@ -307,7 +311,13 @@ public class DetalleInventarioController {
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         VBox contenido = new VBox(8);
-        TextField txtUbicacion = new TextField(valorTexto(articulo.ubicacion));
+        ComboBox<String> cbUbicacion = new ComboBox<>();
+        cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
+        cbUbicacion.setPromptText("Selecciona ubicación");
+        String ubicacionActual = valorTexto(articulo.ubicacion);
+        if (!ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
+            cbUbicacion.setValue(ubicacionActual);
+        }
         TextField txtLote = new TextField(valorTexto(articulo.lote));
         javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
         if (articulo.caducidad != null && !articulo.caducidad.isBlank()) {
@@ -317,14 +327,20 @@ public class DetalleInventarioController {
                 dpCaducidad.setValue(null);
             }
         }
-        TextField txtPresentacion = new TextField(valorTexto(articulo.presentacion));
+        ComboBox<String> cbPresentacion = new ComboBox<>();
+        cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
+        cbPresentacion.setPromptText("Selecciona presentación");
+        String presentacionActual = valorTexto(articulo.presentacion);
+        if (!presentacionActual.isBlank()) {
+            cbPresentacion.setValue(presentacionActual);
+        }
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
 
         contenido.getChildren().addAll(
-                new Label("Ubicación:"), txtUbicacion,
+                new Label("Ubicación:"), cbUbicacion,
                 new Label("Lote:"), txtLote,
                 new Label("Caducidad:"), dpCaducidad,
-                new Label("Presentación:"), txtPresentacion,
+                new Label("Presentación:"), cbPresentacion,
                 new Label("Factor:"), txtFactor
         );
         dialog.getDialogPane().setContent(contenido);
@@ -339,10 +355,10 @@ public class DetalleInventarioController {
                 }
 
                 Integer ubicacionId = null;
-                String ubicacionTexto = txtUbicacion.getText();
+                String ubicacionTexto = cbUbicacion.getValue();
                 if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "SELECT id FROM ubicaciones WHERE nombre = ?")) {
+                            "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
                         ps.setString(1, ubicacionTexto.trim());
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next()) {
@@ -366,7 +382,8 @@ public class DetalleInventarioController {
                     ps.setString(2, txtLote.getText());
                     String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
                     ps.setString(3, caducidadTexto);
-                    ps.setString(4, txtPresentacion.getText());
+                    String presentacionSeleccionada = cbPresentacion.getValue();
+                    ps.setString(4, presentacionSeleccionada != null ? presentacionSeleccionada : "");
                     ps.setString(5, txtFactor.getText());
                     ps.setInt(6, articulo.idArticulo);
                     ps.executeUpdate();
@@ -425,6 +442,10 @@ public class DetalleInventarioController {
 
     private String valorTexto(String texto) {
         return texto == null ? "" : texto;
+    }
+
+    private List<String> obtenerUbicacionesActivas() {
+        return new Operaciones.compra.model.model().obtenerNombresUbicaciones();
     }
 
     private static class UbicacionDetalle {

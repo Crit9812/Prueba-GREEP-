@@ -84,6 +84,9 @@ public class MainController {
     private final ObservableList<ItemInventario> itemsInventarioOriginal = FXCollections.observableArrayList();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadResumen = new HashMap<>();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadDetallado = new HashMap<>();
+    private static final List<String> PRESENTACIONES_COMPRA = List.of(
+            "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
+    );
     private String criterioOrden = "id";
     private String direccionOrden = "asc";
     private final List<Filtro> filtrosActivos = new ArrayList<>();
@@ -225,7 +228,13 @@ public class MainController {
         dialog.getDialogPane().getButtonTypes().addAll(deleteType, javafx.scene.control.ButtonType.OK,
                 javafx.scene.control.ButtonType.CANCEL);
 
-        javafx.scene.control.TextField txtUbicacion = new javafx.scene.control.TextField(item.getUbicacion());
+        javafx.scene.control.ComboBox<String> cbUbicacion = new javafx.scene.control.ComboBox<>();
+        cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
+        cbUbicacion.setPromptText("Selecciona ubicación");
+        String ubicacionActual = item.getUbicacion();
+        if (ubicacionActual != null && !ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
+            cbUbicacion.setValue(ubicacionActual);
+        }
         javafx.scene.control.TextField txtLote = new javafx.scene.control.TextField(item.getLote());
         javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
         if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
@@ -235,14 +244,20 @@ public class MainController {
                 dpCaducidad.setValue(null);
             }
         }
-        javafx.scene.control.TextField txtPresentacion = new javafx.scene.control.TextField(item.getPresentacion());
+        javafx.scene.control.ComboBox<String> cbPresentacion = new javafx.scene.control.ComboBox<>();
+        cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
+        cbPresentacion.setPromptText("Selecciona presentación");
+        String presentacionActual = item.getPresentacion();
+        if (presentacionActual != null && !presentacionActual.isBlank()) {
+            cbPresentacion.setValue(presentacionActual);
+        }
         javafx.scene.control.TextField txtFactor = new javafx.scene.control.TextField(item.getFactor());
 
         VBox contenido = new VBox(8,
-                new Label("Ubicación:"), txtUbicacion,
+                new Label("Ubicación:"), cbUbicacion,
                 new Label("Lote:"), txtLote,
                 new Label("Caducidad:"), dpCaducidad,
-                new Label("Presentación:"), txtPresentacion,
+                new Label("Presentación:"), cbPresentacion,
                 new Label("Factor:"), txtFactor
         );
         dialog.getDialogPane().setContent(contenido);
@@ -261,8 +276,9 @@ public class MainController {
                 return;
             }
             String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
-            actualizarArticuloInventario(idArticulo, txtUbicacion.getText(), txtLote.getText(),
-                    caducidadTexto, txtPresentacion.getText(), txtFactor.getText());
+            String presentacionSeleccionada = cbPresentacion.getValue();
+            actualizarArticuloInventario(idArticulo, cbUbicacion.getValue(), txtLote.getText(),
+                    caducidadTexto, presentacionSeleccionada != null ? presentacionSeleccionada : "", txtFactor.getText());
         });
     }
 
@@ -276,7 +292,7 @@ public class MainController {
             Integer ubicacionId = null;
             if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "SELECT id FROM ubicaciones WHERE nombre = ?")) {
+                        "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
                     ps.setString(1, ubicacionTexto.trim());
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
@@ -1136,6 +1152,10 @@ public class MainController {
 
         // 3️⃣ Aplicar filtros activos
         aplicarFiltros();
+    }
+
+    private List<String> obtenerUbicacionesActivas() {
+        return new Operaciones.compra.model.model().obtenerNombresUbicaciones();
     }
 
     private static class Filtro {
