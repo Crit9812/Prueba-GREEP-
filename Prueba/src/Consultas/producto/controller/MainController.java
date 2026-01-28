@@ -9,7 +9,6 @@ import Compartido.exportar.exportador;
 import Consultas.producto.model.producto;
 import Consultas.producto.model.model;
 import Formularios.controller.controllerNuevoProducto;
-import conexion.Conexion;
 import conexion.conexionFTP;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -17,21 +16,16 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -92,9 +86,6 @@ public class MainController {
         buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
         buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
 
-        /*contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.79));
-        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.79));
-        contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.95));*/
         contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
         contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.75));
         contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
@@ -296,20 +287,6 @@ public class MainController {
                 }
             }
         });
-    }
-
-    private void eliminarImagenProducto(producto p) {
-        String urlImagen = p.getUrlImagen();
-        if (urlImagen == null || urlImagen.isBlank()) {
-            return;
-        }
-
-        conexionFTP ftp = new conexionFTP();
-        ftp.deleteImageFromFTP(urlImagen);
-        cacheImagenes.remove(urlImagen);
-        if (previewImage.getImage() != null && urlImagen.equals(p.getUrlImagen())) {
-            previewImage.setImage(null);
-        }
     }
 
     // Mtodo para buscar un producto por su ID
