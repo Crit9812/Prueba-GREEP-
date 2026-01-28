@@ -41,6 +41,8 @@ import javafx.util.StringConverter;
 
 public class MainController {
 
+    private static final String PERIODO_EXPORT = "Periodo: 02/02/25-02/03/25";
+
     @FXML private StackPane root;
     @FXML private BorderPane paneNavbar;
     @FXML private VBox navbar;
@@ -52,6 +54,8 @@ public class MainController {
     @FXML private Label lblExportar;
     @FXML private Region expansorBusqueda;
     @FXML private ComboBox<ProductoOpcion> buscarProducto;
+    @FXML private DatePicker fechaInicio;
+    @FXML private DatePicker fechaFin;
 
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
@@ -81,7 +85,6 @@ public class MainController {
     @FXML private Label lblPresentacion;
     @FXML private Label lblFactor;
     @FXML private Label lblExistencias;
-    @FXML private Label lblPeriodo;
 
     @FXML private encabezadoController paneNavbarController;
 
@@ -132,6 +135,13 @@ public class MainController {
             buscarProducto.prefWidthProperty().bind(root.widthProperty().multiply(0.18));
             buscarProducto.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
 
+            if (fechaInicio != null && fechaFin != null) {
+                fechaInicio.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+                fechaInicio.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+                fechaFin.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
+                fechaFin.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            }
+
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
 
@@ -145,6 +155,7 @@ public class MainController {
             configurarColumnas();
             configurarBuscadorProducto();
             configurarFiltros();
+            configurarFiltroFechas();
         });
     }
 
@@ -337,6 +348,8 @@ public class MainController {
     }
 
     private void aplicarFiltros() {
+        LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
+        LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
         List<HistorialArticuloItem> filtrados = new ArrayList<>();
         for (HistorialArticuloItem item : historialItemsOriginal) {
             boolean coincide = true;
@@ -345,6 +358,19 @@ public class MainController {
                 if (valor == null || !valor.equals(filtro.valor)) {
                     coincide = false;
                     break;
+                }
+            }
+            if (coincide && (fechaInicioSeleccionada != null || fechaFinSeleccionada != null)) {
+                LocalDate fechaItem = parseFechaItem(item.getFecha());
+                if (fechaItem == null) {
+                    coincide = false;
+                } else {
+                    if (fechaInicioSeleccionada != null && fechaItem.isBefore(fechaInicioSeleccionada)) {
+                        coincide = false;
+                    }
+                    if (coincide && fechaFinSeleccionada != null && fechaItem.isAfter(fechaFinSeleccionada)) {
+                        coincide = false;
+                    }
                 }
             }
             if (coincide) {
@@ -375,6 +401,25 @@ public class MainController {
                 return item.getUsuario();
             default:
                 return "";
+        }
+    }
+
+    private void configurarFiltroFechas() {
+        if (fechaInicio == null || fechaFin == null) {
+            return;
+        }
+        fechaInicio.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        fechaFin.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+    }
+
+    private LocalDate parseFechaItem(String fechaTexto) {
+        if (fechaTexto == null || fechaTexto.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(fechaTexto, FORMATO_FECHA);
+        } catch (DateTimeParseException ignored) {
+            return null;
         }
     }
 
@@ -828,9 +873,6 @@ public class MainController {
         lblPresentacion.setText("Presentación:");
         lblFactor.setText("Factor:");
         lblExistencias.setText("Existencias:");
-        if (lblPeriodo != null) {
-            lblPeriodo.setText("Periodo:");
-        }
     }
 
     @FXML
@@ -875,7 +917,20 @@ public class MainController {
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
         }
+        filtrosAplicados.add(obtenerPeriodoExport());
         return filtrosAplicados;
+    }
+
+    private String obtenerPeriodoExport() {
+        LocalDate inicio = fechaInicio != null ? fechaInicio.getValue() : null;
+        LocalDate fin = fechaFin != null ? fechaFin.getValue() : null;
+        if (inicio == null && fin == null) {
+            return PERIODO_EXPORT;
+        }
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yy");
+        String textoInicio = inicio != null ? inicio.format(formato) : "...";
+        String textoFin = fin != null ? fin.format(formato) : "...";
+        return "Periodo: " + textoInicio + "-" + textoFin;
     }
 
     private void mostrarAdvertencia(String titulo, String mensaje) {
