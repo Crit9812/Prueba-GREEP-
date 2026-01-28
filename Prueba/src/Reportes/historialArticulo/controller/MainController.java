@@ -41,6 +41,8 @@ import javafx.util.StringConverter;
 
 public class MainController {
 
+    private static final String PERIODO_EXPORT = "Periodo: 02/02/25-02/03/25";
+
     @FXML private StackPane root;
     @FXML private BorderPane paneNavbar;
     @FXML private VBox navbar;
@@ -871,6 +873,7 @@ public class MainController {
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
         }
+        filtrosAplicados.add(PERIODO_EXPORT);
         return filtrosAplicados;
     }
 
