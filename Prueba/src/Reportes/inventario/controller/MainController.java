@@ -228,11 +228,15 @@ public class MainController {
         dialog.getDialogPane().getButtonTypes().addAll(deleteType, javafx.scene.control.ButtonType.OK,
                 javafx.scene.control.ButtonType.CANCEL);
 
+        List<String> ubicacionesActivas = obtenerUbicacionesActivas();
         javafx.scene.control.ComboBox<String> cbUbicacion = new javafx.scene.control.ComboBox<>();
-        cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
+        cbUbicacion.setItems(FXCollections.observableArrayList(ubicacionesActivas));
         cbUbicacion.setPromptText("Selecciona ubicación");
         String ubicacionActual = item.getUbicacion();
-        if (ubicacionActual != null && !ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
+        if (ubicacionActual != null
+                && !ubicacionActual.isBlank()
+                && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)
+                && ubicacionesActivas.stream().anyMatch(ubicacionActual::equalsIgnoreCase)) {
             cbUbicacion.setValue(ubicacionActual);
         }
         javafx.scene.control.TextField txtLote = new javafx.scene.control.TextField(item.getLote());
@@ -248,7 +252,9 @@ public class MainController {
         cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
         cbPresentacion.setPromptText("Selecciona presentación");
         String presentacionActual = item.getPresentacion();
-        if (presentacionActual != null && !presentacionActual.isBlank()) {
+        if (presentacionActual != null
+                && !presentacionActual.isBlank()
+                && PRESENTACIONES_COMPRA.stream().anyMatch(presentacionActual::equalsIgnoreCase)) {
             cbPresentacion.setValue(presentacionActual);
         }
         javafx.scene.control.TextField txtFactor = new javafx.scene.control.TextField(item.getFactor());
