@@ -12,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -93,7 +94,6 @@ public class MainController {
                 navbarController navbarCtrl = loader.getController();
                 navbarCtrl.setOverlayPane(overlayPane);
                 navbar.getChildren().setAll(navbarLoaded);
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -128,6 +128,7 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Historial por factura", "#ffffff");
+
             configurarColumnas();
             configurarFiltros();
             configurarBusquedaFactura();
@@ -286,14 +287,10 @@ public class MainController {
     private void configurarFiltros() {
         comboFiltro.getItems().setAll(
                 "Movimiento",
-                "Factura",
-                "Fecha",
                 "Tipo",
                 "Usuario",
                 "Externo",
-                "Estado",
-                "Precio neto",
-                "Precio total"
+                "Estado"
         );
         comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (restaurandoFiltros) {
@@ -362,17 +359,24 @@ public class MainController {
     private Node crearChipFiltro(Filtro filtro) {
         HBox chip = new HBox(6);
         chip.setAlignment(javafx.geometry.Pos.CENTER);
-        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        chip.getStyleClass().add("chip");
+
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
-        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
+        texto.getStyleClass().add("chip-label");
+
         Button quitar = new Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
+        quitar.getStyleClass().add("chip-close");
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
             aplicarFiltrosYBusqueda();
         });
+
         chip.getChildren().addAll(texto, quitar);
+        if (contenedorFiltros.getChildren().isEmpty()) {
+            HBox.setMargin(chip, new Insets(0, 0, 0, 25));
+        }
+
         return chip;
     }
 

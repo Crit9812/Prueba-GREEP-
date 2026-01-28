@@ -1,5 +1,8 @@
 package Reportes.historial.controller;
 
+import javafx.geometry.Pos;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import Reportes.historial.model.HistorialFactura;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -50,6 +53,7 @@ public class DetalleFacturaController {
         }
         actualizarTitulo();
         actualizarBotonCancelar();
+
     }
 
     public void setHistorial(HistorialFactura historial) {
@@ -61,6 +65,10 @@ public class DetalleFacturaController {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+        if (stage != null) {
+            stage.setResizable(false);
+
+        }
     }
 
     public void setOnRefresh(Runnable onRefresh) {
@@ -373,7 +381,7 @@ public class DetalleFacturaController {
         lblTitulo.setText("Detalles - " + historial.getMovimiento());
     }
 
-    private void actualizarBotonCancelar() {
+    /*private void actualizarBotonCancelar() {
         if (btnCancelar == null) {
             return;
         }
@@ -387,6 +395,78 @@ public class DetalleFacturaController {
             btnCancelarEntrada.setManaged(esEntrada);
             btnCancelarEntrada.setDisable(!esEntrada);
         }
+    }*/
+
+    private void actualizarBotonCancelar() {
+        if (btnCancelar == null) {
+            return;
+        }
+
+        boolean esSalida = historial != null && "Salida".equalsIgnoreCase(historial.getMovimiento());
+        boolean yaCancelada = false;
+
+        if (esSalida) {
+            // Verificar si ya está cancelada
+            Integer salidaId = parseInteger(historial.getClaveMovimiento());
+            if (salidaId != null && salidaId > 0) {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn != null) {
+                        yaCancelada = esSalidaCancelada(conn, salidaId);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Mostrar/ocultar botón según estado
+        boolean mostrarBoton = esSalida && !yaCancelada;
+        btnCancelar.setVisible(mostrarBoton);
+        btnCancelar.setManaged(mostrarBoton);
+        btnCancelar.setDisable(!mostrarBoton);
+
+        // También actualizar botón de entrada si existe
+        if (btnCancelarEntrada != null) {
+            boolean esEntrada = historial != null && "Entrada".equalsIgnoreCase(historial.getMovimiento());
+            boolean entradaCancelada = false;
+
+            if (esEntrada) {
+                // Similar verificación para entradas
+                Integer entradaId = parseInteger(historial.getClaveMovimiento());
+                if (entradaId != null && entradaId > 0) {
+                    try (Connection conn = new Conexion().conectar()) {
+                        if (conn != null) {
+                            entradaCancelada = esEntradaCancelada(conn, entradaId);
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            boolean mostrarEntrada = esEntrada && !entradaCancelada;
+            btnCancelarEntrada.setVisible(mostrarEntrada);
+            btnCancelarEntrada.setManaged(mostrarEntrada);
+            btnCancelarEntrada.setDisable(!mostrarEntrada);
+        }
+    }
+
+    private boolean esEntradaCancelada(Connection conn, Integer entradaId) throws SQLException {
+        if (entradaId == null || entradaId <= 0) {
+            return false;
+        }
+
+        String sql = "SELECT `Estado`  FROM entradas WHERE `idEntrada` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, entradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String estado = rs.getString("estado");
+                    return estado != null && estado.equalsIgnoreCase("cancelado");
+                }
+            }
+        }
+        return false;
     }
 
     private void cargarDetalles() {
@@ -888,24 +968,55 @@ public class DetalleFacturaController {
             return;
         }
 
+        boolean esSalidaCancelada = false;
+        boolean esEntradaCancelada = false;
+
+        if (historial != null) {
+            String movimiento = historial.getMovimiento();
+            String clave = historial.getClaveMovimiento();
+            Integer idMovimiento = parseInteger(clave);
+
+            if (idMovimiento != null && idMovimiento > 0) {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn != null) {
+                        if ("Salida".equalsIgnoreCase(movimiento)) {
+                            esSalidaCancelada = esSalidaCancelada(conn, idMovimiento);
+                        } else if ("Entrada".equalsIgnoreCase(movimiento)) {
+                            esEntradaCancelada = esEntradaCancelada(conn, idMovimiento);
+                        } else if ("Ajuste".equalsIgnoreCase(movimiento)) {
+                            // Para ajustes, verificar si está cancelado
+                            esSalidaCancelada = esAjusteCancelado(conn, idMovimiento);
+                            esEntradaCancelada = esSalidaCancelada; // Mismo estado para ajustes
+                        }
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         Map<String, List<DetalleLinea>> agrupadas = new LinkedHashMap<>();
         for (DetalleLinea linea : lineas) {
             agrupadas.computeIfAbsent(linea.tipo, key -> new ArrayList<>()).add(linea);
         }
 
         for (Map.Entry<String, List<DetalleLinea>> entry : agrupadas.entrySet()) {
-            Label seccion = new Label("Detalles de " + entry.getKey().toLowerCase());
+            /*Label seccion = new Label("Detalles de " + entry.getKey().toLowerCase());
             seccion.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #333333;");
-            contenedorDetalles.getChildren().add(seccion);
+            contenedorDetalles.getChildren().add(seccion)*/;
 
             int contador = 1;
             for (DetalleLinea linea : entry.getValue()) {
-                VBox card = new VBox(6);
-                card.setStyle("-fx-padding: 12; -fx-background-color: #f5f5f5; " +
-                        "-fx-border-color: #ddd; -fx-border-radius: 6; -fx-background-radius: 6;");
+                VBox card = new VBox(8);
+                card.setStyle("-fx-padding: 15; -fx-background-color: white; " +
+                        "-fx-border-color: #e0e0e0; -fx-border-width: 1; -fx-border-radius: 8; " +
+                        "-fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);");
+                card.setMaxWidth(Double.MAX_VALUE);
 
                 Label titulo = new Label(contador++ + ". " + valorTexto(linea.producto));
-                titulo.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #2c3e50;");
+                titulo.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2c3e50; " +
+                        "-fx-padding: 0 0 5 0;");
+                titulo.setWrapText(true);
 
                 VBox detalles = new VBox(4);
                 detalles.setStyle("-fx-padding: 0 0 0 18;");
@@ -922,39 +1033,98 @@ public class DetalleFacturaController {
                 boolean todosDisponibles = linea.tieneArticulosDisponibles();
 
                 if (detallado) {
-                    VBox listaArticulos = new VBox(3);
-                    listaArticulos.setStyle("-fx-padding: 6 0 0 18;");
-                    Label tituloArticulos = new Label("Artículos detallados:");
-                    tituloArticulos.setStyle("-fx-font-weight: bold; -fx-font-size: 12;");
+                    VBox listaArticulos = new VBox(8);
+                    listaArticulos.setStyle("-fx-padding: 10 0 0 0;");
+
+                    Label tituloArticulos = new Label("Artículos Detallados:");
+                    tituloArticulos.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #34495e; " +
+                            "-fx-padding: 0 0 8 0;");
                     listaArticulos.getChildren().add(tituloArticulos);
 
                     if (linea.articulos.isEmpty()) {
-                        listaArticulos.getChildren().add(new Label("Sin artículos detallados."));
+                        Label sinArticulos = new Label("No hay artículos detallados.");
+                        sinArticulos.setStyle("-fx-text-fill: #7f8c8d; -fx-font-style: italic; -fx-padding: 5 0;");
+                        listaArticulos.getChildren().add(sinArticulos);
                     } else {
                         int index = 1;
                         for (DetalleArticulo articulo : linea.articulos) {
-                            String descripcion = String.format(
-                                    "%d) Ubicación: %s | Lote: %s | Caducidad: %s | Presentación: %s | Factor: %s | Estado: %s",
-                                    index++,
-                                    valorTexto(articulo.ubicacion),
-                                    valorTexto(articulo.lote),
-                                    valorTexto(articulo.caducidad),
-                                    valorTexto(articulo.presentacion),
-                                    valorTexto(articulo.factor),
-                                    valorTexto(articulo.estado)
-                            );
-                            HBox filaArticulo = new HBox(8);
-                            Label texto = new Label(descripcion);
-                            filaArticulo.getChildren().add(texto);
+                            // Tarjeta para cada artículo
+                            HBox articuloCard = new HBox(12);
+                            articuloCard.setStyle("-fx-padding: 14; -fx-background-color: #f8f9fa; " +
+                                    "-fx-border-color: #e9ecef; -fx-border-width: 1; " +
+                                    "-fx-border-radius: 8; -fx-background-radius: 8;");
+                            articuloCard.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                            // Contenedor para botones (A LA IZQUIERDA)
+                            HBox botonesContainer = new HBox(8);
+                            botonesContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
                             boolean mostrarAcciones = articulo.esDetalleSalida() || articulo.esDisponible();
                             if (mostrarAcciones) {
-                                Button btnEditar = new Button("Editar");
+                                // Botón Editar con icono
+                                Button btnEditar = new Button();
+                                try {
+                                    ImageView imgEditar = new ImageView(new Image(getClass().getResourceAsStream("/img/editar.png")));
+                                    imgEditar.setFitWidth(16);
+                                    imgEditar.setFitHeight(16);
+                                    btnEditar.setGraphic(imgEditar);
+                                } catch (Exception e) {
+                                    btnEditar.setText("Editar");
+                                }
+                                btnEditar.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4;");
                                 btnEditar.setOnAction(event -> editarArticulo(articulo));
-                                Button btnEliminar = new Button("Eliminar");
+
+                                Button btnEliminar = new Button();
+                                try {
+                                    ImageView imgEliminar = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
+                                    imgEliminar.setFitWidth(16);
+                                    imgEliminar.setFitHeight(16);
+                                    btnEliminar.setGraphic(imgEliminar);
+                                } catch (Exception e) {
+                                    btnEliminar.setText("Eliminar");
+                                }
+                                btnEliminar.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4;");
                                 btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
-                                filaArticulo.getChildren().addAll(btnEditar, btnEliminar);
+
+                                botonesContainer.getChildren().addAll(btnEditar, btnEliminar);
                             }
-                            listaArticulos.getChildren().add(filaArticulo);
+
+                            Label numero = new Label(index++ + ".");
+                            numero.setStyle("-fx-font-weight: bold; -fx-font-size: 13; -fx-text-fill: #91d485; " +
+                                    "-fx-min-width: 25; -fx-padding: 0 5 0 0;");
+
+                            VBox infoBox = new VBox(6);
+                            infoBox.setStyle("-fx-padding: 0 0 0 10;");
+
+                            // Primera línea: Ubicación y Lote
+                            HBox linea1 = new HBox(15);
+                            Label lblUbicacion = crearEtiquetaDetalleElegante("Ubicación:", valorTexto(articulo.ubicacion));
+                            Label lblLote = crearEtiquetaDetalleElegante("Lote:", valorTexto(articulo.lote));
+                            linea1.getChildren().addAll(lblUbicacion, lblLote);
+
+                            // Segunda línea: Caducidad y Presentación
+                            HBox linea2 = new HBox(15);
+                            Label lblCaducidad = crearEtiquetaDetalleElegante("Caducidad:", valorTexto(articulo.caducidad));
+                            Label lblPresentacion = crearEtiquetaDetalleElegante("Presentación:", valorTexto(articulo.presentacion));
+                            linea2.getChildren().addAll(lblCaducidad, lblPresentacion);
+
+                            // Tercera línea: Factor y Estado (ESTADO EN NEGRITAS)
+                            HBox linea3 = new HBox(15);
+                            Label lblFactor = crearEtiquetaDetalleElegante("Factor:", valorTexto(articulo.factor));
+
+                            // Estado con color según condición - EN NEGRITAS
+                            Label lblEstado = new Label("Estado: " + valorTexto(articulo.estado));
+                            String colorEstado = obtenerColorEstado(articulo.estado);
+                            lblEstado.setStyle("-fx-font-weight: bold; -fx-text-fill: " + colorEstado + "; -fx-font-size: 12;");
+                            linea3.getChildren().addAll(lblFactor, lblEstado);
+
+                            infoBox.getChildren().addAll(linea1, linea2, linea3);
+
+                            // ORDEN CORREGIDO: Botones a la izquierda, luego número, luego información
+                            articuloCard.getChildren().addAll(numero, infoBox, botonesContainer);
+                            HBox.setHgrow(infoBox, javafx.scene.layout.Priority.ALWAYS);
+
+                            listaArticulos.getChildren().add(articuloCard);
                         }
                     }
                     card.getChildren().add(listaArticulos);
@@ -963,21 +1133,72 @@ public class DetalleFacturaController {
                 boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
                 boolean puedeEditarEntrada = "Entrada".equalsIgnoreCase(linea.tipo)
                         && linea.tieneArticulosSinPendienteOVendido();
+
+                HBox botonesContainer = new HBox(10);
+                botonesContainer.setAlignment(Pos.CENTER_RIGHT);
+                botonesContainer.setStyle("-fx-padding: 10 0 0 0;"); // Espacio superior
+
+                boolean hayBotones = false;
+
                 if (puedeEditarEntrada) {
                     Button btnEditarPrecio = new Button("Editar precio unitario");
                     btnEditarPrecio.setOnAction(event -> editarPrecioEntrada(linea));
-                    card.getChildren().add(btnEditarPrecio);
+                    btnEditarPrecio.getStyleClass().add("boton-formulario");
+                    botonesContainer.getChildren().add(btnEditarPrecio);
+                    hayBotones = true;
                 }
 
                 if ("Salida".equalsIgnoreCase(linea.tipo)
                         && (linea.esVenta() || esAjuste)) {
                     Button btnEditarPrecio = new Button("Editar precio salida");
                     btnEditarPrecio.setOnAction(event -> editarPrecioSalida(linea));
-                    card.getChildren().add(btnEditarPrecio);
+                    btnEditarPrecio.getStyleClass().add("boton-formulario");
+                    botonesContainer.getChildren().add(btnEditarPrecio);
+                    hayBotones = true;
+                }
+                if (hayBotones) {
+                    card.getChildren().add(botonesContainer);
                 }
 
                 contenedorDetalles.getChildren().add(card);
             }
+        }
+    }
+    private boolean esAjusteCancelado(Connection conn, Integer ajusteId) throws SQLException {
+        if (ajusteId == null || ajusteId <= 0) {
+            return false;
+        }
+        String sql = "SELECT `Estado` FROM ajuste_inventario WHERE `idAjuste` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ajusteId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String estado = rs.getString("Estado");
+                    return estado != null && estado.equalsIgnoreCase("cancelado");
+                }
+            }
+        }
+        return false;
+    }
+
+    private Label crearEtiquetaDetalleElegante(String titulo, String valor) {
+        String texto = titulo + " " + (valor.isEmpty() ? "N/A" : valor);
+        Label label = new Label(texto);
+        label.setStyle("-fx-font-size: 12; -fx-text-fill: #2c3e50; -fx-font-family: 'Segoe UI', Arial, sans-serif;");
+        return label;
+    }
+
+    private String obtenerColorEstado(String estado) {
+        if (estado == null || estado.isEmpty()) return "#333";
+
+        String estadoLower = estado.toLowerCase();
+        switch (estadoLower) {
+            case "disponible": return "#91d485";
+            case "pendiente": return "#e74c3c";
+            case "vendido": return "#333";
+            case "eliminado": return "#333";
+            case "ajustado": return "#333";
+            default: return "#333";
         }
     }
 
@@ -2195,6 +2416,25 @@ public class DetalleFacturaController {
         return null;
     }
 
+    private boolean esSalidaCancelada(Connection conn, Integer salidaId) throws SQLException {
+        if (salidaId == null || salidaId <= 0) {
+            return false;
+        }
+
+        String sql = "SELECT `Estado` FROM salidas WHERE `idSalida` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, salidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String estado = rs.getString("estado");
+                    return estado != null && estado.equalsIgnoreCase("cancelado");
+                }
+            }
+        }
+        return false;
+    }
+
+
     private static class DetalleLinea {
         private final String tipo;
         private final String producto;
@@ -2254,6 +2494,7 @@ public class DetalleFacturaController {
             }
             return true;
         }
+
     }
 
     private static class DetalleArticulo {

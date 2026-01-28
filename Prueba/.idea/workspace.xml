@@ -4,8 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Casi competo pero con detalles">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="inventario edicion">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/view/detalle_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/view/detalle_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/view/main_view.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +42,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/remove-textfield-and-add-date-filters" />
+        <entry key="$PROJECT_DIR$/.." value="codex/update-inventory-controller-fields" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -93,7 +98,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#109 on codex/add-product-details-modal-i…yr0sc",
+    "git-widget-placeholder": "Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -204,6 +209,7 @@
       <workItem from="1769191210060" duration="496000" />
       <workItem from="1769463326384" duration="6681000" />
       <workItem from="1769522123737" duration="3870000" />
+      <workItem from="1769608343193" duration="5782000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />

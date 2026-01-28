@@ -75,9 +75,9 @@
 
                             <Region fx:id="expansorBusqueda"/>
 
-                            <TextField fx:id="buscarFactura" text="" styleClass="textfield" >
+                            <TextField fx:id="buscarFactura" promptText="Buscar por no. de factura" styleClass="barraBusqueda">
                                 <HBox.margin>
-                                    <Insets right="40"/>
+                                    <Insets right="25"/>
                                 </HBox.margin>
                             </TextField>
                         </HBox>
