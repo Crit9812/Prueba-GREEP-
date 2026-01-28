@@ -17,7 +17,6 @@ public class marca {
     @Column(name = "estado")
     private String estado;
 
-    // Constructor vacío necesario para el DAO
     public marca() {}
 
     public marca(String id, String nombre) {
@@ -25,7 +24,6 @@ public class marca {
         this.nombre = nombre;
     }
 
-    // Getters y Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

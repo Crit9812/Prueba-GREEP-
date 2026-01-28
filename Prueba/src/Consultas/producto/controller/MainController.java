@@ -9,7 +9,6 @@ import Compartido.exportar.exportador;
 import Consultas.producto.model.producto;
 import Consultas.producto.model.model;
 import Formularios.controller.controllerNuevoProducto;
-import conexion.Conexion;
 import conexion.conexionFTP;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -17,21 +16,16 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -92,9 +86,6 @@ public class MainController {
         buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
         buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
 
-        /*contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.79));
-        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.79));
-        contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.95));*/
         contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
         contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.75));
         contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
@@ -289,6 +280,7 @@ public class MainController {
         alerta.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 if (productoModel.eliminarProducto(p.getIdProducto())) {
+                    eliminarImagenProducto(p);
                     contenidoTabla.getItems().remove(p);
                     new Alert(Alert.AlertType.INFORMATION, "Producto desactivado correctamente").showAndWait();
                 } else {

@@ -8,7 +8,7 @@ import Compartido.model.DAO.Table;
 public class producto {
 
     @PrimaryKey
-    @Column(name = "id")  // ← IMPORTANTE: debe coincidir con el nombre de columna en la BD
+    @Column(name = "id")
     private String idProducto;
 
     @Column(name = "nombre")
@@ -41,7 +41,6 @@ public class producto {
     @Column(name = "estado")
     private String estado;
 
-    // Constructor vacío necesario para el DAO
     public producto() {}
 
     public producto(String idProducto, String nombreProducto, String categoria, String etiqueta, String marca,
@@ -59,7 +58,6 @@ public class producto {
         this.urlImagen = urlImagen;
     }
 
-    // Getters y Setters
     public String getIdProducto() { return idProducto; }
     public void setIdProducto(String idProducto) { this.idProducto = idProducto; }
 

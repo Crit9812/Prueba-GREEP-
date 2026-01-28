@@ -17,7 +17,6 @@ public class etiqueta {
     @Column(name = "estado")
     private String estado;
 
-    // Constructor vacío necesario para el DAO
     public etiqueta() {}
 
     public etiqueta(String id, String nombre) {
@@ -25,7 +24,6 @@ public class etiqueta {
         this.nombre = nombre;
     }
 
-    // Getters y Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

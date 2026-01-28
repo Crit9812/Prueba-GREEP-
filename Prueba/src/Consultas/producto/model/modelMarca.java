@@ -7,56 +7,43 @@ import java.util.Map;
 
 public class modelMarca {
 
-    private GenericDAO<marca> marcaDAO;
+    private static final String ESTADO_ACTIVO = "activo";
+
+    private final GenericDAO<marca> marcaDAO;
 
     public modelMarca() {
         this.marcaDAO = new GenericDAO<>(marca.class);
     }
 
-    // Obtener todas las marcas
     public ArrayList<marca> obtenerTodas() {
-        ArrayList<marca> todas = marcaDAO.obtenerTodos();
-        ArrayList<marca> activas = new ArrayList<>();
-        for (marca m : todas) {
-            if (m != null && "activo".equalsIgnoreCase(m.getEstado())) {
-                activas.add(m);
-            }
-        }
-        return activas;
+        return filtrarActivos(marcaDAO.obtenerTodos());
     }
 
     public ArrayList<marca> obtenerTodasIncluyendoInactivas() {
         return marcaDAO.obtenerTodos();
     }
 
-    // Obtener mapa de id->nombre para usar en combos o tablas
     public Map<String, String> obtenerMapaMarcas() {
         Map<String, String> mapa = new HashMap<>();
-        ArrayList<marca> marcas = obtenerTodas();
-
-        for (marca marca : marcas) {
+        for (marca marca : obtenerTodas()) {
             mapa.put(marca.getId(), marca.getNombre());
         }
 
         return mapa;
     }
 
-    // Buscar marca por ID
     public marca buscarPorId(String id) {
         return marcaDAO.buscarExacto("id", id);
     }
 
-    // Insertar nueva marca
     public boolean insertarMarca(marca marca) {
         return marcaDAO.insertar(marca);
     }
 
-    // Actualizar marca
     public boolean actualizarMarca(marca marca) {
         return marcaDAO.actualizar(marca);
     }
 
-    // Eliminar marca
     public boolean eliminarMarca(String id) {
         marca existente = buscarPorId(id);
         if (existente == null) {
@@ -67,17 +54,21 @@ public class modelMarca {
     }
 
     public marca buscarPorNombre(String nombre) {
-        // Primero intentamos con búsqueda exacta
-        marca encontrada = null;
-        ArrayList<marca> todas = obtenerTodasIncluyendoInactivas();
-
-        for (marca m : todas) {
-            if (m.getNombre() != null && m.getNombre().equalsIgnoreCase(nombre)) {
-                encontrada = m;
-                break;
+        for (marca m : obtenerTodasIncluyendoInactivas()) {
+            if (m != null && m.getNombre() != null && m.getNombre().equalsIgnoreCase(nombre)) {
+                return m;
             }
         }
+        return null;
+    }
 
-        return encontrada;
+    private ArrayList<marca> filtrarActivos(ArrayList<marca> todas) {
+        ArrayList<marca> activas = new ArrayList<>();
+        for (marca m : todas) {
+            if (m != null && ESTADO_ACTIVO.equalsIgnoreCase(m.getEstado())) {
+                activas.add(m);
+            }
+        }
+        return activas;
     }
 }
