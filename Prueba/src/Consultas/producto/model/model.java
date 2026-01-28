@@ -12,9 +12,13 @@ import java.util.Map;
 
 public class model {
 
-    private GenericDAO<producto> productoDAO;
-    private modelEtiqueta modelEtiqueta;
-    private modelMarca modelMarca;
+    private static final String ESTADO_ACTIVO = "activo";
+    private static final String ESTADO_PENDIENTE = "pendiente";
+    private static final String ESTADO_DISPONIBLE = "disponible";
+
+    private final GenericDAO<producto> productoDAO;
+    private final modelEtiqueta modelEtiqueta;
+    private final modelMarca modelMarca;
 
     public model() {
         this.productoDAO = new GenericDAO<>(producto.class);
@@ -22,13 +26,11 @@ public class model {
         this.modelMarca = new modelMarca();
     }
 
-    // Metodo para obtener todos los productos
     public ObservableList<producto> obtenerProductos() {
         ArrayList<producto> lista = productoDAO.obtenerTodos();
         return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
-    // Metodo para desactivar un producto por ID
     public boolean eliminarProducto(String id) {
         producto producto = buscarProductoPorId(id);
         if (producto == null) {
@@ -38,7 +40,6 @@ public class model {
         return productoDAO.actualizar(producto);
     }
 
-    // Metodo para buscar productos por un campo específico
     public ObservableList<producto> buscarProductos(String campo, String valor) {
         ArrayList<producto> lista = productoDAO.buscarParcial(campo, valor);
         return FXCollections.observableArrayList(filtrarActivos(lista));
@@ -49,7 +50,6 @@ public class model {
         return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
-    // Metodo para buscar un producto por su ID
     public producto buscarProductoPorId(String id) {
         return productoDAO.buscarExacto("id", id);
     }
@@ -151,13 +151,13 @@ public class model {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, valor);
-            ps.setString(2, "activo");
-            ps.setString(3, "pendiente");
-            ps.setString(4, "disponible");
+            ps.setString(2, ESTADO_ACTIVO);
+            ps.setString(3, ESTADO_PENDIENTE);
+            ps.setString(4, ESTADO_DISPONIBLE);
             if (incluirEstadoArticulo) {
-                ps.setString(5, "activo");
-                ps.setString(6, "pendiente");
-                ps.setString(7, "disponible");
+                ps.setString(5, ESTADO_ACTIVO);
+                ps.setString(6, ESTADO_PENDIENTE);
+                ps.setString(7, ESTADO_DISPONIBLE);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -170,7 +170,6 @@ public class model {
         return 0;
     }
 
-    // Metodo para actualizar solo la URL de la imagen
     public boolean actualizarUrlImagen(String id, String nuevaUrl) {
         producto productoActual = buscarProductoPorId(id);
         if (productoActual == null) {
@@ -181,36 +180,28 @@ public class model {
         return productoDAO.actualizar(productoActual);
     }
 
-    // ===== MÉTODOS PARA ETIQUETAS Y MARCAS =====
-
-    // Obtener mapa de etiquetas (id->nombre)
     public Map<String, String> obtenerMapaEtiquetas() {
         return modelEtiqueta.obtenerMapaEtiquetas();
     }
 
-    // Obtener mapa de marcas (id->nombre)
     public Map<String, String> obtenerMapaMarcas() {
         return modelMarca.obtenerMapaMarcas();
     }
 
-    // Obtener lista de etiquetas para combobox
     public ObservableList<etiqueta> obtenerListaEtiquetas() {
         ArrayList<etiqueta> lista = modelEtiqueta.obtenerTodas();
         return FXCollections.observableArrayList(lista);
     }
 
-    // Obtener lista de marcas para combobox
     public ObservableList<marca> obtenerListaMarcas() {
         ArrayList<marca> lista = modelMarca.obtenerTodas();
         return FXCollections.observableArrayList(lista);
     }
 
-    // Buscar etiqueta por ID
     public etiqueta buscarEtiquetaPorId(String id) {
         return modelEtiqueta.buscarPorId(id);
     }
 
-    // Buscar marca por ID
     public marca buscarMarcaPorId(String id) {
         return modelMarca.buscarPorId(id);
     }
@@ -218,7 +209,7 @@ public class model {
     private ArrayList<producto> filtrarActivos(ArrayList<producto> lista) {
         ArrayList<producto> activos = new ArrayList<>();
         for (producto p : lista) {
-            if (p != null && "activo".equalsIgnoreCase(p.getEstado())) {
+            if (p != null && ESTADO_ACTIVO.equalsIgnoreCase(p.getEstado())) {
                 activos.add(p);
             }
         }

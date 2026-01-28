@@ -7,56 +7,43 @@ import java.util.Map;
 
 public class modelEtiqueta {
 
-    private GenericDAO<etiqueta> etiquetaDAO;
+    private static final String ESTADO_ACTIVO = "activo";
+
+    private final GenericDAO<etiqueta> etiquetaDAO;
 
     public modelEtiqueta() {
         this.etiquetaDAO = new GenericDAO<>(etiqueta.class);
     }
 
-    // Obtener todas las etiquetas
     public ArrayList<etiqueta> obtenerTodas() {
-        ArrayList<etiqueta> todas = etiquetaDAO.obtenerTodos();
-        ArrayList<etiqueta> activas = new ArrayList<>();
-        for (etiqueta e : todas) {
-            if (e != null && "activo".equalsIgnoreCase(e.getEstado())) {
-                activas.add(e);
-            }
-        }
-        return activas;
+        return filtrarActivos(etiquetaDAO.obtenerTodos());
     }
 
     public ArrayList<etiqueta> obtenerTodasIncluyendoInactivas() {
         return etiquetaDAO.obtenerTodos();
     }
 
-    // Obtener mapa de id->nombre para usar en combos o tablas
     public Map<String, String> obtenerMapaEtiquetas() {
         Map<String, String> mapa = new HashMap<>();
-        ArrayList<etiqueta> etiquetas = obtenerTodas();
-
-        for (etiqueta etiqueta : etiquetas) {
+        for (etiqueta etiqueta : obtenerTodas()) {
             mapa.put(etiqueta.getId(), etiqueta.getNombre());
         }
 
         return mapa;
     }
 
-    // Buscar etiqueta por ID
     public etiqueta buscarPorId(String id) {
         return etiquetaDAO.buscarExacto("id", id);
     }
 
-    // Insertar nueva etiqueta
     public boolean insertarEtiqueta(etiqueta etiqueta) {
         return etiquetaDAO.insertar(etiqueta);
     }
 
-    // Actualizar etiqueta
     public boolean actualizarEtiqueta(etiqueta etiqueta) {
         return etiquetaDAO.actualizar(etiqueta);
     }
 
-    // Eliminar etiqueta
     public boolean eliminarEtiqueta(String id) {
         etiqueta existente = buscarPorId(id);
         if (existente == null) {
@@ -67,17 +54,21 @@ public class modelEtiqueta {
     }
 
     public etiqueta buscarPorNombre(String nombre) {
-        // Primero intentamos con búsqueda exacta
-        etiqueta encontrada = null;
-        ArrayList<etiqueta> todas = obtenerTodasIncluyendoInactivas();
-
-        for (etiqueta e : todas) {
-            if (e.getNombre() != null && e.getNombre().equalsIgnoreCase(nombre)) {
-                encontrada = e;
-                break;
+        for (etiqueta e : obtenerTodasIncluyendoInactivas()) {
+            if (e != null && e.getNombre() != null && e.getNombre().equalsIgnoreCase(nombre)) {
+                return e;
             }
         }
+        return null;
+    }
 
-        return encontrada;
+    private ArrayList<etiqueta> filtrarActivos(ArrayList<etiqueta> todas) {
+        ArrayList<etiqueta> activas = new ArrayList<>();
+        for (etiqueta e : todas) {
+            if (e != null && ESTADO_ACTIVO.equalsIgnoreCase(e.getEstado())) {
+                activas.add(e);
+            }
+        }
+        return activas;
     }
 }
