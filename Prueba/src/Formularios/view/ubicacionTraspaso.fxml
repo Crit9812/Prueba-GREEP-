@@ -13,7 +13,8 @@
             fx:controller="Formularios.controller.ControllerUbicacionTraspaso"
             prefHeight="500"
             prefWidth="700"
-            style="-fx-background-color: white;">
+            style="-fx-background-color: white;"
+            stylesheets="@/Formularios/style/estilos.css">
     <top>
         <VBox style="-fx-background-color: white;" alignment="CENTER">
             <padding>
@@ -47,8 +48,8 @@
             <padding>
                 <Insets top="20" bottom="20" left="0" right="0"/>
             </padding>
-            <Button fx:id="btnCancelar" text="Cancelar" onAction="#cerrarFormulario"/>
-            <Button fx:id="btnConfirmar" text="Confirmar" onAction="#confirmarUbicaciones"/>
+            <Button fx:id="btnCancelar" text="Cancelar" onAction="#cerrarFormulario" styleClass="boton"/>
+            <Button fx:id="btnConfirmar" text="Confirmar" onAction="#confirmarUbicaciones" styleClass="boton"/>
         </HBox>
     </bottom>
 </BorderPane>
