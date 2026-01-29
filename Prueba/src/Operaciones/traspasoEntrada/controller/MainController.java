@@ -603,15 +603,16 @@ public class MainController {
     }
 
     private void expandirFila(String claveEntrada) {
-        // Limpiar detalles anteriores si existen
-        contraerFila(claveEntrada);
+        if (detallesPorEntrada.containsKey(claveEntrada)) {
+            return;
+        }
 
         // Obtener los detalles reales de la base de datos
         List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
 
-        if (!detalles.isEmpty()) {
-            List<traspasoEntrada> filasDetalle = new ArrayList<>();
+        List<traspasoEntrada> filasDetalle = new ArrayList<>();
 
+        if (!detalles.isEmpty()) {
             // 1. Primero crear el encabezado (fila especial)
             traspasoEntrada encabezadoDetalle = new traspasoEntrada(
                     "Id",                            // claveEntrada: muestra "Id" en colClaveEntrada
@@ -632,13 +633,6 @@ public class MainController {
                 // IMPORTANTE: Crear la fila con identificador interno desde el inicio
                 String identificadorInterno = claveEntrada + "_DETALLE_" + contador++;
 
-                // VERIFICAR: Asegurarnos de que tenemos los datos correctos
-                System.out.println("Detalle obtenido - Clave: " + detalle.getClaveProducto() +
-                        ", Producto: " + detalle.getProducto() +
-                        ", Cantidad: " + detalle.getCantidad() +
-                        ", Precio Unitario: " + detalle.getPrecioUnitario() +
-                        ", Precio Total: " + detalle.getPrecioTotal());
-
                 // Crear una fila de detalle con identificador interno y datos visibles
                 traspasoEntrada filaDetalle = new traspasoEntrada(
                         identificadorInterno,        // claveEntrada: identificador interno
@@ -652,26 +646,14 @@ public class MainController {
                 filaDetalle.setSeleccionado(false);
                 filasDetalle.add(filaDetalle);
             }
-
-            // Guardar las filas de detalle en el mapa
-            detallesPorEntrada.put(claveEntrada, filasDetalle);
-
-            // Marcar como desplegada
-            filasDesplegadas.put(claveEntrada, true);
-
-            // Actualizar la tabla manteniendo el orden
-            actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
         }
+
+        // Guardar las filas de detalle en el mapa (incluye vacíos para evitar reconsultas)
+        detallesPorEntrada.put(claveEntrada, filasDetalle);
     }
 
     private void contraerFila(String claveEntrada) {
-        // Remover las filas de detalle y encabezado del mapa y de la tabla
-        List<traspasoEntrada> filasDetalle = detallesPorEntrada.remove(claveEntrada);
-        if (filasDetalle != null) {
-            entradasTraspaso.removeAll(filasDetalle);
-        }
-        // Marcar como contraída
-        filasDesplegadas.put(claveEntrada, false);
+        // La contracción se aplica al reordenar; mantenemos cache en memoria
     }
 
 

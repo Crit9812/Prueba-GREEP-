@@ -305,6 +305,8 @@ public class model {
         try (Connection conn = new Conexion().conectar()) {
             // Obtener columnas de detalle_Entrada
             Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
+            Map<String, String> columnasMarcas = obtenerColumnas(conn, "marcas");
 
             // Buscar las columnas necesarias
             String colClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
@@ -320,6 +322,14 @@ public class model {
                 return detalles;
             }
 
+            String colProductoId = resolverColumna(columnasProductos, "id", "claveProducto", "clave_producto", "producto_id");
+            String colProductoNombre = resolverColumna(columnasProductos, "nombre", "nombreProducto", "producto_nombre", "descripcion");
+            String colProductoMarca = resolverColumna(columnasProductos, "marca", "idMarca", "marca_id");
+            String colProductoPresentacion = resolverColumna(columnasProductos, "presentacion", "unidadMedida", "unidad_medida", "presentation");
+
+            String colMarcaId = resolverColumna(columnasMarcas, "id", "idMarca", "marca_id");
+            String colMarcaNombre = resolverColumna(columnasMarcas, "nombre", "marca", "descripcion", "nombreMarca");
+
             String sql = "SELECT " +
                     "`" + colClaveProducto + "` AS claveProducto, " +
                     "`" + colCantidad + "` AS cantidad, " +
@@ -329,12 +339,30 @@ public class model {
                     "WHERE `" + colClaveEntrada + "` = ? " +
                     "ORDER BY `" + colClaveProducto + "`";
 
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            String sqlProducto = null;
+            if (colProductoId != null && colProductoNombre != null) {
+                sqlProducto = "SELECT `" + colProductoNombre + "` AS nombre, " +
+                        (colProductoMarca != null ? "`" + colProductoMarca + "` AS marca, " : "NULL AS marca, ") +
+                        (colProductoPresentacion != null ? "`" + colProductoPresentacion + "` AS presentacion " : "NULL AS presentacion ") +
+                        "FROM `productos` " +
+                        "WHERE `" + colProductoId + "` = ? " +
+                        "LIMIT 1";
+            }
+
+            String sqlMarca = null;
+            if (colMarcaId != null && colMarcaNombre != null) {
+                sqlMarca = "SELECT `" + colMarcaNombre + "` AS nombre FROM marcas WHERE `" + colMarcaId + "` = ? LIMIT 1";
+            }
+
+            Map<String, String> cacheProductos = new HashMap<>();
+            Map<String, String> cacheMarcas = new HashMap<>();
+
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 PreparedStatement psProducto = sqlProducto != null ? conn.prepareStatement(sqlProducto) : null;
+                 PreparedStatement psMarca = sqlMarca != null ? conn.prepareStatement(sqlMarca) : null) {
                 ps.setString(1, claveEntrada);
 
                 try (ResultSet rs = ps.executeQuery()) {
-                    int contador = 0;
-
                     // Obtener el nombre de la sucursal del remitente (una sola vez para todos los detalles)
                     String nombreSucursal = obtenerNombreSucursalPorEntrada(claveEntrada);
 
@@ -344,16 +372,50 @@ public class model {
                         String precioUnitario = formato(rs.getObject("precioUnitario"));
                         String precioTotal = formato(rs.getObject("precioTotal"));
 
-                        // DEBUG: Imprimir lo que se obtuvo de la base de datos
-                        System.out.println("Detalle " + (++contador) + " para entrada " + claveEntrada +
-                                ": ClaveProducto=" + claveProd +
-                                ", Cantidad=" + cantidad +
-                                ", PrecioUnitario=" + precioUnitario +
-                                ", PrecioTotal=" + precioTotal +
-                                ", Sucursal=" + nombreSucursal);
-
-                        // Obtener el nombre del producto usando el método existente
-                        String nombreProducto = obtenerNombreProducto(claveProd);
+                        String nombreProducto = cacheProductos.get(claveProd);
+                        if (nombreProducto == null) {
+                            nombreProducto = claveProd;
+                            if (psProducto != null && claveProd != null && !claveProd.isBlank()) {
+                                psProducto.setString(1, claveProd);
+                                try (ResultSet rsProd = psProducto.executeQuery()) {
+                                    if (rsProd.next()) {
+                                        String nombre = formato(rsProd.getObject("nombre"));
+                                        String marca = formato(rsProd.getObject("marca"));
+                                        String presentacion = formato(rsProd.getObject("presentacion"));
+                                        if (psMarca != null && marca != null && !marca.isBlank()) {
+                                            String marcaNombre = cacheMarcas.get(marca);
+                                            if (marcaNombre == null) {
+                                                psMarca.setString(1, marca);
+                                                try (ResultSet rsMarca = psMarca.executeQuery()) {
+                                                    if (rsMarca.next()) {
+                                                        marcaNombre = formato(rsMarca.getObject("nombre"));
+                                                    }
+                                                }
+                                                cacheMarcas.put(marca, marcaNombre != null ? marcaNombre : marca);
+                                            }
+                                            marca = cacheMarcas.get(marca);
+                                        }
+                                        StringBuilder compuesto = new StringBuilder();
+                                        if (nombre != null && !nombre.isBlank()) {
+                                            compuesto.append(nombre);
+                                        }
+                                        if (marca != null && !marca.isBlank()) {
+                                            if (compuesto.length() > 0) {
+                                                compuesto.append(" - ");
+                                            }
+                                            compuesto.append(marca);
+                                        }
+                                        if (presentacion != null && !presentacion.isBlank()) {
+                                            compuesto.append(" (").append(presentacion).append(")");
+                                        }
+                                        if (compuesto.length() > 0) {
+                                            nombreProducto = compuesto.toString();
+                                        }
+                                    }
+                                }
+                            }
+                            cacheProductos.put(claveProd, nombreProducto);
+                        }
 
                         // Crear el DetalleEntrada con los 6 parámetros (añadiendo nombreSucursal)
                         detalles.add(new DetalleEntrada(claveProd, nombreProducto, cantidad,
