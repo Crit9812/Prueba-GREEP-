@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambio en modelos de consulta">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +38,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/update-alert-size-for-provider-deletion-warning" />
+        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -93,7 +94,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "Pruebas",
+    "git-widget-placeholder": "#120 on codex/restrict-client-deletion-ba…tatus",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -205,15 +206,7 @@
       <workItem from="1769463326384" duration="6681000" />
       <workItem from="1769522123737" duration="3870000" />
       <workItem from="1769608343193" duration="5782000" />
-      <workItem from="1769695864013" duration="10322000" />
-    </task>
-    <task id="LOCAL-00003" summary="Sucursal,Cliente y proveedores listos (CRUD)">
-      <option name="closed" value="true" />
-      <created>1764358252331</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1764358252331</updated>
+      <workItem from="1769695864013" duration="11332000" />
     </task>
     <task id="LOCAL-00004" summary="Sucursal,Cliente y proveedores listos (CRUD)">
       <option name="closed" value="true" />
@@ -599,7 +592,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769708302240</updated>
     </task>
-    <option name="localTasksCounter" value="52" />
+    <task id="LOCAL-00052" summary="cambio en modelos de consulta">
+      <option name="closed" value="true" />
+      <created>1769709103490</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1769709103490</updated>
+    </task>
+    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

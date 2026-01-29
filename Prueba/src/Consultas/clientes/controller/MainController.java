@@ -21,7 +21,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
-import controllerFormularios.controllerFormulario;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -134,9 +133,8 @@ public class MainController {
                         cliente seleccionado = getTableView().getItems().get(getIndex());
                         int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
                         if (salidasNoCanceladas > 0) {
-                            String mensaje = "No se puede eliminar el cliente porque tiene salidas que no están canceladas.\n"
-                                    + "Solo se permite eliminar clientes si todas sus salidas están en estado cancelado."
-                                    + "\n- Salidas no canceladas: " + salidasNoCanceladas;
+                            String mensaje = "No se puede eliminar el cliente porque tiene"
+                                    + " salidas habilitadas: (" + salidasNoCanceladas + ")";
                             Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
                             alertaAdvertencia.setTitle("Advertencia");
                             alertaAdvertencia.setHeaderText(null);
