@@ -127,12 +127,15 @@ public class MainController {
                         int enClaves = proveedorModel.contarClavesNoDesactivadas(seleccionado.getId());
                         if (enEntradas > 0 || enClaves > 0) {
                             StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar el proveedor porque tiene:");
-                            if (enEntradas > 0) {
-                                motivo.append("\n• Entradas no canceladas: ").append(enEntradas);
+                                    "No se puede desactivar el proveedor porque tiene");
+                            if (enEntradas > 0 && enClaves < 0) {
+                                motivo.append(" entradas no canceladas: (").append(enEntradas).append(")");
                             }
-                            if (enClaves > 0) {
-                                motivo.append("\n• Claves no desactivadas: ").append(enClaves);
+                            if (enClaves > 0 && enEntradas < 0) {
+                                motivo.append(" claves no desactivadas: (").append(enClaves).append(")");
+                            }
+                            if (enClaves > 0 && enEntradas > 0) {
+                                motivo.append(" claves no desactivadas: (").append(enClaves).append(")").append(" y entradas no canceladas: (").append(enEntradas).append(")");
                             }
                             Alert alertaMotivo = new Alert(Alert.AlertType.WARNING);
                             alertaMotivo.setTitle("No se puede desactivar");
