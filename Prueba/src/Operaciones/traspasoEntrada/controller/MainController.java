@@ -39,7 +39,11 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 // Importaciones añadidas para manejar imágenes
 import javafx.scene.image.Image;
@@ -87,6 +91,15 @@ public class MainController {
     private Map<String, javafx.concurrent.Task<List<traspasoEntrada>>> cargasDetalle = new ConcurrentHashMap<>();
     // Tarea de precarga de detalles
     private javafx.concurrent.Task<Void> precargaDetallesTask;
+    private final ExecutorService fxExecutor = Executors.newFixedThreadPool(
+            Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
+            r -> {
+                Thread t = new Thread(r);
+                t.setDaemon(true);
+                t.setName("fx-bg-" + t.getId());
+                return t;
+            }
+    );
 
     @FXML
     public void initialize() {
@@ -171,6 +184,8 @@ public class MainController {
             if (precargaDetallesTask != null) {
                 precargaDetallesTask.cancel();
             }
+            cargasDetalle.values().forEach(task -> task.cancel());
+            cargasDetalle.clear();
 
             // Limpiar listas
             entradasTraspasoOriginal.clear();
@@ -186,54 +201,31 @@ public class MainController {
     }
 
     private void cargarTablaAsincrona() {
-        javafx.concurrent.Task<List<traspasoEntrada>> task = new javafx.concurrent.Task<>() {
-            @Override
-            protected List<traspasoEntrada> call() throws Exception {
-                return modeloTraspaso.obtenerPendientes();
-            }
+        runAsync(
+                () -> modeloTraspaso.obtenerPendientes(),
+                datos -> {
+                    entradasTraspasoOriginal.setAll(datos);
 
-            @Override
-            protected void succeeded() {
-                // Esto se ejecuta en el hilo de JavaFX cuando termina
-                List<traspasoEntrada> datos = getValue();
+                    if (!datos.isEmpty()) {
+                        aplicarOrdenamiento();
+                    } else {
+                        entradasTraspaso.clear();
+                        contenidoTabla.refresh();
+                    }
 
-                // Actualizar las listas en el hilo de JavaFX
-                entradasTraspasoOriginal.setAll(datos);
-
-                // Si hay datos, aplicamos ordenamiento
-                if (!datos.isEmpty()) {
-                    aplicarOrdenamiento();
-                } else {
-                    entradasTraspaso.clear();
-                    contenidoTabla.refresh();
-                }
-
-                // Limpiar estado de filas desplegadas
-                filasDesplegadas.clear();
-                detallesPorEntrada.clear();
-                cargasDetalle.clear();
-                iniciarPrecargaDetalles(datos);
-            }
-
-            @Override
-            protected void failed() {
-                // Manejo de errores
-                Throwable ex = getException();
-                System.err.println("✗ Error al cargar traspasos: " + ex.getMessage());
-                ex.printStackTrace();
-
-                // Mostrar mensaje al usuario
-                Platform.runLater(() -> {
+                    filasDesplegadas.clear();
+                    detallesPorEntrada.clear();
+                    cargasDetalle.values().forEach(task -> task.cancel());
+                    cargasDetalle.clear();
+                    iniciarPrecargaDetalles(datos);
+                },
+                ex -> {
+                    System.err.println("✗ Error al cargar traspasos: " + ex.getMessage());
+                    ex.printStackTrace();
                     mostrarAlerta(Alert.AlertType.ERROR, "Error",
                             "No se pudieron cargar los traspasos: " + ex.getMessage());
-                });
-            }
-        };
-
-        // Iniciar la tarea en un hilo separado
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true); // El hilo se cerrará cuando la aplicación cierre
-        hilo.start();
+                }
+        );
     }
 
     private void cargarTabla() {
@@ -343,55 +335,55 @@ public class MainController {
                                              String nuevoEstadoArticulos,
                                              List<traspasoEntrada> pendientes,
                                              java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
-        // Actualizar esta entrada específica en la base de datos
-        model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
-                claveEntrada,
-                ubicacionesPorProducto,
-                nuevoEstadoEntrada,
-                nuevoEstadoArticulos
+        runAsync(
+                () -> {
+                    model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
+                            claveEntrada,
+                            ubicacionesPorProducto,
+                            nuevoEstadoEntrada,
+                            nuevoEstadoArticulos
+                    );
+                    List<model.DetalleEntrada> detalles = null;
+                    if (resultado.isExito()) {
+                        detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+                    }
+                    return new Object[]{resultado, detalles};
+                },
+                resultadoPayload -> {
+                    model.ResultadoOperacion resultado = (model.ResultadoOperacion) resultadoPayload[0];
+                    @SuppressWarnings("unchecked")
+                    List<model.DetalleEntrada> detalles = (List<model.DetalleEntrada>) resultadoPayload[1];
+
+                    if (resultado.isExito()) {
+                        entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
+                        actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
+                        mostrarConfirmacionReporte(claveEntrada, resultado.getMensaje(), detalles, ubicacionesPorProducto);
+
+                        if (!pendientes.isEmpty()) {
+                            PauseTransition pause = new PauseTransition(Duration.millis(500));
+                            pause.setOnFinished(e -> procesarSiguienteUbicacion(pendientes,
+                                    new ArrayList<>(),
+                                    nuevoEstadoEntrada,
+                                    nuevoEstadoArticulos));
+                            pause.play();
+                        }
+                    } else {
+                        mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                                "No se pudo actualizar el traspaso: " + resultado.getMensaje());
+
+                        if (!pendientes.isEmpty()) {
+                            PauseTransition pause = new PauseTransition(Duration.millis(500));
+                            pause.setOnFinished(e -> procesarSiguienteUbicacion(pendientes,
+                                    new ArrayList<>(),
+                                    nuevoEstadoEntrada,
+                                    nuevoEstadoArticulos));
+                            pause.play();
+                        }
+                    }
+                },
+                ex -> mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                        "Fallo actualizando traspaso: " + ex.getMessage())
         );
-
-        if (resultado.isExito()) {
-            // Actualizar la lista original quitando la entrada procesada
-            entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
-
-            // Actualizar la tabla manteniendo el orden
-            actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
-
-            List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
-            Platform.runLater(() -> mostrarConfirmacionReporte(claveEntrada, resultado.getMensaje(), detalles, ubicacionesPorProducto));
-
-            // Esperar un momento antes de procesar el siguiente
-            Platform.runLater(() -> {
-                if (!pendientes.isEmpty()) {
-                    PauseTransition pause = new PauseTransition(Duration.millis(500));
-                    pause.setOnFinished(e -> {
-                        procesarSiguienteUbicacion(pendientes,
-                                new ArrayList<>(), // Pasamos lista vacía ya que no la usamos más
-                                nuevoEstadoEntrada,
-                                nuevoEstadoArticulos);
-                    });
-                    pause.play();
-                }
-            });
-        } else {
-            Platform.runLater(() -> {
-                mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                        "No se pudo actualizar el traspaso: " + resultado.getMensaje());
-
-                // Aún así, intentar con el siguiente si hay
-                if (!pendientes.isEmpty()) {
-                    PauseTransition pause = new PauseTransition(Duration.millis(500));
-                    pause.setOnFinished(e -> {
-                        procesarSiguienteUbicacion(pendientes,
-                                new ArrayList<>(),
-                                nuevoEstadoEntrada,
-                                nuevoEstadoArticulos);
-                    });
-                    pause.play();
-                }
-            });
-        }
     }
 
     private void actualizarTablaDespuesDeUbicaciones() {
@@ -641,9 +633,7 @@ public class MainController {
         task.setOnFailed(event -> cargasDetalle.remove(claveEntrada));
 
         cargasDetalle.put(claveEntrada, task);
-        Thread hilo = new Thread(task);
-        hilo.setDaemon(true);
-        hilo.start();
+        fxExecutor.execute(task);
     }
 
     private void contraerFila(String claveEntrada) {
@@ -683,9 +673,21 @@ public class MainController {
             }
         };
 
-        Thread hilo = new Thread(precargaDetallesTask);
-        hilo.setDaemon(true);
-        hilo.start();
+        fxExecutor.execute(precargaDetallesTask);
+    }
+
+    private <T> void runAsync(Callable<T> background,
+                              Consumer<T> onSuccessFxThread,
+                              Consumer<Throwable> onErrorFxThread) {
+        javafx.concurrent.Task<T> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected T call() throws Exception {
+                return background.call();
+            }
+        };
+        task.setOnSucceeded(e -> onSuccessFxThread.accept(task.getValue()));
+        task.setOnFailed(e -> onErrorFxThread.accept(task.getException()));
+        fxExecutor.execute(task);
     }
 
     private List<traspasoEntrada> construirFilasDetalle(String claveEntrada, List<model.DetalleEntrada> detalles) {
