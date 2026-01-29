@@ -64,6 +64,8 @@ public class model {
             ps.setString(2, "activo");
             ps.setString(3, "pendiente");
             ps.setString(4, "disponible");
+            ps.setString(5, "finalizado");
+            ps.setString(6, "revision");
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);

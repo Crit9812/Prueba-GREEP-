@@ -267,7 +267,7 @@ public class MainController {
                 motivo.append("\n- Artículos de salidas: ").append(articulosSalida);
             }
             if (clavesActivas > 0) {
-                motivo.append("\n- Claves activas: ").append(clavesActivas);
+                motivo.append("\n- Este producto tiene clave(s) alterna(s) vicnulada(s): ").append(clavesActivas);
             }
             new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
             return;
