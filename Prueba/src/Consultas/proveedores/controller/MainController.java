@@ -124,15 +124,15 @@ public class MainController {
                     btn.setOnAction(e -> {
                         proveedores seleccionado = getTableView().getItems().get(getIndex());
                         int enEntradas = proveedorModel.contarEntradasNoCanceladas(seleccionado.getId());
-                        int enClaves = proveedorModel.contarClavesNoCanceladas(seleccionado.getId());
+                        int enClaves = proveedorModel.contarClavesNoDesactivadas(seleccionado.getId());
                         if (enEntradas > 0 || enClaves > 0) {
                             StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar el proveedor porque tiene registros relacionados que no están cancelados:");
+                                    "No se puede desactivar el proveedor porque tiene registros relacionados con estados no permitidos:");
                             if (enEntradas > 0) {
-                                motivo.append("\n- Entradas: ").append(enEntradas);
+                                motivo.append("\n- Entradas no canceladas: ").append(enEntradas);
                             }
                             if (enClaves > 0) {
-                                motivo.append("\n- Claves: ").append(enClaves);
+                                motivo.append("\n- Claves no desactivadas: ").append(enClaves);
                             }
                             new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
                             return;

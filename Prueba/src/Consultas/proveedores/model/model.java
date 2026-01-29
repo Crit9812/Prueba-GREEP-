@@ -44,24 +44,24 @@ public class model {
                 WHERE idRemitente = ?
                   AND (Estado IS NULL OR LOWER(Estado) <> ?)
                 """;
-        return contarRegistrosNoCancelados(sql, idProveedor);
+        return contarRegistrosConEstadoDiferente(sql, idProveedor, "cancelado");
     }
 
-    public int contarClavesNoCanceladas(int idProveedor) {
+    public int contarClavesNoDesactivadas(int idProveedor) {
         String sql = """
                 SELECT COUNT(*)
                 FROM claves
                 WHERE idProveedor = ?
                   AND (estado IS NULL OR LOWER(estado) <> ?)
                 """;
-        return contarRegistrosNoCancelados(sql, idProveedor);
+        return contarRegistrosConEstadoDiferente(sql, idProveedor, "desactivado");
     }
 
-    private int contarRegistrosNoCancelados(String sql, int idProveedor) {
+    private int contarRegistrosConEstadoDiferente(String sql, int idProveedor, String estadoPermitido) {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idProveedor);
-            ps.setString(2, "cancelado");
+            ps.setString(2, estadoPermitido);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);
