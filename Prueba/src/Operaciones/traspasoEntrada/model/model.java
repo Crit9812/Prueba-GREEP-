@@ -305,6 +305,8 @@ public class model {
         try (Connection conn = new Conexion().conectar()) {
             // Obtener columnas de detalle_Entrada
             Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
+            Map<String, String> columnasMarcas = obtenerColumnas(conn, "marcas");
 
             // Buscar las columnas necesarias
             String colClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
@@ -320,21 +322,86 @@ public class model {
                 return detalles;
             }
 
-            String sql = "SELECT " +
-                    "`" + colClaveProducto + "` AS claveProducto, " +
-                    "`" + colCantidad + "` AS cantidad, " +
-                    "`" + colPrecioUnitario + "` AS precioUnitario, " +
-                    "`" + colPrecioTotal + "` AS precioTotal " +
-                    "FROM `detalle_Entrada` " +
-                    "WHERE `" + colClaveEntrada + "` = ? " +
-                    "ORDER BY `" + colClaveProducto + "`";
+            String colProductoId = resolverColumna(columnasProductos, "id", "claveProducto", "clave_producto", "producto_id");
+            String colProductoNombre = resolverColumna(columnasProductos, "nombre", "nombreProducto", "producto_nombre", "descripcion");
+            String colProductoMarca = resolverColumna(columnasProductos, "marca", "idMarca", "marca_id");
+            String colProductoPresentacion = resolverColumna(columnasProductos, "presentacion", "unidadMedida", "unidad_medida", "presentation");
 
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            String colMarcaId = resolverColumna(columnasMarcas, "id", "idMarca", "marca_id");
+            String colMarcaNombre = resolverColumna(columnasMarcas, "nombre", "marca", "descripcion", "nombreMarca");
+
+            boolean puedeUnirProductos = colProductoId != null && colProductoNombre != null;
+            boolean puedeUnirMarcas = colMarcaId != null && colMarcaNombre != null && colProductoMarca != null;
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT d.`").append(colClaveProducto).append("` AS claveProducto, ")
+                    .append("d.`").append(colCantidad).append("` AS cantidad, ")
+                    .append("d.`").append(colPrecioUnitario).append("` AS precioUnitario, ")
+                    .append("d.`").append(colPrecioTotal).append("` AS precioTotal");
+
+            if (puedeUnirProductos) {
+                sql.append(", p.`").append(colProductoNombre).append("` AS nombre");
+                if (colProductoMarca != null) {
+                    sql.append(", p.`").append(colProductoMarca).append("` AS marca");
+                }
+                if (colProductoPresentacion != null) {
+                    sql.append(", p.`").append(colProductoPresentacion).append("` AS presentacion");
+                }
+            }
+
+            if (puedeUnirMarcas) {
+                sql.append(", m.`").append(colMarcaNombre).append("` AS nombreMarca");
+            }
+
+            sql.append(" FROM `detalle_Entrada` d ");
+
+            if (puedeUnirProductos) {
+                sql.append("LEFT JOIN `productos` p ON d.`")
+                        .append(colClaveProducto)
+                        .append("` = p.`")
+                        .append(colProductoId)
+                        .append("` ");
+            }
+
+            if (puedeUnirMarcas) {
+                sql.append("LEFT JOIN `marcas` m ON p.`")
+                        .append(colProductoMarca)
+                        .append("` = m.`")
+                        .append(colMarcaId)
+                        .append("` ");
+            }
+
+            sql.append("WHERE d.`")
+                    .append(colClaveEntrada)
+                    .append("` = ? ")
+                    .append("ORDER BY d.`")
+                    .append(colClaveProducto)
+                    .append("`");
+
+            String sqlProducto = null;
+            if (!puedeUnirProductos && colProductoId != null && colProductoNombre != null) {
+                sqlProducto = "SELECT `" + colProductoNombre + "` AS nombre, " +
+                        (colProductoMarca != null ? "`" + colProductoMarca + "` AS marca, " : "NULL AS marca, ") +
+                        (colProductoPresentacion != null ? "`" + colProductoPresentacion + "` AS presentacion " : "NULL AS presentacion ") +
+                        "FROM `productos` " +
+                        "WHERE `" + colProductoId + "` = ? " +
+                        "LIMIT 1";
+            }
+
+            String sqlMarca = null;
+            if (!puedeUnirMarcas && colMarcaId != null && colMarcaNombre != null) {
+                sqlMarca = "SELECT `" + colMarcaNombre + "` AS nombre FROM marcas WHERE `" + colMarcaId + "` = ? LIMIT 1";
+            }
+
+            Map<String, String> cacheProductos = new HashMap<>();
+            Map<String, String> cacheMarcas = new HashMap<>();
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString());
+                 PreparedStatement psProducto = sqlProducto != null ? conn.prepareStatement(sqlProducto) : null;
+                 PreparedStatement psMarca = sqlMarca != null ? conn.prepareStatement(sqlMarca) : null) {
                 ps.setString(1, claveEntrada);
 
                 try (ResultSet rs = ps.executeQuery()) {
-                    int contador = 0;
-
                     // Obtener el nombre de la sucursal del remitente (una sola vez para todos los detalles)
                     String nombreSucursal = obtenerNombreSucursalPorEntrada(claveEntrada);
 
@@ -344,16 +411,69 @@ public class model {
                         String precioUnitario = formato(rs.getObject("precioUnitario"));
                         String precioTotal = formato(rs.getObject("precioTotal"));
 
-                        // DEBUG: Imprimir lo que se obtuvo de la base de datos
-                        System.out.println("Detalle " + (++contador) + " para entrada " + claveEntrada +
-                                ": ClaveProducto=" + claveProd +
-                                ", Cantidad=" + cantidad +
-                                ", PrecioUnitario=" + precioUnitario +
-                                ", PrecioTotal=" + precioTotal +
-                                ", Sucursal=" + nombreSucursal);
+                        String nombreProducto = cacheProductos.get(claveProd);
+                        if (nombreProducto == null) {
+                            nombreProducto = claveProd;
+                            String nombre = puedeUnirProductos ? formato(rs.getObject("nombre")) : "";
+                            String marca = puedeUnirProductos && colProductoMarca != null
+                                    ? formato(rs.getObject("marca"))
+                                    : "";
+                            String presentacion = puedeUnirProductos && colProductoPresentacion != null
+                                    ? formato(rs.getObject("presentacion"))
+                                    : "";
+                            String nombreMarca = puedeUnirMarcas ? formato(rs.getObject("nombreMarca")) : "";
 
-                        // Obtener el nombre del producto usando el método existente
-                        String nombreProducto = obtenerNombreProducto(claveProd);
+                            if (nombreMarca != null && !nombreMarca.isBlank()) {
+                                marca = nombreMarca;
+                            }
+
+                            if (marca != null && !marca.isBlank() && psMarca != null && (nombreMarca == null || nombreMarca.isBlank())) {
+                                String marcaNombre = cacheMarcas.get(marca);
+                                if (marcaNombre == null) {
+                                    psMarca.setString(1, marca);
+                                    try (ResultSet rsMarca = psMarca.executeQuery()) {
+                                        if (rsMarca.next()) {
+                                            marcaNombre = formato(rsMarca.getObject("nombre"));
+                                        }
+                                    }
+                                    cacheMarcas.put(marca, marcaNombre != null ? marcaNombre : marca);
+                                }
+                                marca = cacheMarcas.get(marca);
+                            }
+
+                            if ((nombre == null || nombre.isBlank()) && psProducto != null && claveProd != null && !claveProd.isBlank()) {
+                                psProducto.setString(1, claveProd);
+                                try (ResultSet rsProd = psProducto.executeQuery()) {
+                                    if (rsProd.next()) {
+                                        nombre = formato(rsProd.getObject("nombre"));
+                                        if (marca == null || marca.isBlank()) {
+                                            marca = formato(rsProd.getObject("marca"));
+                                        }
+                                        if (presentacion == null || presentacion.isBlank()) {
+                                            presentacion = formato(rsProd.getObject("presentacion"));
+                                        }
+                                    }
+                                }
+                            }
+
+                            StringBuilder compuesto = new StringBuilder();
+                            if (nombre != null && !nombre.isBlank()) {
+                                compuesto.append(nombre);
+                            }
+                            if (marca != null && !marca.isBlank()) {
+                                if (compuesto.length() > 0) {
+                                    compuesto.append(" - ");
+                                }
+                                compuesto.append(marca);
+                            }
+                            if (presentacion != null && !presentacion.isBlank()) {
+                                compuesto.append(" (").append(presentacion).append(")");
+                            }
+                            if (compuesto.length() > 0) {
+                                nombreProducto = compuesto.toString();
+                            }
+                            cacheProductos.put(claveProd, nombreProducto);
+                        }
 
                         // Crear el DetalleEntrada con los 6 parámetros (añadiendo nombreSucursal)
                         detalles.add(new DetalleEntrada(claveProd, nombreProducto, cantidad,
