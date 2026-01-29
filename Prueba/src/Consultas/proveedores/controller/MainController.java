@@ -123,11 +123,11 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         proveedores seleccionado = getTableView().getItems().get(getIndex());
-                        int enEntradas = proveedorModel.contarEntradasPorProveedor(seleccionado.getId());
-                        int enClaves = proveedorModel.contarClavesPorProveedor(seleccionado.getId());
+                        int enEntradas = proveedorModel.contarEntradasNoCanceladas(seleccionado.getId());
+                        int enClaves = proveedorModel.contarClavesNoCanceladas(seleccionado.getId());
                         if (enEntradas > 0 || enClaves > 0) {
                             StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar el proveedor porque tiene registros relacionados (activos, pendientes o disponibles):");
+                                    "No se puede desactivar el proveedor porque tiene registros relacionados que no están cancelados:");
                             if (enEntradas > 0) {
                                 motivo.append("\n- Entradas: ").append(enEntradas);
                             }
