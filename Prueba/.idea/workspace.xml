@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="inventario edicion">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambio en modelos de consulta">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/model/model.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +37,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/refactor-main-controller-for-suppliers" />
+        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -94,7 +93,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "Pruebas",
+    "git-widget-placeholder": "#117 on codex/add-validation-to-prevent-p…etion",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -206,7 +205,7 @@
       <workItem from="1769463326384" duration="6681000" />
       <workItem from="1769522123737" duration="3870000" />
       <workItem from="1769608343193" duration="5782000" />
-      <workItem from="1769695864013" duration="4092000" />
+      <workItem from="1769695864013" duration="7278000" />
     </task>
     <task id="LOCAL-00001" summary="Software subido">
       <option name="closed" value="true" />
@@ -584,7 +583,23 @@
       <option name="project" value="LOCAL" />
       <updated>1769696969054</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="cambio en modelos de consulta">
+      <option name="closed" value="true" />
+      <created>1769700924236</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1769700924236</updated>
+    </task>
+    <task id="LOCAL-00049" summary="cambio en modelos de consulta">
+      <option name="closed" value="true" />
+      <created>1769703383794</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1769703383794</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -637,7 +652,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Agregado de tabla en claves y cambioes en compras y ventas." />
     <MESSAGE value="Modificaciones no funcionales en venta precios" />
     <MESSAGE value="Venta finalizada, y nose" />
     <MESSAGE value="Venta finalizada, y nose que mas" />
@@ -662,7 +676,8 @@
     <MESSAGE value="Agregacion de cambios en operaciones de jessica" />
     <MESSAGE value="Casi competo pero con detalles" />
     <MESSAGE value="inventario edicion" />
-    <option name="LAST_COMMIT_MESSAGE" value="inventario edicion" />
+    <MESSAGE value="cambio en modelos de consulta" />
+    <option name="LAST_COMMIT_MESSAGE" value="cambio en modelos de consulta" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

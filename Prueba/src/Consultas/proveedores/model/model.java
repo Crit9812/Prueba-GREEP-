@@ -37,35 +37,31 @@ public class model {
         return FXCollections.observableArrayList(filtrarActivos(lista));
     }
 
-    public int contarEntradasPorProveedor(int idProveedor) {
+    public int contarEntradasNoCanceladas(int idProveedor) {
         String sql = """
                 SELECT COUNT(*)
                 FROM entradas
                 WHERE idRemitente = ?
-                  AND LOWER(Estado) IN (?, ?, ?)
+                  AND (Estado IS NULL OR LOWER(Estado) <> ?)
                 """;
-        return contarRegistrosConEstados(sql, idProveedor);
+        return contarRegistrosConEstadoDiferente(sql, idProveedor, "cancelado");
     }
 
-    public int contarClavesPorProveedor(int idProveedor) {
+    public int contarClavesNoDesactivadas(int idProveedor) {
         String sql = """
                 SELECT COUNT(*)
                 FROM claves
                 WHERE idProveedor = ?
-                  AND LOWER(estado) IN (?, ?, ?)
+                  AND (estado IS NULL OR LOWER(estado) <> ?)
                 """;
-        return contarRegistrosConEstados(sql, idProveedor);
+        return contarRegistrosConEstadoDiferente(sql, idProveedor, "desactivado");
     }
 
-    private int contarRegistrosConEstados(String sql, int idProveedor) {
+    private int contarRegistrosConEstadoDiferente(String sql, int idProveedor, String estadoPermitido) {
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idProveedor);
-            ps.setString(2, "activo");
-            ps.setString(3, "pendiente");
-            ps.setString(4, "disponible");
-            ps.setString(5, "finalizado");
-            ps.setString(6, "revision");
+            ps.setString(2, estadoPermitido);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);
