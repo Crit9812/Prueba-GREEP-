@@ -21,7 +21,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
-import controllerFormularios.controllerFormulario;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -132,6 +131,19 @@ public class MainController {
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
                     btn.setOnAction(e -> {
                         cliente seleccionado = getTableView().getItems().get(getIndex());
+                        int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
+                        if (salidasNoCanceladas > 0) {
+                            String mensaje = "No se puede eliminar el cliente porque tiene"
+                                    + " salidas habilitadas: (" + salidasNoCanceladas + ")";
+                            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
+                            alertaAdvertencia.setTitle("Advertencia");
+                            alertaAdvertencia.setHeaderText(null);
+                            Label contenido = new Label(mensaje);
+                            contenido.setWrapText(true);
+                            alertaAdvertencia.getDialogPane().setContent(contenido);
+                            alertaAdvertencia.showAndWait();
+                            return;
+                        }
                         Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
                         alerta.setTitle("Confirmar eliminación");
                         alerta.setHeaderText(null);
