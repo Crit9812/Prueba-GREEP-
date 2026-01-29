@@ -40,6 +40,7 @@ public class ControllerUbicacionTraspaso {
     private String claveEntrada;
     private Stage stage;
     private java.util.function.Consumer<java.util.Map<String, List<UbicacionCompra>>> onConfirmCallback;
+    private Label lblCargando;
 
     @FXML
     public void initialize() {
@@ -110,6 +111,8 @@ public class ControllerUbicacionTraspaso {
             return;
         }
 
+        mostrarMensajeCargando();
+
         javafx.concurrent.Task<List<model.DetalleEntrada>> task = new javafx.concurrent.Task<>() {
             @Override
             protected List<model.DetalleEntrada> call() {
@@ -118,6 +121,7 @@ public class ControllerUbicacionTraspaso {
 
             @Override
             protected void succeeded() {
+                ocultarMensajeCargando();
                 List<model.DetalleEntrada> detalles = getValue();
                 if (detalles == null || detalles.isEmpty()) {
                     return;
@@ -127,11 +131,34 @@ public class ControllerUbicacionTraspaso {
                     agregarDetalleAlFormulario(detalle, contador++, detalles.size());
                 }
             }
+
+            @Override
+            protected void failed() {
+                ocultarMensajeCargando();
+            }
         };
 
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
+    }
+
+    private void mostrarMensajeCargando() {
+        if (contenedorDetalles == null) {
+            return;
+        }
+        contenedorDetalles.getChildren().clear();
+        lblCargando = new Label("Cargando...");
+        lblCargando.setStyle("-fx-text-fill: #6c757d; -fx-font-style: italic;");
+        contenedorDetalles.getChildren().add(lblCargando);
+    }
+
+    private void ocultarMensajeCargando() {
+        if (contenedorDetalles == null || lblCargando == null) {
+            return;
+        }
+        contenedorDetalles.getChildren().remove(lblCargando);
+        lblCargando = null;
     }
 
     private void agregarDetalleAlFormulario(model.DetalleEntrada detalle, int numero, int totalDetalles) {
