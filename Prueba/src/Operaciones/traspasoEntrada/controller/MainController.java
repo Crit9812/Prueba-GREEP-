@@ -37,9 +37,9 @@ import javafx.util.Callback;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 // Importaciones añadidas para manejar imágenes
 import javafx.scene.image.Image;
@@ -80,11 +80,13 @@ public class MainController {
     private Image flechaAbajoImage;   // Imagen de flecha abajo
 
     // Mapa para rastrear qué filas están desplegadas
-    private Map<String, Boolean> filasDesplegadas = new HashMap<>();
+    private Map<String, Boolean> filasDesplegadas = new ConcurrentHashMap<>();
     // Mapa para almacenar las filas de detalle por cada entrada
-    private Map<String, List<traspasoEntrada>> detallesPorEntrada = new HashMap<>();
+    private Map<String, List<traspasoEntrada>> detallesPorEntrada = new ConcurrentHashMap<>();
     // Mapa para rastrear cargas en progreso
-    private Map<String, javafx.concurrent.Task<List<traspasoEntrada>>> cargasDetalle = new HashMap<>();
+    private Map<String, javafx.concurrent.Task<List<traspasoEntrada>>> cargasDetalle = new ConcurrentHashMap<>();
+    // Tarea de precarga de detalles
+    private javafx.concurrent.Task<Void> precargaDetallesTask;
 
     @FXML
     public void initialize() {
@@ -166,6 +168,9 @@ public class MainController {
             filasDesplegadas.clear();
             detallesPorEntrada.clear();
             cargasDetalle.clear();
+            if (precargaDetallesTask != null) {
+                precargaDetallesTask.cancel();
+            }
 
             // Limpiar listas
             entradasTraspasoOriginal.clear();
@@ -206,6 +211,8 @@ public class MainController {
                 // Limpiar estado de filas desplegadas
                 filasDesplegadas.clear();
                 detallesPorEntrada.clear();
+                cargasDetalle.clear();
+                iniciarPrecargaDetalles(datos);
             }
 
             @Override
@@ -618,37 +625,7 @@ public class MainController {
             @Override
             protected List<traspasoEntrada> call() {
                 List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
-                List<traspasoEntrada> filasDetalle = new ArrayList<>();
-
-                if (!detalles.isEmpty()) {
-                    traspasoEntrada encabezadoDetalle = new traspasoEntrada(
-                            "Id",
-                            "Producto",
-                            "Cantidad",
-                            "Precio Unitario",
-                            "Precio Total"
-                    );
-                    encabezadoDetalle.setClaveEntrada(claveEntrada + "_ENCABEZADO_1");
-                    encabezadoDetalle.setSeleccionado(false);
-                    filasDetalle.add(encabezadoDetalle);
-
-                    int contador = 1;
-                    for (model.DetalleEntrada detalle : detalles) {
-                        String identificadorInterno = claveEntrada + "_DETALLE_" + contador++;
-                        traspasoEntrada filaDetalle = new traspasoEntrada(
-                                identificadorInterno,
-                                detalle.getClaveProducto(),
-                                detalle.getCantidad(),
-                                detalle.getPrecioUnitario(),
-                                detalle.getPrecioTotal()
-                        );
-                        filaDetalle.setNombreSucursal(detalle.getPrecioTotal());
-                        filaDetalle.setSeleccionado(false);
-                        filasDetalle.add(filaDetalle);
-                    }
-                }
-
-                return filasDetalle;
+                return construirFilasDetalle(claveEntrada, detalles);
             }
         };
 
@@ -674,6 +651,74 @@ public class MainController {
         if (filasDetalle != null && !filasDetalle.isEmpty()) {
             entradasTraspaso.removeAll(filasDetalle);
         }
+    }
+
+    private void iniciarPrecargaDetalles(List<traspasoEntrada> entradas) {
+        if (precargaDetallesTask != null && precargaDetallesTask.isRunning()) {
+            return;
+        }
+        precargaDetallesTask = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() {
+                int total = entradas.size();
+                for (int i = 0; i < total; i++) {
+                    if (isCancelled()) {
+                        break;
+                    }
+                    traspasoEntrada entrada = entradas.get(i);
+                    if (entrada == null) {
+                        continue;
+                    }
+                    String claveEntrada = entrada.getClaveEntrada();
+                    if (claveEntrada == null || claveEntrada.isBlank()) {
+                        continue;
+                    }
+                    if (!detallesPorEntrada.containsKey(claveEntrada)) {
+                        List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+                        List<traspasoEntrada> filasDetalle = construirFilasDetalle(claveEntrada, detalles);
+                        detallesPorEntrada.put(claveEntrada, filasDetalle);
+                    }
+                }
+                return null;
+            }
+        };
+
+        Thread hilo = new Thread(precargaDetallesTask);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private List<traspasoEntrada> construirFilasDetalle(String claveEntrada, List<model.DetalleEntrada> detalles) {
+        List<traspasoEntrada> filasDetalle = new ArrayList<>();
+        if (detalles == null || detalles.isEmpty()) {
+            return filasDetalle;
+        }
+        traspasoEntrada encabezadoDetalle = new traspasoEntrada(
+                "Id",
+                "Producto",
+                "Cantidad",
+                "Precio Unitario",
+                "Precio Total"
+        );
+        encabezadoDetalle.setClaveEntrada(claveEntrada + "_ENCABEZADO_1");
+        encabezadoDetalle.setSeleccionado(false);
+        filasDetalle.add(encabezadoDetalle);
+
+        int contador = 1;
+        for (model.DetalleEntrada detalle : detalles) {
+            String identificadorInterno = claveEntrada + "_DETALLE_" + contador++;
+            traspasoEntrada filaDetalle = new traspasoEntrada(
+                    identificadorInterno,
+                    detalle.getClaveProducto(),
+                    detalle.getCantidad(),
+                    detalle.getPrecioUnitario(),
+                    detalle.getPrecioTotal()
+            );
+            filaDetalle.setNombreSucursal(detalle.getPrecioTotal());
+            filaDetalle.setSeleccionado(false);
+            filasDetalle.add(filaDetalle);
+        }
+        return filasDetalle;
     }
 
     private void insertarDetallesEnTabla(String claveEntrada, List<traspasoEntrada> filasDetalle) {
