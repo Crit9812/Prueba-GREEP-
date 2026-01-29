@@ -1,58 +1,49 @@
 package Operaciones.traspasoEntrada.controller;
 
-import Compartido.helper.RefrescoHelper;
-import Compartido.helper.SelectorOrdenPopup;
-import javafx.collections.transformation.SortedList;
-import javafx.scene.Node;
-import javafx.scene.input.MouseEvent;
-import java.util.Comparator;
-import java.util.function.Function;
-import javafx.animation.PauseTransition;
-import javafx.util.Duration;
-import javafx.application.Platform;
-import Formularios.controller.ControllerUbicacionTraspaso;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.fxml.FXMLLoader;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.ReporteTraspasoExporter;
+import Compartido.helper.RefrescoHelper;
+import Compartido.helper.SelectorOrdenPopup;
+import Formularios.controller.ControllerUbicacionTraspaso;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoEntrada.model.model;
 import Operaciones.traspasoEntrada.model.traspasoEntrada;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.control.*;
-import javafx.scene.control.cell.CheckBoxTableCell;
-import javafx.scene.layout.*;
+
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
-import javafx.util.Callback;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
-
-// Importaciones añadidas para manejar imágenes
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.geometry.Pos;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.*;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.Callback;
+import javafx.util.Duration;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class MainController {
 
-    @FXML private TableColumn<traspasoEntrada, Void> colDesplegar; // Nueva columna para la flecha
+    @FXML private TableColumn<traspasoEntrada, Void> colDesplegar;
     @FXML private ComboBox<String> miComboBox;
     @FXML private CheckBox miCheckBox;
     @FXML private StackPane root;
@@ -73,56 +64,70 @@ public class MainController {
     @FXML private TableColumn<traspasoEntrada, String> colHora;
     @FXML private TableColumn<traspasoEntrada, String> colTotal;
     @FXML private TableColumn<traspasoEntrada, String> colNombreSucural;
+
     @FXML private encabezadoController paneNavbarController;
 
-    private String criterioOrden = "id"; // id, fecha, sucursal
+    private String criterioOrden = "id";
     private String direccionOrden = "asc";
+
     private final ObservableList<traspasoEntrada> entradasTraspasoOriginal = FXCollections.observableArrayList();
     private final ObservableList<traspasoEntrada> entradasTraspaso = FXCollections.observableArrayList();
-    private final model modeloTraspaso = new model();
-    private Image flechaDerechaImage; // Imagen de flecha derecha
-    private Image flechaAbajoImage;   // Imagen de flecha abajo
 
-    // Mapa para rastrear qué filas están desplegadas
-    private Map<String, Boolean> filasDesplegadas = new ConcurrentHashMap<>();
-    // Mapa para almacenar las filas de detalle por cada entrada
-    private Map<String, List<traspasoEntrada>> detallesPorEntrada = new ConcurrentHashMap<>();
-    // Mapa para rastrear cargas en progreso
-    private Map<String, javafx.concurrent.Task<List<traspasoEntrada>>> cargasDetalle = new ConcurrentHashMap<>();
-    // Tarea de precarga de detalles
-    private javafx.concurrent.Task<Void> precargaDetallesTask;
+    private final model modeloTraspaso = new model();
+
+    private Image flechaDerechaImage;
+    private Image flechaAbajoImage;
+
+    // Estado desplegado
+    private final Map<String, Boolean> filasDesplegadas = new ConcurrentHashMap<>();
+
+    // Cache de detalles por entrada (para que al expandir sea inmediato)
+    private final Map<String, List<traspasoEntrada>> detallesPorEntrada = new ConcurrentHashMap<>();
+
+    // Cargas detalle en progreso
+    private final Map<String, Task<List<traspasoEntrada>>> cargasDetalle = new ConcurrentHashMap<>();
+
+    // Pre-carga (opcional)
+    private Task<Void> precargaDetallesTask;
+
+    // Cache de nombres de producto (evita consultas en UI)
+    private final Map<String, String> nombreProductoCache = new ConcurrentHashMap<>();
+    private final Map<String, Task<String>> cargasNombreProducto = new ConcurrentHashMap<>();
+
+    // Ejecutores: uno para interacción (expandir/cargar tabla), otro para precarga/nombres
     private final ExecutorService fxExecutor = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
-            r -> {
-                Thread t = new Thread(r);
-                t.setDaemon(true);
-                t.setName("fx-bg-" + t.getId());
-                return t;
-            }
+            daemonFactory("fx-bg")
     );
+
+    private final ExecutorService prefetchExecutor = Executors.newFixedThreadPool(
+            2,
+            daemonFactory("fx-prefetch")
+    );
+
+    private static ThreadFactory daemonFactory(String prefix) {
+        return r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            t.setName(prefix + "-" + t.getId());
+            return t;
+        };
+    }
 
     @FXML
     public void initialize() {
         miComboBox.setItems(FXCollections.observableArrayList("Aceptar", "Rechazar"));
         miComboBox.setValue("Opciones");
+
         cargarImagenesFlecha();
 
         Platform.runLater(() -> {
-
             try {
-                // Cargar el navbar desde el fx:include
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
                 VBox navbarLoaded = loader.load();
-
-                // Obtener el controller del navbar
                 navbarController navbarCtrl = loader.getController();
-
-                // Pasar el overlayPane al navbarController
                 navbarCtrl.setOverlayPane(overlayPane);
-
-                // Reemplazar el contenido del fx:include con el cargado
                 navbar.getChildren().setAll(navbarLoaded);
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -130,74 +135,62 @@ public class MainController {
             SplitPane.setResizableWithParent(navbar, false);
             SplitPane.setResizableWithParent(contenedor, true);
 
-            //Navbar superior (header)
             paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
             paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
 
-            // Navbar lateral (menú)
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
 
-            // Center - contenedor general
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
-            // Barra de opciones
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
             lblOrdenar.setMinWidth(Region.USE_PREF_SIZE);
 
-            // Tabla
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Traspaso de Entrada", "#ffffff");
 
             configurarTabla();
-            cargarTabla();
-            aplicarOrdenamiento();
+            cargarTabla(); // async
             RefrescoHelper.setVistaActual("traspasoEntrada");
             RefrescoHelper.registrarRefresco("traspasoEntrada", this::actualizarTraspasoEntrada);
         });
     }
 
+    // =========================
+    // Refresco / carga principal
+    // =========================
+
     private void actualizarTraspasoEntrada() {
-
-        // 1. Limpiar UI y datos locales
         Platform.runLater(() -> {
-            // Limpiar selección
             contenidoTabla.getSelectionModel().clearSelection();
+            if (miCheckBox != null) miCheckBox.setSelected(false);
+            if (miComboBox != null) miComboBox.setValue("Opciones");
 
-            // Limpiar checkbox global
-            if (miCheckBox != null) {
-                miCheckBox.setSelected(false);
-            }
+            // Cancelar tasks en progreso
+            if (precargaDetallesTask != null) precargaDetallesTask.cancel();
+            cargasDetalle.values().forEach(Task::cancel);
+            cargasDetalle.clear();
 
-            // Resetear combo box
-            if (miComboBox != null) {
-                miComboBox.setValue("Opciones");
-            }
+            cargasNombreProducto.values().forEach(Task::cancel);
+            cargasNombreProducto.clear();
 
-            // Limpiar estructuras de datos
             filasDesplegadas.clear();
             detallesPorEntrada.clear();
-            cargasDetalle.clear();
-            if (precargaDetallesTask != null) {
-                precargaDetallesTask.cancel();
-            }
-            cargasDetalle.values().forEach(task -> task.cancel());
-            cargasDetalle.clear();
+            nombreProductoCache.clear();
 
-            // Limpiar listas
             entradasTraspasoOriginal.clear();
             entradasTraspaso.clear();
-
             contenidoTabla.refresh();
-            System.out.println("UI de traspaso entrada limpiada");
         });
 
-        // 2. Recargar datos de forma asíncrona (IMPORTANTE para muchos registros)
         cargarTablaAsincrona();
+    }
 
+    private void cargarTabla() {
+        cargarTablaAsincrona();
     }
 
     private void cargarTablaAsincrona() {
@@ -206,6 +199,13 @@ public class MainController {
                 datos -> {
                     entradasTraspasoOriginal.setAll(datos);
 
+                    filasDesplegadas.clear();
+                    detallesPorEntrada.clear();
+
+                    // Cancelar cargas anteriores (si existían)
+                    cargasDetalle.values().forEach(Task::cancel);
+                    cargasDetalle.clear();
+
                     if (!datos.isEmpty()) {
                         aplicarOrdenamiento();
                     } else {
@@ -213,14 +213,10 @@ public class MainController {
                         contenidoTabla.refresh();
                     }
 
-                    filasDesplegadas.clear();
-                    detallesPorEntrada.clear();
-                    cargasDetalle.values().forEach(task -> task.cancel());
-                    cargasDetalle.clear();
+                    // Opcional: precarga para que expandir sea instantáneo
                     iniciarPrecargaDetalles(datos);
                 },
                 ex -> {
-                    System.err.println("✗ Error al cargar traspasos: " + ex.getMessage());
                     ex.printStackTrace();
                     mostrarAlerta(Alert.AlertType.ERROR, "Error",
                             "No se pudieron cargar los traspasos: " + ex.getMessage());
@@ -228,262 +224,294 @@ public class MainController {
         );
     }
 
-    private void cargarTabla() {
-        // Usar la versión asíncrona en lugar de la síncrona
-        cargarTablaAsincrona();
+    private <T> void runAsync(Callable<T> background,
+                              Consumer<T> onSuccessFxThread,
+                              Consumer<Throwable> onErrorFxThread) {
+        Task<T> task = new Task<>() {
+            @Override
+            protected T call() throws Exception {
+                return background.call();
+            }
+        };
+        task.setOnSucceeded(e -> onSuccessFxThread.accept(task.getValue()));
+        task.setOnFailed(e -> onErrorFxThread.accept(task.getException()));
+        fxExecutor.execute(task);
     }
 
-    private void abrirFormularioUbicaciones(List<traspasoEntrada> seleccionados,
-                                            List<String> claves,
-                                            String nuevoEstadoEntrada,
-                                            String nuevoEstadoArticulos) {
+    // =========================
+    // Expansión rápida de detalles
+    // =========================
 
-        // Crear una copia de los seleccionados para procesar secuencialmente
-        List<traspasoEntrada> pendientes = new ArrayList<>(seleccionados);
+    private void toggleFilaDesplegada(String claveEntrada) {
+        boolean estaDesplegada = filasDesplegadas.getOrDefault(claveEntrada, false);
 
-        // Procesar el primer traspaso
-        procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos);
-    }
-
-    private void procesarSiguienteUbicacion(List<traspasoEntrada> pendientes,
-                                            List<String> claves,
-                                            String nuevoEstadoEntrada,
-                                            String nuevoEstadoArticulos) {
-
-        if (pendientes.isEmpty()) {
-            // Todos los traspasos han sido procesados
-            Platform.runLater(() -> {
-                mostrarAlerta(Alert.AlertType.INFORMATION, "Proceso completado",
-                        "Se han procesado todos los traspasos seleccionados.");
-                // Refrescar toda la tabla al finalizar
-                cargarTabla();
-            });
+        if (estaDesplegada) {
+            // Colapsar
+            filasDesplegadas.put(claveEntrada, false);
+            cancelarCargaDetalle(claveEntrada);
+            contraerFila(claveEntrada);
+            removerFilaCargando(claveEntrada);
+            contenidoTabla.refresh();
             return;
         }
 
-        // Tomar el primer traspaso de la lista
-        traspasoEntrada actual = pendientes.remove(0);
-        String claveEntrada = actual.getClaveEntrada();
+        // Expandir
+        filasDesplegadas.put(claveEntrada, true);
 
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/ubicacionTraspaso.fxml"));
-            Parent root = loader.load();
-
-            ControllerUbicacionTraspaso controller = loader.getController();
-            controller.setClaveEntrada(claveEntrada);
-
-            // Configurar callback para cuando se confirme este traspaso
-            controller.setOnConfirmCallback(ubicacionesPorProducto -> {
-                // Actualizar la entrada específica después de asignar ubicaciones
-                actualizarEntradaIndividual(claveEntrada, nuevoEstadoEntrada, nuevoEstadoArticulos, pendientes, ubicacionesPorProducto);
-            });
-
-            Stage stage = new Stage();
-            controller.setStage(stage); // Pasar la referencia del stage al controller
-
-            Scene scene = new Scene(root, 500, 700);
-            stage.setScene(scene);
-            stage.setTitle("Ubicaciones - " + claveEntrada + " (" + (claves.size() - pendientes.size()) + "/" + claves.size() + ")");
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.initOwner(contenidoTabla.getScene().getWindow());
-            stage.setResizable(false);
-
-            // Centrar la ventana
-            stage.centerOnScreen();
-
-            // Configurar para que al cerrar se procese el siguiente (si se cierra sin confirmar)
-            stage.setOnHidden(e -> {
-                if (!pendientes.isEmpty()) {
-                    // Esperar un momento antes de abrir el siguiente
-                    Platform.runLater(() -> {
-                        PauseTransition pause = new PauseTransition(Duration.millis(300));
-                        pause.setOnFinished(ev -> {
-                            procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos);
-                        });
-                        pause.play();
-                    });
-                } else {
-                    // Si no hay más pendientes, refrescar la tabla
-                    Platform.runLater(() -> {
-                        cargarTabla();
-                    });
-                }
-            });
-
-            stage.show();
-
-        } catch (Exception e) {
-            mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                    "No se pudo abrir el formulario de ubicaciones para: " + claveEntrada);
-            e.printStackTrace();
-
-            // Si hay error, intentar con el siguiente traspaso
-            if (!pendientes.isEmpty()) {
-                Platform.runLater(() -> {
-                    PauseTransition pause = new PauseTransition(Duration.millis(300));
-                    pause.setOnFinished(ev -> {
-                        procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos);
-                    });
-                    pause.play();
-                });
-            }
+        List<traspasoEntrada> filasDetalleCache = detallesPorEntrada.get(claveEntrada);
+        if (filasDetalleCache != null && !filasDetalleCache.isEmpty()) {
+            insertarDetallesEnTabla(claveEntrada, filasDetalleCache);
+            contenidoTabla.refresh();
+            return;
         }
+
+        // Mostrar “Cargando…” inmediato para que se sienta rápido
+        insertarFilaCargando(claveEntrada);
+        contenidoTabla.refresh();
+
+        // Cargar detalles en background
+        cargarDetallesEnSegundoPlano(claveEntrada);
     }
 
-    private void actualizarEntradaIndividual(String claveEntrada,
-                                             String nuevoEstadoEntrada,
-                                             String nuevoEstadoArticulos,
-                                             List<traspasoEntrada> pendientes,
-                                             java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
-        runAsync(
-                () -> {
-                    model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
-                            claveEntrada,
-                            ubicacionesPorProducto,
-                            nuevoEstadoEntrada,
-                            nuevoEstadoArticulos
-                    );
-                    List<model.DetalleEntrada> detalles = null;
-                    if (resultado.isExito()) {
-                        detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
-                    }
-                    return new Object[]{resultado, detalles};
-                },
-                resultadoPayload -> {
-                    model.ResultadoOperacion resultado = (model.ResultadoOperacion) resultadoPayload[0];
-                    @SuppressWarnings("unchecked")
-                    List<model.DetalleEntrada> detalles = (List<model.DetalleEntrada>) resultadoPayload[1];
+    private void cancelarCargaDetalle(String claveEntrada) {
+        Task<List<traspasoEntrada>> task = cargasDetalle.remove(claveEntrada);
+        if (task != null) task.cancel();
+    }
 
-                    if (resultado.isExito()) {
-                        entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
-                        actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
-                        mostrarConfirmacionReporte(claveEntrada, resultado.getMensaje(), detalles, ubicacionesPorProducto);
+    private void cargarDetallesEnSegundoPlano(String claveEntrada) {
+        if (cargasDetalle.containsKey(claveEntrada)) return;
 
-                        if (!pendientes.isEmpty()) {
-                            PauseTransition pause = new PauseTransition(Duration.millis(500));
-                            pause.setOnFinished(e -> procesarSiguienteUbicacion(pendientes,
-                                    new ArrayList<>(),
-                                    nuevoEstadoEntrada,
-                                    nuevoEstadoArticulos));
-                            pause.play();
-                        }
-                    } else {
-                        mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                                "No se pudo actualizar el traspaso: " + resultado.getMensaje());
+        Task<List<traspasoEntrada>> task = new Task<>() {
+            @Override
+            protected List<traspasoEntrada> call() {
+                List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+                return construirFilasDetalle(claveEntrada, detalles);
+            }
+        };
 
-                        if (!pendientes.isEmpty()) {
-                            PauseTransition pause = new PauseTransition(Duration.millis(500));
-                            pause.setOnFinished(e -> procesarSiguienteUbicacion(pendientes,
-                                    new ArrayList<>(),
-                                    nuevoEstadoEntrada,
-                                    nuevoEstadoArticulos));
-                            pause.play();
-                        }
-                    }
-                },
-                ex -> mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                        "Fallo actualizando traspaso: " + ex.getMessage())
+        task.setOnSucceeded(event -> {
+            List<traspasoEntrada> filasDetalle = task.getValue();
+            cargasDetalle.remove(claveEntrada);
+
+            detallesPorEntrada.put(claveEntrada, filasDetalle);
+
+            // Quitar “Cargando…”
+            removerFilaCargando(claveEntrada);
+
+            // Si todavía está desplegada, insertar
+            if (filasDesplegadas.getOrDefault(claveEntrada, false) && filasDetalle != null && !filasDetalle.isEmpty()) {
+                insertarDetallesEnTabla(claveEntrada, filasDetalle);
+            }
+            contenidoTabla.refresh();
+        });
+
+        task.setOnFailed(event -> {
+            cargasDetalle.remove(claveEntrada);
+            removerFilaCargando(claveEntrada);
+            contenidoTabla.refresh();
+        });
+
+        cargasDetalle.put(claveEntrada, task);
+        fxExecutor.execute(task);
+    }
+
+    private void insertarFilaCargando(String claveEntrada) {
+        removerFilaCargando(claveEntrada);
+
+        traspasoEntrada loading = new traspasoEntrada(
+                "",            // claveEntrada visible (no se usa)
+                "Cargando...",  // fecha (se usa en detalle como id, aquí solo texto)
+                "", "", ""
         );
+        loading.setClaveEntrada(claveEntrada + "_CARGANDO_1");
+        loading.setSeleccionado(false);
+
+        int index = indiceEntradaPadre(claveEntrada);
+        if (index >= 0) {
+            entradasTraspaso.add(index + 1, loading);
+        }
     }
 
-    private void actualizarTablaDespuesDeUbicaciones() {
-        // Refrescar la tabla eliminando las entradas que ya fueron procesadas
-        List<traspasoEntrada> entradasActuales = new ArrayList<>(entradasTraspaso);
+    private void removerFilaCargando(String claveEntrada) {
+        entradasTraspaso.removeIf(e -> e != null && e.getClaveEntrada() != null
+                && e.getClaveEntrada().startsWith(claveEntrada + "_CARGANDO_"));
+    }
 
-        for (traspasoEntrada entrada : entradasActuales) {
-            if (entrada.isSeleccionado() &&
-                    !esFilaDetalle(entrada) &&
-                    !esEncabezadoDetalle(entrada)) {
-                // Remover esta entrada de la tabla
-                entradasTraspaso.remove(entrada);
-            }
+    private int indiceEntradaPadre(String claveEntrada) {
+        for (int i = 0; i < entradasTraspaso.size(); i++) {
+            traspasoEntrada e = entradasTraspaso.get(i);
+            if (e != null && claveEntrada.equals(e.getClaveEntrada())) return i;
+        }
+        return -1;
+    }
+
+    private void contraerFila(String claveEntrada) {
+        List<traspasoEntrada> filasDetalle = detallesPorEntrada.get(claveEntrada);
+        if (filasDetalle != null && !filasDetalle.isEmpty()) {
+            entradasTraspaso.removeAll(filasDetalle);
+        }
+    }
+
+    private void insertarDetallesEnTabla(String claveEntrada, List<traspasoEntrada> filasDetalle) {
+        // Evitar doble inserción si por alguna razón ya estaban
+        entradasTraspaso.removeAll(filasDetalle);
+
+        int index = indiceEntradaPadre(claveEntrada);
+        if (index >= 0) {
+            entradasTraspaso.addAll(index + 1, filasDetalle);
+        }
+    }
+
+    private List<traspasoEntrada> construirFilasDetalle(String claveEntrada, List<model.DetalleEntrada> detalles) {
+        List<traspasoEntrada> filasDetalle = new ArrayList<>();
+        if (detalles == null || detalles.isEmpty()) return filasDetalle;
+
+        // Encabezado detalle
+        traspasoEntrada encabezadoDetalle = new traspasoEntrada(
+                "Id",
+                "Producto",
+                "Cantidad",
+                "Precio Unitario",
+                "Precio Total"
+        );
+        encabezadoDetalle.setClaveEntrada(claveEntrada + "_ENCABEZADO_1");
+        encabezadoDetalle.setSeleccionado(false);
+        filasDetalle.add(encabezadoDetalle);
+
+        int contador = 1;
+        for (model.DetalleEntrada detalle : detalles) {
+            String identificadorInterno = claveEntrada + "_DETALLE_" + (contador++);
+            traspasoEntrada filaDetalle = new traspasoEntrada(
+                    identificadorInterno,                 // claveEntrada interno
+                    detalle.getClaveProducto(),           // fecha => ID Producto
+                    detalle.getCantidad(),                // hora  => Cantidad
+                    detalle.getPrecioUnitario(),          // total => Precio Unitario
+                    detalle.getPrecioTotal()              // nombreSucursal => Precio Total (reutilizado)
+            );
+            filaDetalle.setSeleccionado(false);
+            filasDetalle.add(filaDetalle);
+
+            // Opcional: dispara carga del nombre del producto (sin bloquear)
+            precargarNombreProducto(detalle.getClaveProducto());
         }
 
-        // También limpiar selección del checkbox
-        miCheckBox.setSelected(false);
+        return filasDetalle;
     }
 
-    private void mostrarConfirmacionReporte(String claveEntrada,
-                                            String mensaje,
-                                            List<model.DetalleEntrada> detalles,
-                                            java.util.Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
+    // =========================
+    // Cache de nombres (sin freeze)
+    // =========================
 
-        String comentario = modeloTraspaso.obtenerComentarioEntrada(claveEntrada);
+    private void precargarNombreProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) return;
+        if (nombreProductoCache.containsKey(idProducto)) return;
 
-        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
-        dialogo.setTitle("Registro exitoso");
-        dialogo.setHeaderText(mensaje);
-        dialogo.setContentText("¿Deseas descargar el reporte de este traspaso?");
-        ButtonType btnDescargar = new ButtonType("Descargar");
-        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
-        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
-        dialogo.showAndWait().ifPresent(respuesta -> {
-            if (respuesta == btnDescargar) {
-                // PASAR EL COMENTARIO AL REPORTE - MODIFICADO
-                ReporteTraspasoExporter.exportarReporte(
-                        claveEntrada,
-                        detalles,
-                        ubicacionesPorProducto,
-                        contenidoTabla != null && contenidoTabla.getScene() != null ? contenidoTabla.getScene().getWindow() : null,
-                        comentario  // NUEVO PARÁMETRO
-                );
-            }
+        cargasNombreProducto.computeIfAbsent(idProducto, key -> {
+            Task<String> t = new Task<>() {
+                @Override
+                protected String call() {
+                    return modeloTraspaso.obtenerNombreProducto(key);
+                }
+            };
+
+            t.setOnSucceeded(e -> {
+                nombreProductoCache.put(key, t.getValue());
+                cargasNombreProducto.remove(key);
+                contenidoTabla.refresh();
+            });
+
+            t.setOnFailed(e -> {
+                // Para no reintentar infinito, guardamos algo (o el mismo id)
+                nombreProductoCache.putIfAbsent(key, key);
+                cargasNombreProducto.remove(key);
+                contenidoTabla.refresh();
+            });
+
+            prefetchExecutor.execute(t);
+            return t;
         });
     }
 
+    // =========================
+    // Precarga de detalles (mejora expansión)
+    // =========================
+
+    private void iniciarPrecargaDetalles(List<traspasoEntrada> entradas) {
+        if (entradas == null || entradas.isEmpty()) return;
+        if (precargaDetallesTask != null && precargaDetallesTask.isRunning()) return;
+
+        precargaDetallesTask = new Task<>() {
+            @Override
+            protected Void call() {
+                int total = entradas.size();
+
+                // Si tienes demasiadas filas y no quieres precargar todas, limita aquí:
+                // int limite = Math.min(total, 80);
+                int limite = total;
+
+                for (int i = 0; i < limite; i++) {
+                    if (isCancelled()) break;
+
+                    traspasoEntrada entrada = entradas.get(i);
+                    if (entrada == null) continue;
+                    String clave = entrada.getClaveEntrada();
+                    if (clave == null || clave.isBlank()) continue;
+
+                    if (detallesPorEntrada.containsKey(clave)) continue;
+                    if (cargasDetalle.containsKey(clave)) continue;
+
+                    try {
+                        List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(clave);
+                        List<traspasoEntrada> filas = construirFilasDetalle(clave, detalles);
+                        detallesPorEntrada.put(clave, filas);
+                    } catch (Exception ignored) {
+                    }
+                }
+                return null;
+            }
+        };
+
+        prefetchExecutor.execute(precargaDetallesTask);
+    }
+
+    // =========================
+    // Tabla / UI
+    // =========================
+
     private void cargarImagenesFlecha() {
         try {
-            // Cargar imagen de flecha derecha
             flechaDerechaImage = new Image(getClass().getResourceAsStream("/img/flecha-derecha.png"));
-
-            // Cargar imagen de flecha abajo
             flechaAbajoImage = new Image(getClass().getResourceAsStream("/img/flecha-abajo.png"));
 
-            // Si no existe la imagen de flecha abajo, puedes usar la de derecha rotada
             if (flechaAbajoImage.isError()) {
-                System.err.println("No se pudo cargar la imagen de flecha abajo");
-                // Podrías crear una imagen por defecto o usar la misma
                 flechaAbajoImage = flechaDerechaImage;
             }
-
         } catch (Exception e) {
-            System.err.println("Error al cargar las imágenes de flecha: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private void configurarTabla() {
-        contenidoTabla.setSortPolicy(param -> {return false; });
-        // Configurar la columna de la flecha primero
+        contenidoTabla.setSortPolicy(param -> false);
+
         configurarColumnaFlecha();
 
-        // Configurar la columna de selección
-        colSelect.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<traspasoEntrada, Boolean>, ObservableValue<Boolean>>() {
-            @Override
-            public ObservableValue<Boolean> call(TableColumn.CellDataFeatures<traspasoEntrada, Boolean> param) {
-                traspasoEntrada item = param.getValue();
-                if (item != null && !esFilaDetalle(item) && !esEncabezadoDetalle(item)) {
-                    return item.seleccionadoProperty();
-                }
-                return new SimpleBooleanProperty(false);
+        colSelect.setCellValueFactory(param -> {
+            traspasoEntrada item = param.getValue();
+            if (item != null && !esFilaDetalle(item) && !esEncabezadoDetalle(item) && !esFilaCargando(item)) {
+                return item.seleccionadoProperty();
             }
+            return new SimpleBooleanProperty(false);
         });
 
-        colSelect.setCellFactory(new Callback<TableColumn<traspasoEntrada, Boolean>, TableCell<traspasoEntrada, Boolean>>() {
+        colSelect.setCellFactory(param -> new CheckBoxTableCell<>() {
             @Override
-            public TableCell<traspasoEntrada, Boolean> call(TableColumn<traspasoEntrada, Boolean> param) {
-                return new CheckBoxTableCell<traspasoEntrada, Boolean>() {
-                    @Override
-                    public void updateItem(Boolean item, boolean empty) {
-                        super.updateItem(item, empty);
-
-                        // Si es una fila de detalle o encabezado, no mostrar checkbox
-                        traspasoEntrada rowData = getTableRow() != null ? getTableRow().getItem() : null;
-                        if (rowData != null && (esFilaDetalle(rowData) || esEncabezadoDetalle(rowData))) {
-                            setGraphic(null);
-                        }
-                    }
-                };
+            public void updateItem(Boolean item, boolean empty) {
+                super.updateItem(item, empty);
+                traspasoEntrada rowData = getTableRow() != null ? getTableRow().getItem() : null;
+                if (rowData != null && (esFilaDetalle(rowData) || esEncabezadoDetalle(rowData) || esFilaCargando(rowData))) {
+                    setGraphic(null);
+                }
             }
         });
 
@@ -505,74 +533,59 @@ public class MainController {
 
         miCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             for (traspasoEntrada entrada : entradasTraspaso) {
-                if (!esFilaDetalle(entrada) && !esEncabezadoDetalle(entrada)) {
+                if (!esFilaDetalle(entrada) && !esEncabezadoDetalle(entrada) && !esFilaCargando(entrada)) {
                     entrada.setSeleccionado(newVal);
                 }
             }
         });
 
-        // Configurar cell factories para las celdas (con líneas)
         configurarCellFactories();
     }
 
     private void configurarColumnaFlecha() {
-        // Configurar la celda para mostrar la imagen de flecha
-        colDesplegar.setCellFactory(new Callback<TableColumn<traspasoEntrada, Void>, TableCell<traspasoEntrada, Void>>() {
+        colDesplegar.setCellFactory(param -> new TableCell<>() {
+            private final ImageView imageView = new ImageView();
+            private final Button button = new Button();
+
+            {
+                imageView.setFitHeight(20);
+                imageView.setFitWidth(20);
+                imageView.setPreserveRatio(true);
+
+                button.setGraphic(imageView);
+                button.setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+                button.setOnAction(event -> {
+                    traspasoEntrada item = getTableRow().getItem();
+                    if (item != null && !esFilaDetalle(item) && !esEncabezadoDetalle(item) && !esFilaCargando(item)) {
+                        toggleFilaDesplegada(item.getClaveEntrada());
+                    }
+                });
+                setAlignment(Pos.CENTER);
+            }
+
             @Override
-            public TableCell<traspasoEntrada, Void> call(TableColumn<traspasoEntrada, Void> param) {
-                return new TableCell<traspasoEntrada, Void>() {
-                    private final ImageView imageView = new ImageView();
-                    private final Button button = new Button();
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
 
-                    {
-                        // Configurar el ImageView
-                        imageView.setFitHeight(20);
-                        imageView.setFitWidth(20);
-                        imageView.setPreserveRatio(true);
+                if (empty || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    return;
+                }
 
-                        // Configurar el botón (transparente)
-                        button.setGraphic(imageView);
-                        button.setStyle("-fx-background-color: transparent; -fx-padding: 0;");
-                        button.setOnAction(event -> {
-                            traspasoEntrada item = getTableRow().getItem();
-                            if (item != null && !esFilaDetalle(item) && !esEncabezadoDetalle(item)) {
-                                toggleFilaDesplegada(item.getClaveEntrada());
-                            }
-                        });
+                traspasoEntrada rowItem = getTableRow().getItem();
 
-                        // Establecer alineación centrada
-                        setAlignment(Pos.CENTER);
-                    }
+                if (esFilaDetalle(rowItem) || esEncabezadoDetalle(rowItem) || esFilaCargando(rowItem)) {
+                    setGraphic(null);
+                    return;
+                }
 
-                    @Override
-                    protected void updateItem(Void item, boolean empty) {
-                        super.updateItem(item, empty);
-
-                        if (empty || getTableRow().getItem() == null) {
-                            setGraphic(null);
-                        } else {
-                            traspasoEntrada rowItem = getTableRow().getItem();
-
-                            // Si es una fila de detalle o encabezado, no mostrar flecha
-                            if (esFilaDetalle(rowItem) || esEncabezadoDetalle(rowItem)) {
-                                setGraphic(null);
-                            } else {
-                                // Determinar qué imagen mostrar basado en si está desplegada
-                                String clave = rowItem.getClaveEntrada();
-                                if (filasDesplegadas.containsKey(clave) && filasDesplegadas.get(clave)) {
-                                    imageView.setImage(flechaAbajoImage);
-                                } else {
-                                    imageView.setImage(flechaDerechaImage);
-                                }
-                                setGraphic(button);
-                            }
-                        }
-                    }
-                };
+                String clave = rowItem.getClaveEntrada();
+                boolean desplegada = filasDesplegadas.getOrDefault(clave, false);
+                imageView.setImage(desplegada ? flechaAbajoImage : flechaDerechaImage);
+                setGraphic(button);
             }
         });
 
-        // Opcional: establecer un ancho preferido para la columna
         colDesplegar.setPrefWidth(40);
         colDesplegar.setResizable(false);
         colDesplegar.setSortable(false);
@@ -586,171 +599,224 @@ public class MainController {
         return entrada.getClaveEntrada() != null && entrada.getClaveEntrada().contains("_ENCABEZADO_");
     }
 
-    private void toggleFilaDesplegada(String claveEntrada) {
-        boolean estaDesplegada = filasDesplegadas.getOrDefault(claveEntrada, false);
-
-        if (estaDesplegada) {
-            // Contraer: remover las filas de detalle y encabezado
-            contraerFila(claveEntrada);
-        } else {
-            // Expandir: agregar filas de detalle con encabezado
-            List<traspasoEntrada> filasDetalle = detallesPorEntrada.get(claveEntrada);
-            if (filasDetalle != null) {
-                if (!filasDetalle.isEmpty()) {
-                    insertarDetallesEnTabla(claveEntrada, filasDetalle);
-                }
-            } else {
-                cargarDetallesEnSegundoPlano(claveEntrada);
-            }
-        }
-
-        // Actualizar el estado
-        filasDesplegadas.put(claveEntrada, !estaDesplegada);
+    private boolean esFilaCargando(traspasoEntrada entrada) {
+        return entrada.getClaveEntrada() != null && entrada.getClaveEntrada().contains("_CARGANDO_");
     }
 
-    private void cargarDetallesEnSegundoPlano(String claveEntrada) {
-        if (cargasDetalle.containsKey(claveEntrada)) {
-            return;
-        }
+    private void configurarCellFactories() {
+        String colorBorde = "#4A4848";
 
-        javafx.concurrent.Task<List<traspasoEntrada>> task = new javafx.concurrent.Task<>() {
+        // Columna "Id" (en detalle muestra ID del producto SIN loops pesados)
+        colClaveEntrada.setCellFactory(column -> new TableCell<>() {
             @Override
-            protected List<traspasoEntrada> call() {
-                List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
-                return construirFilasDetalle(claveEntrada, detalles);
-            }
-        };
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
 
-        task.setOnSucceeded(event -> {
-            List<traspasoEntrada> filasDetalle = task.getValue();
-            detallesPorEntrada.put(claveEntrada, filasDetalle);
-            cargasDetalle.remove(claveEntrada);
-            if (filasDesplegadas.getOrDefault(claveEntrada, false) && !filasDetalle.isEmpty()) {
-                insertarDetallesEnTabla(claveEntrada, filasDetalle);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+
+                traspasoEntrada rowData = getTableRow().getItem();
+
+                if (esFilaCargando(rowData)) {
+                    setText("");
+                    setStyle("-fx-alignment: CENTER;");
+                    return;
+                }
+
+                if (esEncabezadoDetalle(rowData)) {
+                    setText("Id");
+                    setStyle("-fx-background-color: #6A6767; -fx-text-fill: white; -fx-alignment: CENTER; -fx-font-weight: bold;");
+                    return;
+                }
+
+                if (esFilaDetalle(rowData)) {
+                    // Aquí el ID real está en rowData.getFecha()
+                    setText(rowData.getFecha());
+                    setStyle("-fx-alignment: CENTER; -fx-border-color: " + colorBorde + "; -fx-border-width: 0 1 1 1;");
+                    return;
+                }
+
+                setText(item);
+                setStyle("-fx-alignment: CENTER;");
             }
         });
 
-        task.setOnFailed(event -> cargasDetalle.remove(claveEntrada));
-
-        cargasDetalle.put(claveEntrada, task);
-        fxExecutor.execute(task);
-    }
-
-    private void contraerFila(String claveEntrada) {
-        List<traspasoEntrada> filasDetalle = detallesPorEntrada.get(claveEntrada);
-        if (filasDetalle != null && !filasDetalle.isEmpty()) {
-            entradasTraspaso.removeAll(filasDetalle);
-        }
-    }
-
-    private void iniciarPrecargaDetalles(List<traspasoEntrada> entradas) {
-        if (precargaDetallesTask != null && precargaDetallesTask.isRunning()) {
-            return;
-        }
-        precargaDetallesTask = new javafx.concurrent.Task<>() {
+        // Columna "Producto" (carga nombre con cache + hilo, sin congelar UI)
+        colFecha.setCellFactory(column -> new TableCell<>() {
             @Override
-            protected Void call() {
-                int total = entradas.size();
-                for (int i = 0; i < total; i++) {
-                    if (isCancelled()) {
-                        break;
-                    }
-                    traspasoEntrada entrada = entradas.get(i);
-                    if (entrada == null) {
-                        continue;
-                    }
-                    String claveEntrada = entrada.getClaveEntrada();
-                    if (claveEntrada == null || claveEntrada.isBlank()) {
-                        continue;
-                    }
-                    if (!detallesPorEntrada.containsKey(claveEntrada)) {
-                        List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
-                        List<traspasoEntrada> filasDetalle = construirFilasDetalle(claveEntrada, detalles);
-                        detallesPorEntrada.put(claveEntrada, filasDetalle);
-                    }
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
                 }
-                return null;
+
+                traspasoEntrada rowData = getTableRow().getItem();
+
+                if (esFilaCargando(rowData)) {
+                    setText("Cargando...");
+                    setStyle("-fx-alignment: CENTER; -fx-font-style: italic;");
+                    return;
+                }
+
+                if (esEncabezadoDetalle(rowData)) {
+                    setText("Producto");
+                    setStyle("-fx-background-color: #6A6767; -fx-text-fill: white; -fx-alignment: CENTER; -fx-font-weight: bold;");
+                    return;
+                }
+
+                if (esFilaDetalle(rowData)) {
+                    String idProducto = rowData.getFecha(); // aquí está el id
+                    String nombre = nombreProductoCache.get(idProducto);
+
+                    if (nombre == null || nombre.isBlank()) {
+                        setText("...");
+                        precargarNombreProducto(idProducto);
+                    } else {
+                        setText(nombre);
+                    }
+
+                    setStyle("-fx-alignment: CENTER; -fx-border-color: " + colorBorde + "; -fx-border-width: 0 1 1 0;");
+                    return;
+                }
+
+                setText(item);
+                setStyle("-fx-alignment: CENTER;");
             }
-        };
+        });
 
-        fxExecutor.execute(precargaDetallesTask);
-    }
-
-    private <T> void runAsync(Callable<T> background,
-                              Consumer<T> onSuccessFxThread,
-                              Consumer<Throwable> onErrorFxThread) {
-        javafx.concurrent.Task<T> task = new javafx.concurrent.Task<>() {
+        // Cantidad
+        colHora.setCellFactory(column -> new TableCell<>() {
             @Override
-            protected T call() throws Exception {
-                return background.call();
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+
+                traspasoEntrada rowData = getTableRow().getItem();
+
+                if (esFilaCargando(rowData)) {
+                    setText("");
+                    setStyle("-fx-alignment: CENTER;");
+                    return;
+                }
+
+                if (esEncabezadoDetalle(rowData)) {
+                    setText("Cantidad");
+                    setStyle("-fx-background-color: #6A6767; -fx-text-fill: white; -fx-alignment: CENTER; -fx-font-weight: bold;");
+                    return;
+                }
+
+                if (esFilaDetalle(rowData)) {
+                    setText(item);
+                    setStyle("-fx-alignment: CENTER; -fx-border-color: " + colorBorde + "; -fx-border-width: 0 1 1 0;");
+                    return;
+                }
+
+                setText(item);
+                setStyle("-fx-alignment: CENTER;");
             }
-        };
-        task.setOnSucceeded(e -> onSuccessFxThread.accept(task.getValue()));
-        task.setOnFailed(e -> onErrorFxThread.accept(task.getException()));
-        fxExecutor.execute(task);
-    }
+        });
 
-    private List<traspasoEntrada> construirFilasDetalle(String claveEntrada, List<model.DetalleEntrada> detalles) {
-        List<traspasoEntrada> filasDetalle = new ArrayList<>();
-        if (detalles == null || detalles.isEmpty()) {
-            return filasDetalle;
-        }
-        traspasoEntrada encabezadoDetalle = new traspasoEntrada(
-                "Id",
-                "Producto",
-                "Cantidad",
-                "Precio Unitario",
-                "Precio Total"
-        );
-        encabezadoDetalle.setClaveEntrada(claveEntrada + "_ENCABEZADO_1");
-        encabezadoDetalle.setSeleccionado(false);
-        filasDetalle.add(encabezadoDetalle);
+        // Precio Unitario
+        colTotal.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
 
-        int contador = 1;
-        for (model.DetalleEntrada detalle : detalles) {
-            String identificadorInterno = claveEntrada + "_DETALLE_" + contador++;
-            traspasoEntrada filaDetalle = new traspasoEntrada(
-                    identificadorInterno,
-                    detalle.getClaveProducto(),
-                    detalle.getCantidad(),
-                    detalle.getPrecioUnitario(),
-                    detalle.getPrecioTotal()
-            );
-            filaDetalle.setNombreSucursal(detalle.getPrecioTotal());
-            filaDetalle.setSeleccionado(false);
-            filasDetalle.add(filaDetalle);
-        }
-        return filasDetalle;
-    }
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
 
-    private void insertarDetallesEnTabla(String claveEntrada, List<traspasoEntrada> filasDetalle) {
-        int index = -1;
-        for (int i = 0; i < entradasTraspaso.size(); i++) {
-            traspasoEntrada entrada = entradasTraspaso.get(i);
-            if (entrada != null && claveEntrada.equals(entrada.getClaveEntrada())) {
-                index = i;
-                break;
+                traspasoEntrada rowData = getTableRow().getItem();
+
+                if (esFilaCargando(rowData)) {
+                    setText("");
+                    setStyle("-fx-alignment: CENTER;");
+                    return;
+                }
+
+                if (esEncabezadoDetalle(rowData)) {
+                    setText("Precio Unitario");
+                    setStyle("-fx-background-color: #6A6767; -fx-text-fill: white; -fx-alignment: CENTER; -fx-font-weight: bold;");
+                    return;
+                }
+
+                if (esFilaDetalle(rowData)) {
+                    setText(item);
+                    setStyle("-fx-alignment: CENTER; -fx-border-color: " + colorBorde + "; -fx-border-width: 0 1 1 0;");
+                    return;
+                }
+
+                setText(item);
+                setStyle("-fx-alignment: CENTER;");
             }
-        }
-        if (index >= 0) {
-            entradasTraspaso.addAll(index + 1, filasDetalle);
-        }
+        });
+
+        // Precio Total
+        colNombreSucural.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+
+                traspasoEntrada rowData = getTableRow().getItem();
+
+                if (esFilaCargando(rowData)) {
+                    setText("");
+                    setStyle("-fx-alignment: CENTER;");
+                    return;
+                }
+
+                if (esEncabezadoDetalle(rowData)) {
+                    setText("Precio Total");
+                    setStyle("-fx-background-color: #6A6767; -fx-text-fill: white; -fx-alignment: CENTER; -fx-font-weight: bold;");
+                    return;
+                }
+
+                if (esFilaDetalle(rowData)) {
+                    setText(item);
+                    setStyle("-fx-alignment: CENTER; -fx-border-color: " + colorBorde + "; -fx-border-width: 0 1 1 0;");
+                    return;
+                }
+
+                setText(item);
+                setStyle("-fx-alignment: CENTER;");
+            }
+        });
     }
 
+    // =========================
+    // Ordenamiento
+    // =========================
 
     private void aplicarOrdenamiento() {
         List<traspasoEntrada> listaOrdenada = new ArrayList<>(entradasTraspasoOriginal);
-        Comparator<traspasoEntrada> comparator = null;
+
+        Comparator<traspasoEntrada> comparator;
         Function<String, String> normalizar = valor -> valor == null ? "" : valor.toLowerCase();
 
         switch (criterioOrden) {
             case "fecha":
                 comparator = Comparator.comparing(item -> {
                     String fecha = item.getFecha();
-                    if (fecha == null || fecha.isBlank()) {
-                        return "";
-                    }
-                    return fecha;
+                    return (fecha == null || fecha.isBlank()) ? "" : fecha;
                 });
                 break;
             case "sucursal":
@@ -761,277 +827,53 @@ public class MainController {
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveEntrada()));
                 break;
         }
-        if ("desc".equalsIgnoreCase(direccionOrden)) {
-            comparator = comparator.reversed();
-        }
+
+        if ("desc".equalsIgnoreCase(direccionOrden)) comparator = comparator.reversed();
+
         listaOrdenada.sort(comparator);
         actualizarTablaConOrdenamiento(listaOrdenada);
     }
 
     private void actualizarTablaConOrdenamiento(List<traspasoEntrada> listaOrdenada) {
         entradasTraspaso.clear();
+
         for (traspasoEntrada entrada : listaOrdenada) {
             entradasTraspaso.add(entrada);
+
             String clave = entrada.getClaveEntrada();
-            if (filasDesplegadas.containsKey(clave) && filasDesplegadas.get(clave)) {
+            if (filasDesplegadas.getOrDefault(clave, false)) {
                 List<traspasoEntrada> detalles = detallesPorEntrada.get(clave);
-                if (detalles != null) {
+                if (detalles != null && !detalles.isEmpty()) {
                     entradasTraspaso.addAll(detalles);
                 }
             }
         }
+
         contenidoTabla.refresh();
     }
 
     @FXML
     private void mostrarOrdenPopup(MouseEvent event) {
-        // Lista de criterios de ordenamiento disponibles
-        List<String> criterios = new ArrayList<>();
-        criterios.add("id");           // Clave de entrada
-        criterios.add("fecha");        // Fecha
-        criterios.add("sucursal");     // Nombre de sucursal
+        List<String> criterios = Arrays.asList("id", "fecha", "sucursal");
 
-        SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
-                criterios, criterioOrden, direccionOrden, seleccion -> {
+        SelectorOrdenPopup.mostrar(
+                (Node) event.getSource(),
+                event.getScreenX(),
+                event.getScreenY(),
+                criterios,
+                criterioOrden,
+                direccionOrden,
+                seleccion -> {
                     criterioOrden = seleccion.getCriterio();
                     direccionOrden = seleccion.getDireccion();
                     aplicarOrdenamiento();
-                });
+                }
+        );
     }
 
-    private void configurarCellFactories() {
-        // Solo agregamos líneas a las filas de detalle
-        String colorBorde = "#4A4848"; // Color gris para las líneas
-
-        colClaveEntrada.setCellFactory(column -> new TableCell<traspasoEntrada, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    traspasoEntrada rowData = getTableRow().getItem();
-
-                    if (esEncabezadoDetalle(rowData)) {
-                        // ENCABEZADO: Muestra "Id"
-                        setText("Id");
-                        setStyle("-fx-background-color: #6A6767; " +
-                                "-fx-text-fill: white; " +
-                                "-fx-alignment: CENTER; " +
-                                "-fx-font-weight: bold;");
-                    } else if (esFilaDetalle(rowData)) {
-                        // DETALLE: Muestra el ID del producto (que está en la propiedad fecha)
-                        // Necesitamos obtener el ID del producto de otra manera
-                        // Vamos a buscar en los detalles originales
-                        String clavePadre = obtenerClavePadre(rowData.getClaveEntrada());
-                        if (clavePadre != null) {
-                            // Buscar el detalle correspondiente
-                            List<traspasoEntrada> detalles = detallesPorEntrada.get(clavePadre);
-                            if (detalles != null) {
-                                // El primer detalle es el encabezado, así que buscamos desde el índice 1
-                                for (int i = 1; i < detalles.size(); i++) {
-                                    if (detalles.get(i).getClaveEntrada().equals(rowData.getClaveEntrada())) {
-                                        // El ID del producto está en la propiedad fecha
-                                        setText(detalles.get(i).getFecha());
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        setStyle("-fx-alignment: CENTER; " +
-                                "-fx-border-color: " + colorBorde + "; " +
-                                "-fx-border-width: 0 1 1 1;"); // Derecha, abajo, izquierda
-                    } else {
-                        // FILA NORMAL
-                        setText(item);
-                        setStyle("-fx-alignment: CENTER;");
-                    }
-                }
-            }
-        });
-
-        colFecha.setCellFactory(column -> new TableCell<traspasoEntrada, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    traspasoEntrada rowData = getTableRow().getItem();
-
-                    if (esEncabezadoDetalle(rowData)) {
-                        // ENCABEZADO: Muestra "Producto"
-                        setText("Producto");
-                        setStyle("-fx-background-color: #6A6767; " +
-                                "-fx-text-fill: white; " +
-                                "-fx-alignment: CENTER; " +
-                                "-fx-font-weight: bold;");
-                    } else if (esFilaDetalle(rowData)) {
-                        // DETALLE: Muestra el nombre real del producto
-                        // Necesitamos obtener el nombre del producto del modelo
-                        String clavePadre = obtenerClavePadre(rowData.getClaveEntrada());
-                        if (clavePadre != null) {
-                            // Buscar el ID del producto en los detalles
-                            List<traspasoEntrada> detalles = detallesPorEntrada.get(clavePadre);
-                            if (detalles != null) {
-                                for (int i = 1; i < detalles.size(); i++) {
-                                    if (detalles.get(i).getClaveEntrada().equals(rowData.getClaveEntrada())) {
-                                        String idProducto = detalles.get(i).getFecha();
-                                        // Obtener el nombre del producto del modelo
-                                        String nombreProducto = modeloTraspaso.obtenerNombreProducto(idProducto);
-                                        setText(nombreProducto);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        setStyle("-fx-alignment: CENTER; " +
-                                "-fx-border-color: " + colorBorde + "; " +
-                                "-fx-border-width: 0 1 1 0;"); // Derecha, abajo
-                    } else {
-                        // FILA NORMAL
-                        setText(item);
-                        setStyle("-fx-alignment: CENTER;");
-                    }
-                }
-            }
-        });
-
-        colHora.setCellFactory(column -> new TableCell<traspasoEntrada, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    traspasoEntrada rowData = getTableRow().getItem();
-
-                    if (esEncabezadoDetalle(rowData)) {
-                        // ENCABEZADO: Muestra "Cantidad"
-                        setText("Cantidad");
-                        setStyle("-fx-background-color: #6A6767; " +
-                                "-fx-text-fill: white; " +
-                                "-fx-alignment: CENTER; " +
-                                "-fx-font-weight: bold;");
-                    } else if (esFilaDetalle(rowData)) {
-                        // DETALLE: Muestra cantidad
-                        setText(item); // item es cantidad
-                        setStyle("-fx-alignment: CENTER; " +
-                                "-fx-border-color: " + colorBorde + "; " +
-                                "-fx-border-width: 0 1 1 0;"); // Derecha, abajo
-                    } else {
-                        // FILA NORMAL
-                        setText(item);
-                        setStyle("-fx-alignment: CENTER;");
-                    }
-                }
-            }
-        });
-
-        colTotal.setCellFactory(column -> new TableCell<traspasoEntrada, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    traspasoEntrada rowData = getTableRow().getItem();
-
-                    if (esEncabezadoDetalle(rowData)) {
-                        // ENCABEZADO: Muestra "Precio Unitario"
-                        setText("Precio Unitario");
-                        setStyle("-fx-background-color: #6A6767; " +
-                                "-fx-text-fill: white; " +
-                                "-fx-alignment: CENTER; " +
-                                "-fx-font-weight: bold;");
-                    } else if (esFilaDetalle(rowData)) {
-                        // DETALLE: Muestra precioUnitario
-                        setText(item); // item es precioUnitario
-                        setStyle("-fx-alignment: CENTER; " +
-                                "-fx-border-color: " + colorBorde + "; " +
-                                "-fx-border-width: 0 1 1 0;"); // Derecha, abajo
-                    } else {
-                        // FILA NORMAL
-                        setText(item);
-                        setStyle("-fx-alignment: CENTER;");
-                    }
-                }
-            }
-        });
-
-        colNombreSucural.setCellFactory(column -> new TableCell<traspasoEntrada, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    traspasoEntrada rowData = getTableRow().getItem();
-
-                    if (esEncabezadoDetalle(rowData)) {
-                        // ENCABEZADO: Muestra "Precio Total"
-                        setText("Precio Total");
-                        setStyle("-fx-background-color: #6A6767; " +
-                                "-fx-text-fill: white; " +
-                                "-fx-alignment: CENTER; " +
-                                "-fx-font-weight: bold;");
-                    } else if (esFilaDetalle(rowData)) {
-                        // DETALLE: Muestra precioTotal
-                        // Aquí necesitamos obtener el precio total original
-                        String clavePadre = obtenerClavePadre(rowData.getClaveEntrada());
-                        if (clavePadre != null) {
-                            // Buscar el detalle correspondiente
-                            List<traspasoEntrada> detalles = detallesPorEntrada.get(clavePadre);
-                            if (detalles != null) {
-                                for (int i = 1; i < detalles.size(); i++) {
-                                    if (detalles.get(i).getClaveEntrada().equals(rowData.getClaveEntrada())) {
-                                        // El precio total está en la propiedad nombreSucursal
-                                        setText(detalles.get(i).getNombreSucursal());
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        setStyle("-fx-alignment: CENTER; " +
-                                "-fx-border-color: " + colorBorde + "; " +
-                                "-fx-border-width: 0 1 1 0;"); // Derecha, abajo
-                    } else {
-                        // FILA NORMAL
-                        setText(item);
-                        setStyle("-fx-alignment: CENTER;");
-                    }
-                }
-            }
-        });
-    }
-
-    private String obtenerClavePadre(String claveDetalle) {
-        if (claveDetalle == null) return null;
-
-        // Buscar la parte antes de "_DETALLE_"
-        int index = claveDetalle.indexOf("_DETALLE_");
-        if (index != -1) {
-            return claveDetalle.substring(0, index);
-        }
-
-        // Buscar la parte antes de "_ENCABEZADO_"
-        index = claveDetalle.indexOf("_ENCABEZADO_");
-        if (index != -1) {
-            return claveDetalle.substring(0, index);
-        }
-
-        return null;
-    }
+    // =========================
+    // Acciones aceptar / rechazar
+    // =========================
 
     @FXML
     public void aplicarAccion() {
@@ -1061,16 +903,13 @@ public class MainController {
 
     private void procesarSeleccion(String opcion, List<traspasoEntrada> seleccionados) {
         List<String> claves = new ArrayList<>();
-        for (traspasoEntrada entrada : seleccionados) {
-            claves.add(entrada.getClaveEntrada());
-        }
+        for (traspasoEntrada entrada : seleccionados) claves.add(entrada.getClaveEntrada());
 
         boolean rechazar = opcion.equalsIgnoreCase("Rechazar");
         String nuevoEstadoEntrada = rechazar ? "rechazado" : "disponible";
         String nuevoEstadoArticulos = rechazar ? "rechazado" : "disponible";
 
         if (rechazar) {
-            // Solo rechazar (no necesita ubicaciones)
             Alert confirmacionRechazar = new Alert(Alert.AlertType.CONFIRMATION);
             confirmacionRechazar.setTitle("Confirmar eliminación");
             confirmacionRechazar.setHeaderText("¿Estás seguro de rechazar las entradas seleccionadas?");
@@ -1082,54 +921,208 @@ public class MainController {
 
             confirmacionRechazar.showAndWait().ifPresent(response -> {
                 if (response == botonSi) {
-                    ejecutarActualizacion(claves, nuevoEstadoEntrada, nuevoEstadoArticulos, seleccionados.size());
+                    ejecutarActualizacionAsync(claves, nuevoEstadoEntrada, nuevoEstadoArticulos, seleccionados.size());
                 }
             });
         } else {
-            // Aceptar: abrir formulario para asignar ubicaciones de forma secuencial
             abrirFormularioUbicaciones(seleccionados, claves, nuevoEstadoEntrada, nuevoEstadoArticulos);
         }
     }
 
-    private void ejecutarActualizacion(List<String> claves, String nuevoEstadoEntrada,
-                                       String nuevoEstadoArticulos, int cantidad) {
-        boolean actualizado = modeloTraspaso.actualizarEstadoEntradas(
-                claves,
-                nuevoEstadoEntrada,
-                nuevoEstadoArticulos
+    private void ejecutarActualizacionAsync(List<String> claves, String nuevoEstadoEntrada,
+                                            String nuevoEstadoArticulos, int cantidad) {
+
+        runAsync(
+                () -> modeloTraspaso.actualizarEstadoEntradas(claves, nuevoEstadoEntrada, nuevoEstadoArticulos),
+                actualizado -> {
+                    if (actualizado) {
+                        entradasTraspasoOriginal.removeIf(e -> claves.contains(e.getClaveEntrada()));
+                        actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
+                        miCheckBox.setSelected(false);
+
+                        String mensajeExito = nuevoEstadoEntrada.equals("rechazado")
+                                ? "Se eliminaron " + cantidad + " entrada(s) correctamente."
+                                : "Se aceptaron " + cantidad + " entrada(s) correctamente.";
+
+                        mostrarAlerta(Alert.AlertType.INFORMATION, "Operación exitosa", mensajeExito);
+                    } else {
+                        mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudieron actualizar las entradas.");
+                    }
+                },
+                ex -> mostrarAlerta(Alert.AlertType.ERROR, "Error", "Fallo actualizando: " + ex.getMessage())
         );
-
-        if (actualizado) {
-            // Eliminar las entradas actualizadas de la lista original
-            entradasTraspasoOriginal.removeIf(e -> claves.contains(e.getClaveEntrada()));
-
-            // Actualizar la tabla manteniendo el orden
-            actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
-
-            miCheckBox.setSelected(false);
-
-            // MODIFICACIÓN: Mensaje específico según la acción
-            String mensajeExito;
-            if (nuevoEstadoEntrada.equals("rechazado")) {
-                mensajeExito = "Se eliminaron " + cantidad + " entrada(s) correctamente.";
-            } else {
-                mensajeExito = "Se aceptaron " + cantidad + " entrada(s) correctamente.";
-            }
-
-            mostrarAlerta(Alert.AlertType.INFORMATION, "Operación exitosa", mensajeExito);
-        } else {
-            mostrarAlerta(Alert.AlertType.ERROR, "Error", "No se pudieron actualizar las entradas.");
-        }
     }
 
     private List<traspasoEntrada> obtenerSeleccionados() {
         List<traspasoEntrada> seleccionados = new ArrayList<>();
         for (traspasoEntrada entrada : entradasTraspaso) {
-            if (entrada.isSeleccionado() && !esFilaDetalle(entrada) && !esEncabezadoDetalle(entrada)) {
+            if (entrada.isSeleccionado() && !esFilaDetalle(entrada) && !esEncabezadoDetalle(entrada) && !esFilaCargando(entrada)) {
                 seleccionados.add(entrada);
             }
         }
         return seleccionados;
+    }
+
+    // =========================
+    // Formulario ubicaciones (igual que tenías)
+    // =========================
+
+    private void abrirFormularioUbicaciones(List<traspasoEntrada> seleccionados,
+                                            List<String> claves,
+                                            String nuevoEstadoEntrada,
+                                            String nuevoEstadoArticulos) {
+
+        List<traspasoEntrada> pendientes = new ArrayList<>(seleccionados);
+        procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos);
+    }
+
+    private void procesarSiguienteUbicacion(List<traspasoEntrada> pendientes,
+                                            List<String> claves,
+                                            String nuevoEstadoEntrada,
+                                            String nuevoEstadoArticulos) {
+
+        if (pendientes.isEmpty()) {
+            Platform.runLater(() -> {
+                mostrarAlerta(Alert.AlertType.INFORMATION, "Proceso completado",
+                        "Se han procesado todos los traspasos seleccionados.");
+                cargarTabla();
+            });
+            return;
+        }
+
+        traspasoEntrada actual = pendientes.remove(0);
+        String claveEntrada = actual.getClaveEntrada();
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/ubicacionTraspaso.fxml"));
+            Parent root = loader.load();
+
+            ControllerUbicacionTraspaso controller = loader.getController();
+            controller.setClaveEntrada(claveEntrada);
+
+            controller.setOnConfirmCallback(ubicacionesPorProducto -> {
+                actualizarEntradaIndividual(claveEntrada, nuevoEstadoEntrada, nuevoEstadoArticulos, pendientes, ubicacionesPorProducto);
+            });
+
+            Stage stage = new Stage();
+            controller.setStage(stage);
+
+            Scene scene = new Scene(root, 500, 700);
+            stage.setScene(scene);
+            stage.setTitle("Ubicaciones - " + claveEntrada + " (" + (claves.size() - pendientes.size()) + "/" + claves.size() + ")");
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.initOwner(contenidoTabla.getScene().getWindow());
+            stage.setResizable(false);
+            stage.centerOnScreen();
+
+            stage.setOnHidden(e -> {
+                if (!pendientes.isEmpty()) {
+                    PauseTransition pause = new PauseTransition(Duration.millis(300));
+                    pause.setOnFinished(ev -> procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos));
+                    pause.play();
+                } else {
+                    cargarTabla();
+                }
+            });
+
+            stage.show();
+
+        } catch (Exception e) {
+            mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                    "No se pudo abrir el formulario de ubicaciones para: " + claveEntrada);
+            e.printStackTrace();
+
+            if (!pendientes.isEmpty()) {
+                PauseTransition pause = new PauseTransition(Duration.millis(300));
+                pause.setOnFinished(ev -> procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos));
+                pause.play();
+            }
+        }
+    }
+
+    private void actualizarEntradaIndividual(String claveEntrada,
+                                             String nuevoEstadoEntrada,
+                                             String nuevoEstadoArticulos,
+                                             List<traspasoEntrada> pendientes,
+                                             Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
+
+        runAsync(
+                () -> {
+                    model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
+                            claveEntrada,
+                            ubicacionesPorProducto,
+                            nuevoEstadoEntrada,
+                            nuevoEstadoArticulos
+                    );
+
+                    List<model.DetalleEntrada> detalles = null;
+                    if (resultado.isExito()) {
+                        detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+                    }
+                    return new Object[]{resultado, detalles};
+                },
+                payload -> {
+                    model.ResultadoOperacion resultado = (model.ResultadoOperacion) payload[0];
+                    @SuppressWarnings("unchecked")
+                    List<model.DetalleEntrada> detalles = (List<model.DetalleEntrada>) payload[1];
+
+                    if (resultado.isExito()) {
+                        entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
+                        actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
+
+                        mostrarConfirmacionReporte(claveEntrada, resultado.getMensaje(), detalles, ubicacionesPorProducto);
+
+                        if (!pendientes.isEmpty()) {
+                            PauseTransition pause = new PauseTransition(Duration.millis(500));
+                            pause.setOnFinished(e -> procesarSiguienteUbicacion(
+                                    pendientes, new ArrayList<>(), nuevoEstadoEntrada, nuevoEstadoArticulos
+                            ));
+                            pause.play();
+                        }
+                    } else {
+                        mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                                "No se pudo actualizar el traspaso: " + resultado.getMensaje());
+
+                        if (!pendientes.isEmpty()) {
+                            PauseTransition pause = new PauseTransition(Duration.millis(500));
+                            pause.setOnFinished(e -> procesarSiguienteUbicacion(
+                                    pendientes, new ArrayList<>(), nuevoEstadoEntrada, nuevoEstadoArticulos
+                            ));
+                            pause.play();
+                        }
+                    }
+                },
+                ex -> mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                        "Fallo actualizando traspaso: " + ex.getMessage())
+        );
+    }
+
+    private void mostrarConfirmacionReporte(String claveEntrada,
+                                            String mensaje,
+                                            List<model.DetalleEntrada> detalles,
+                                            Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
+
+        String comentario = modeloTraspaso.obtenerComentarioEntrada(claveEntrada);
+
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
+        dialogo.setTitle("Registro exitoso");
+        dialogo.setHeaderText(mensaje);
+        dialogo.setContentText("¿Deseas descargar el reporte de este traspaso?");
+        ButtonType btnDescargar = new ButtonType("Descargar");
+        ButtonType btnAhoraNo = new ButtonType("Ahora no", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogo.getButtonTypes().setAll(btnDescargar, btnAhoraNo);
+
+        dialogo.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == btnDescargar) {
+                ReporteTraspasoExporter.exportarReporte(
+                        claveEntrada,
+                        detalles,
+                        ubicacionesPorProducto,
+                        (contenidoTabla != null && contenidoTabla.getScene() != null) ? contenidoTabla.getScene().getWindow() : null,
+                        comentario
+                );
+            }
+        });
     }
 
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
@@ -1139,5 +1132,4 @@ public class MainController {
         alerta.setContentText(mensaje);
         alerta.showAndWait();
     }
-
 }
