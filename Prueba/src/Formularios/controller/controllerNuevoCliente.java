@@ -145,9 +145,8 @@ public class controllerNuevoCliente {
             c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
             c.setCorreo(txtCorreoElectronico.getText());
             c.setTelefono(txtTelefono.getText().trim());
-            if (!modoEdicion) {
-                c.setStatus("activo");
-            }
+            c.setStatus("activo");
+
 
             boolean exito = modoEdicion ?
                     model.modificarCliente(c) :

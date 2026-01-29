@@ -194,14 +194,8 @@ public class MainController {
 
     // ========== NUEVO MÉTODO DE ACTUALIZACIÓN ==========
     private void actualizarClientes() {
-        System.out.println("========================================");
-        System.out.println("ACTUALIZANDO CLIENTES");
-        System.out.println("Hora: " + new java.util.Date());
-        System.out.println("========================================");
-
         // 1. Crear NUEVA instancia del modelo
         clienteModel = new model();
-        System.out.println("✓ Nuevo modelo de clientes creado");
 
         // 2. Limpiar UI
         Platform.runLater(() -> {
