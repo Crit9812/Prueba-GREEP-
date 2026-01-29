@@ -163,9 +163,7 @@ public class controllerNuevoProveedor {
         p.setPais(txtPais.getText());
         p.setCorreo(txtCorreo.getText());
         p.setTelefono(txtTelefono.getText().trim());
-        if (!modoEdicion) {
-            p.setStatus("activo");
-        }
+        p.setStatus("activo");
 
         boolean exito = modoEdicion ?
                 model.modificarProveedor(p) :
