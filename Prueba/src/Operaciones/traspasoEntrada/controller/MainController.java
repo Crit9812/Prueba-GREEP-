@@ -83,6 +83,8 @@ public class MainController {
     private Map<String, Boolean> filasDesplegadas = new HashMap<>();
     // Mapa para almacenar las filas de detalle por cada entrada
     private Map<String, List<traspasoEntrada>> detallesPorEntrada = new HashMap<>();
+    // Mapa para rastrear cargas en progreso
+    private Map<String, javafx.concurrent.Task<List<traspasoEntrada>>> cargasDetalle = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -163,6 +165,7 @@ public class MainController {
             // Limpiar estructuras de datos
             filasDesplegadas.clear();
             detallesPorEntrada.clear();
+            cargasDetalle.clear();
 
             // Limpiar listas
             entradasTraspasoOriginal.clear();
@@ -592,9 +595,13 @@ public class MainController {
             contraerFila(claveEntrada);
         } else {
             // Expandir: agregar filas de detalle con encabezado
-            List<traspasoEntrada> filasDetalle = expandirFila(claveEntrada);
-            if (!filasDetalle.isEmpty()) {
-                insertarDetallesEnTabla(claveEntrada, filasDetalle);
+            List<traspasoEntrada> filasDetalle = detallesPorEntrada.get(claveEntrada);
+            if (filasDetalle != null) {
+                if (!filasDetalle.isEmpty()) {
+                    insertarDetallesEnTabla(claveEntrada, filasDetalle);
+                }
+            } else {
+                cargarDetallesEnSegundoPlano(claveEntrada);
             }
         }
 
@@ -602,55 +609,64 @@ public class MainController {
         filasDesplegadas.put(claveEntrada, !estaDesplegada);
     }
 
-    private List<traspasoEntrada> expandirFila(String claveEntrada) {
-        if (detallesPorEntrada.containsKey(claveEntrada)) {
-            return detallesPorEntrada.getOrDefault(claveEntrada, new ArrayList<>());
+    private void cargarDetallesEnSegundoPlano(String claveEntrada) {
+        if (cargasDetalle.containsKey(claveEntrada)) {
+            return;
         }
 
-        // Obtener los detalles reales de la base de datos
-        List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+        javafx.concurrent.Task<List<traspasoEntrada>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<traspasoEntrada> call() {
+                List<model.DetalleEntrada> detalles = modeloTraspaso.obtenerDetallesEntrada(claveEntrada);
+                List<traspasoEntrada> filasDetalle = new ArrayList<>();
 
-        List<traspasoEntrada> filasDetalle = new ArrayList<>();
+                if (!detalles.isEmpty()) {
+                    traspasoEntrada encabezadoDetalle = new traspasoEntrada(
+                            "Id",
+                            "Producto",
+                            "Cantidad",
+                            "Precio Unitario",
+                            "Precio Total"
+                    );
+                    encabezadoDetalle.setClaveEntrada(claveEntrada + "_ENCABEZADO_1");
+                    encabezadoDetalle.setSeleccionado(false);
+                    filasDetalle.add(encabezadoDetalle);
 
-        if (!detalles.isEmpty()) {
-            // 1. Primero crear el encabezado (fila especial)
-            traspasoEntrada encabezadoDetalle = new traspasoEntrada(
-                    "Id",                            // claveEntrada: muestra "Id" en colClaveEntrada
-                    "Producto",                      // fecha: muestra "Producto" en colFecha
-                    "Cantidad",                      // hora: muestra "Cantidad" en colHora
-                    "Precio Unitario",               // total: muestra "Precio Unitario" en colTotal
-                    "Precio Total"                   // nombreSucursal: muestra "Precio Total" en colNombreSucural
-            );
-            // NO usar setClaveEntrada para encabezado, ya está como "Id"
-            // Solo agregamos un identificador oculto para reconocerlo
-            encabezadoDetalle.setClaveEntrada(claveEntrada + "_ENCABEZADO_1");
-            encabezadoDetalle.setSeleccionado(false);
-            filasDetalle.add(encabezadoDetalle);
+                    int contador = 1;
+                    for (model.DetalleEntrada detalle : detalles) {
+                        String identificadorInterno = claveEntrada + "_DETALLE_" + contador++;
+                        traspasoEntrada filaDetalle = new traspasoEntrada(
+                                identificadorInterno,
+                                detalle.getClaveProducto(),
+                                detalle.getCantidad(),
+                                detalle.getPrecioUnitario(),
+                                detalle.getPrecioTotal()
+                        );
+                        filaDetalle.setNombreSucursal(detalle.getPrecioTotal());
+                        filaDetalle.setSeleccionado(false);
+                        filasDetalle.add(filaDetalle);
+                    }
+                }
 
-            // 2. Luego crear filas de datos reales
-            int contador = 1;
-            for (model.DetalleEntrada detalle : detalles) {
-                // IMPORTANTE: Crear la fila con identificador interno desde el inicio
-                String identificadorInterno = claveEntrada + "_DETALLE_" + contador++;
-
-                // Crear una fila de detalle con identificador interno y datos visibles
-                traspasoEntrada filaDetalle = new traspasoEntrada(
-                        identificadorInterno,        // claveEntrada: identificador interno
-                        detalle.getClaveProducto(), // fecha: guardamos ID del producto (se mostrará en colClaveEntrada)
-                        detalle.getCantidad(),      // hora: muestra cantidad
-                        detalle.getPrecioUnitario(),// total: muestra precioUnitario
-                        detalle.getPrecioTotal()    // nombreSucursal: muestra precioTotal (ORIGINAL)
-                );
-                filaDetalle.setNombreSucursal(detalle.getPrecioTotal()); // Precio total real
-
-                filaDetalle.setSeleccionado(false);
-                filasDetalle.add(filaDetalle);
+                return filasDetalle;
             }
-        }
+        };
 
-        // Guardar las filas de detalle en el mapa (incluye vacíos para evitar reconsultas)
-        detallesPorEntrada.put(claveEntrada, filasDetalle);
-        return filasDetalle;
+        task.setOnSucceeded(event -> {
+            List<traspasoEntrada> filasDetalle = task.getValue();
+            detallesPorEntrada.put(claveEntrada, filasDetalle);
+            cargasDetalle.remove(claveEntrada);
+            if (filasDesplegadas.getOrDefault(claveEntrada, false) && !filasDetalle.isEmpty()) {
+                insertarDetallesEnTabla(claveEntrada, filasDetalle);
+            }
+        });
+
+        task.setOnFailed(event -> cargasDetalle.remove(claveEntrada));
+
+        cargasDetalle.put(claveEntrada, task);
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void contraerFila(String claveEntrada) {
