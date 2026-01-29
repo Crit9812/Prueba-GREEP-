@@ -14,6 +14,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -97,32 +98,15 @@ public class MainController {
 
             paneNavbarController.setTitulo("Proveedores", "#ffffff");
 
-            // Cell Value Factories
-            colID.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getId())));
-            colNombre.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getNombre()));
-            colRepresentante.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRepresentante()));
-            colRFC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRfc()));
-            colCURP.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getCurp()));
-            colRazonSocial.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRazonSocial()));
-            colCorreo.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getCorreo()));
-            colTelefono.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getTelefono())));
-            colCP.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getCp())));
-            colPais.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getPais()));
-            colEstado.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getEstado()));
-            colCiudad.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getCiudad()));
-            colLocalidad.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getLocalidad()));
-            colColonia.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getColonia()));
-            colDomicilio.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getDomicilio()));
-            colNumeroExt.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getNumeroExt())));
-            colNumeroInt.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getNumeroInt())));
+            configurarColumnas();
 
             // Centrado - estructura más limpia
-            TableColumn<proveedores, String>[] columnas = new TableColumn[]{
+            TableColumn<proveedores, ?>[] columnas = new TableColumn[]{
                     colSelect, colID, colNombre, colRepresentante, colRFC, colCURP, colRazonSocial, colCorreo,
-                    colTelefono, colCP, colPais, colEstado, colCiudad, colLocalidad, colColonia,
-                    colDomicilio, colNumeroExt, colNumeroInt
+                    colTelefono, colCP, colPais, colEstado, colCiudad, colLocalidad, colColonia, colDomicilio,
+                    colNumeroExt, colNumeroInt
             };
-            for (TableColumn<proveedores, String> col : columnas) {
+            for (TableColumn<proveedores, ?> col : columnas) {
                 col.setStyle("-fx-alignment: CENTER;");
             }
 
@@ -202,9 +186,7 @@ public class MainController {
             RefrescoHelper.setVistaActual("proveedores");
             RefrescoHelper.registrarRefresco("proveedores", this::actualizarProveedores);
 
-            buscador.textProperty().addListener((observable, oldValue, newValue) -> {
-                buscarProveedores(newValue);
-            });
+            buscador.textProperty().addListener((observable, oldValue, newValue) -> buscarProveedores(newValue));
         });
     }
 
@@ -258,6 +240,30 @@ public class MainController {
         }
     }
 
+    private void configurarColumnas() {
+        colID.setCellValueFactory(cellData -> asString(cellData.getValue().getId()));
+        colNombre.setCellValueFactory(cellData -> asString(cellData.getValue().getNombre()));
+        colRepresentante.setCellValueFactory(cellData -> asString(cellData.getValue().getRepresentante()));
+        colRFC.setCellValueFactory(cellData -> asString(cellData.getValue().getRfc()));
+        colCURP.setCellValueFactory(cellData -> asString(cellData.getValue().getCurp()));
+        colRazonSocial.setCellValueFactory(cellData -> asString(cellData.getValue().getRazonSocial()));
+        colCorreo.setCellValueFactory(cellData -> asString(cellData.getValue().getCorreo()));
+        colTelefono.setCellValueFactory(cellData -> asString(cellData.getValue().getTelefono()));
+        colCP.setCellValueFactory(cellData -> asString(cellData.getValue().getCp()));
+        colPais.setCellValueFactory(cellData -> asString(cellData.getValue().getPais()));
+        colEstado.setCellValueFactory(cellData -> asString(cellData.getValue().getEstado()));
+        colCiudad.setCellValueFactory(cellData -> asString(cellData.getValue().getCiudad()));
+        colLocalidad.setCellValueFactory(cellData -> asString(cellData.getValue().getLocalidad()));
+        colColonia.setCellValueFactory(cellData -> asString(cellData.getValue().getColonia()));
+        colDomicilio.setCellValueFactory(cellData -> asString(cellData.getValue().getDomicilio()));
+        colNumeroExt.setCellValueFactory(cellData -> asString(cellData.getValue().getNumeroExt()));
+        colNumeroInt.setCellValueFactory(cellData -> asString(cellData.getValue().getNumeroInt()));
+    }
+
+    private SimpleStringProperty asString(Object value) {
+        return new SimpleStringProperty(String.valueOf(value));
+    }
+
     @FXML
     public void formularioNuevoProveedor() {
         abrirFormulario(null);
@@ -266,8 +272,7 @@ public class MainController {
     private void abrirFormulario(proveedores editar) {
         try {
             // === CREAR CONTROLLER MANUALMENTE ===
-            Formularios.controller.controllerNuevoProveedor controlador =
-                    new Formularios.controller.controllerNuevoProveedor();
+            controllerNuevoProveedor controlador = new controllerNuevoProveedor();
 
             // === CREAR LOADER Y ASIGNAR CONTROLLER ===
             FXMLLoader loader = new FXMLLoader(
