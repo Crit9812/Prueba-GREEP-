@@ -4,7 +4,6 @@ import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.helper.RefrescoHelper;
 import Consultas.clasificacion.model.*;
-
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +15,6 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -66,7 +64,6 @@ public class MainController {
     private ObservableList<ubicaciones> cacheUbicaciones = FXCollections.observableArrayList();
     private ObservableList<unidades_Medida> cacheUM = FXCollections.observableArrayList();
 
-    // ================== INIT ==================
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
@@ -91,11 +88,8 @@ public class MainController {
             RefrescoHelper.setVistaActual("clasificacion");
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
 
-            // Inicializar servicios
             dataLoadService = new DataLoadService();
             configurarDataLoadService();
-
-            // Cargar datos iniciales
             cargarDatos();
         });
     }
@@ -170,7 +164,6 @@ public class MainController {
                     etiquetaThread.start();
                     ubicacionThread.start();
                     umThread.start();
-
                     // Esperar a que todas terminen
                     latch.await();
 
@@ -181,10 +174,6 @@ public class MainController {
     }
 
     private void configurarDataLoadService() {
-        dataLoadService.setOnRunning(e -> {
-            mostrarIndicadorCarga();
-        });
-
         dataLoadService.setOnSucceeded(e -> {
             // Actualizar cache con los resultados
             if (dataLoadService.marcasResult != null) {
@@ -200,19 +189,16 @@ public class MainController {
                 cacheUM = dataLoadService.umResult;
             }
 
-            // Actualizar las tablas en el hilo de JavaFX
             Platform.runLater(() -> {
                 contenidoTablaMarcas.setItems(cacheMarcas);
                 contenidoTablaEtiquetas.setItems(cacheEtiquetas);
                 contenidoTablaUbicaciones.setItems(cacheUbicaciones);
                 contenidoTablaUM.setItems(cacheUM);
-                ocultarIndicadorCarga();
             });
         });
 
         dataLoadService.setOnFailed(e -> {
             Platform.runLater(() -> {
-                ocultarIndicadorCarga();
                 mostrarError("Error al cargar datos: " + dataLoadService.getException().getMessage());
                 // Cargar datos vacíos para evitar excepciones
                 contenidoTablaMarcas.setItems(FXCollections.observableArrayList());
@@ -223,29 +209,6 @@ public class MainController {
         });
     }
 
-    // ================== INDICADOR DE CARGA ==================
-    private void mostrarIndicadorCarga() {
-        Platform.runLater(() -> {
-            ProgressIndicator progress = new ProgressIndicator();
-            progress.setMaxSize(50, 50);
-
-            StackPane loadingPane = new StackPane(progress);
-            loadingPane.setStyle("-fx-background-color: rgba(255,255,255,0.7);");
-
-            overlayPane.getChildren().clear();
-            overlayPane.getChildren().add(loadingPane);
-            overlayPane.setVisible(true);
-        });
-    }
-
-    private void ocultarIndicadorCarga() {
-        Platform.runLater(() -> {
-            overlayPane.setVisible(false);
-            overlayPane.getChildren().clear();
-        });
-    }
-
-    // ================== CARGA DE DATOS ==================
     private void cargarDatos() {
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();
@@ -253,7 +216,7 @@ public class MainController {
         dataLoadService.restart();
     }
 
-    // ================== NAVBAR ==================
+    // ================== CONFIGURAR LAYOUT ==================
     private void cargarNavbar() {
         try {
             FXMLLoader loader = new FXMLLoader(
@@ -268,7 +231,6 @@ public class MainController {
         }
     }
 
-    // ================== LAYOUT ==================
     private void configurarLayout() {
         contenidoTablaMarcas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
         contenidoTablaEtiquetas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
@@ -276,7 +238,6 @@ public class MainController {
         contenidoTablaUM.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
     }
 
-    // ================== TABLAS ==================
     private void configurarTablas() {
         // MARCAS
         colIDMarca.setCellValueFactory(c -> c.getValue().idProperty().asObject());
@@ -316,6 +277,27 @@ public class MainController {
                 }
             });
             return row;
+        });
+    }
+
+    // ================== ENTER PARA EDITAR ==================
+    private void configurarEnter() {
+        // Configurar ENTER para cada tabla
+        configurarEnterEnTabla(contenidoTablaMarcas, this::editarMarca);
+        configurarEnterEnTabla(contenidoTablaEtiquetas, this::editarEtiqueta);
+        configurarEnterEnTabla(contenidoTablaUbicaciones, this::editarUbicacion);
+        configurarEnterEnTabla(contenidoTablaUM, this::editarUM);
+    }
+
+    private <T> void configurarEnterEnTabla(TableView<T> tabla, Consumer<T> accion) {
+        tabla.setOnKeyPressed(event -> {
+            // Verificar si se presionó ENTER
+            if (event.getCode().toString().equals("ENTER")) {
+                T seleccionado = tabla.getSelectionModel().getSelectedItem();
+                if (seleccionado != null) {
+                    accion.accept(seleccionado);
+                }
+            }
         });
     }
 
@@ -615,31 +597,11 @@ public class MainController {
         alert.showAndWait();
     }
 
-    // ================== ENTER PARA EDITAR ==================
-    private void configurarEnter() {
-        // Configurar ENTER para cada tabla
-        configurarEnterEnTabla(contenidoTablaMarcas, this::editarMarca);
-        configurarEnterEnTabla(contenidoTablaEtiquetas, this::editarEtiqueta);
-        configurarEnterEnTabla(contenidoTablaUbicaciones, this::editarUbicacion);
-        configurarEnterEnTabla(contenidoTablaUM, this::editarUM);
-    }
-
-    private <T> void configurarEnterEnTabla(TableView<T> tabla, Consumer<T> accion) {
-        tabla.setOnKeyPressed(event -> {
-            // Verificar si se presionó ENTER
-            if (event.getCode().toString().equals("ENTER")) {
-                T seleccionado = tabla.getSelectionModel().getSelectedItem();
-                if (seleccionado != null) {
-                    accion.accept(seleccionado);
-                }
-            }
-        });
-    }
-
     // ================== CLEANUP ==================
     public void shutdown() {
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();
         }
     }
+
 }

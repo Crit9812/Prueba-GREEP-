@@ -11,36 +11,22 @@ public class claves {
     @Column(name = "idAlterno")
     private String idClaveCatalogo;
 
-    @Column(name = "claveProveedor")
-    private Integer claveProveedor;
-
-    @Column(name = "claveGreep")
-    private String claveGreep;
+    @Column(name = "idProveedor")
+    private Integer idProveedor;
 
     @Column(name = "idProducto")
-    private String idProducto; // relación con productos
-
-    @Column(name = "idProveedor")
-    private Integer idProveedor; // relación con proveedores
+    private String idProducto;
 
     public claves() {}
 
-    public claves(String idClaveCatalogo, Integer claveProveedor, String claveGreep, String idProducto, Integer idProveedor) {
+    public claves(String idClaveCatalogo, String idProducto, Integer idProveedor) {
         this.idClaveCatalogo = idClaveCatalogo;
-        this.claveProveedor = claveProveedor;
-        this.claveGreep = claveGreep;
         this.idProducto = idProducto;
         this.idProveedor = idProveedor;
     }
 
     public String getIdClaveCatalogo() { return idClaveCatalogo; }
     public void setIdClaveCatalogo(String idClaveCatalogo) { this.idClaveCatalogo = idClaveCatalogo; }
-
-    public Integer getClaveProveedor() { return claveProveedor; }
-    public void setClaveProveedor(Integer claveProveedor) { this.claveProveedor = claveProveedor; }
-
-    public String getClaveGreep() { return claveGreep; }
-    public void setClaveGreep(String claveGreep) { this.claveGreep = claveGreep; }
 
     public String getIdProducto() { return idProducto; }
     public void setIdProducto(String idProducto) { this.idProducto = idProducto; }

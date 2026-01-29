@@ -18,4 +18,5 @@ public class modelNuevaSucursal {
     public boolean modificarSucursal(sucursal s) {
         return sucursalDAO.actualizar(s);
     }
+
 }

@@ -13,22 +13,22 @@
 }
 
 .opciones {
-    -fx-background-color: #ffffff;  /* Gris claro */
-    -fx-padding: 15;               /* Espaciado interno */
-    -fx-spacing: 20;               /* Separación entre elementos */
+    -fx-background-color: #ffffff;
+    -fx-padding: 15;
+    -fx-spacing: 20;
 }
 
 .botones {
-    -fx-font-size: 14px;      /* Tamaño de letra */
-    -fx-font-weight: bold;    /* Negrita */
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
     -fx-text-fill: white;
-    -fx-background-color: #000000;   /* Fondo negro */
+    -fx-background-color: #000000;
     -fx-padding: 5 5;
-    -fx-cursor: hand;               /* Mano al pasar el mouse */
+    -fx-cursor: hand;
 }
 
 .botones:hover {
-    -fx-background-color: #666666;  /* Gris oscuro al pasar */
+    -fx-background-color: #666666;
 }
 
 .labels {
@@ -55,28 +55,26 @@
 }
 
 .tabla {
-    -fx-background-color: #ebebeb;     /* Fondo de la tabla */
+    -fx-background-color: #ebebeb;
 }
 
-/* Estilo general de la tabla */
 .contenidoTabla {
     -fx-background-color: white;
-    -fx-border-color: black;       /* borde alrededor de la tabla */
+    -fx-border-color: black;
     -fx-border-width: 1px;
     -fx-border-radius: 5px;
     -fx-background-radius: 5px;
-    -fx-padding: 0 0 0 0;   /* espacio arriba, derecha, abajo, izquierda */
+    -fx-padding: 0 0 0 0;
     -fx-text-fill: black;
 }
 
 .table-view .column-header,
 .table-view .column-header .label {
-    -fx-text-fill: white;          /* texto blanco en encabezado */
+    -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-color: #333;
 }
 
-/* Scrollbars automáticos */
 .table-view {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
@@ -84,13 +82,12 @@
 
 
 .table-view .table-row-cell .text {
-    -fx-fill: black; /* color de texto de todas las celdas */
+    -fx-fill: black;
 }
 
-/* Evitar azul de selección */
 .table-view .table-row-cell:filled:selected,
 .table-view .table-row-cell:filled:selected:focused {
-    -fx-text-fill: black; /* aunque no siempre funciona sin el anterior */
+    -fx-text-fill: black;
     -fx-background-color: #91d485;
 }
 
@@ -101,8 +98,8 @@
     -fx-background-color: #000000;
     -fx-padding: 5 5;
     -fx-cursor: hand;
-    -fx-pref-width: 150px;     /* Ancho preferido */
-    -fx-pref-height: 30px;     /* Alto preferido */
+    -fx-pref-width: 150px;
+    -fx-pref-height: 30px;
     -fx-border-radius: 15px;
     -fx-background-radius: 15px;
 }

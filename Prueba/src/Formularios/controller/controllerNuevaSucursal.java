@@ -15,7 +15,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.UnaryOperator;
@@ -43,7 +42,6 @@ public class controllerNuevaSucursal {
 
     private boolean modoEdicion = false;
     private int idSucursalEdicion = -1;
-
     private final modelNuevaSucursal model = new modelNuevaSucursal();
     private Runnable onSaved = null;
     private final AtomicLong solicitudCpId = new AtomicLong(0);
@@ -82,7 +80,6 @@ public class controllerNuevaSucursal {
 
     public void setOnSaved(Runnable r) { this.onSaved = r; }
 
-    // 👉 Se llama desde la ventana anterior cuando se quiere EDITAR
     public void cargarSucursal(sucursal s) {
         if (s == null) return;
 
@@ -109,19 +106,15 @@ public class controllerNuevaSucursal {
         titulo.setText("Actualizar sucursal");
     }
 
-    // 👉 Se llama al abrir para indicar que es NUEVO
-    @FXML
-    public void prepararNuevaSucursal() {
+    @FXML public void prepararNuevaSucursal() {
         modoEdicion = false;
         btnGuardar.setText("Guardar");
         titulo.setText("Agregar sucursal");
     }
 
-    @FXML
-    public void guardarSucursal() {
+    @FXML public void guardarSucursal() {
         if (!validarFormulario()) return;
 
-        // Crear / editar objeto
         sucursal s = new sucursal();
         if (modoEdicion) s.setId(idSucursalEdicion);
 
@@ -137,9 +130,7 @@ public class controllerNuevaSucursal {
         s.setPais(txtPais.getText().trim());
         s.setCorreo(txtCorreo.getText().trim());
         s.setTelefono(txtTelefono.getText().trim());
-        if (!modoEdicion) {
-            s.setStatus("activo");
-        }
+        s.setStatus("activo");
 
         boolean exito = modoEdicion ?
                 model.modificarSucursal(s) :
@@ -442,4 +433,5 @@ public class controllerNuevaSucursal {
     private SepomexCache.CpInfo buscarEnSepomex(String cp) {
         return SepomexCache.buscarCp(cp);
     }
+
 }

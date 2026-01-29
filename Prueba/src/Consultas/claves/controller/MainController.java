@@ -32,7 +32,6 @@ public class MainController {
     @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<String[]> contenidoTabla;
-
     @FXML private TableColumn<String[], Void> colSelect;
     @FXML private TableColumn<String[], String> colClaveProducto;
     @FXML private TableColumn<String[], String> colProducto;
@@ -40,12 +39,10 @@ public class MainController {
     @FXML private TableColumn<String[], String> colProveedor;
     @FXML private TableColumn<String[], String> colClaveAlterna;
     @FXML private TableColumn<String[], String> colDescripcion;
-
     @FXML private TextField buscador;
     @FXML private Region expansor;
     @FXML private encabezadoController paneNavbarController;
 
-    // Instancia única del modelo
     private model modeloClaves;
 
     @FXML
@@ -62,7 +59,7 @@ public class MainController {
                 e.printStackTrace();
             }
 
-            // Configuración de layout...
+            // Configuración de layout
             paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
             paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
@@ -77,7 +74,7 @@ public class MainController {
 
             paneNavbarController.setTitulo("Claves", "#ffffff");
 
-            // Configuración de columnas...
+            // Configuración de columnas
             colClaveAlterna.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[0]));
             colClaveProducto.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[1]));
             colProducto.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue()[2]));
@@ -111,12 +108,12 @@ public class MainController {
                 }
             });
 
-            // Listener de búsqueda en tiempo real - OPTIMIZADO
+            // Listener de búsqueda en tiempo real
             buscador.textProperty().addListener((o, oldVal, newVal) -> {
                 buscarClaves(newVal);
             });
 
-            // Doble clic para editar...
+            // Doble clic para editar
             contenidoTabla.setRowFactory(tv -> {
                 TableRow<String[]> row = new TableRow<>();
                 row.setOnMouseClicked(event -> {
@@ -141,43 +138,23 @@ public class MainController {
             RefrescoHelper.setVistaActual("claves");
             RefrescoHelper.registrarRefresco("claves", this::actualizarClaves);
 
-            // Cargar tabla inicial
             cargarTabla();
         });
     }
 
-    // ========== MÉTODO DE ACTUALIZACIÓN (IGUAL QUE CLIENTES) ==========
     private void actualizarClaves() {
-        System.out.println("========================================");
-        System.out.println("ACTUALIZANDO CLAVES");
-        System.out.println("Hora: " + new java.util.Date());
-        System.out.println("========================================");
-
-        // 1. Crear NUEVA instancia del modelo
         modeloClaves = new model();
-        System.out.println("✓ Nuevo modelo de claves creado");
-
-        // 2. Limpiar UI
         Platform.runLater(() -> {
             buscador.clear();
             contenidoTabla.getSelectionModel().clearSelection();
             contenidoTabla.setItems(FXCollections.observableArrayList());
-            System.out.println("✓ UI limpiada");
         });
-
-        // 3. Pequeña pausa para asegurar sincronización
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
-        // 4. Recargar datos
         cargarTabla();
-
-        System.out.println("========================================");
-        System.out.println("ACTUALIZACIÓN DE CLAVES COMPLETADA");
-        System.out.println("========================================");
     }
 
     private void cargarTabla() {
@@ -188,7 +165,6 @@ public class MainController {
 
                         @Override
                         protected javafx.collections.ObservableList<String[]> call() {
-                            System.out.println("✓ Cargando datos desde la base de datos...");
                             return modeloClaves.obtenerParaTabla();
                         }
 
@@ -197,7 +173,6 @@ public class MainController {
                             javafx.collections.ObservableList<String[]> datos = getValue();
                             Platform.runLater(() -> {
                                 contenidoTabla.setItems(datos);
-                                System.out.println("✓ Tabla actualizada con " + datos.size() + " registros");
                             });
                         }
 
@@ -217,11 +192,6 @@ public class MainController {
             System.err.println("✗ Error en cargarTabla: " + e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    @FXML
-    public void formularioNuevaSincronizacionClaves() {
-        abrirFormulario(null, false);
     }
 
     private void abrirFormulario(String[] fila, boolean esEdicion) {
@@ -299,18 +269,19 @@ public class MainController {
         if (texto.isEmpty()) {
             cargarTabla();
         } else {
-            // Modelo llama al DAO que tiene el SQL de búsqueda
             contenidoTabla.setItems(modeloClaves.buscarEnTabla(texto));
         }
     }
 
-    @FXML
-    private void exportarDatos() {
+    @FXML public void formularioNuevaSincronizacionClaves() {
+        abrirFormulario(null, false);
+    }
+
+    @FXML private void exportarDatos() {
         if (contenidoTabla.getItems().isEmpty()) {
             mostrarAlertaWarning("Advertencia", "No hay datos para exportar.");
             return;
         }
-
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
         dialogo.setTitle("Exportar");
         dialogo.setHeaderText("Seleccione el formato:");
@@ -329,17 +300,15 @@ public class MainController {
         });
     }
 
-    @FXML
-    private void importarDatos() {
+    @FXML private void importarDatos() {
         importador.importarClavesExcel();
         cargarTabla();
     }
 
-    public void exportarPlantilla() {
+    @FXML public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("claves");
     }
 
-    // Métodos auxiliares para mostrar alertas
     private void mostrarAlertaError(String titulo, String mensaje) {
         Alert alerta = new Alert(Alert.AlertType.ERROR);
         alerta.setTitle(titulo);

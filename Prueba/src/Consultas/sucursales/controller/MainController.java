@@ -23,7 +23,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
 import java.io.IOException;
 
 public class MainController {
@@ -51,10 +50,8 @@ public class MainController {
     @FXML private TableColumn<sucursal, String> colEstado;
     @FXML private TableColumn<sucursal, String> colLocalidad;
     @FXML private TableColumn<sucursal, String> colPais;
-
     @FXML private encabezadoController paneNavbarController;
 
-    // EXACTAMENTE IGUAL que productos: instancia única
     private  model sucursalModel;
 
     @FXML
@@ -108,7 +105,7 @@ public class MainController {
             colCorreo.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getCorreo()));
             colTelefono.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cd.getValue().getTelefono())));
 
-            // ALINEACIÓN DE COLUMNAS - estructura más limpia como en productos
+            // ALINEACIÓN DE COLUMNAS
             TableColumn<sucursal, String>[] columnas = new TableColumn[]{
                     colSelect, colId, colNombre, colDomicilio, colCP, colColonia, colNumeroExt,
                     colNumeroInt, colCiudad, colEstado, colLocalidad, colPais, colCorreo, colTelefono
@@ -116,8 +113,7 @@ public class MainController {
             for (TableColumn<sucursal, String> col : columnas) {
                 col.setStyle("-fx-alignment: CENTER;");
             }
-
-            // BOTÓN ELIMINAR - EXACTA misma estructura que productos
+            // BOTÓN ELIMINAR
             colSelect.setCellFactory(col -> new TableCell<sucursal, Void>() {
                 private final Button btn;
                 {
@@ -173,11 +169,9 @@ public class MainController {
                     setGraphic(empty ? null : btn);
                 }
             });
-
-            // Carga Inicial en background como productos
             cargarSucursalesEnTabla();
 
-            // Doble clic → abrir edición - EXACTO igual
+            // Doble clic → abrir edición
             contenidoTabla.setRowFactory(tv -> {
                 TableRow<sucursal> row = new TableRow<>();
                 row.setOnMouseClicked(evt -> {
@@ -188,7 +182,7 @@ public class MainController {
                 return row;
             });
 
-            // ENTER sobre un registro → abrir edición - EXACTO igual (mantener esto)
+            // ENTER sobre un registro → abrir edición
             contenidoTabla.setOnKeyPressed(evt -> {
                 if (evt.getCode().toString().equals("ENTER")) {
                     sucursal sel = contenidoTabla.getSelectionModel().getSelectedItem();
@@ -201,47 +195,27 @@ public class MainController {
                 buscarSucursales(newValue);
             });
         });
+
         RefrescoHelper.setVistaActual("sucursales");
         RefrescoHelper.registrarRefresco("sucursales", this::actualizarSucursales);
     }
 
-    // ========== NUEVO MÉTODO DE ACTUALIZACIÓN (IGUAL QUE CLIENTES) ==========
     private void actualizarSucursales() {
-        System.out.println("========================================");
-        System.out.println("ACTUALIZANDO SUCURSALES");
-        System.out.println("Hora: " + new java.util.Date());
-        System.out.println("========================================");
-
-        // 1. Crear NUEVA instancia del modelo
         sucursalModel = new model();
-        System.out.println("✓ Nuevo modelo de sucursales creado");
-
-        // 2. Limpiar UI
         Platform.runLater(() -> {
             buscador.clear();
             contenidoTabla.getSelectionModel().clearSelection();
             contenidoTabla.setItems(FXCollections.observableArrayList());
-            System.out.println("✓ UI limpiada");
         });
-
-        // 3. Recargar datos
         cargarSucursalesEnTabla();
-
-        System.out.println("========================================");
-        System.out.println("ACTUALIZACIÓN DE SUCURSALES COMPLETADA");
-        System.out.println("========================================");
     }
 
-    // MÉeODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
     private void cargarSucursalesEnTabla() {
         Task<ObservableList<sucursal>> task = new Task<>() {
             @Override
             protected ObservableList<sucursal> call() {
-                // En productos es: productoModel.obtenerProductos()
-                // Aquí es exactamente igual pero con sucursalModel
                 return FXCollections.observableArrayList(sucursalModel.obtenerSucursales());
             }
-
             @Override
             protected void succeeded() {
                 ObservableList<sucursal> sucursales = getValue();
@@ -251,23 +225,16 @@ public class MainController {
         new Thread(task).start();
     }
 
-    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
     private void buscarSucursales(String texto) {
         if (texto == null || texto.trim().isEmpty()) {
             cargarSucursalesEnTabla();
         } else {
-            // Si tu modelo de sucursales tiene busquedaMultiple, úsalo como en productos
-            // Si no, usa buscarExacto (pero deberías agregar busquedaMultiple a sucursales también)
             ObservableList<sucursal> sucursales = FXCollections.observableArrayList(sucursalModel.buscarExacto(texto));
             contenidoTabla.setItems(sucursales);
-            // ELIMINADO: El mensaje de "No se encontraron sucursales"
         }
     }
 
-    @FXML
-    public void formularioNuevaSucursal() {
-        abrirFormulario(null);
-    }
+    @FXML public void formularioNuevaSucursal() { abrirFormulario(null); }
 
     private void abrirFormulario(sucursal sucursalEditar) {
         try {
@@ -295,8 +262,6 @@ public class MainController {
             }
 
             stage.showAndWait();
-
-            // Recargar como en productos
             cargarSucursalesEnTabla();
 
         } catch (Exception ex) {
@@ -330,11 +295,11 @@ public class MainController {
 
     public void importarDatos() {
         importador.importarExcel("sucursales", "id");
-        // Recargar como en productos
         cargarSucursalesEnTabla();
     }
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("sucursales");
     }
+
 }

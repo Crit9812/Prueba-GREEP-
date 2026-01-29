@@ -2,7 +2,6 @@ package Consultas.clasificacion.model;
 
 import Compartido.model.DAO.GenericDAO;
 import conexion.Conexion;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,7 +36,6 @@ public class model {
     }
 
     public boolean actualizarMarca(int id, String nombre) {
-        // Método más eficiente usando búsqueda directa
         marcas marca = buscarMarcaPorId(id);
         if (marca != null) {
             marca.setNombre(nombre);
@@ -66,7 +64,8 @@ public class model {
     }
 
     public int contarProductosPorMarca(int marcaId) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE marca = ?";
+        String sql = "SELECT COUNT(*) FROM productos WHERE marca = ? AND estado = 'activo'";
+
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -130,7 +129,7 @@ public class model {
     }
 
     public int contarProductosPorEtiqueta(int etiquetaId) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE etiqueta = ?";
+        String sql = "SELECT COUNT(*) FROM productos WHERE etiqueta = ? AND estado = 'activo'";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -194,7 +193,7 @@ public class model {
     }
 
     public int contarProductosPorUbicacion(int ubicacionId) {
-        String sql = "SELECT COUNT(*) FROM articulo WHERE ubicacion = ?";
+        String sql = "SELECT COUNT(*) FROM articulo WHERE ubicacion = ? AND estado <> 'eliminado'";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -339,7 +338,7 @@ public class model {
     }
 
     public int contarProductosPorUM(String nombreUM) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE unidadMedida LIKE ?";
+        String sql = "SELECT COUNT(*) FROM productos WHERE unidadMedida LIKE ? AND estado = 'activo'";
         String patron = "%" + nombreUM + "%";
 
         try (Connection conn = new Conexion().conectar();

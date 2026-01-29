@@ -22,7 +22,6 @@ public class etiquetas {
     @Column(name = "estado")
     private String estado;
 
-    // Properties para JavaFX
     private transient IntegerProperty idProperty;
     private transient StringProperty nombreProperty;
 
@@ -34,6 +33,7 @@ public class etiquetas {
     }
 
     public Integer getId() { return id; }
+
     public void setId(Integer id) {
         this.id = id;
         if (idProperty != null) {
@@ -42,6 +42,7 @@ public class etiquetas {
     }
 
     public String getNombre() { return nombre; }
+
     public void setNombre(String nombre) {
         this.nombre = nombre;
         if (nombreProperty != null) {
@@ -50,9 +51,9 @@ public class etiquetas {
     }
 
     public String getEstado() { return estado; }
+
     public void setEstado(String estado) { this.estado = estado; }
 
-    // Métodos property para JavaFX
     public IntegerProperty idProperty() {
         if (idProperty == null) {
             idProperty = new SimpleIntegerProperty(id);

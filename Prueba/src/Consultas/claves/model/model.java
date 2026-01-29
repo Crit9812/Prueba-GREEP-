@@ -20,8 +20,6 @@ public class model {
         this.clavesDAO = new dao();
     }
 
-    // --- USANDO GenericDAO (NO SE TOCA) ---
-
     public ObservableList<claves> obtener() {
         ArrayList<claves> lista = claveDAO.obtenerTodos();
         return FXCollections.observableArrayList(lista);
