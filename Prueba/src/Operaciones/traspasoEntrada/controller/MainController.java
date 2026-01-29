@@ -592,19 +592,19 @@ public class MainController {
             contraerFila(claveEntrada);
         } else {
             // Expandir: agregar filas de detalle con encabezado
-            expandirFila(claveEntrada);
+            List<traspasoEntrada> filasDetalle = expandirFila(claveEntrada);
+            if (!filasDetalle.isEmpty()) {
+                insertarDetallesEnTabla(claveEntrada, filasDetalle);
+            }
         }
 
         // Actualizar el estado
         filasDesplegadas.put(claveEntrada, !estaDesplegada);
-
-        // Re-aplicar el ordenamiento para mantener el orden correcto
-        aplicarOrdenamiento();
     }
 
-    private void expandirFila(String claveEntrada) {
+    private List<traspasoEntrada> expandirFila(String claveEntrada) {
         if (detallesPorEntrada.containsKey(claveEntrada)) {
-            return;
+            return detallesPorEntrada.getOrDefault(claveEntrada, new ArrayList<>());
         }
 
         // Obtener los detalles reales de la base de datos
@@ -650,12 +650,29 @@ public class MainController {
 
         // Guardar las filas de detalle en el mapa (incluye vacíos para evitar reconsultas)
         detallesPorEntrada.put(claveEntrada, filasDetalle);
+        return filasDetalle;
     }
 
     private void contraerFila(String claveEntrada) {
-        // La contracción se aplica al reordenar; mantenemos cache en memoria
+        List<traspasoEntrada> filasDetalle = detallesPorEntrada.get(claveEntrada);
+        if (filasDetalle != null && !filasDetalle.isEmpty()) {
+            entradasTraspaso.removeAll(filasDetalle);
+        }
     }
 
+    private void insertarDetallesEnTabla(String claveEntrada, List<traspasoEntrada> filasDetalle) {
+        int index = -1;
+        for (int i = 0; i < entradasTraspaso.size(); i++) {
+            traspasoEntrada entrada = entradasTraspaso.get(i);
+            if (entrada != null && claveEntrada.equals(entrada.getClaveEntrada())) {
+                index = i;
+                break;
+            }
+        }
+        if (index >= 0) {
+            entradasTraspaso.addAll(index + 1, filasDetalle);
+        }
+    }
 
 
     private void aplicarOrdenamiento() {

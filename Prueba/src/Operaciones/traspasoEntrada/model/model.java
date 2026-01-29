@@ -330,17 +330,56 @@ public class model {
             String colMarcaId = resolverColumna(columnasMarcas, "id", "idMarca", "marca_id");
             String colMarcaNombre = resolverColumna(columnasMarcas, "nombre", "marca", "descripcion", "nombreMarca");
 
-            String sql = "SELECT " +
-                    "`" + colClaveProducto + "` AS claveProducto, " +
-                    "`" + colCantidad + "` AS cantidad, " +
-                    "`" + colPrecioUnitario + "` AS precioUnitario, " +
-                    "`" + colPrecioTotal + "` AS precioTotal " +
-                    "FROM `detalle_Entrada` " +
-                    "WHERE `" + colClaveEntrada + "` = ? " +
-                    "ORDER BY `" + colClaveProducto + "`";
+            boolean puedeUnirProductos = colProductoId != null && colProductoNombre != null;
+            boolean puedeUnirMarcas = colMarcaId != null && colMarcaNombre != null && colProductoMarca != null;
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT d.`").append(colClaveProducto).append("` AS claveProducto, ")
+                    .append("d.`").append(colCantidad).append("` AS cantidad, ")
+                    .append("d.`").append(colPrecioUnitario).append("` AS precioUnitario, ")
+                    .append("d.`").append(colPrecioTotal).append("` AS precioTotal");
+
+            if (puedeUnirProductos) {
+                sql.append(", p.`").append(colProductoNombre).append("` AS nombre");
+                if (colProductoMarca != null) {
+                    sql.append(", p.`").append(colProductoMarca).append("` AS marca");
+                }
+                if (colProductoPresentacion != null) {
+                    sql.append(", p.`").append(colProductoPresentacion).append("` AS presentacion");
+                }
+            }
+
+            if (puedeUnirMarcas) {
+                sql.append(", m.`").append(colMarcaNombre).append("` AS nombreMarca");
+            }
+
+            sql.append(" FROM `detalle_Entrada` d ");
+
+            if (puedeUnirProductos) {
+                sql.append("LEFT JOIN `productos` p ON d.`")
+                        .append(colClaveProducto)
+                        .append("` = p.`")
+                        .append(colProductoId)
+                        .append("` ");
+            }
+
+            if (puedeUnirMarcas) {
+                sql.append("LEFT JOIN `marcas` m ON p.`")
+                        .append(colProductoMarca)
+                        .append("` = m.`")
+                        .append(colMarcaId)
+                        .append("` ");
+            }
+
+            sql.append("WHERE d.`")
+                    .append(colClaveEntrada)
+                    .append("` = ? ")
+                    .append("ORDER BY d.`")
+                    .append(colClaveProducto)
+                    .append("`");
 
             String sqlProducto = null;
-            if (colProductoId != null && colProductoNombre != null) {
+            if (!puedeUnirProductos && colProductoId != null && colProductoNombre != null) {
                 sqlProducto = "SELECT `" + colProductoNombre + "` AS nombre, " +
                         (colProductoMarca != null ? "`" + colProductoMarca + "` AS marca, " : "NULL AS marca, ") +
                         (colProductoPresentacion != null ? "`" + colProductoPresentacion + "` AS presentacion " : "NULL AS presentacion ") +
@@ -350,14 +389,14 @@ public class model {
             }
 
             String sqlMarca = null;
-            if (colMarcaId != null && colMarcaNombre != null) {
+            if (!puedeUnirMarcas && colMarcaId != null && colMarcaNombre != null) {
                 sqlMarca = "SELECT `" + colMarcaNombre + "` AS nombre FROM marcas WHERE `" + colMarcaId + "` = ? LIMIT 1";
             }
 
             Map<String, String> cacheProductos = new HashMap<>();
             Map<String, String> cacheMarcas = new HashMap<>();
 
-            try (PreparedStatement ps = conn.prepareStatement(sql);
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString());
                  PreparedStatement psProducto = sqlProducto != null ? conn.prepareStatement(sqlProducto) : null;
                  PreparedStatement psMarca = sqlMarca != null ? conn.prepareStatement(sqlMarca) : null) {
                 ps.setString(1, claveEntrada);
@@ -375,44 +414,63 @@ public class model {
                         String nombreProducto = cacheProductos.get(claveProd);
                         if (nombreProducto == null) {
                             nombreProducto = claveProd;
-                            if (psProducto != null && claveProd != null && !claveProd.isBlank()) {
+                            String nombre = puedeUnirProductos ? formato(rs.getObject("nombre")) : "";
+                            String marca = puedeUnirProductos && colProductoMarca != null
+                                    ? formato(rs.getObject("marca"))
+                                    : "";
+                            String presentacion = puedeUnirProductos && colProductoPresentacion != null
+                                    ? formato(rs.getObject("presentacion"))
+                                    : "";
+                            String nombreMarca = puedeUnirMarcas ? formato(rs.getObject("nombreMarca")) : "";
+
+                            if (nombreMarca != null && !nombreMarca.isBlank()) {
+                                marca = nombreMarca;
+                            }
+
+                            if (marca != null && !marca.isBlank() && psMarca != null && (nombreMarca == null || nombreMarca.isBlank())) {
+                                String marcaNombre = cacheMarcas.get(marca);
+                                if (marcaNombre == null) {
+                                    psMarca.setString(1, marca);
+                                    try (ResultSet rsMarca = psMarca.executeQuery()) {
+                                        if (rsMarca.next()) {
+                                            marcaNombre = formato(rsMarca.getObject("nombre"));
+                                        }
+                                    }
+                                    cacheMarcas.put(marca, marcaNombre != null ? marcaNombre : marca);
+                                }
+                                marca = cacheMarcas.get(marca);
+                            }
+
+                            if ((nombre == null || nombre.isBlank()) && psProducto != null && claveProd != null && !claveProd.isBlank()) {
                                 psProducto.setString(1, claveProd);
                                 try (ResultSet rsProd = psProducto.executeQuery()) {
                                     if (rsProd.next()) {
-                                        String nombre = formato(rsProd.getObject("nombre"));
-                                        String marca = formato(rsProd.getObject("marca"));
-                                        String presentacion = formato(rsProd.getObject("presentacion"));
-                                        if (psMarca != null && marca != null && !marca.isBlank()) {
-                                            String marcaNombre = cacheMarcas.get(marca);
-                                            if (marcaNombre == null) {
-                                                psMarca.setString(1, marca);
-                                                try (ResultSet rsMarca = psMarca.executeQuery()) {
-                                                    if (rsMarca.next()) {
-                                                        marcaNombre = formato(rsMarca.getObject("nombre"));
-                                                    }
-                                                }
-                                                cacheMarcas.put(marca, marcaNombre != null ? marcaNombre : marca);
-                                            }
-                                            marca = cacheMarcas.get(marca);
+                                        nombre = formato(rsProd.getObject("nombre"));
+                                        if (marca == null || marca.isBlank()) {
+                                            marca = formato(rsProd.getObject("marca"));
                                         }
-                                        StringBuilder compuesto = new StringBuilder();
-                                        if (nombre != null && !nombre.isBlank()) {
-                                            compuesto.append(nombre);
-                                        }
-                                        if (marca != null && !marca.isBlank()) {
-                                            if (compuesto.length() > 0) {
-                                                compuesto.append(" - ");
-                                            }
-                                            compuesto.append(marca);
-                                        }
-                                        if (presentacion != null && !presentacion.isBlank()) {
-                                            compuesto.append(" (").append(presentacion).append(")");
-                                        }
-                                        if (compuesto.length() > 0) {
-                                            nombreProducto = compuesto.toString();
+                                        if (presentacion == null || presentacion.isBlank()) {
+                                            presentacion = formato(rsProd.getObject("presentacion"));
                                         }
                                     }
                                 }
+                            }
+
+                            StringBuilder compuesto = new StringBuilder();
+                            if (nombre != null && !nombre.isBlank()) {
+                                compuesto.append(nombre);
+                            }
+                            if (marca != null && !marca.isBlank()) {
+                                if (compuesto.length() > 0) {
+                                    compuesto.append(" - ");
+                                }
+                                compuesto.append(marca);
+                            }
+                            if (presentacion != null && !presentacion.isBlank()) {
+                                compuesto.append(" (").append(presentacion).append(")");
+                            }
+                            if (compuesto.length() > 0) {
+                                nombreProducto = compuesto.toString();
                             }
                             cacheProductos.put(claveProd, nombreProducto);
                         }
