@@ -127,12 +127,12 @@ public class MainController {
                         int enClaves = proveedorModel.contarClavesNoDesactivadas(seleccionado.getId());
                         if (enEntradas > 0 || enClaves > 0) {
                             StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar el proveedor porque tiene registros relacionados con estados no permitidos:");
+                                    "No se puede desactivar el proveedor porque tiene ");
                             if (enEntradas > 0) {
-                                motivo.append("\n- Entradas no canceladas: ").append(enEntradas);
+                                motivo.append("Entradas no canceladas: ").append(enEntradas);
                             }
                             if (enClaves > 0) {
-                                motivo.append("\n- Claves no desactivadas: ").append(enClaves);
+                                motivo.append("Claves no desactivadas: ").append(enClaves);
                             }
                             new Alert(Alert.AlertType.WARNING, motivo.toString()).showAndWait();
                             return;
