@@ -539,33 +539,49 @@ public class MainController {
                 // Obtener nombre de la sucursal destino
                 String nombreSucursalDestino = buscador.getValue();
 
-                String idSalida = model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, new ArrayList<>(itemsTraspaso));
+                List<traspasoSalida> itemsSnapshot = new ArrayList<>(itemsTraspaso);
 
-                if (idSalida != null && !idSalida.isEmpty()) {
-
-                    String claveSalida = " " + idSalida;  // ID REAL de la tabla salidas
-
-                    // Guardar copia de los items para el reporte
-                    List<traspasoSalida> copiaItems = new ArrayList<>(itemsTraspaso);
-
-                    // Limpiar la tabla
-                    itemsTraspaso.clear();
-                    actualizarTotalTraspaso();
-                    if (comentario != null) {
-                        comentario.clear();
+                Task<String> task = new Task<>() {
+                    @Override
+                    protected String call() {
+                        return model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, itemsSnapshot);
                     }
+                };
 
-                    if (overlayCarga != null) {
-                        overlayCarga.ocultar();
+                task.setOnSucceeded(e -> {
+                    String idSalida = task.getValue();
+                    if (idSalida != null && !idSalida.isEmpty()) {
+                        String claveSalida = " " + idSalida;  // ID REAL de la tabla salidas
+
+                        // Limpiar la tabla
+                        itemsTraspaso.clear();
+                        actualizarTotalTraspaso();
+                        if (comentario != null) {
+                            comentario.clear();
+                        }
+
+                        if (overlayCarga != null) {
+                            overlayCarga.ocultar();
+                        }
+                        mostrarConfirmacionReporte(claveSalida, nombreSucursalDestino, nota, itemsSnapshot);
+                    } else {
+                        if (overlayCarga != null) {
+                            overlayCarga.ocultar();
+                        }
+                        mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
                     }
-                    mostrarConfirmacionReporte(claveSalida, nombreSucursalDestino, nota, copiaItems);
+                });
 
-                } else {
+                task.setOnFailed(e -> {
                     if (overlayCarga != null) {
                         overlayCarga.ocultar();
                     }
                     mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
-                }
+                });
+
+                Thread hilo = new Thread(task);
+                hilo.setDaemon(true);
+                hilo.start();
             }
         });
     }
