@@ -1,5 +1,6 @@
 package Operaciones.traspasoSalida.controller;
 
+import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
@@ -70,6 +71,7 @@ public class MainController {
     private String sucursalSeleccionadaId;
     private boolean actualizandoSucursal = false;
     private boolean actualizandoSeleccion = false;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -129,6 +131,7 @@ public class MainController {
             HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Traspaso de Salida", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
         });
         configurarAutocompleteSucursales();
@@ -528,6 +531,9 @@ public class MainController {
 
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
+                if (overlayCarga != null) {
+                    overlayCarga.mostrar();
+                }
                 String nota = comentario != null ? comentario.getText() : "";
 
                 // Obtener nombre de la sucursal destino
@@ -549,9 +555,15 @@ public class MainController {
                         comentario.clear();
                     }
 
+                    if (overlayCarga != null) {
+                        overlayCarga.ocultar();
+                    }
                     mostrarConfirmacionReporte(claveSalida, nombreSucursalDestino, nota, copiaItems);
 
                 } else {
+                    if (overlayCarga != null) {
+                        overlayCarga.ocultar();
+                    }
                     mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
                 }
             }
