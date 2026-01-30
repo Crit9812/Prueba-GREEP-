@@ -154,10 +154,6 @@
                                                 <Label text="Precio salida:"/>
                                                 <TextField fx:id="txtPrecioSalida"/>
                                             </VBox>
-                                            <VBox spacing="5" prefWidth="80">
-                                                <Label text="IVA"/>
-                                                <CheckBox fx:id="checkBoxIVA" alignment="CENTER_LEFT"/>
-                                            </VBox>
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Precio con IVA:"/>
                                                 <TextField fx:id="txtPrecioIVA"/>
@@ -217,10 +213,6 @@
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Precio salida:"/>
                                                 <TextField fx:id="txtPrecioSalidaRapida"/>
-                                            </VBox>
-                                            <VBox spacing="5" prefWidth="80">
-                                                <Label text="IVA"/>
-                                                <CheckBox fx:id="checkBoxIVARapida" alignment="CENTER_LEFT"/>
                                             </VBox>
                                             <VBox spacing="5" HBox.hgrow="ALWAYS">
                                                 <Label text="Precio con IVA:"/>
