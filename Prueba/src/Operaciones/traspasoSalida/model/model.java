@@ -557,14 +557,14 @@ public class model {
                 ps.executeUpdate();
             }
         } else {
-            Integer idAjuste = obtenerIdAjuste(claveEntrada);
-            if (idAjuste == null || colAjusteId == null || colAjusteEstado == null) {
+            if (colAjusteId == null || colAjusteEstado == null) {
                 return;
             }
-            String sqlUpdate = "UPDATE ajuste_inventario SET " + colAjusteEstado + " = ? WHERE " + colAjusteId + " = ?";
+            String sqlUpdate = "UPDATE ajuste_inventario SET " + colAjusteEstado + " = ? WHERE CAST("
+                    + colAjusteId + " AS CHAR) = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
                 ps.setString(1, nuevoEstado);
-                ps.setInt(2, idAjuste);
+                ps.setString(2, claveEntrada);
                 ps.executeUpdate();
             }
         }
@@ -591,24 +591,6 @@ public class model {
 
     private boolean esClaveEntradaNumerica(String claveEntrada) {
         return claveEntrada != null && claveEntrada.matches("\\d+");
-    }
-
-    private Integer obtenerIdAjuste(String claveEntrada) {
-        if (claveEntrada == null) {
-            return null;
-        }
-        if (esClaveEntradaNumerica(claveEntrada)) {
-            return Integer.valueOf(claveEntrada);
-        }
-        String soloDigitos = claveEntrada.replaceAll("\\D+", "");
-        if (soloDigitos.isBlank()) {
-            return null;
-        }
-        try {
-            return Integer.valueOf(soloDigitos);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     private void setClaveEntradaParametro(PreparedStatement ps, int index, String claveEntrada) throws SQLException {
