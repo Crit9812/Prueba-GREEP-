@@ -517,6 +517,18 @@ public class model {
                 return false;
             }
 
+            if (!"rechazado".equalsIgnoreCase(nuevoEstadoEntrada)) {
+                boolean actualizadoDetalles = actualizarEstadoDetallesPorEntradas(
+                        conn,
+                        clavesEntrada,
+                        "activo"
+                );
+                if (!actualizadoDetalles) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
             boolean actualizado = actualizarEstado(conn, clavesEntrada, colId, colEstado, nuevoEstadoEntrada);
             if (!actualizado) {
                 conn.rollback();
@@ -625,6 +637,18 @@ public class model {
                 return ResultadoOperacion.error("No se pudo actualizar el estado de los artículos.");
             }
 
+            if (!"rechazado".equalsIgnoreCase(nuevoEstadoEntrada)) {
+                boolean actualizadoDetalles = actualizarEstadoDetallesPorEntradas(
+                        conn,
+                        java.util.List.of(claveEntrada),
+                        "activo"
+                );
+                if (!actualizadoDetalles) {
+                    conn.rollback();
+                    return ResultadoOperacion.error("No se pudo actualizar el estado de los detalles de la entrada.");
+                }
+            }
+
             Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
             String colId = resolverColumna(columnasEntradas, "id", "claveEntrada", "idEntrada", "entrada_id");
             String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
@@ -722,6 +746,37 @@ public class model {
                 "JOIN detalle_Entrada d ON a.`" + colArticuloDetalle + "` = d.`" + colDetalleId + "` " +
                 "SET a.`" + colArticuloEstado + "` = ? " +
                 "WHERE d.`" + colDetalleEntrada + "` IN (" + placeholders + ")";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            ps.setString(index++, nuevoEstado);
+            for (String clave : claves) {
+                ps.setString(index++, clave);
+            }
+            ps.executeUpdate();
+        }
+
+        return true;
+    }
+
+    private boolean actualizarEstadoDetallesPorEntradas(Connection conn, List<String> clavesEntrada, String nuevoEstado)
+            throws SQLException {
+        List<String> claves = filtrarClaves(clavesEntrada);
+        if (claves.isEmpty()) {
+            return false;
+        }
+
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+        String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
+
+        if (colDetalleEntrada == null || colDetalleEstado == null) {
+            return false;
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(claves.size(), "?"));
+        String sql = "UPDATE detalle_Entrada SET `" + colDetalleEstado + "` = ? WHERE `" + colDetalleEntrada + "` IN ("
+                + placeholders + ")";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
