@@ -3,6 +3,7 @@ package Operaciones.traspasoEntrada.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.ReporteTraspasoExporter;
+import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.SelectorOrdenPopup;
 import Formularios.controller.ControllerUbicacionTraspaso;
@@ -94,7 +95,7 @@ public class MainController {
     private final Map<String, String> nombreProductoCache = new ConcurrentHashMap<>();
     private final Map<String, Task<String>> cargasNombreProducto = new ConcurrentHashMap<>();
 
-    private StackPane overlayCarga;
+    private OverlayCarga overlayCarga;
     private boolean actualizandoEntrada = false;
     private List<traspasoEntrada> pendientesEnEspera;
     private String estadoEntradaEnEspera;
@@ -158,7 +159,7 @@ public class MainController {
 
             paneNavbarController.setTitulo("Traspaso de Entrada", "#ffffff");
 
-            configurarOverlayCarga();
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
             configurarTabla();
             cargarTabla(); // async
@@ -1061,7 +1062,7 @@ public class MainController {
                                              Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
 
         actualizandoEntrada = true;
-        mostrarOverlayCarga();
+        overlayCarga.mostrar();
         runAsync(
                 () -> {
                     model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
@@ -1083,7 +1084,7 @@ public class MainController {
                     List<model.DetalleEntrada> detalles = (List<model.DetalleEntrada>) payload[1];
 
                     if (resultado.isExito()) {
-                        ocultarOverlayCarga();
+                        overlayCarga.ocultar();
                         entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
                         actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
 
@@ -1092,7 +1093,7 @@ public class MainController {
                         actualizandoEntrada = false;
                         continuarPendientes(pendientes, nuevoEstadoEntrada, nuevoEstadoArticulos);
                     } else {
-                        ocultarOverlayCarga();
+                        overlayCarga.ocultar();
                         mostrarAlerta(Alert.AlertType.ERROR, "Error",
                                 "No se pudo actualizar el traspaso: " + resultado.getMensaje());
 
@@ -1101,7 +1102,7 @@ public class MainController {
                     }
                 },
                 ex -> {
-                    ocultarOverlayCarga();
+                    overlayCarga.ocultar();
                     actualizandoEntrada = false;
                     continuarPendientes(pendientes, nuevoEstadoEntrada, nuevoEstadoArticulos);
                     mostrarAlerta(Alert.AlertType.ERROR, "Error",
@@ -1177,53 +1178,4 @@ public class MainController {
         }
     }
 
-    private void configurarOverlayCarga() {
-        if (overlayPane == null || root == null || overlayCarga != null) {
-            return;
-        }
-
-        Label labelCarga = new Label("Cargando...");
-        labelCarga.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
-
-        overlayCarga = new StackPane(labelCarga);
-        overlayCarga.setVisible(false);
-        overlayCarga.setManaged(false);
-        overlayCarga.setMouseTransparent(true);
-        overlayCarga.setPickOnBounds(true);
-        overlayCarga.setStyle("-fx-background-color: rgba(0, 0, 0, 0.55);");
-        overlayCarga.setAlignment(Pos.CENTER);
-
-        overlayCarga.prefWidthProperty().bind(root.widthProperty());
-        overlayCarga.prefHeightProperty().bind(root.heightProperty());
-        overlayCarga.setMinWidth(Region.USE_PREF_SIZE);
-        overlayCarga.setMinHeight(Region.USE_PREF_SIZE);
-
-        overlayPane.getChildren().add(overlayCarga);
-    }
-
-    private void mostrarOverlayCarga() {
-        if (overlayCarga == null) {
-            configurarOverlayCarga();
-        }
-        if (overlayCarga == null) {
-            return;
-        }
-        Platform.runLater(() -> {
-            overlayCarga.setManaged(true);
-            overlayCarga.setVisible(true);
-            overlayCarga.setMouseTransparent(false);
-            overlayCarga.toFront();
-        });
-    }
-
-    private void ocultarOverlayCarga() {
-        if (overlayCarga == null) {
-            return;
-        }
-        Platform.runLater(() -> {
-            overlayCarga.setVisible(false);
-            overlayCarga.setManaged(false);
-            overlayCarga.setMouseTransparent(true);
-        });
-    }
 }
