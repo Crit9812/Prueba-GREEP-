@@ -1,5 +1,6 @@
 package Operaciones.traspasoSalida.controller;
 
+import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
@@ -70,6 +71,7 @@ public class MainController {
     private String sucursalSeleccionadaId;
     private boolean actualizandoSucursal = false;
     private boolean actualizandoSeleccion = false;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -129,6 +131,7 @@ public class MainController {
             HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Traspaso de Salida", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
         });
         configurarAutocompleteSucursales();
@@ -528,32 +531,57 @@ public class MainController {
 
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
+                if (overlayCarga != null) {
+                    overlayCarga.mostrar();
+                }
                 String nota = comentario != null ? comentario.getText() : "";
 
                 // Obtener nombre de la sucursal destino
                 String nombreSucursalDestino = buscador.getValue();
 
-                String idSalida = model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, new ArrayList<>(itemsTraspaso));
+                List<traspasoSalida> itemsSnapshot = new ArrayList<>(itemsTraspaso);
 
-                if (idSalida != null && !idSalida.isEmpty()) {
-
-                    String claveSalida = " " + idSalida;  // ID REAL de la tabla salidas
-
-                    // Guardar copia de los items para el reporte
-                    List<traspasoSalida> copiaItems = new ArrayList<>(itemsTraspaso);
-
-                    // Limpiar la tabla
-                    itemsTraspaso.clear();
-                    actualizarTotalTraspaso();
-                    if (comentario != null) {
-                        comentario.clear();
+                Task<String> task = new Task<>() {
+                    @Override
+                    protected String call() {
+                        return model.registrarTraspasoSalida(sucursalSeleccionadaId, nota, itemsSnapshot);
                     }
+                };
 
-                    mostrarConfirmacionReporte(claveSalida, nombreSucursalDestino, nota, copiaItems);
+                task.setOnSucceeded(e -> {
+                    String idSalida = task.getValue();
+                    if (idSalida != null && !idSalida.isEmpty()) {
+                        String claveSalida = " " + idSalida;  // ID REAL de la tabla salidas
 
-                } else {
+                        // Limpiar la tabla
+                        itemsTraspaso.clear();
+                        actualizarTotalTraspaso();
+                        if (comentario != null) {
+                            comentario.clear();
+                        }
+
+                        if (overlayCarga != null) {
+                            overlayCarga.ocultar();
+                        }
+                        mostrarConfirmacionReporte(claveSalida, nombreSucursalDestino, nota, itemsSnapshot);
+                    } else {
+                        if (overlayCarga != null) {
+                            overlayCarga.ocultar();
+                        }
+                        mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
+                    }
+                });
+
+                task.setOnFailed(e -> {
+                    if (overlayCarga != null) {
+                        overlayCarga.ocultar();
+                    }
                     mostrarAlerta("Error", "No se pudo registrar el traspaso de salida.");
-                }
+                });
+
+                Thread hilo = new Thread(task);
+                hilo.setDaemon(true);
+                hilo.start();
             }
         });
     }

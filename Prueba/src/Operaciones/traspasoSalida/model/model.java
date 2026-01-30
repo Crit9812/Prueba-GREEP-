@@ -124,6 +124,7 @@ public class model {
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
             Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+            Map<String, String> columnasAjustes = obtenerColumnas(conn, "ajuste_inventario");
 
             String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
                     "detalleSalida", "detalle_salida", "detalle_salida_id");
@@ -150,6 +151,8 @@ public class model {
             String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
             String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
             String colEntradaId = resolverColumna(columnasEntradas, "idEntrada", "id", "id_entrada");
+            String colAjusteEstado = resolverColumna(columnasAjustes, "Estado", "estado");
+            String colAjusteId = resolverColumna(columnasAjustes, "idAjuste", "id", "id_ajuste");
 
             if (colArticuloId == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
                     || colDetalleEntradaClaveEntrada == null || colEntradaEstado == null || colEntradaId == null) {
@@ -345,7 +348,9 @@ public class model {
                         colDetalleEntradaId,
                         colDetalleEntradaClaveEntrada,
                         colArticuloDetalleEntrada,
-                        colArticuloEstado
+                        colArticuloEstado,
+                        colAjusteId,
+                        colAjusteEstado
                 );
             }
 
@@ -494,27 +499,31 @@ public class model {
                                                    String colDetalleEntradaId,
                                                    String colDetalleEntradaClaveEntrada,
                                                    String colArticuloDetalleEntrada,
-                                                   String colArticuloEstado) throws SQLException {
-        if (colEntradaId == null || colEntradaEstado == null || colDetalleEntradaId == null
-                || colDetalleEntradaClaveEntrada == null || colArticuloDetalleEntrada == null
+                                                   String colArticuloEstado,
+                                                   String colAjusteId,
+                                                   String colAjusteEstado) throws SQLException {
+        if (colDetalleEntradaId == null || colDetalleEntradaClaveEntrada == null || colArticuloDetalleEntrada == null
                 || colArticuloEstado == null) {
             return;
         }
 
-        Integer claveEntrada = obtenerClaveEntrada(conn, detalleEntradaId, colDetalleEntradaId, colDetalleEntradaClaveEntrada);
+        String claveEntrada = obtenerClaveEntrada(conn, detalleEntradaId, colDetalleEntradaId, colDetalleEntradaClaveEntrada);
         if (claveEntrada == null) {
             return;
         }
 
+        String filtroClaveEntrada = esClaveEntradaNumerica(claveEntrada)
+                ? "de." + colDetalleEntradaClaveEntrada + " = ? "
+                : "CAST(de." + colDetalleEntradaClaveEntrada + " AS CHAR) = ? ";
         String sqlConteo = "SELECT LOWER(a." + colArticuloEstado + ") AS estado, COUNT(*) AS total " +
                 "FROM articulo a JOIN detalle_Entrada de ON de." + colDetalleEntradaId + " = a." +
-                colArticuloDetalleEntrada + " WHERE de." + colDetalleEntradaClaveEntrada + " = ? " +
+                colArticuloDetalleEntrada + " WHERE " + filtroClaveEntrada +
                 "GROUP BY LOWER(a." + colArticuloEstado + ")";
 
         int disponibles = 0;
         int pendientes = 0;
         try (PreparedStatement ps = conn.prepareStatement(sqlConteo)) {
-            ps.setInt(1, claveEntrada);
+            setClaveEntradaParametro(ps, 1, claveEntrada);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String estado = rs.getString("estado");
@@ -537,26 +546,58 @@ public class model {
             nuevoEstado = "finalizado";
         }
 
-        String sqlUpdate = "UPDATE entradas SET " + colEntradaEstado + " = ? WHERE " + colEntradaId + " = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
-            ps.setString(1, nuevoEstado);
-            ps.setInt(2, claveEntrada);
-            ps.executeUpdate();
+        if (esClaveEntradaNumerica(claveEntrada)) {
+            if (colEntradaId == null || colEntradaEstado == null) {
+                return;
+            }
+            String sqlUpdate = "UPDATE entradas SET " + colEntradaEstado + " = ? WHERE " + colEntradaId + " = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+                ps.setString(1, nuevoEstado);
+                ps.setInt(2, Integer.parseInt(claveEntrada));
+                ps.executeUpdate();
+            }
+        } else {
+            if (colAjusteId == null || colAjusteEstado == null) {
+                return;
+            }
+            String sqlUpdate = "UPDATE ajuste_inventario SET " + colAjusteEstado + " = ? WHERE CAST("
+                    + colAjusteId + " AS CHAR) = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+                ps.setString(1, nuevoEstado);
+                ps.setString(2, claveEntrada);
+                ps.executeUpdate();
+            }
         }
     }
 
-    private Integer obtenerClaveEntrada(Connection conn, int detalleEntradaId, String colDetalleEntradaId,
-                                        String colDetalleEntradaClaveEntrada) throws SQLException {
+    private String obtenerClaveEntrada(Connection conn, int detalleEntradaId, String colDetalleEntradaId,
+                                       String colDetalleEntradaClaveEntrada) throws SQLException {
         String sql = "SELECT " + colDetalleEntradaClaveEntrada + " AS claveEntrada FROM detalle_Entrada WHERE "
                 + colDetalleEntradaId + " = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, detalleEntradaId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt("claveEntrada");
+                    String valor = rs.getString("claveEntrada");
+                    if (valor != null) {
+                        valor = valor.trim();
+                    }
+                    return (valor == null || valor.isBlank()) ? null : valor;
                 }
             }
         }
         return null;
+    }
+
+    private boolean esClaveEntradaNumerica(String claveEntrada) {
+        return claveEntrada != null && claveEntrada.matches("\\d+");
+    }
+
+    private void setClaveEntradaParametro(PreparedStatement ps, int index, String claveEntrada) throws SQLException {
+        if (esClaveEntradaNumerica(claveEntrada)) {
+            ps.setInt(index, Integer.parseInt(claveEntrada));
+        } else {
+            ps.setString(index, claveEntrada);
+        }
     }
 }

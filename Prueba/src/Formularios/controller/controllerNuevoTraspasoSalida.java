@@ -222,7 +222,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             mostrarAlertaSinEspera("Éxito", "Producto actualizado.");
             cerrarFormulario();
         } else {
-            mostrarAlertaSinEspera("Éxito", "Producto agregado al traspaso.");
             limpiarFormularioParaNuevo();
         }
     }
@@ -910,8 +909,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        mostrarAlerta("Aviso", "Revisión de ubicaciones confirmada.");
-
         // Construir items de traspaso
         List<traspasoSalida> itemsGenerados = construirItemsRapidosTraspaso(
                 clave, nombre, descripcion, asignaciones, presentacionRapida, factorRapido);
@@ -953,8 +950,7 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             mainController.refrescarTabla();
         }
 
-        // Mostrar mensaje de éxito y limpiar formulario
-        mostrarAlertaSinEspera("Éxito", "Producto agregado al traspaso.");
+        // Limpiar formulario
         limpiarFormularioParaNuevo();
     }
 
