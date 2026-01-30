@@ -15,12 +15,34 @@ import java.util.Map;
 
 public class model {
 
+    private static final String SQL_NOMBRES_PROVEEDORES =
+            "SELECT Nombre AS nombre FROM proveedores WHERE status = 'activo' ORDER BY Nombre";
+    private static final String SQL_NOMBRES_UBICACIONES =
+            "SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre";
+    private static final String SQL_ID_PROVEEDOR_POR_NOMBRE =
+            "SELECT id FROM proveedores WHERE Nombre = ? AND status = 'activo' LIMIT 1";
+    private static final String SQL_PRECIO_ENTRADA_ULTIMO_PRODUCTO =
+            "SELECT d.precioUnitario AS precioEntrada "
+                    + "FROM detalle_Entrada d "
+                    + "JOIN entradas e ON e.idEntrada = d.claveEntrada "
+                    + "WHERE d.claveProducto = ? "
+                    + "ORDER BY e.fechaEntrada DESC, e.horaEntrada DESC, d.idDetalleEntrada DESC "
+                    + "LIMIT 1";
+    private static final String SQL_ENTRADA_RECIENTE =
+            "SELECT idEntrada FROM entradas "
+                    + "WHERE idRemitente = ? AND noFactura = ? "
+                    + "ORDER BY fechaEntrada DESC, horaEntrada DESC "
+                    + "LIMIT 1";
+    private static final String SQL_UBICACION_POR_NOMBRE =
+            "SELECT id FROM ubicaciones WHERE LOWER(nombre) = LOWER(?) LIMIT 1";
+    private static final String SQL_INSERTAR_UBICACION =
+            "INSERT INTO ubicaciones (nombre, estado) VALUES (?, ?)";
+
     public List<String> obtenerNombresProveedores() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM proveedores WHERE status = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql);
+             PreparedStatement ps = conn.prepareStatement(SQL_NOMBRES_PROVEEDORES);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
@@ -35,10 +57,9 @@ public class model {
 
     public List<String> obtenerNombresUbicaciones() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre";
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql);
+             PreparedStatement ps = conn.prepareStatement(SQL_NOMBRES_UBICACIONES);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
@@ -52,10 +73,8 @@ public class model {
     }
 
     public String obtenerIdProveedorPorNombre(String nombreProveedor) {
-        String sql = "SELECT id FROM proveedores WHERE nombre = ? AND status = 'activo' LIMIT 1";
-
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(SQL_ID_PROVEEDOR_POR_NOMBRE)) {
 
             ps.setString(1, nombreProveedor);
             try (ResultSet rs = ps.executeQuery()) {
@@ -74,47 +93,14 @@ public class model {
             return java.util.Optional.empty();
         }
 
-        try (Connection conn = new Conexion().conectar()) {
-            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
-            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(SQL_PRECIO_ENTRADA_ULTIMO_PRODUCTO)) {
 
-            String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
-            String colDetalleProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto", "producto_id");
-            String colDetalleEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
-            String colPrecioEntrada = resolverColumna(columnasDetalle, "precioUnitario", "precioEntrada", "precio_entrada", "costoEntrada");
-
-            String colEntradaId = resolverColumna(columnasEntradas, "id", "idEntrada", "entrada_id");
-            String colEntradaFecha = resolverColumna(columnasEntradas, "fechaEntrada", "fecha", "fecha_entrada", "created_at");
-            String colEntradaHora = resolverColumna(columnasEntradas, "horaEntrada", "hora", "hora_entrada");
-
-            if (colDetalleId == null || colDetalleProducto == null || colDetalleEntrada == null || colPrecioEntrada == null
-                    || colEntradaId == null) {
-                return java.util.Optional.empty();
-            }
-
-            StringBuilder sql = new StringBuilder();
-            sql.append("SELECT d.`").append(colPrecioEntrada).append("` AS precioEntrada ")
-                    .append("FROM detalle_Entrada d ")
-                    .append("JOIN entradas e ON e.`").append(colEntradaId).append("` = d.`").append(colDetalleEntrada).append("` ")
-                    .append("WHERE d.`").append(colDetalleProducto).append("` = ? ");
-
-            List<String> orden = new ArrayList<>();
-            if (colEntradaFecha != null) {
-                orden.add("e.`" + colEntradaFecha + "` DESC");
-            }
-            if (colEntradaHora != null) {
-                orden.add("e.`" + colEntradaHora + "` DESC");
-            }
-            orden.add("d.`" + colDetalleId + "` DESC");
-            sql.append("ORDER BY ").append(String.join(", ", orden)).append(" LIMIT 1");
-
-            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-                ps.setString(1, idProducto);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        BigDecimal precioEntrada = rs.getBigDecimal("precioEntrada");
-                        return java.util.Optional.of(precioEntrada != null ? precioEntrada : BigDecimal.ZERO);
-                    }
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal precioEntrada = rs.getBigDecimal("precioEntrada");
+                    return java.util.Optional.of(precioEntrada != null ? precioEntrada : BigDecimal.ZERO);
                 }
             }
         } catch (Exception e) {
@@ -132,196 +118,64 @@ public class model {
         try (Connection conn = new Conexion().conectar()) {
             conn.setAutoCommit(false);
 
-            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
-            Map<String, Object> valoresEntrada = new LinkedHashMap<>();
+            try {
+                long idEntrada = insertarEntrada(conn, idProveedor, factura, comentario, items);
+                insertarDetalleYArticulos(conn, idEntrada, items);
 
-            String colProveedor = resolverColumna(columnasEntradas, "idRemitente", "idProveedor", "id_proveedor", "proveedor", "proveedor_id");
-            String colFactura = resolverColumna(columnasEntradas, "noFactura", "factura", "numeroFactura", "numero_factura");
-            String colComentario = resolverColumna(columnasEntradas, "nota", "comentario", "observaciones");
-            String colFecha = resolverColumna(columnasEntradas, "fechaEntrada", "fecha", "fecha_entrada", "created_at");
-            String colHora = resolverColumna(columnasEntradas, "horaEntrada", "hora", "hora_entrada");
-            String colTipo = resolverColumna(columnasEntradas, "tipoEntrada", "tipo", "tipo_entrada");
-            String colPrecioNeto = resolverColumna(columnasEntradas, "precioNetoEntrada", "precioNeto", "precio_neto");
-            String colPrecioTotal = resolverColumna(columnasEntradas, "precioTotalEntrada", "precioTotal", "precio_total");
-            String colUsuarioEntrada = resolverColumna(columnasEntradas, "claveUsuarioEntrada", "idUsuarioEntrada", "id_usuario_entrada", "usuarioEntrada", "usuario_entrada");
-            String colEstado = resolverColumna(columnasEntradas, "Estado", "estado");
-
-            if (colProveedor != null) valoresEntrada.put(colProveedor, idProveedor);
-            if (colFactura != null) valoresEntrada.put(colFactura, factura);
-            if (colComentario != null) valoresEntrada.put(colComentario, comentario);
-            if (colFecha != null) valoresEntrada.put(colFecha, Date.valueOf(LocalDate.now()));
-            if (colHora != null) valoresEntrada.put(colHora, Time.valueOf(LocalTime.now()));
-            if (colTipo != null) valoresEntrada.put(colTipo, "Compra");
-            if (colEstado != null) valoresEntrada.put(colEstado, "disponible");
-            Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
-            if (colUsuarioEntrada != null && idUsuarioEntrada != null) {
-                valoresEntrada.put(colUsuarioEntrada, idUsuarioEntrada);
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
             }
-
-            BigDecimal totalNeto = BigDecimal.ZERO;
-            BigDecimal totalGeneral = BigDecimal.ZERO;
-            for (compra item : items) {
-                BigDecimal cantidad = BigDecimal.valueOf(item.getCantidad());
-                BigDecimal precioUnitario = parseDecimal(item.getPrecioEntrada());
-                BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
-                BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
-
-                totalNeto = totalNeto.add(precioUnitario.multiply(cantidad));
-                if (precioTotal.compareTo(BigDecimal.ZERO) > 0) {
-                    totalGeneral = totalGeneral.add(precioTotal);
-                } else {
-                    totalGeneral = totalGeneral.add(precioBruto.multiply(cantidad));
-                }
-            }
-
-            if (colPrecioNeto != null) valoresEntrada.put(colPrecioNeto, totalNeto.setScale(2, RoundingMode.HALF_UP));
-            if (colPrecioTotal != null) valoresEntrada.put(colPrecioTotal, totalGeneral.setScale(2, RoundingMode.HALF_UP));
-
-            long idEntrada = insertarRegistro(conn, "entradas", columnasEntradas, valoresEntrada);
-
-            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
-            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
-
-            for (compra item : items) {
-                Map<String, Object> valoresDetalle = new LinkedHashMap<>();
-
-                String colEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
-                String colProducto = resolverColumna(columnasDetalle, "claveProducto", "idProducto", "id_producto", "producto_id");
-                String colCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
-                String colPrecioEntrada = resolverColumna(columnasDetalle, "precioUnitario", "precioEntrada", "precio_entrada", "costoEntrada");
-                String colPrecioIva = resolverColumna(columnasDetalle, "precioIVA", "precioIva", "precio_iva");
-                String colPrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto", "precio_bruto");
-                String colPrecioTotalDetalle = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
-                String colNotaDetalle = resolverColumna(columnasDetalle, "Nota", "nota", "comentario", "observaciones");
-                String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
-
-                if (colEntrada != null) valoresDetalle.put(colEntrada, idEntrada);
-                if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
-                if (colCantidad != null) valoresDetalle.put(colCantidad, item.getCantidad());
-                if (colPrecioEntrada != null) valoresDetalle.put(colPrecioEntrada, parseDecimal(item.getPrecioEntrada()));
-                if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
-                if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
-                if (colPrecioTotalDetalle != null) valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
-                if (colNotaDetalle != null) valoresDetalle.put(colNotaDetalle, item.getNota());
-                if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
-
-                long idDetalleEntrada = insertarRegistro(conn, "detalle_Entrada", columnasDetalle, valoresDetalle);
-
-                Map<String, Integer> cantidadesPorUbicacion = new LinkedHashMap<>();
-                for (UbicacionCompra ubicacion : item.getUbicaciones()) {
-                    if (ubicacion == null || ubicacion.getUbicacion() == null) {
-                        continue;
-                    }
-                    int cantidadUbicacion = Math.max(0, ubicacion.getCantidad());
-                    if (cantidadUbicacion == 0) {
-                        continue;
-                    }
-                    cantidadesPorUbicacion.merge(ubicacion.getUbicacion().trim(), cantidadUbicacion, Integer::sum);
-                }
-
-                for (Map.Entry<String, Integer> entry : cantidadesPorUbicacion.entrySet()) {
-                    String colArticuloDetalleEntrada = resolverColumna(
-                            columnasArticulo,
-                            "idDetalleEntrada",
-                            "id_detalle_entrada",
-                            "detalleEntrada",
-                            "detalle_entrada",
-                            "detalle_entrada_id"
-                    );
-                    String colArticuloLote = resolverColumna(columnasArticulo, "lote");
-                    String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
-                    String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
-                    String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
-                    String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
-                    String colArticuloSegmentado = resolverColumna(columnasArticulo, "segmentado");
-                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
-
-                    Integer ubicacionId = resolverUbicacionId(conn, entry.getKey());
-                    int cantidadUbicacion = entry.getValue();
-
-                    for (int i = 0; i < cantidadUbicacion; i++) {
-                        Map<String, Object> valoresArticulo = new LinkedHashMap<>();
-
-                        if (colArticuloDetalleEntrada != null) valoresArticulo.put(colArticuloDetalleEntrada, idDetalleEntrada);
-                        if (colArticuloLote != null) valoresArticulo.put(colArticuloLote, item.getLote());
-                        if (colArticuloCaducidad != null) valoresArticulo.put(colArticuloCaducidad, parseDate(item.getCaducidad()));
-                        if (colArticuloUbicacion != null) valoresArticulo.put(colArticuloUbicacion, ubicacionId);
-                        if (colArticuloPresentacion != null) valoresArticulo.put(colArticuloPresentacion, item.getPresentacion());
-                        if (colArticuloFactor != null) valoresArticulo.put(colArticuloFactor, parseInteger(item.getFactor()));
-                        if (colArticuloSegmentado != null) valoresArticulo.put(colArticuloSegmentado, esSegmentado(item.getPresentacion()));
-                        if (colArticuloEstado != null) valoresArticulo.put(colArticuloEstado, "disponible");
-
-                        insertarRegistro(conn, "articulo", columnasArticulo, valoresArticulo);
-                    }
-                }
-            }
-
-            conn.commit();
-            return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    private Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
-        Map<String, String> columnas = new java.util.HashMap<>();
-        DatabaseMetaData meta = conn.getMetaData();
-
-        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
-            while (rs.next()) {
-                String nombre = rs.getString("COLUMN_NAME");
-                if (nombre == null) {
-                    continue;
-                }
-                String nombreLimpio = nombre.trim();
-                columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
-            }
-        }
-
-        if (columnas.isEmpty()) {
-            try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla.toLowerCase(), null)) {
-                while (rs.next()) {
-                    String nombre = rs.getString("COLUMN_NAME");
-                    if (nombre == null) {
-                        continue;
-                    }
-                    String nombreLimpio = nombre.trim();
-                    columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
-                }
-            }
-        }
-
-        return columnas;
-    }
-
-    private String resolverColumna(Map<String, String> columnas, String... candidatos) {
-        for (String candidato : candidatos) {
-            if (candidato == null) continue;
-            String match = columnas.get(candidato.toLowerCase());
-            if (match != null) {
-                return match;
-            }
-        }
-        return null;
-    }
-
-    private long insertarRegistro(Connection conn, String tabla, Map<String, String> columnas, Map<String, Object> valores)
+    private long insertarEntrada(Connection conn, String idProveedor, String factura, String comentario, List<compra> items)
             throws SQLException {
-        if (valores.isEmpty()) {
-            throw new SQLException("No hay valores para insertar en " + tabla);
+        BigDecimal totalNeto = BigDecimal.ZERO;
+        BigDecimal totalGeneral = BigDecimal.ZERO;
+
+        for (compra item : items) {
+            BigDecimal cantidad = BigDecimal.valueOf(item.getCantidad());
+            BigDecimal precioUnitario = parseDecimal(item.getPrecioEntrada());
+            BigDecimal precioTotal = parseDecimal(item.getPrecioTotal());
+            BigDecimal precioBruto = parseDecimal(item.getPrecioBruto());
+
+            totalNeto = totalNeto.add(precioUnitario.multiply(cantidad));
+            if (precioTotal.compareTo(BigDecimal.ZERO) > 0) {
+                totalGeneral = totalGeneral.add(precioTotal);
+            } else {
+                totalGeneral = totalGeneral.add(precioBruto.multiply(cantidad));
+            }
         }
 
-        String columnasSql = String.join(", ", valores.keySet());
-        String placeholders = String.join(", ", java.util.Collections.nCopies(valores.size(), "?"));
-
-        String sql = "INSERT INTO " + tabla + " (" + columnasSql + ") VALUES (" + placeholders + ")";
+        String sql = "INSERT INTO entradas (noFactura, fechaEntrada, horaEntrada, tipoEntrada, claveUsuarioEntrada, "
+                + "idRemitente, precioNetoEntrada, precioTotalEntrada, nota, Estado) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             int index = 1;
-            for (Object value : valores.values()) {
-                ps.setObject(index++, value);
+            ps.setString(index++, factura);
+            ps.setDate(index++, Date.valueOf(LocalDate.now()));
+            ps.setTime(index++, Time.valueOf(LocalTime.now()));
+            ps.setString(index++, "Compra");
+
+            Integer idUsuarioEntrada = SesionUsuario.getIdUsuario();
+            if (idUsuarioEntrada != null) {
+                ps.setInt(index++, idUsuarioEntrada);
+            } else {
+                ps.setNull(index++, Types.INTEGER);
             }
+
+            ps.setString(index++, idProveedor);
+            ps.setBigDecimal(index++, totalNeto.setScale(2, RoundingMode.HALF_UP));
+            ps.setBigDecimal(index++, totalGeneral.setScale(2, RoundingMode.HALF_UP));
+            ps.setString(index++, comentario);
+            ps.setString(index, "disponible");
 
             ps.executeUpdate();
 
@@ -340,7 +194,112 @@ public class model {
             }
         }
 
-        return 0;
+        throw new SQLException("No se pudo obtener el ID de la entrada registrada");
+    }
+
+    private void insertarDetalleYArticulos(Connection conn, long idEntrada, List<compra> items) throws SQLException {
+        String sqlDetalle = "INSERT INTO detalle_Entrada (claveEntrada, claveProducto, cantidad, precioUnitario, precioIVA, "
+                + "precioBrutoTotal, precioTotal, Nota, estado) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        String sqlArticulo = "INSERT INTO articulo (idDetalleEntrada, presentacion, factor, lote, caducidad, ubicacion, "
+                + "segmentado, Estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        Map<String, Integer> ubicacionCache = new LinkedHashMap<>();
+
+        try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle, Statement.RETURN_GENERATED_KEYS);
+             PreparedStatement psArticulo = conn.prepareStatement(sqlArticulo)) {
+
+            for (compra item : items) {
+                long idDetalleEntrada = insertarDetalle(psDetalle, item, idEntrada);
+                Map<String, Integer> cantidadesPorUbicacion = consolidarUbicaciones(item.getUbicaciones());
+
+                for (Map.Entry<String, Integer> entry : cantidadesPorUbicacion.entrySet()) {
+                    Integer ubicacionId = resolverUbicacionId(conn, entry.getKey(), ubicacionCache);
+                    int cantidadUbicacion = entry.getValue();
+
+                    for (int i = 0; i < cantidadUbicacion; i++) {
+                        int index = 1;
+                        psArticulo.setLong(index++, idDetalleEntrada);
+                        psArticulo.setString(index++, item.getPresentacion());
+                        Integer factor = parseInteger(item.getFactor());
+                        if (factor != null) {
+                            psArticulo.setInt(index++, factor);
+                        } else {
+                            psArticulo.setNull(index++, Types.INTEGER);
+                        }
+                        psArticulo.setString(index++, item.getLote());
+                        Date caducidad = parseDate(item.getCaducidad());
+                        if (caducidad != null) {
+                            psArticulo.setDate(index++, caducidad);
+                        } else {
+                            psArticulo.setNull(index++, Types.DATE);
+                        }
+                        if (ubicacionId != null) {
+                            psArticulo.setInt(index++, ubicacionId);
+                        } else {
+                            psArticulo.setNull(index++, Types.INTEGER);
+                        }
+                        psArticulo.setInt(index++, esSegmentado(item.getPresentacion()));
+                        psArticulo.setString(index, "disponible");
+                        psArticulo.addBatch();
+                    }
+                }
+            }
+
+            psArticulo.executeBatch();
+        }
+    }
+
+    private long insertarDetalle(PreparedStatement psDetalle, compra item, long idEntrada) throws SQLException {
+        int index = 1;
+        psDetalle.setLong(index++, idEntrada);
+        psDetalle.setString(index++, item.getClaveProducto());
+        psDetalle.setInt(index++, item.getCantidad());
+        psDetalle.setBigDecimal(index++, parseDecimal(item.getPrecioEntrada()));
+        psDetalle.setBigDecimal(index++, parseDecimal(item.getPrecioIva()));
+        psDetalle.setBigDecimal(index++, parseDecimal(item.getPrecioBruto()));
+        psDetalle.setBigDecimal(index++, parseDecimal(item.getPrecioTotal()));
+        psDetalle.setString(index++, item.getNota());
+        psDetalle.setString(index, "activo");
+
+        psDetalle.executeUpdate();
+
+        try (ResultSet keys = psDetalle.getGeneratedKeys()) {
+            if (keys.next()) {
+                return keys.getLong(1);
+            }
+        }
+
+        try (PreparedStatement ps = psDetalle.getConnection().prepareStatement("SELECT LAST_INSERT_ID()")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+            }
+        }
+
+        throw new SQLException("No se pudo obtener el ID del detalle de entrada registrado");
+    }
+
+    private Map<String, Integer> consolidarUbicaciones(List<UbicacionCompra> ubicaciones) {
+        Map<String, Integer> cantidadesPorUbicacion = new LinkedHashMap<>();
+        if (ubicaciones == null) {
+            return cantidadesPorUbicacion;
+        }
+
+        for (UbicacionCompra ubicacion : ubicaciones) {
+            if (ubicacion == null || ubicacion.getUbicacion() == null) {
+                continue;
+            }
+            int cantidadUbicacion = Math.max(0, ubicacion.getCantidad());
+            if (cantidadUbicacion == 0) {
+                continue;
+            }
+            cantidadesPorUbicacion.merge(ubicacion.getUbicacion().trim(), cantidadUbicacion, Integer::sum);
+        }
+
+        return cantidadesPorUbicacion;
     }
 
     private BigDecimal parseDecimal(String valor) {
@@ -376,33 +335,43 @@ public class model {
         }
     }
 
-    private Integer resolverUbicacionId(Connection conn, String ubicacion) throws SQLException {
+    private Integer resolverUbicacionId(Connection conn, String ubicacion, Map<String, Integer> cache) throws SQLException {
         if (ubicacion == null || ubicacion.isBlank()) {
             return null;
         }
         String texto = ubicacion.trim();
+        Integer cached = cache.get(texto);
+        if (cached != null) {
+            return cached;
+        }
+
         try {
-            return Integer.valueOf(texto);
+            Integer id = Integer.valueOf(texto);
+            cache.put(texto, id);
+            return id;
         } catch (NumberFormatException ignored) {
         }
 
-        String sql = "SELECT id FROM ubicaciones WHERE LOWER(nombre) = LOWER(?) LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_UBICACION_POR_NOMBRE)) {
             ps.setString(1, texto);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt("id");
+                    int id = rs.getInt("id");
+                    cache.put(texto, id);
+                    return id;
                 }
             }
         }
-        String insertar = "INSERT INTO ubicaciones (nombre, estado) VALUES (?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(insertar, Statement.RETURN_GENERATED_KEYS)) {
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL_INSERTAR_UBICACION, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, texto);
             ps.setString(2, "activo");
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {
-                    return keys.getInt(1);
+                    int id = keys.getInt(1);
+                    cache.put(texto, id);
+                    return id;
                 }
             }
         }
@@ -411,10 +380,8 @@ public class model {
     }
 
     public String obtenerClaveCompraReciente(String idProveedor, String factura) {
-        String sql = "SELECT idEntrada FROM entradas WHERE idRemitente = ? AND noFactura = ? ORDER BY fechaEntrada DESC, horaEntrada DESC LIMIT 1";
-
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(SQL_ENTRADA_RECIENTE)) {
 
             ps.setString(1, idProveedor);
             ps.setString(2, factura);
