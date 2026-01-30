@@ -20,7 +20,6 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.Modality;
 import javafx.util.Callback;
-
 import java.io.IOException;
 
 public class MainController {
@@ -35,7 +34,6 @@ public class MainController {
     @FXML private Label lblEliminar;
     @FXML private Label lblAgregar;
     @FXML private Region expansor;
-
     // Columnas
     @FXML private TableColumn<itemPedido, Boolean> colSelect;
     @FXML private TableColumn<itemPedido, String> colClaveProduct;
@@ -44,20 +42,16 @@ public class MainController {
     @FXML private TableColumn<itemPedido, String> colDescripcionProducto;
     @FXML private TableColumn<itemPedido, String> colPresentacion;
     @FXML private TableColumn<itemPedido, String> colFactor;
-
     @FXML private CheckBox miCheckBoxSeleccionarTodo;
-
     @FXML private encabezadoController paneNavbarController;
 
-    // LISTA ÚNICA QUE ALIMENTA LA TABLA
     private final ObservableList<itemPedido> itemsPedido = FXCollections.observableArrayList();
-    private Stage formularioStage; // Para poder cerrar el formulario
-    private itemPedido itemSeleccionadoParaEditar; // 🔥 NUEVO: Para guardar referencia al item en edición
+    private Stage formularioStage;
+    private itemPedido itemSeleccionadoParaEditar;
 
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            // ===== NAVBAR =====
             try {
                 FXMLLoader loader = new FXMLLoader(
                         getClass().getResource("/Compartido/view/navbar.fxml")
@@ -79,33 +73,21 @@ public class MainController {
             // ===== LAYOUT =====
             paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
             paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
             navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
             lblEliminar.setMinWidth(Region.USE_PREF_SIZE);
             lblAgregar.setMinWidth(Region.USE_PREF_SIZE);
-
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-
             paneNavbarController.setTitulo("Pedidos", "#ffffff");
 
-            // ===== CONFIGURACIÓN DE LA TABLA =====
+            // ===== CONFIGURACIONES =====
             configurarColumnasTabla();
-
-            // ===== 🔗 CONEXIÓN CLAVE =====
-            // La tabla queda ligada a la lista
             contenidoTabla.setItems(itemsPedido);
-
-            // Configurar evento para seleccionar todo
             configurarSeleccionTodo();
-
-            // 🔥 NUEVO: Configurar doble clic y Enter para editar
             configurarEventosEdicionTabla();
         });
     }
@@ -149,9 +131,6 @@ public class MainController {
         });
     }
 
-    /**
-     * 🔥 NUEVO: Configurar eventos para editar registros
-     */
     private void configurarEventosEdicionTabla() {
         // Doble clic para editar
         contenidoTabla.setOnMouseClicked(event -> {
@@ -176,20 +155,13 @@ public class MainController {
 
     @FXML
     public void abrirFormularioPedido() {
-        abrirFormulario(null); // Abrir formulario vacío
+        abrirFormulario(null);
     }
 
-    /**
-     * 🔥 NUEVO: Método para abrir formulario en modo edición
-     */
     private void abrirFormularioParaEditar(itemPedido item) {
         abrirFormulario(item);
     }
 
-    /**
-     * 🔥 MODIFICADO: Método reutilizable para abrir formulario
-     * @param itemParaEditar Si es null, abre formulario vacío. Si tiene valor, abre en modo edición.
-     */
     private void abrirFormulario(itemPedido itemParaEditar) {
         try {
             FXMLLoader loader = new FXMLLoader(
@@ -244,7 +216,6 @@ public class MainController {
 
     @FXML
     public void eliminarProducto() {
-        // Verificar si hay items seleccionados
         boolean haySeleccionados = false;
         for (itemPedido item : itemsPedido) {
             if (item.isSeleccionado()) {
@@ -291,9 +262,6 @@ public class MainController {
         });
     }
 
-    /**
-     * 🔥 NUEVO: Método para actualizar un item en la lista
-     */
     public void actualizarItemEnLista(itemPedido itemViejo, itemPedido itemNuevo) {
         int indice = itemsPedido.indexOf(itemViejo);
         if (indice >= 0) {
@@ -302,17 +270,11 @@ public class MainController {
         }
     }
 
-    /**
-     * 🔥 NUEVO: Método para eliminar un item específico
-     */
     public void eliminarItemDeLista(itemPedido item) {
         itemsPedido.remove(item);
         refrescarTabla();
     }
 
-    /**
-     * Metodo para cerrar el formulario desde el controlador del formulario
-     */
     public void cerrarFormulario() {
         if (formularioStage != null) {
             formularioStage.close();
@@ -321,16 +283,10 @@ public class MainController {
         }
     }
 
-    /**
-     * Metodo para refrescar la tabla
-     */
     public void refrescarTabla() {
         contenidoTabla.refresh();
     }
 
-    /**
-     * 🔥 NUEVO: Getter para el item en edición
-     */
     public itemPedido getItemSeleccionadoParaEditar() {
         return itemSeleccionadoParaEditar;
     }
@@ -350,4 +306,5 @@ public class MainController {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
+
 }

@@ -13,9 +13,9 @@
 }
 
 .opciones {
-    -fx-background-color: #ffffff;  /* Gris claro */
-    -fx-padding: 15;               /* Espaciado interno */
-    -fx-spacing: 20;               /* Separación entre elementos */
+    -fx-background-color: #ffffff;
+    -fx-padding: 15;
+    -fx-spacing: 20;
 }
 
 .custom-check {
@@ -86,7 +86,6 @@
     -fx-background-color: #333;
 }
 
-/* Scrollbars automáticos */
 .table-view {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
@@ -96,7 +95,6 @@
     -fx-fill: black;
 }
 
-/* Evitar azul de selección */
 .table-view .table-row-cell:filled:selected,
 .table-view .table-row-cell:filled:selected:focused {
     -fx-text-fill: black;
