@@ -94,6 +94,8 @@ public class MainController {
     private final Map<String, String> nombreProductoCache = new ConcurrentHashMap<>();
     private final Map<String, Task<String>> cargasNombreProducto = new ConcurrentHashMap<>();
 
+    private StackPane overlayCarga;
+
     // Ejecutores: uno para interacción (expandir/cargar tabla), otro para precarga/nombres
     private final ExecutorService fxExecutor = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
@@ -151,6 +153,8 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Traspaso de Entrada", "#ffffff");
+
+            configurarOverlayCarga();
 
             configurarTabla();
             cargarTabla(); // async
@@ -1046,6 +1050,7 @@ public class MainController {
                                              List<traspasoEntrada> pendientes,
                                              Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
 
+        mostrarOverlayCarga();
         runAsync(
                 () -> {
                     model.ResultadoOperacion resultado = modeloTraspaso.actualizarUbicacionesYEstados(
@@ -1067,6 +1072,7 @@ public class MainController {
                     List<model.DetalleEntrada> detalles = (List<model.DetalleEntrada>) payload[1];
 
                     if (resultado.isExito()) {
+                        ocultarOverlayCarga();
                         entradasTraspasoOriginal.removeIf(e -> e.getClaveEntrada().equals(claveEntrada));
                         actualizarTablaConOrdenamiento(new ArrayList<>(entradasTraspasoOriginal));
 
@@ -1080,6 +1086,7 @@ public class MainController {
                             pause.play();
                         }
                     } else {
+                        ocultarOverlayCarga();
                         mostrarAlerta(Alert.AlertType.ERROR, "Error",
                                 "No se pudo actualizar el traspaso: " + resultado.getMensaje());
 
@@ -1092,8 +1099,11 @@ public class MainController {
                         }
                     }
                 },
-                ex -> mostrarAlerta(Alert.AlertType.ERROR, "Error",
-                        "Fallo actualizando traspaso: " + ex.getMessage())
+                ex -> {
+                    ocultarOverlayCarga();
+                    mostrarAlerta(Alert.AlertType.ERROR, "Error",
+                            "Fallo actualizando traspaso: " + ex.getMessage());
+                }
         );
     }
 
@@ -1131,5 +1141,54 @@ public class MainController {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    private void configurarOverlayCarga() {
+        if (overlayPane == null || root == null || overlayCarga != null) {
+            return;
+        }
+
+        overlayPane.setPickOnBounds(true);
+
+        Label labelCarga = new Label("Cargando...");
+        labelCarga.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
+
+        overlayCarga = new StackPane(labelCarga);
+        overlayCarga.setVisible(false);
+        overlayCarga.setManaged(false);
+        overlayCarga.setPickOnBounds(true);
+        overlayCarga.setStyle("-fx-background-color: rgba(0, 0, 0, 0.55);");
+        overlayCarga.setAlignment(Pos.CENTER);
+
+        overlayCarga.prefWidthProperty().bind(root.widthProperty());
+        overlayCarga.prefHeightProperty().bind(root.heightProperty());
+        overlayCarga.setMinWidth(Region.USE_PREF_SIZE);
+        overlayCarga.setMinHeight(Region.USE_PREF_SIZE);
+
+        overlayPane.getChildren().add(overlayCarga);
+    }
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga == null) {
+            configurarOverlayCarga();
+        }
+        if (overlayCarga == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            overlayCarga.setManaged(true);
+            overlayCarga.setVisible(true);
+            overlayCarga.toFront();
+        });
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            overlayCarga.setVisible(false);
+            overlayCarga.setManaged(false);
+        });
     }
 }
