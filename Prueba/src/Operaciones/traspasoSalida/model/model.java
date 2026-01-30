@@ -512,9 +512,12 @@ public class model {
             return;
         }
 
+        String filtroClaveEntrada = esClaveEntradaNumerica(claveEntrada)
+                ? "de." + colDetalleEntradaClaveEntrada + " = ? "
+                : "CAST(de." + colDetalleEntradaClaveEntrada + " AS CHAR) = ? ";
         String sqlConteo = "SELECT LOWER(a." + colArticuloEstado + ") AS estado, COUNT(*) AS total " +
                 "FROM articulo a JOIN detalle_Entrada de ON de." + colDetalleEntradaId + " = a." +
-                colArticuloDetalleEntrada + " WHERE de." + colDetalleEntradaClaveEntrada + " = ? " +
+                colArticuloDetalleEntrada + " WHERE " + filtroClaveEntrada +
                 "GROUP BY LOWER(a." + colArticuloEstado + ")";
 
         int disponibles = 0;
