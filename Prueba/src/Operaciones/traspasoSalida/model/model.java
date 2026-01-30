@@ -141,6 +141,7 @@ public class model {
                     "id_producto", "producto_id");
             String colDetalleEntradaClaveEntrada = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada",
                     "entrada_id", "id_entrada");
+            String colDetalleEntradaEstado = resolverColumna(columnasDetalleEntrada, "estado", "Estado");
 
             String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
             String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
@@ -347,6 +348,7 @@ public class model {
                         colEntradaEstado,
                         colDetalleEntradaId,
                         colDetalleEntradaClaveEntrada,
+                        colDetalleEntradaEstado,
                         colArticuloDetalleEntrada,
                         colArticuloEstado,
                         colAjusteId,
@@ -498,6 +500,7 @@ public class model {
                                                    String colEntradaEstado,
                                                    String colDetalleEntradaId,
                                                    String colDetalleEntradaClaveEntrada,
+                                                   String colDetalleEntradaEstado,
                                                    String colArticuloDetalleEntrada,
                                                    String colArticuloEstado,
                                                    String colAjusteId,
@@ -544,6 +547,16 @@ public class model {
             nuevoEstado = "pendiente";
         } else {
             nuevoEstado = "finalizado";
+        }
+
+        if (disponibles == 0 && colDetalleEntradaEstado != null) {
+            String sqlUpdateDetalle = "UPDATE detalle_Entrada SET " + colDetalleEntradaEstado + " = ? WHERE "
+                    + colDetalleEntradaId + " = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdateDetalle)) {
+                ps.setString(1, "pendiente");
+                ps.setInt(2, detalleEntradaId);
+                ps.executeUpdate();
+            }
         }
 
         if (esClaveEntradaNumerica(claveEntrada)) {
