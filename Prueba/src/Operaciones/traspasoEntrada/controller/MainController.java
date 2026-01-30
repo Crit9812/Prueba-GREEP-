@@ -1148,14 +1148,13 @@ public class MainController {
             return;
         }
 
-        overlayPane.setPickOnBounds(true);
-
         Label labelCarga = new Label("Cargando...");
         labelCarga.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
 
         overlayCarga = new StackPane(labelCarga);
         overlayCarga.setVisible(false);
         overlayCarga.setManaged(false);
+        overlayCarga.setMouseTransparent(true);
         overlayCarga.setPickOnBounds(true);
         overlayCarga.setStyle("-fx-background-color: rgba(0, 0, 0, 0.55);");
         overlayCarga.setAlignment(Pos.CENTER);
@@ -1178,6 +1177,7 @@ public class MainController {
         Platform.runLater(() -> {
             overlayCarga.setManaged(true);
             overlayCarga.setVisible(true);
+            overlayCarga.setMouseTransparent(false);
             overlayCarga.toFront();
         });
     }
@@ -1189,6 +1189,7 @@ public class MainController {
         Platform.runLater(() -> {
             overlayCarga.setVisible(false);
             overlayCarga.setManaged(false);
+            overlayCarga.setMouseTransparent(true);
         });
     }
 }
