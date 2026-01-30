@@ -95,6 +95,10 @@ public class MainController {
     private final Map<String, Task<String>> cargasNombreProducto = new ConcurrentHashMap<>();
 
     private StackPane overlayCarga;
+    private boolean actualizandoEntrada = false;
+    private List<traspasoEntrada> pendientesEnEspera;
+    private String estadoEntradaEnEspera;
+    private String estadoArticulosEnEspera;
 
     // Ejecutores: uno para interacción (expandir/cargar tabla), otro para precarga/nombres
     private final ExecutorService fxExecutor = Executors.newFixedThreadPool(
@@ -1020,6 +1024,12 @@ public class MainController {
             stage.centerOnScreen();
 
             stage.setOnHidden(e -> {
+                if (actualizandoEntrada) {
+                    pendientesEnEspera = new ArrayList<>(pendientes);
+                    estadoEntradaEnEspera = nuevoEstadoEntrada;
+                    estadoArticulosEnEspera = nuevoEstadoArticulos;
+                    return;
+                }
                 if (!pendientes.isEmpty()) {
                     PauseTransition pause = new PauseTransition(Duration.millis(300));
                     pause.setOnFinished(ev -> procesarSiguienteUbicacion(pendientes, claves, nuevoEstadoEntrada, nuevoEstadoArticulos));
@@ -1050,6 +1060,7 @@ public class MainController {
                                              List<traspasoEntrada> pendientes,
                                              Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
 
+        actualizandoEntrada = true;
         mostrarOverlayCarga();
         runAsync(
                 () -> {
@@ -1078,29 +1089,21 @@ public class MainController {
 
                         mostrarConfirmacionReporte(claveEntrada, resultado.getMensaje(), detalles, ubicacionesPorProducto);
 
-                        if (!pendientes.isEmpty()) {
-                            PauseTransition pause = new PauseTransition(Duration.millis(500));
-                            pause.setOnFinished(e -> procesarSiguienteUbicacion(
-                                    pendientes, new ArrayList<>(), nuevoEstadoEntrada, nuevoEstadoArticulos
-                            ));
-                            pause.play();
-                        }
+                        actualizandoEntrada = false;
+                        continuarPendientes(pendientes, nuevoEstadoEntrada, nuevoEstadoArticulos);
                     } else {
                         ocultarOverlayCarga();
                         mostrarAlerta(Alert.AlertType.ERROR, "Error",
                                 "No se pudo actualizar el traspaso: " + resultado.getMensaje());
 
-                        if (!pendientes.isEmpty()) {
-                            PauseTransition pause = new PauseTransition(Duration.millis(500));
-                            pause.setOnFinished(e -> procesarSiguienteUbicacion(
-                                    pendientes, new ArrayList<>(), nuevoEstadoEntrada, nuevoEstadoArticulos
-                            ));
-                            pause.play();
-                        }
+                        actualizandoEntrada = false;
+                        continuarPendientes(pendientes, nuevoEstadoEntrada, nuevoEstadoArticulos);
                     }
                 },
                 ex -> {
                     ocultarOverlayCarga();
+                    actualizandoEntrada = false;
+                    continuarPendientes(pendientes, nuevoEstadoEntrada, nuevoEstadoArticulos);
                     mostrarAlerta(Alert.AlertType.ERROR, "Error",
                             "Fallo actualizando traspaso: " + ex.getMessage());
                 }
@@ -1141,6 +1144,35 @@ public class MainController {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    private void continuarPendientes(List<traspasoEntrada> pendientes,
+                                     String nuevoEstadoEntrada,
+                                     String nuevoEstadoArticulos) {
+        List<traspasoEntrada> pendientesFinal = pendientes;
+        String estadoEntradaFinal = nuevoEstadoEntrada;
+        String estadoArticulosFinal = nuevoEstadoArticulos;
+
+        if (pendientesEnEspera != null) {
+            pendientesFinal = pendientesEnEspera;
+            estadoEntradaFinal = estadoEntradaEnEspera;
+            estadoArticulosFinal = estadoArticulosEnEspera;
+        }
+
+        pendientesEnEspera = null;
+        estadoEntradaEnEspera = null;
+        estadoArticulosEnEspera = null;
+
+        if (!pendientesFinal.isEmpty()) {
+            PauseTransition pause = new PauseTransition(Duration.millis(500));
+            List<traspasoEntrada> pendientesCopia = new ArrayList<>(pendientesFinal);
+            pause.setOnFinished(e -> procesarSiguienteUbicacion(
+                    pendientesCopia, new ArrayList<>(), estadoEntradaFinal, estadoArticulosFinal
+            ));
+            pause.play();
+        } else {
+            cargarTabla();
+        }
     }
 
     private void configurarOverlayCarga() {
