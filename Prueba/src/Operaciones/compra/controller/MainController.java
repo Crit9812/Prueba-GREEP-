@@ -3,6 +3,7 @@ package Operaciones.compra.controller;
 import Compartido.exportar.PDFCommons;
 //import Compartido.exportar.ReporteEntradaExporter;
 import Compartido.exportar.ReporteEntradaExporter;
+import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
@@ -72,6 +73,7 @@ public class MainController {
     private String proveedorSeleccionadoId;
     private boolean actualizandoSeleccionTodo = false;
     private boolean actualizandoFiltroProveedor = false;
+    private OverlayCarga overlayCarga;
 
 
     @FXML
@@ -132,6 +134,7 @@ public class MainController {
             HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Compra", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
         });
         configurarAutocompleteProveedores();
         configurarTabla();
@@ -426,36 +429,69 @@ public class MainController {
 
         String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
 
-        // 1. Registrar la compra
-        boolean registrado = model.registrarCompra(idProveedor, numeroFactura, comentarioTexto, itemsCompra);
+        List<compra> itemsSnapshot = new ArrayList<>(itemsCompra);
 
-        if (registrado) {
-            // 2. Obtener la clave de la compra recién registrada (CON PARÁMETROS)
-            String claveCompra = model.obtenerClaveCompraReciente(idProveedor, numeroFactura);
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
 
-            // 3. Si no se encontró la clave, usar un fallback
+        javafx.concurrent.Task<String> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected String call() {
+                boolean registrado = model.registrarCompra(idProveedor, numeroFactura, comentarioTexto, itemsSnapshot);
+                if (!registrado) {
+                    return null;
+                }
+                String claveCompra = model.obtenerClaveCompraReciente(idProveedor, numeroFactura);
+                return claveCompra != null ? claveCompra : "";
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            String claveCompra = task.getValue();
             if (claveCompra == null) {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+                mostrarAlerta("Error", "No se pudo registrar la compra.");
+                return;
+            }
+
+            if (claveCompra.isBlank()) {
                 claveCompra = "COMP_" + System.currentTimeMillis();
             }
 
-            // 4. Guardar copia de los items para el reporte
-            List<compra> copiaItems = new ArrayList<>(itemsCompra);
+            List<compra> copiaItems = new ArrayList<>(itemsSnapshot);
 
-            // 5. Limpiar la interfaz
             itemsCompra.clear();
-            if (factura != null) factura.clear();
-            if (comentario != null) comentario.clear();
+            if (factura != null) {
+                factura.clear();
+            }
+            if (comentario != null) {
+                comentario.clear();
+            }
             actualizarTotalCompra();
             proveedorSeleccionadoId = null;
             buscador.setDisable(false);
             buscador.setValue(null);
 
-            // 6. Mostrar diálogo para exportar
-            mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
 
-        } else {
+            mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
+        });
+
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
             mostrarAlerta("Error", "No se pudo registrar la compra.");
-        }
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     @FXML
