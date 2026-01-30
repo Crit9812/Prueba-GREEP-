@@ -1166,8 +1166,10 @@ public class MainController {
         if (!pendientesFinal.isEmpty()) {
             PauseTransition pause = new PauseTransition(Duration.millis(500));
             List<traspasoEntrada> pendientesCopia = new ArrayList<>(pendientesFinal);
+            String estadoEntradaCopia = estadoEntradaFinal;
+            String estadoArticulosCopia = estadoArticulosFinal;
             pause.setOnFinished(e -> procesarSiguienteUbicacion(
-                    pendientesCopia, new ArrayList<>(), estadoEntradaFinal, estadoArticulosFinal
+                    pendientesCopia, new ArrayList<>(), estadoEntradaCopia, estadoArticulosCopia
             ));
             pause.play();
         } else {
