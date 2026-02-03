@@ -66,6 +66,7 @@ public class MainController {
 
     @FXML private VBox contenedorTabla;
     @FXML private TableView<ItemInventario> contenidoTabla;
+    @FXML private TableColumn<ItemInventario, String> colId;
     @FXML private TableColumn<ItemInventario, String> colClaveProducto;
     @FXML private TableColumn<ItemInventario, String> colCantidad;
     @FXML private TableColumn<ItemInventario, String> colProducto;
@@ -491,12 +492,14 @@ public class MainController {
                         }
                     }
 
+                    int consecutivoDetalle = obtenerSiguienteConsecutivoDetalle(conn);
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion, estado) VALUES (?, ?, 'activo')")) {
+                            "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'activo')")) {
                         for (UbicacionCantidad ubicacion : ubicaciones) {
                             for (int i = 0; i < ubicacion.cantidad; i++) {
-                                ps.setInt(1, idArticulo);
-                                ps.setInt(2, ubicacion.id);
+                                ps.setString(1, "S-" + consecutivoDetalle++);
+                                ps.setString(2, String.valueOf(idArticulo));
+                                ps.setInt(3, ubicacion.id);
                                 ps.addBatch();
                             }
                         }
@@ -848,6 +851,7 @@ public class MainController {
     }
 
     private void configurarColumnasTabla() {
+        colId.setCellValueFactory(new PropertyValueFactory<>("idArticulo"));
         colClaveProducto.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
         colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
@@ -864,6 +868,7 @@ public class MainController {
         colInventarioMinimo.setCellValueFactory(new PropertyValueFactory<>("inventarioMinimo"));
 
         TableColumn<ItemInventario, ?>[] columnas = new TableColumn[] {
+                colId,
                 colClaveProducto,
                 colCantidad,
                 colProducto,
@@ -958,6 +963,7 @@ public class MainController {
 
     private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
         List<TableColumn<ItemInventario, ?>> columnas = new ArrayList<>();
+        columnas.add(colId);
         columnas.add(colClaveProducto);
         if (!detallado) {
             columnas.add(colCantidad);
@@ -1014,6 +1020,7 @@ public class MainController {
 
         List<String> opciones = new ArrayList<>();
         opciones.add("ID");
+        opciones.add("ID producto");
         opciones.add("Producto");
         opciones.add("Marca");
         opciones.add("Categoría");
@@ -1169,6 +1176,8 @@ public class MainController {
     private String obtenerValorCampo(ItemInventario item, String campo) {
         switch (campo) {
             case "ID":
+                return item.getIdArticulo();
+            case "ID producto":
                 return item.getClaveProducto();
             case "Producto":
                 return item.getProducto();
@@ -1251,6 +1260,7 @@ public class MainController {
         boolean detallado = chkInventarioDetallado.isSelected();
         List<String> criterios = new ArrayList<>();
         criterios.add("id");
+        criterios.add("id producto");
         if (!detallado) {
             criterios.add("cantidad");
         }
@@ -1292,9 +1302,12 @@ public class MainController {
             case "ubicacion":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getUbicacion()));
                 break;
+            case "id producto":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveProducto()));
+                break;
             case "id":
             default:
-                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveProducto()));
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getIdArticulo()));
                 break;
         }
         if ("desc".equalsIgnoreCase(direccionOrden)) {
@@ -1466,6 +1479,18 @@ public class MainController {
 
     private List<String> obtenerUbicacionesActivas() {
         return new Operaciones.compra.model.model().obtenerNombresUbicaciones();
+    }
+
+    private int obtenerSiguienteConsecutivoDetalle(Connection conn) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(idDetalle, 3) AS UNSIGNED)), 0) " +
+                "FROM detalleArticulo WHERE idDetalle LIKE 'S-%'";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) + 1;
+            }
+        }
+        return 1;
     }
 
     private void actualizarVisibilidadSegmentar(Button botonSegmentar, String presentacion) {

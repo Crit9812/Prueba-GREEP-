@@ -160,7 +160,8 @@
                                 <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
                             </columnResizePolicy>
                             <columns>
-                                <TableColumn fx:id="colClaveProducto" text="ID" minWidth="70"/>
+                                <TableColumn fx:id="colId" text="ID" minWidth="70"/>
+                                <TableColumn fx:id="colClaveProducto" text="ID producto" minWidth="90"/>
                                 <TableColumn fx:id="colCantidad" text="Cantidad" minWidth="100" />
                                 <TableColumn fx:id="colProducto" text="Producto" minWidth="200" />
                                 <TableColumn fx:id="colMarca" text="Marca" minWidth="180"  />

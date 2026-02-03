@@ -685,12 +685,14 @@ public class DetalleInventarioController {
                         }
                     }
 
+                    int consecutivoDetalle = obtenerSiguienteConsecutivoDetalle(conn);
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion, estado) VALUES (?, ?, 'activo')")) {
+                            "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'activo')")) {
                         for (UbicacionCantidad ubicacion : ubicaciones) {
                             for (int i = 0; i < ubicacion.cantidad; i++) {
-                                ps.setInt(1, articulo.idArticulo);
-                                ps.setInt(2, ubicacion.id);
+                                ps.setString(1, "S-" + consecutivoDetalle++);
+                                ps.setString(2, String.valueOf(articulo.idArticulo));
+                                ps.setInt(3, ubicacion.id);
                                 ps.addBatch();
                             }
                         }
@@ -740,6 +742,18 @@ public class DetalleInventarioController {
         String presentacion = valorTexto(articulo.presentacion);
         return "Producto: " + producto + " | Presentación: " + presentacion +
                 " | Factor: " + factor + "\nDescripción: " + descripcion;
+    }
+
+    private int obtenerSiguienteConsecutivoDetalle(Connection conn) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(idDetalle, 3) AS UNSIGNED)), 0) " +
+                "FROM detalleArticulo WHERE idDetalle LIKE 'S-%'";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) + 1;
+            }
+        }
+        return 1;
     }
 
     private void agregarFilaUbicacion(VBox contenedor, List<UbicacionFila> filas, boolean inicial) {
