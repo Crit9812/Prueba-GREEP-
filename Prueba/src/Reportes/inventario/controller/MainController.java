@@ -292,7 +292,7 @@ public class MainController {
             dialog.close();
         });
 
-        javafx.scene.layout.HBox accionesSecundarias = new javafx.scene.layout.HBox(12, btnSegmentar, btnEliminar);
+        javafx.scene.layout.HBox accionesSecundarias = new javafx.scene.layout.HBox(12, btnEliminar, btnSegmentar);
         accionesSecundarias.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
         actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
         cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) ->

@@ -374,7 +374,7 @@ public class DetalleInventarioController {
             dialog.close();
         });
 
-        HBox accionesSecundarias = new HBox(12, btnSegmentar, btnEliminar);
+        HBox accionesSecundarias = new HBox(12, btnEliminar, btnSegmentar);
         accionesSecundarias.setAlignment(Pos.CENTER_RIGHT);
 
         actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
