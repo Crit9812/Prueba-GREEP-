@@ -861,7 +861,7 @@ public class controllerCompraEmergente {
         }
 
         if (existeProductoLoteDuplicado(clave, lote)) {
-            String llave = clave.trim() + "|" + lote.trim();
+            String llave = clave.trim() + "|" + lote.trim().toLowerCase(Locale.ROOT);
             if (!llave.equals(ultimoAvisoDuplicado)) {
                 ultimoAvisoDuplicado = llave;
                 mostrarAlerta("Advertencia", "Este producto con el mismo lote ya está agregado a la compra.");
@@ -874,14 +874,14 @@ public class controllerCompraEmergente {
     private boolean existeProductoLoteDuplicado(String clave, String lote) {
         if (itemsCompra == null) return false;
         String claveLimpia = clave == null ? "" : clave.trim();
-        String loteLimpio = lote == null ? "" : lote.trim();
+        String loteLimpio = lote == null ? "" : lote.trim().toLowerCase(Locale.ROOT);
         if (claveLimpia.isBlank() || loteLimpio.isBlank()) return false;
 
         for (compra item : itemsCompra) {
             if (item == null) continue;
             if (itemParaEditar != null && item == itemParaEditar) continue;
             String claveItem = item.getClaveProducto() == null ? "" : item.getClaveProducto().trim();
-            String loteItem = item.getLote() == null ? "" : item.getLote().trim();
+            String loteItem = item.getLote() == null ? "" : item.getLote().trim().toLowerCase(Locale.ROOT);
             if (claveLimpia.equals(claveItem) && loteLimpio.equals(loteItem)) {
                 return true;
             }
