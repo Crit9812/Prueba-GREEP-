@@ -223,15 +223,20 @@ public class MainController {
         }
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
         dialog.setTitle("Editar artículo");
-        javafx.scene.control.ButtonType deleteType = new javafx.scene.control.ButtonType(
-                "Eliminar", javafx.scene.control.ButtonBar.ButtonData.LEFT);
-        dialog.getDialogPane().getButtonTypes().addAll(deleteType, javafx.scene.control.ButtonType.OK,
+        dialog.getDialogPane().getButtonTypes().addAll(javafx.scene.control.ButtonType.OK,
                 javafx.scene.control.ButtonType.CANCEL);
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm());
+        dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK)
+                .getStyleClass().add("boton-formulario");
+        dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CANCEL)
+                .getStyleClass().add("boton-formulario");
 
         List<String> ubicacionesActivas = obtenerUbicacionesActivas();
         javafx.scene.control.ComboBox<String> cbUbicacion = new javafx.scene.control.ComboBox<>();
         cbUbicacion.setItems(FXCollections.observableArrayList(ubicacionesActivas));
         cbUbicacion.setPromptText("Selecciona ubicación");
+        cbUbicacion.getStyleClass().add("textfield");
         String ubicacionActual = item.getUbicacion();
         if (ubicacionActual != null
                 && !ubicacionActual.isBlank()
@@ -240,7 +245,9 @@ public class MainController {
             cbUbicacion.setValue(ubicacionActual);
         }
         javafx.scene.control.TextField txtLote = new javafx.scene.control.TextField(item.getLote());
+        txtLote.getStyleClass().add("textfield");
         javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
+        dpCaducidad.getStyleClass().add("textfield");
         if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
             try {
                 dpCaducidad.setValue(java.time.LocalDate.parse(item.getCaducidad().trim()));
@@ -251,6 +258,7 @@ public class MainController {
         javafx.scene.control.ComboBox<String> cbPresentacion = new javafx.scene.control.ComboBox<>();
         cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
         cbPresentacion.setPromptText("Selecciona presentación");
+        cbPresentacion.getStyleClass().add("textfield");
         String presentacionActual = item.getPresentacion();
         if (presentacionActual != null
                 && !presentacionActual.isBlank()
@@ -258,26 +266,42 @@ public class MainController {
             cbPresentacion.setValue(presentacionActual);
         }
         javafx.scene.control.TextField txtFactor = new javafx.scene.control.TextField(item.getFactor());
+        txtFactor.getStyleClass().add("textfield");
 
-        VBox contenido = new VBox(8,
-                new Label("Ubicación:"), cbUbicacion,
-                new Label("Lote:"), txtLote,
-                new Label("Caducidad:"), dpCaducidad,
-                new Label("Presentación:"), cbPresentacion,
-                new Label("Factor:"), txtFactor
-        );
+        javafx.scene.layout.GridPane formulario = new javafx.scene.layout.GridPane();
+        formulario.setHgap(10);
+        formulario.setVgap(8);
+        formulario.add(new Label("Ubicación:"), 0, 0);
+        formulario.add(cbUbicacion, 1, 0);
+        formulario.add(new Label("Lote:"), 0, 1);
+        formulario.add(txtLote, 1, 1);
+        formulario.add(new Label("Caducidad:"), 0, 2);
+        formulario.add(dpCaducidad, 1, 2);
+        formulario.add(new Label("Presentación:"), 0, 3);
+        formulario.add(cbPresentacion, 1, 3);
+        formulario.add(new Label("Factor:"), 0, 4);
+        formulario.add(txtFactor, 1, 4);
+
+        javafx.scene.control.Button btnSegmentar = new javafx.scene.control.Button("Segmentar");
+        btnSegmentar.getStyleClass().add("boton-formulario");
+        javafx.scene.control.Button btnEliminar = new javafx.scene.control.Button("Eliminar");
+        btnEliminar.getStyleClass().add("boton-formulario");
+        btnEliminar.setOnAction(event -> {
+            eliminarArticuloInventario(idArticulo);
+            dialog.setResult(javafx.scene.control.ButtonType.CANCEL);
+            dialog.close();
+        });
+
+        javafx.scene.layout.HBox accionesSecundarias = new javafx.scene.layout.HBox(12, btnSegmentar, btnEliminar);
+        accionesSecundarias.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
+        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) ->
+                actualizarVisibilidadSegmentar(btnSegmentar, newVal));
+
+        VBox contenido = new VBox(10, formulario, accionesSecundarias);
         dialog.getDialogPane().setContent(contenido);
 
-        javafx.scene.control.Button deleteButton = (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(deleteType);
-        if (deleteButton != null) {
-            deleteButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
-        }
-
         dialog.showAndWait().ifPresent(respuesta -> {
-            if (respuesta == deleteType) {
-                eliminarArticuloInventario(idArticulo);
-                return;
-            }
             if (respuesta != javafx.scene.control.ButtonType.OK) {
                 return;
             }
@@ -1165,6 +1189,16 @@ public class MainController {
 
     private List<String> obtenerUbicacionesActivas() {
         return new Operaciones.compra.model.model().obtenerNombresUbicaciones();
+    }
+
+    private void actualizarVisibilidadSegmentar(Button botonSegmentar, String presentacion) {
+        if (botonSegmentar == null) {
+            return;
+        }
+        String valor = presentacion == null ? "" : presentacion.trim().toLowerCase();
+        boolean mostrar = !"pz".equals(valor) && !"pieza".equals(valor);
+        botonSegmentar.setVisible(mostrar);
+        botonSegmentar.setManaged(mostrar);
     }
 
     private static class Filtro {
