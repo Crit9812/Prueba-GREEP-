@@ -963,7 +963,9 @@ public class MainController {
 
     private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
         List<TableColumn<ItemInventario, ?>> columnas = new ArrayList<>();
-        columnas.add(colId);
+        if (detallado) {
+            columnas.add(colId);
+        }
         columnas.add(colClaveProducto);
         if (!detallado) {
             columnas.add(colCantidad);
