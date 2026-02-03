@@ -770,8 +770,9 @@ public class MainController {
         opciones.add("Categoría");
         opciones.add("Material");
         opciones.add("Unidad");
-        opciones.add("Presentación");
         if (detallado) {
+            opciones.add("Presentación");
+            opciones.add("Factor");
             opciones.add("Lote");
             opciones.add("Caducidad");
             opciones.add("Ubicación");
