@@ -48,8 +48,8 @@
         </top>
         <center>
             <ScrollPane fx:id="scrollPane"
-                        fitToWidth="true"
-                        hbarPolicy="NEVER"
+                        fitToWidth="false"
+                        hbarPolicy="AS_NEEDED"
                         vbarPolicy="AS_NEEDED"
                         style="-fx-background-color: white; -fx-border-color: transparent;">
                 <content>
