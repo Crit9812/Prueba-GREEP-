@@ -920,7 +920,7 @@ public class controllerCompraEmergente {
         if (txtCantidad != null) txtCantidad.clear();
 
         if (cbPresentacion != null) cbPresentacion.setValue("pz");
-        if (txtFactor != null) txtFactor.clear();
+        if (txtFactor != null) txtFactor.setText("1");
 
         if (txtNota != null) txtNota.clear();
 
