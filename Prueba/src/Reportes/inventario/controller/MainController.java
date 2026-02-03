@@ -5,6 +5,7 @@ import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
+import Compartido.helper.OverlayCarga;
 import Reportes.inventario.model.ItemInventario;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -38,6 +39,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -92,6 +94,7 @@ public class MainController {
     private String direccionOrden = "asc";
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
+    private OverlayCarga overlayCarga;
 
 
     @FXML
@@ -146,6 +149,9 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Inventario", "#ffffff");
+            if (root != null && overlayPane != null) {
+                overlayCarga = new OverlayCarga(root, overlayPane);
+            }
 
             contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
                 if (newVal.doubleValue() > 0) {
@@ -224,6 +230,10 @@ public class MainController {
         }
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
         dialog.setTitle("Editar artículo");
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (root != null && root.getScene() != null) {
+            dialog.initOwner(root.getScene().getWindow());
+        }
 
         dialog.getDialogPane().getButtonTypes().addAll(
                 javafx.scene.control.ButtonType.CANCEL,
@@ -302,6 +312,7 @@ public class MainController {
 
         javafx.scene.control.Button btnSegmentar = new javafx.scene.control.Button("Segmentar");
         btnSegmentar.getStyleClass().add("boton-formulario");
+        btnSegmentar.setOnAction(event -> iniciarSegmentacionInventario(item, idArticulo, dialog));
         javafx.scene.control.Button btnEliminar = new javafx.scene.control.Button("Eliminar");
         btnEliminar.getStyleClass().add("boton-formulario");
         btnEliminar.setOnAction(event -> {
@@ -328,6 +339,203 @@ public class MainController {
             actualizarArticuloInventario(idArticulo, cbUbicacion.getValue(), txtLote.getText(),
                     caducidadTexto, presentacionSeleccionada != null ? presentacionSeleccionada : "", txtFactor.getText());
         });
+    }
+
+    private void iniciarSegmentacionInventario(ItemInventario item, int idArticulo,
+                                               javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
+        if (item == null || idArticulo <= 0) {
+            return;
+        }
+        int factor = parseFactor(item.getFactor());
+        if (factor <= 0) {
+            mostrarAdvertencia("Factor inválido", "El factor debe ser un número mayor a cero.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Segmentar artículo");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("Al segmentar este artículo se dividirá el producto en " +
+                factor + " piezas.\n¿Deseas continuar?");
+
+        javafx.scene.control.ButtonType btnCancelar = new javafx.scene.control.ButtonType("Cancelar",
+                ButtonBar.ButtonData.CANCEL_CLOSE);
+        javafx.scene.control.ButtonType btnAceptar = new javafx.scene.control.ButtonType("Aceptar",
+                ButtonBar.ButtonData.OK_DONE);
+        confirmacion.getButtonTypes().setAll(btnCancelar, btnAceptar);
+        configurarOrdenBotones(confirmacion.getDialogPane(), btnCancelar, btnAceptar);
+
+        confirmacion.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (dialogPadre != null) {
+            confirmacion.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
+        }
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != btnAceptar) {
+                return;
+            }
+            abrirFormularioSegmentacionInventario(item, idArticulo, factor, dialogPadre);
+        });
+    }
+
+    private void abrirFormularioSegmentacionInventario(ItemInventario item, int idArticulo, int factor,
+                                                       javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
+        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
+                new javafx.scene.control.Dialog<>();
+        dialog.setTitle("Segmentar artículo");
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (dialogPadre != null) {
+            dialog.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
+        }
+
+        javafx.scene.control.ButtonType btnCancelar = new javafx.scene.control.ButtonType("Cancelar",
+                ButtonBar.ButtonData.CANCEL_CLOSE);
+        javafx.scene.control.ButtonType btnAceptar = new javafx.scene.control.ButtonType("Aceptar",
+                ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnCancelar, btnAceptar);
+
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
+        );
+        configurarOrdenBotones(dialog.getDialogPane(), btnCancelar, btnAceptar);
+
+        VBox contenido = new VBox(12);
+        Label lblDescripcion = new Label(obtenerDescripcionArticuloInventario(item, factor));
+        lblDescripcion.setWrapText(true);
+        lblDescripcion.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+
+        Label lblUbicaciones = new Label("Ubicaciones para segmentar:");
+        lblUbicaciones.setStyle("-fx-font-weight: bold;");
+
+        VBox contenedorUbicaciones = new VBox(10);
+        List<UbicacionFila> filas = new ArrayList<>();
+        agregarFilaUbicacion(contenedorUbicaciones, filas, true);
+
+        ScrollPane scroll = new ScrollPane(contenedorUbicaciones);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(320);
+
+        contenido.getChildren().addAll(lblDescripcion, lblUbicaciones, scroll);
+        dialog.getDialogPane().setContent(contenido);
+        dialog.getDialogPane().setPrefWidth(520);
+        dialog.getDialogPane().setPrefHeight(520);
+
+        AtomicReference<List<UbicacionCantidad>> seleccionadasRef = new AtomicReference<>(List.of());
+        Button btnOk = (Button) dialog.getDialogPane().lookupButton(btnAceptar);
+        if (btnOk != null) {
+            btnOk.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+                List<UbicacionCantidad> seleccionadas = obtenerUbicacionesSeleccionadas(filas);
+                if (seleccionadas.isEmpty()) {
+                    mostrarAdvertencia("Validación", "Debe capturar al menos una ubicación con cantidad.");
+                    event.consume();
+                    return;
+                }
+                int suma = seleccionadas.stream().mapToInt(ubicacion -> ubicacion.cantidad).sum();
+                if (suma != factor) {
+                    mostrarAdvertencia("Validación",
+                            "La suma de las ubicaciones debe ser " + factor + " y actualmente es " + suma + ".");
+                    event.consume();
+                    return;
+                }
+                seleccionadasRef.set(seleccionadas);
+            });
+        }
+
+        dialog.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != btnAceptar) {
+                return;
+            }
+            ejecutarSegmentacionInventario(item, idArticulo, factor, seleccionadasRef.get(), dialogPadre);
+        });
+    }
+
+    private void ejecutarSegmentacionInventario(ItemInventario item, int idArticulo, int factor,
+                                                List<UbicacionCantidad> ubicaciones,
+                                                javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
+        if (item == null || ubicaciones == null || ubicaciones.isEmpty()) {
+            return;
+        }
+
+        if (dialogPadre != null) {
+            dialogPadre.close();
+        }
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+
+        javafx.concurrent.Task<String> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected String call() throws Exception {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        throw new SQLException("Sin conexión a la base de datos");
+                    }
+                    conn.setAutoCommit(false);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET segmentado = 1, Estado = 'segmentado' WHERE idArticulo = ?")) {
+                        ps.setInt(1, idArticulo);
+                        ps.executeUpdate();
+                    }
+
+                    try (PreparedStatement psUbicacion = conn.prepareStatement(
+                            "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
+                        for (UbicacionCantidad ubicacion : ubicaciones) {
+                            psUbicacion.setString(1, ubicacion.nombre);
+                            try (ResultSet rs = psUbicacion.executeQuery()) {
+                                if (!rs.next()) {
+                                    conn.rollback();
+                                    throw new SQLException("Ubicación inválida: " + ubicacion.nombre);
+                                }
+                                ubicacion.id = rs.getInt(1);
+                            }
+                        }
+                    }
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion) VALUES (?, ?)")) {
+                        for (UbicacionCantidad ubicacion : ubicaciones) {
+                            for (int i = 0; i < ubicacion.cantidad; i++) {
+                                ps.setInt(1, idArticulo);
+                                ps.setInt(2, ubicacion.id);
+                                ps.addBatch();
+                            }
+                        }
+                        ps.executeBatch();
+                    }
+
+                    conn.commit();
+                }
+
+                return construirMensajeSegmentacion(item, factor, ubicaciones);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Segmentación completada");
+            alert.setHeaderText(null);
+            alert.setContentText(task.getValue());
+            alert.showAndWait();
+            cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+            if (dialogPadre != null) {
+                dialogPadre.close();
+            }
+        });
+
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+            Throwable ex = task.getException();
+            mostrarAdvertencia("Error", ex != null ? ex.getMessage() : "No se pudo segmentar el artículo.");
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void actualizarArticuloInventario(int idArticulo, String ubicacionTexto, String lote,
@@ -1212,6 +1420,121 @@ public class MainController {
         botonSegmentar.setManaged(mostrar);
     }
 
+    private int parseFactor(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(valor.trim());
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
+
+    private String obtenerDescripcionArticuloInventario(ItemInventario item, int factor) {
+        String producto = item.getProducto() == null ? "" : item.getProducto();
+        String descripcion = item.getDescripcion() == null ? "" : item.getDescripcion();
+        String presentacion = item.getPresentacion() == null ? "" : item.getPresentacion();
+        return "Producto: " + producto + " | Presentación: " + presentacion +
+                " | Factor: " + factor + "\nDescripción: " + descripcion;
+    }
+
+    private void agregarFilaUbicacion(VBox contenedor, List<UbicacionFila> filas, boolean inicial) {
+        HBox fila = new HBox(15);
+
+        VBox vboxUbicacion = new VBox(5);
+        Label labelUbicacion = new Label("Ubicación:");
+        ComboBox<String> combo = new ComboBox<>();
+        combo.setEditable(true);
+        combo.setPromptText("Selecciona ubicación");
+        combo.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
+        vboxUbicacion.getChildren().addAll(labelUbicacion, combo);
+        HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
+
+        VBox vboxCantidad = new VBox(5);
+        Label labelCantidad = new Label("Cantidad en ubicación:");
+        javafx.scene.control.TextField txtCantidad = new javafx.scene.control.TextField();
+        vboxCantidad.getChildren().addAll(labelCantidad, txtCantidad);
+        HBox.setHgrow(vboxCantidad, Priority.ALWAYS);
+
+        VBox vboxBoton = new VBox(5);
+        Button boton = new Button(inicial ? "+" : "-");
+        boton.getStyleClass().add("botonAgregarUbi");
+        vboxBoton.setAlignment(javafx.geometry.Pos.BOTTOM_CENTER);
+        vboxBoton.getChildren().add(boton);
+        HBox.setHgrow(vboxBoton, Priority.ALWAYS);
+
+        if (inicial) {
+            boton.setOnAction(event -> agregarFilaUbicacion(contenedor, filas, false));
+        } else {
+            boton.setOnAction(event -> {
+                contenedor.getChildren().remove(fila);
+                filas.removeIf(item -> item.contenedor == fila);
+            });
+        }
+
+        fila.getChildren().addAll(vboxUbicacion, vboxCantidad, vboxBoton);
+        contenedor.getChildren().add(fila);
+        filas.add(new UbicacionFila(fila, combo, txtCantidad));
+    }
+
+    private List<UbicacionCantidad> obtenerUbicacionesSeleccionadas(List<UbicacionFila> filas) {
+        List<UbicacionCantidad> resultado = new ArrayList<>();
+        for (UbicacionFila fila : filas) {
+            String ubicacion = fila.combo.getValue();
+            if ((ubicacion == null || ubicacion.isBlank()) && fila.combo.getEditor() != null) {
+                ubicacion = fila.combo.getEditor().getText();
+            }
+            String cantidadTexto = fila.cantidad.getText();
+            if (ubicacion == null || ubicacion.isBlank() || cantidadTexto == null || cantidadTexto.isBlank()) {
+                continue;
+            }
+            try {
+                int cantidad = Integer.parseInt(cantidadTexto.trim());
+                if (cantidad > 0) {
+                    resultado.add(new UbicacionCantidad(ubicacion.trim(), cantidad));
+                }
+            } catch (NumberFormatException ignored) {
+                // Ignorar cantidades inválidas
+            }
+        }
+        return resultado;
+    }
+
+    private void configurarOrdenBotones(DialogPane pane, javafx.scene.control.ButtonType cancelar,
+                                        javafx.scene.control.ButtonType aceptar) {
+        if (pane == null) {
+            return;
+        }
+        Button btnCancelar = (Button) pane.lookupButton(cancelar);
+        Button btnAceptar = (Button) pane.lookupButton(aceptar);
+
+        if (btnCancelar != null) btnCancelar.getStyleClass().add("boton-formulario");
+        if (btnAceptar != null) btnAceptar.getStyleClass().add("boton-formulario");
+
+        if (btnCancelar != null) ButtonBar.setButtonData(btnCancelar, ButtonBar.ButtonData.CANCEL_CLOSE);
+        if (btnAceptar != null) ButtonBar.setButtonData(btnAceptar, ButtonBar.ButtonData.OK_DONE);
+
+        ButtonBar bar = (ButtonBar) pane.lookup(".button-bar");
+        if (bar != null) {
+            bar.setButtonOrder(ButtonBar.BUTTON_ORDER_NONE);
+        }
+    }
+
+    private String construirMensajeSegmentacion(ItemInventario item, int factor, List<UbicacionCantidad> ubicaciones) {
+        String producto = item.getProducto() == null ? "" : item.getProducto();
+        String presentacion = item.getPresentacion() == null ? "" : item.getPresentacion();
+        StringBuilder detalle = new StringBuilder();
+        for (UbicacionCantidad ubicacion : ubicaciones) {
+            if (detalle.length() > 0) {
+                detalle.append(", ");
+            }
+            detalle.append(ubicacion.nombre).append(" (").append(ubicacion.cantidad).append(" piezas)");
+        }
+        return "El artículo " + producto + " con presentación " + presentacion + " y factor " + factor +
+                " se segmentó en: " + detalle + ".";
+    }
+
     private static class Filtro {
         private final String campo;
         private final String valor;
@@ -1219,6 +1542,29 @@ public class MainController {
         private Filtro(String campo, String valor) {
             this.campo = campo;
             this.valor = valor;
+        }
+    }
+
+    private static class UbicacionFila {
+        private final HBox contenedor;
+        private final ComboBox<String> combo;
+        private final javafx.scene.control.TextField cantidad;
+
+        private UbicacionFila(HBox contenedor, ComboBox<String> combo, javafx.scene.control.TextField cantidad) {
+            this.contenedor = contenedor;
+            this.combo = combo;
+            this.cantidad = cantidad;
+        }
+    }
+
+    private static class UbicacionCantidad {
+        private final String nombre;
+        private final int cantidad;
+        private int id;
+
+        private UbicacionCantidad(String nombre, int cantidad) {
+            this.nombre = nombre;
+            this.cantidad = cantidad;
         }
     }
 }
