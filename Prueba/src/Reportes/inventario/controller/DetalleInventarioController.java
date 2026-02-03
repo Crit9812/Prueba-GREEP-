@@ -28,6 +28,8 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
+import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -317,7 +319,7 @@ public class DetalleInventarioController {
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         agregarEstilosDialogo(dialog);
 
-        VBox contenido = new VBox(8);
+        VBox contenido = new VBox(10);
         ComboBox<String> cbUbicacion = new ComboBox<>();
         cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
         cbUbicacion.setPromptText("Selecciona ubicación");
@@ -348,13 +350,38 @@ public class DetalleInventarioController {
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
         txtFactor.getStyleClass().add("textfield");
 
-        contenido.getChildren().addAll(
-                new Label("Ubicación:"), cbUbicacion,
-                new Label("Lote:"), txtLote,
-                new Label("Caducidad:"), dpCaducidad,
-                new Label("Presentación:"), cbPresentacion,
-                new Label("Factor:"), txtFactor
-        );
+        GridPane formulario = new GridPane();
+        formulario.setHgap(10);
+        formulario.setVgap(8);
+        formulario.add(new Label("Ubicación:"), 0, 0);
+        formulario.add(cbUbicacion, 1, 0);
+        formulario.add(new Label("Lote:"), 0, 1);
+        formulario.add(txtLote, 1, 1);
+        formulario.add(new Label("Caducidad:"), 0, 2);
+        formulario.add(dpCaducidad, 1, 2);
+        formulario.add(new Label("Presentación:"), 0, 3);
+        formulario.add(cbPresentacion, 1, 3);
+        formulario.add(new Label("Factor:"), 0, 4);
+        formulario.add(txtFactor, 1, 4);
+
+        Button btnSegmentar = new Button("Segmentar");
+        btnSegmentar.getStyleClass().add("boton-formulario");
+        Button btnEliminar = new Button("Eliminar");
+        btnEliminar.getStyleClass().add("boton-formulario");
+        btnEliminar.setOnAction(event -> {
+            eliminarArticulo(articulo);
+            dialog.setResult(ButtonType.CANCEL);
+            dialog.close();
+        });
+
+        HBox accionesSecundarias = new HBox(12, btnSegmentar, btnEliminar);
+        accionesSecundarias.setAlignment(Pos.CENTER_RIGHT);
+
+        actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
+        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) ->
+                actualizarVisibilidadSegmentar(btnSegmentar, newVal));
+
+        contenido.getChildren().addAll(formulario, accionesSecundarias);
         dialog.getDialogPane().setContent(contenido);
 
         dialog.showAndWait().ifPresent(respuesta -> {
@@ -478,6 +505,16 @@ public class DetalleInventarioController {
                 getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm());
         dialog.getDialogPane().lookupButton(ButtonType.OK).getStyleClass().add("boton-formulario");
         dialog.getDialogPane().lookupButton(ButtonType.CANCEL).getStyleClass().add("boton-formulario");
+    }
+
+    private void actualizarVisibilidadSegmentar(Button botonSegmentar, String presentacion) {
+        if (botonSegmentar == null) {
+            return;
+        }
+        String valor = valorTexto(presentacion).trim().toLowerCase();
+        boolean mostrar = !"pz".equals(valor) && !"pieza".equals(valor);
+        botonSegmentar.setVisible(mostrar);
+        botonSegmentar.setManaged(mostrar);
     }
 
     private static class UbicacionDetalle {
