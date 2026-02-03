@@ -718,8 +718,10 @@ public class MainController {
         columnas.add(colCategoria);
         columnas.add(colMaterial);
         columnas.add(colUnidad);
-        columnas.add(colPresentacion);
-        columnas.add(colFactor);
+        if (detallado) {
+            columnas.add(colPresentacion);
+            columnas.add(colFactor);
+        }
         if (detallado) {
             columnas.add(colLote);
             columnas.add(colCaducidad);
