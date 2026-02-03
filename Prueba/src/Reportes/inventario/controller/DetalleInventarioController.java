@@ -649,6 +649,9 @@ public class DetalleInventarioController {
             return;
         }
 
+        if (dialogPadre != null) {
+            dialogPadre.close();
+        }
         if (overlayCarga != null) {
             overlayCarga.mostrar();
         }
