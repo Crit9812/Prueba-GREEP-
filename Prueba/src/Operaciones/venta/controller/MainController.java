@@ -31,8 +31,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.util.Callback;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 
@@ -43,8 +41,6 @@ public class MainController {
     @FXML private VBox navbar;
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
-
-
     @FXML private VBox contenedorTabla;
     @FXML private TableView contenidoTabla;
     @FXML private HBox rootHBox;

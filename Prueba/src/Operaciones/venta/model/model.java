@@ -3,10 +3,8 @@ package Operaciones.venta.model;
 import Compartido.sesion.SesionUsuario;
 import conexion.Conexion;
 import Operaciones.traspasoSalida.model.traspasoSalida;
-
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,32 +14,29 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class model {
 
     public List<String> obtenerNombresClientes() {
         List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM clientes WHERE status = 'activo' ORDER BY nombre";
+        String sql = "SELECT Nombre FROM clientes WHERE status = 'activo' ORDER BY Nombre";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                lista.add(rs.getString("nombre"));
+                lista.add(rs.getString("Nombre"));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return lista;
     }
 
     public String obtenerIdClientePorNombre(String nombreCliente) {
-        String sql = "SELECT id FROM clientes WHERE nombre = ? AND status = 'activo' LIMIT 1";
+        String sql = "SELECT id FROM clientes WHERE Nombre = ? AND status = 'activo' LIMIT 1";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -63,134 +58,104 @@ public class model {
             return false;
         }
 
-        try (Connection conn = new Conexion().conectar()) {
+        Connection conn = null;
+        try {
+            conn = new Conexion().conectar();
             conn.setAutoCommit(false);
 
-            Map<String, String> columnasSalida = obtenerColumnas(conn, "salidas");
-            Map<String, Object> valoresSalida = new LinkedHashMap<>();
-
-            String colDestinatario = resolverColumna(columnasSalida, "idDestinatario", "destinatario", "idCliente",
-                    "id_cliente", "cliente", "cliente_id");
-            String colFactura = resolverColumna(columnasSalida, "noFatura", "noFactura", "factura",
-                    "numeroFactura", "numero_factura");
-            String colComentario = resolverColumna(columnasSalida, "nota", "comentario", "observaciones");
-            String colFecha = resolverColumna(columnasSalida, "fechaSalida", "fecha", "fecha_salida", "created_at");
-            String colHora = resolverColumna(columnasSalida, "horaSalida", "hora", "hora_salida");
-            String colTipo = resolverColumna(columnasSalida, "tipoSalida", "tipo", "tipo_salida");
-            String colPrecioNeto = resolverColumna(columnasSalida, "precioNetoSalida", "precioNeto",
-                    "precio_neto", "precioNetoTotal");
-            String colPrecioTotal = resolverColumna(columnasSalida, "precioTotalSalida", "precioTotal", "precio_total");
-            String colUsuarioSalida = resolverColumna(columnasSalida, "claveUsuarioSalida", "idUsuarioSalida",
-                    "id_usuario_salida", "usuarioSalida", "usuario_salida");
-            String colEstado = resolverColumna(columnasSalida, "Estado", "estado");
-
-            if (colDestinatario != null) valoresSalida.put(colDestinatario, idDestinatario);
-            if (colFactura != null) valoresSalida.put(colFactura, parseEntero(numeroFactura));
-            if (colComentario != null) valoresSalida.put(colComentario, comentario != null ? comentario : "");
-            if (colFecha != null) valoresSalida.put(colFecha, Date.valueOf(LocalDate.now()));
-            if (colHora != null) valoresSalida.put(colHora, Time.valueOf(LocalTime.now()));
-            if (colTipo != null) valoresSalida.put(colTipo, "venta");
-            if (colEstado != null) valoresSalida.put(colEstado, "finalizado");
-            Integer idUsuarioSalida = SesionUsuario.getIdUsuario();
-            if (colUsuarioSalida != null && idUsuarioSalida != null) {
-                valoresSalida.put(colUsuarioSalida, idUsuarioSalida);
-            }
-
+            // Calcular totales
             BigDecimal totalNeto = BigDecimal.ZERO;
             BigDecimal totalGeneral = BigDecimal.ZERO;
             for (traspasoSalida item : items) {
                 totalNeto = totalNeto.add(parseDecimal(item.getPrecioBruto()));
                 totalGeneral = totalGeneral.add(parseDecimal(item.getPrecioTotal()));
             }
-            if (colPrecioNeto != null) {
-                valoresSalida.put(colPrecioNeto, totalNeto);
+
+            // 1. Insertar en tabla salidas
+            String sqlSalida = "INSERT INTO salidas (idDestinatario, noFactura, nota, fechaSalida, horaSalida, " +
+                    "tipoSalida, Estado, claveUsuarioSalida, precioNetoSalida, precioTotalSalida) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            long idSalida;
+            try (PreparedStatement ps = conn.prepareStatement(sqlSalida, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, idDestinatario);
+                ps.setObject(2, parseEntero(numeroFactura));
+                ps.setString(3, comentario != null ? comentario : "");
+                ps.setDate(4, Date.valueOf(LocalDate.now()));
+                ps.setTime(5, Time.valueOf(LocalTime.now()));
+                ps.setString(6, "venta");
+                ps.setString(7, "finalizado");
+
+                Integer idUsuarioSalida = SesionUsuario.getIdUsuario();
+                if (idUsuarioSalida != null) {
+                    ps.setInt(8, idUsuarioSalida);
+                } else {
+                    ps.setNull(8, java.sql.Types.INTEGER);
+                }
+
+                ps.setBigDecimal(9, totalNeto);
+                ps.setBigDecimal(10, totalGeneral);
+
+                ps.executeUpdate();
+
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        idSalida = keys.getLong(1);
+                    } else {
+                        // Intentar con LAST_INSERT_ID
+                        try (PreparedStatement psId = conn.prepareStatement("SELECT LAST_INSERT_ID()")) {
+                            try (ResultSet rs = psId.executeQuery()) {
+                                if (rs.next()) {
+                                    idSalida = rs.getLong(1);
+                                } else {
+                                    conn.rollback();
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            if (colPrecioTotal != null) {
-                valoresSalida.put(colPrecioTotal, totalGeneral);
-            }
 
-            long idSalida = insertarRegistro(conn, "salidas", columnasSalida, valoresSalida);
-
-            Map<String, String> columnasDetalleSalida = obtenerColumnas(conn, "detalle_Salida");
-            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
-            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
-            Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
-
-            String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
-                    "detalleSalida", "detalle_salida", "detalle_salida_id");
-            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
-                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
-            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
-                    "id_detalle_entrada");
-            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
-                    "id_producto", "producto_id");
-            String colDetalleEntradaClaveEntrada = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada",
-                    "entrada_id", "id_entrada");
-
-            String colArticuloUbicacion = resolverColumna(columnasArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
-            String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
-            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
-            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
-            String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
-            String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
-            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
-
-            String colEntradaEstado = resolverColumna(columnasEntradas, "Estado", "estado");
-            String colEntradaTipo = resolverColumna(columnasEntradas, "tipoEntrada", "tipo", "tipo_entrada");
-            String colEntradaId = resolverColumna(columnasEntradas, "idEntrada", "id", "id_entrada");
-
+            // 2. Procesar cada item de la venta
             for (traspasoSalida item : items) {
-                Map<String, Object> valoresDetalle = new LinkedHashMap<>();
+                // Insertar en detalle_Salida
+                String sqlDetalle = "INSERT INTO detalle_Salida (claveSalida, claveProductoSalida, cantidad, " +
+                        "precioUnitarioSalida, precioIVASalida, precioBrutoTotalSalida, precioTotalSalida, " +
+                        "Nota, estado) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                String colSalida = resolverColumna(columnasDetalleSalida, "claveSalida", "idSalida", "id_salida",
-                        "salida_id");
-                String colProducto = resolverColumna(columnasDetalleSalida, "claveProductoSalida", "claveProducto",
-                        "idProducto", "id_producto", "producto_id");
-                String colCantidad = resolverColumna(columnasDetalleSalida, "cantidad", "cantidadSalida",
-                        "cantidad_salida");
-                String colPrecioSalida = resolverColumna(columnasDetalleSalida, "precioUnitarioSalida", "precioUnitario",
-                        "precioSalida", "precio_salida", "precioSalidaUnitario");
-                String colPrecioIva = resolverColumna(columnasDetalleSalida, "precioIVASalida", "precioIVA", "precioIva",
-                        "precio_iva");
-                String colPrecioBruto = resolverColumna(columnasDetalleSalida, "precioBrutoTotalSalida",
-                        "precioBrutoTotal", "precioBruto", "precio_bruto");
-                String colPrecioTotalDetalle = resolverColumna(columnasDetalleSalida, "precioTotalSalida", "precioTotal",
-                        "precio_total");
-                String colNotaDetalle = resolverColumna(columnasDetalleSalida, "Nota", "nota", "comentario", "observaciones");
-                String colDetalleLote = resolverColumna(columnasDetalleSalida, "lote");
-                String colDetalleCaducidad = resolverColumna(columnasDetalleSalida, "caducidad");
-                String colDetallePresentacion = resolverColumna(columnasDetalleSalida, "presentacion");
-                String colDetalleFactor = resolverColumna(columnasDetalleSalida, "factor");
-                String colDetalleEstado = resolverColumna(columnasDetalleSalida, "estado", "Estado");
+                long idDetalleSalida;
+                try (PreparedStatement ps = conn.prepareStatement(sqlDetalle, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setLong(1, idSalida);
+                    ps.setString(2, item.getClaveProducto());
+                    ps.setInt(3, item.getCantidad());
+                    ps.setBigDecimal(4, parseDecimal(item.getPrecioEntrada()));
+                    ps.setBigDecimal(5, parseDecimal(item.getPrecioIva()));
+                    ps.setBigDecimal(6, parseDecimal(item.getPrecioBruto()));
+                    ps.setBigDecimal(7, parseDecimal(item.getPrecioTotal()));
+                    ps.setString(8, item.getNota() != null ? item.getNota() : "");
+                    ps.setString(9, "activo");
 
-                if (colSalida != null) valoresDetalle.put(colSalida, idSalida);
-                if (colProducto != null) valoresDetalle.put(colProducto, item.getClaveProducto());
-                if (colCantidad != null) valoresDetalle.put(colCantidad, item.getCantidad());
-                if (colPrecioSalida != null) valoresDetalle.put(colPrecioSalida, parseDecimal(item.getPrecioEntrada()));
-                if (colPrecioIva != null) valoresDetalle.put(colPrecioIva, parseDecimal(item.getPrecioIva()));
-                if (colPrecioBruto != null) valoresDetalle.put(colPrecioBruto, parseDecimal(item.getPrecioBruto()));
-                if (colPrecioTotalDetalle != null) {
-                    valoresDetalle.put(colPrecioTotalDetalle, parseDecimal(item.getPrecioTotal()));
+                    ps.executeUpdate();
+
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            idDetalleSalida = keys.getLong(1);
+                        } else {
+                            conn.rollback();
+                            return false;
+                        }
+                    }
                 }
-                if (colNotaDetalle != null) {
-                    valoresDetalle.put(colNotaDetalle, item.getNota());
-                }
-                if (colDetalleLote != null) valoresDetalle.put(colDetalleLote, item.getLote());
-                if (colDetalleCaducidad != null) {
-                    Date caducidadDetalle = parseDate(item.getCaducidad());
-                    valoresDetalle.put(colDetalleCaducidad, caducidadDetalle); // Puede ser null
-                }
-                if (colDetallePresentacion != null) valoresDetalle.put(colDetallePresentacion, item.getPresentacion());
-                if (colDetalleFactor != null) valoresDetalle.put(colDetalleFactor, item.getFactor());
-                if (colDetalleEstado != null) valoresDetalle.put(colDetalleEstado, "activo");
 
-                long idDetalleSalida = insertarRegistro(conn, "detalle_Salida", columnasDetalleSalida, valoresDetalle);
-
+                // Verificar ubicaciones
                 if (item.getUbicaciones().isEmpty()) {
                     conn.rollback();
                     return false;
                 }
 
+                // 3. Procesar cada ubicación
                 for (Operaciones.compra.model.UbicacionCompra ubicacion : item.getUbicaciones()) {
                     if (ubicacion == null || ubicacion.getUbicacion() == null) {
                         continue;
@@ -199,168 +164,38 @@ public class model {
                     if (cantidad == 0) {
                         continue;
                     }
+
                     Integer ubicacionId = resolverUbicacionId(conn, ubicacion.getUbicacion().trim());
                     if (ubicacionId == null) {
                         conn.rollback();
                         return false;
                     }
 
-                    Integer detalleEntradaId = obtenerDetalleEntradaId(conn, item, ubicacionId,
-                            colArticuloDetalleEntrada, colDetalleEntradaId, colDetalleEntradaProducto,
-                            colArticuloLote, colArticuloCaducidad, colArticuloPresentacion, colArticuloFactor,
-                            colArticuloUbicacion);
-
-                    if (colArticuloId == null) {
+                    // Obtener detalle entrada ID
+                    Integer detalleEntradaId = obtenerDetalleEntradaId(conn, item, ubicacionId);
+                    if (detalleEntradaId == null) {
                         conn.rollback();
                         return false;
                     }
 
-                    StringBuilder sql = new StringBuilder("SELECT a.").append(colArticuloId)
-                            .append(" FROM articulo a");
-                    if (colArticuloDetalleEntrada != null && colDetalleEntradaId != null) {
-                        sql.append(" JOIN detalle_Entrada de ON de.")
-                                .append(colDetalleEntradaId)
-                                .append(" = a.")
-                                .append(colArticuloDetalleEntrada);
-                    }
-                    sql.append(" WHERE 1=1");
-                    if (colArticuloDetalleSalida != null) {
-                        sql.append(" AND (a.").append(colArticuloDetalleSalida).append(" IS NULL OR a.")
-                                .append(colArticuloDetalleSalida).append(" = 0)");
-                    }
-                    if (colArticuloLote != null) {
-                        sql.append(" AND a.").append(colArticuloLote).append(" = ?");
-                    }
-                    if (colArticuloCaducidad != null) {
-                        Date caducidad = parseDate(item.getCaducidad());
-                        if (caducidad != null) {
-                            sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
-                        } else {
-                            sql.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
-                        }
-                    }
-                    if (colArticuloUbicacion != null) {
-                        sql.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
-                    }
-                    if (colArticuloPresentacion != null) {
-                        sql.append(" AND a.").append(colArticuloPresentacion).append(" = ?");
-                    }
-                    if (colArticuloFactor != null) {
-                        sql.append(" AND a.").append(colArticuloFactor).append(" = ?");
-                    }
-                    if (colArticuloEstado != null) {
-                        sql.append(" AND LOWER(a.").append(colArticuloEstado).append(") = ?");
-                    }
-                    if (colDetalleEntradaProducto != null && colDetalleEntradaId != null && colArticuloDetalleEntrada != null) {
-                        sql.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
-                    }
-                    sql.append(" LIMIT ?");
-
-                    List<Integer> articulosParaEliminar = new ArrayList<>();
-                    try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-                        int index = 1;
-                        if (colArticuloLote != null) {
-                            ps.setString(index++, item.getLote());
-                        }
-                        if (colArticuloCaducidad != null) {
-                            Date caducidad = parseDate(item.getCaducidad());
-                            if (caducidad != null) {
-                                ps.setDate(index++, caducidad);
-                            }
-                        }
-                        if (colArticuloUbicacion != null) {
-                            ps.setInt(index++, ubicacionId);
-                        }
-                        if (colArticuloPresentacion != null) {
-                            ps.setString(index++, item.getPresentacion());
-                        }
-                        if (colArticuloFactor != null) {
-                            ps.setInt(index++, item.getFactor());
-                        }
-                        if (colArticuloEstado != null) {
-                            ps.setString(index++, "disponible");
-                        }
-                        if (colDetalleEntradaProducto != null && colDetalleEntradaId != null
-                                && colArticuloDetalleEntrada != null) {
-                            ps.setString(index++, item.getClaveProducto());
-                        }
-                        ps.setInt(index, cantidad);
-
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                articulosParaEliminar.add(rs.getInt(colArticuloId));
-                            }
-                        }
-                    }
+                    // Obtener artículos disponibles para vender
+                    List<Integer> articulosParaEliminar = obtenerArticulosDisponibles(
+                            conn, item, ubicacionId, cantidad, detalleEntradaId
+                    );
 
                     if (articulosParaEliminar.size() < cantidad) {
                         conn.rollback();
                         return false;
                     }
 
-                    if (colArticuloEstado != null || colArticuloDetalleSalida != null) {
-                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
-                        StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ");
-                        boolean agregaComa = false;
-                        if (colArticuloDetalleSalida != null) {
-                            sqlUpdate.append(colArticuloDetalleSalida).append(" = ?");
-                            agregaComa = true;
-                        }
-                        if (colArticuloEstado != null) {
-                            if (agregaComa) {
-                                sqlUpdate.append(", ");
-                            }
-                            sqlUpdate.append(colArticuloEstado).append(" = ?");
-                        }
-                        sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
-                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
-                            int index = 1;
-                            if (colArticuloDetalleSalida != null) {
-                                psUpdate.setLong(index++, idDetalleSalida);
-                            }
-                            if (colArticuloEstado != null) {
-                                psUpdate.setString(index++, "vendido");
-                            }
-                            for (Integer idArticulo : articulosParaEliminar) {
-                                psUpdate.setInt(index++, idArticulo);
-                            }
-                            int actualizadas = psUpdate.executeUpdate();
-                            if (actualizadas < cantidad) {
-                                conn.rollback();
-                                return false;
-                            }
-                        }
-                    } else {
-                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaEliminar.size(), "?"));
-                        String sqlDelete = "DELETE FROM articulo WHERE " + colArticuloId + " IN (" + placeholders + ")";
-                        try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
-                            int index = 1;
-                            for (Integer idArticulo : articulosParaEliminar) {
-                                psDelete.setInt(index++, idArticulo);
-                            }
-                            int eliminadas = psDelete.executeUpdate();
-                            if (eliminadas < cantidad) {
-                                conn.rollback();
-                                return false;
-                            }
-                        }
+                    // Actualizar artículos como vendidos
+                    if (!actualizarArticulosVendidos(conn, articulosParaEliminar, idDetalleSalida)) {
+                        conn.rollback();
+                        return false;
                     }
 
-                    if (detalleEntradaId != null && colEntradaId != null && colEntradaEstado != null
-                            && colDetalleEntradaClaveEntrada != null && colDetalleEntradaId != null
-                            && colArticuloDetalleEntrada != null && colArticuloEstado != null) {
-                        actualizarEstadoEntradaPorDetalle(
-                                conn,
-                                detalleEntradaId,
-                                colEntradaId,
-                                colEntradaEstado,
-                                colDetalleEntradaId,
-                                colDetalleEntradaClaveEntrada,
-                                colArticuloDetalleEntrada,
-                                colArticuloEstado
-                        );
-                    }
-
+                    // Actualizar estado de la entrada si es necesario
+                    actualizarEstadoEntradaPorDetalle(conn, detalleEntradaId);
                 }
             }
 
@@ -368,76 +203,53 @@ public class model {
             return true;
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
-        }
-    }
-
-    private Integer parseEntero(String valor) {
-        if (valor == null || valor.isBlank()) {
-            return null;
-        }
-        try {
-            return Integer.valueOf(valor.trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private Integer obtenerDetalleEntradaId(Connection conn, traspasoSalida item, int ubicacionId,
-                                            String colArticuloDetalleEntrada, String colDetalleEntradaId,
-                                            String colDetalleEntradaProducto, String colArticuloLote,
-                                            String colArticuloCaducidad, String colArticuloPresentacion,
-                                            String colArticuloFactor, String colArticuloUbicacion) throws SQLException {
-        if (colArticuloDetalleEntrada == null || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
-            return null;
-        }
-        StringBuilder sql = new StringBuilder("SELECT a.").append(colArticuloDetalleEntrada)
-                .append(" AS detalleEntrada FROM articulo a JOIN detalle_Entrada de ON de.")
-                .append(colDetalleEntradaId).append(" = a.").append(colArticuloDetalleEntrada)
-                .append(" WHERE de.").append(colDetalleEntradaProducto).append(" = ?");
-
-        if (colArticuloLote != null) {
-            sql.append(" AND a.").append(colArticuloLote).append(" = ?");
-        }
-        if (colArticuloCaducidad != null) {
-            Date caducidad = parseDate(item.getCaducidad());
-            if (caducidad != null) {
-                sql.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
-            } else {
-                sql.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
-            }
-        }
-        if (colArticuloPresentacion != null) {
-            sql.append(" AND a.").append(colArticuloPresentacion).append(" = ?");
-        }
-        if (colArticuloFactor != null) {
-            sql.append(" AND a.").append(colArticuloFactor).append(" = ?");
-        }
-        if (colArticuloUbicacion != null) {
-            sql.append(" AND a.").append(colArticuloUbicacion).append(" = ?");
-        }
-        sql.append(" LIMIT 1");
-
-        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            int index = 1;
-            ps.setString(index++, item.getClaveProducto());
-            if (colArticuloLote != null) {
-                ps.setString(index++, item.getLote());
-            }
-            if (colArticuloCaducidad != null) {
-                Date caducidad = parseDate(item.getCaducidad());
-                if (caducidad != null) {
-                    ps.setDate(index++, caducidad);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
                 }
             }
-            if (colArticuloPresentacion != null) {
-                ps.setString(index++, item.getPresentacion());
+            return false;
+        } finally {
+            // Cerrar la conexión manualmente
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
-            if (colArticuloFactor != null) {
-                ps.setInt(index++, item.getFactor());
-            }
-            if (colArticuloUbicacion != null) {
-                ps.setInt(index, ubicacionId);
+        }
+    }
+
+    private Integer obtenerDetalleEntradaId(Connection conn, traspasoSalida item, int ubicacionId) throws SQLException {
+        String sql = "SELECT a.idDetalleEntrada AS detalleEntrada " +
+                "FROM articulo a " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE de.claveProducto = ? " +
+                "AND a.lote = ? " +
+                "AND a.ubicacion = ? " +
+                "AND a.presentacion = ? " +
+                "AND a.factor = ? ";
+
+        Date caducidad = parseDate(item.getCaducidad());
+        if (caducidad != null) {
+            sql += "AND a.caducidad = ? ";
+        } else {
+            sql += "AND a.caducidad IS NULL ";
+        }
+        sql += "LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            ps.setString(index++, item.getClaveProducto());
+            ps.setString(index++, item.getLote());
+            ps.setInt(index++, ubicacionId);
+            ps.setString(index++, item.getPresentacion());
+            ps.setInt(index++, item.getFactor());
+            if (caducidad != null) {
+                ps.setDate(index, caducidad);
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -450,35 +262,107 @@ public class model {
         return null;
     }
 
-    private void actualizarEstadoEntradaPorDetalle(Connection conn,
-                                                   int detalleEntradaId,
-                                                   String colEntradaId,
-                                                   String colEntradaEstado,
-                                                   String colDetalleEntradaId,
-                                                   String colDetalleEntradaClaveEntrada,
-                                                   String colArticuloDetalleEntrada,
-                                                   String colArticuloEstado) throws SQLException {
-        if (colEntradaId == null || colEntradaEstado == null || colDetalleEntradaId == null
-                || colDetalleEntradaClaveEntrada == null || colArticuloDetalleEntrada == null
-                || colArticuloEstado == null) {
+    private List<Integer> obtenerArticulosDisponibles(Connection conn, traspasoSalida item,
+                                                      int ubicacionId, int cantidad, int detalleEntradaId) throws SQLException {
+        List<Integer> articulosParaEliminar = new ArrayList<>();
+
+        String sql = "SELECT a.idArticulo " +
+                "FROM articulo a " +
+                "WHERE a.idDetalleEntrada = ? " +
+                "AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0) " +
+                "AND a.lote = ? " +
+                "AND a.ubicacion = ? " +
+                "AND a.presentacion = ? " +
+                "AND a.factor = ? " +
+                "AND LOWER(a.Estado) = ? ";
+
+        Date caducidad = parseDate(item.getCaducidad());
+        if (caducidad != null) {
+            sql += "AND a.caducidad = ? ";
+        } else {
+            sql += "AND a.caducidad IS NULL ";
+        }
+        sql += "LIMIT ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            ps.setInt(index++, detalleEntradaId);
+            ps.setString(index++, item.getLote());
+            ps.setInt(index++, ubicacionId);
+            ps.setString(index++, item.getPresentacion());
+            ps.setInt(index++, item.getFactor());
+            ps.setString(index++, "disponible");
+            if (caducidad != null) {
+                ps.setDate(index++, caducidad);
+            }
+            ps.setInt(index, cantidad);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    articulosParaEliminar.add(rs.getInt("idArticulo"));
+                }
+            }
+        }
+
+        return articulosParaEliminar;
+    }
+
+    private boolean actualizarArticulosVendidos(Connection conn, List<Integer> articulosIds, long idDetalleSalida) throws SQLException {
+        if (articulosIds.isEmpty()) {
+            return false;
+        }
+
+        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
+        String sqlUpdate = "UPDATE articulo SET idDetalleSalida = ?, Estado = ? WHERE idArticulo IN (" + placeholders + ")";
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+            int index = 1;
+            ps.setLong(index++, idDetalleSalida);
+            ps.setString(index++, "vendido");
+            for (Integer idArticulo : articulosIds) {
+                ps.setInt(index++, idArticulo);
+            }
+
+            int actualizadas = ps.executeUpdate();
+            return actualizadas >= articulosIds.size();
+        }
+    }
+
+    private void actualizarEstadoEntradaPorDetalle(Connection conn, int detalleEntradaId) throws SQLException {
+        // 1. Obtener claveEntrada como STRING
+        String sqlClaveEntrada = "SELECT claveEntrada FROM detalle_Entrada WHERE idDetalleEntrada = ? LIMIT 1";
+        String claveEntradaStr = null;
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlClaveEntrada)) {
+            ps.setInt(1, detalleEntradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    claveEntradaStr = rs.getString("claveEntrada");
+                }
+            }
+        }
+
+        if (claveEntradaStr == null) {
             return;
         }
 
-        Integer claveEntrada = obtenerClaveEntrada(conn, detalleEntradaId, colDetalleEntradaId, colDetalleEntradaClaveEntrada);
-        if (claveEntrada == null) {
-            return;
-        }
+        // 2. Determinar si es ajuste (tiene "A") o compra (numérico)
+        boolean esAjuste = claveEntradaStr.toUpperCase().endsWith("A");
 
-        String sqlConteo = "SELECT LOWER(a." + colArticuloEstado + ") AS estado, COUNT(*) AS total " +
-                "FROM articulo a JOIN detalle_Entrada de ON de." + colDetalleEntradaId + " = a." +
-                colArticuloDetalleEntrada + " WHERE de." + colDetalleEntradaClaveEntrada + " = ? " +
-                "GROUP BY LOWER(a." + colArticuloEstado + ")";
+        // 3. Contar artículos por estado
+        String sqlConteo = "SELECT LOWER(a.Estado) AS estado, COUNT(*) AS total " +
+                "FROM articulo a " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE a.idDetalleEntrada = ? " +
+                "GROUP BY LOWER(a.Estado)";
 
         int disponibles = 0;
         int pendientes = 0;
         int vendidos = 0;
+        int ajustados = 0;
+
         try (PreparedStatement ps = conn.prepareStatement(sqlConteo)) {
-            ps.setInt(1, claveEntrada);
+            ps.setInt(1, detalleEntradaId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String estado = rs.getString("estado");
@@ -489,122 +373,75 @@ public class model {
                         pendientes += total;
                     } else if ("vendido".equalsIgnoreCase(estado)) {
                         vendidos += total;
+                    } else if ("ajustado".equalsIgnoreCase(estado)) {
+                        ajustados += total;
                     }
                 }
             }
         }
 
-        String nuevoEstado;
+        // 4. Determinar nuevo estado de la entrada principal
+        String nuevoEstadoEntrada;
         if (disponibles > 0) {
-            nuevoEstado = "disponible";
+            nuevoEstadoEntrada = "disponible";
         } else if (pendientes > 0) {
-            nuevoEstado = "pendiente";
-        } else if (vendidos > 0) {
-            nuevoEstado = "finalizado";
+            nuevoEstadoEntrada = "pendiente";
+        } else if (vendidos > 0 || ajustados > 0) {
+            nuevoEstadoEntrada = "finalizado";
         } else {
-            nuevoEstado = "finalizado";
+            nuevoEstadoEntrada = "finalizado";
         }
 
-        String sqlUpdate = "UPDATE entradas SET " + colEntradaEstado + " = ? WHERE " + colEntradaId + " = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
-            ps.setString(1, nuevoEstado);
-            ps.setInt(2, claveEntrada);
+        // 5. Actualizar tabla correspondiente (entradas o ajuste_inventario)
+        if (esAjuste) {
+            // Actualizar ajuste_inventario
+            String sqlUpdate = "UPDATE ajuste_inventario SET estado = ? WHERE idAjuste = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+                ps.setString(1, nuevoEstadoEntrada);
+                ps.setString(2, claveEntradaStr);
+                ps.executeUpdate();
+            }
+        } else {
+            // Actualizar entradas (compra/traspaso)
+            try {
+                int claveEntradaNum = Integer.parseInt(claveEntradaStr);
+                String sqlUpdate = "UPDATE entradas SET Estado = ? WHERE idEntrada = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+                    ps.setString(1, nuevoEstadoEntrada);
+                    ps.setInt(2, claveEntradaNum);
+                    ps.executeUpdate();
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("Error: claveEntrada no es numérica ni ajuste: " + claveEntradaStr);
+            }
+        }
+
+        // 6. Actualizar estado del detalle_Entrada específico
+        String estadoDetalleEntrada = "activo"; // Estado por defecto
+        if (disponibles == 0 && pendientes == 0) {
+            // Si no hay artículos disponibles ni pendientes
+            estadoDetalleEntrada = "desactivado";
+        }
+
+        // Actualizar detalle_Entrada
+        String sqlUpdateDetalle = "UPDATE detalle_Entrada SET estado = ? WHERE idDetalleEntrada = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlUpdateDetalle)) {
+            ps.setString(1, estadoDetalleEntrada);
+            ps.setInt(2, detalleEntradaId);
             ps.executeUpdate();
         }
     }
 
-    private Integer obtenerClaveEntrada(Connection conn, int detalleEntradaId, String colDetalleEntradaId,
-                                        String colDetalleEntradaClaveEntrada) throws SQLException {
-        String sql = "SELECT " + colDetalleEntradaClaveEntrada + " AS claveEntrada FROM detalle_Entrada WHERE "
-                + colDetalleEntradaId + " = ? LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, detalleEntradaId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("claveEntrada");
-                }
-            }
+    // Métodos auxiliares (se mantienen igual)
+    private Integer parseEntero(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
         }
-        return null;
-    }
-
-    private Map<String, String> obtenerColumnas(Connection conn, String tabla) throws SQLException {
-        Map<String, String> columnas = new java.util.HashMap<>();
-        DatabaseMetaData meta = conn.getMetaData();
-
-        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla, null)) {
-            while (rs.next()) {
-                String nombre = rs.getString("COLUMN_NAME");
-                if (nombre == null) {
-                    continue;
-                }
-                String nombreLimpio = nombre.trim();
-                columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
-            }
+        try {
+            return Integer.valueOf(valor.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
-
-        if (columnas.isEmpty()) {
-            try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, tabla.toLowerCase(), null)) {
-                while (rs.next()) {
-                    String nombre = rs.getString("COLUMN_NAME");
-                    if (nombre == null) {
-                        continue;
-                    }
-                    String nombreLimpio = nombre.trim();
-                    columnas.put(nombreLimpio.toLowerCase(), nombreLimpio);
-                }
-            }
-        }
-
-        return columnas;
-    }
-
-    private String resolverColumna(Map<String, String> columnas, String... candidatos) {
-        for (String candidato : candidatos) {
-            if (candidato == null) continue;
-            String match = columnas.get(candidato.toLowerCase());
-            if (match != null) {
-                return match;
-            }
-        }
-        return null;
-    }
-
-    private long insertarRegistro(Connection conn, String tabla, Map<String, String> columnas, Map<String, Object> valores)
-            throws SQLException {
-        if (valores.isEmpty()) {
-            throw new SQLException("No hay valores para insertar en " + tabla);
-        }
-
-        String columnasSql = String.join(", ", valores.keySet());
-        String placeholders = String.join(", ", java.util.Collections.nCopies(valores.size(), "?"));
-
-        String sql = "INSERT INTO " + tabla + " (" + columnasSql + ") VALUES (" + placeholders + ")";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            int index = 1;
-            for (Object value : valores.values()) {
-                ps.setObject(index++, value);
-            }
-
-            ps.executeUpdate();
-
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) {
-                    return keys.getLong(1);
-                }
-            }
-        }
-
-        try (PreparedStatement ps = conn.prepareStatement("SELECT LAST_INSERT_ID()")) {
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getLong(1);
-                }
-            }
-        }
-
-        return 0;
     }
 
     private BigDecimal parseDecimal(String valor) {

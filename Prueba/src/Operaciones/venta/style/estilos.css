@@ -12,11 +12,10 @@
     -fx-background-color: #ebebeb;
 }
 
-/* 🔹 Contenedor gris */
 .opciones {
-    -fx-background-color: #ffffff;  /* Gris claro */
-    -fx-padding: 15;               /* Espaciado interno */
-    -fx-spacing: 20;               /* Separación entre elementos */
+    -fx-background-color: #ffffff;
+    -fx-padding: 15;
+    -fx-spacing: 20;
 }
 
 .custom-check {
@@ -76,7 +75,7 @@
     -fx-border-color: #333;
     -fx-border-width: 1px 0 1px 1px;
     -fx-prompt-text-fill: gray;
-    -fx-padding: 0 0 0 8px; /* espacio para escribir */
+    -fx-padding: 0 0 0 8px;
 }
 
 .barraBusquedaCliente {
@@ -89,7 +88,7 @@
     -fx-border-color: #333;
     -fx-border-width: 1px 0 1px 1px;
     -fx-prompt-text-fill: gray;
-    -fx-padding: 0 0 0 8px; /* espacio para escribir */
+    -fx-padding: 0 0 0 8px;
 }
 
 .factura{
@@ -102,50 +101,44 @@
     -fx-border-color: #333;
     -fx-border-width: 1px 1px 1px 1px;
     -fx-prompt-text-fill: gray;
-    -fx-padding: 0 0 0 8px; /* espacio para escribir */
+    -fx-padding: 0 0 0 8px;
 }
-
 
 .tabla {
-    -fx-background-color: #ebebeb;     /* Fondo de la tabla */
+    -fx-background-color: #ebebeb;
 }
 
-/* Estilo general de la tabla */
 .contenidoTable {
     -fx-background-color: white;
-    -fx-border-color: black;       /* borde alrededor de la tabla */
+    -fx-border-color: black;
     -fx-border-width: 1px;
     -fx-border-radius: 5px;
     -fx-background-radius: 5px;
-    -fx-padding: 0 0 0 0;   /* espacio arriba, derecha, abajo, izquierda */
+    -fx-padding: 0 0 0 0;
     -fx-text-fill: black;
 }
 
 .table-view .column-header,
 .table-view .column-header .label {
-    -fx-text-fill: white;          /* texto blanco en encabezado */
+    -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-color: #333;
 }
 
-/* Scrollbars automáticos */
 .table-view {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
 
-
 .table-view .table-row-cell .text {
-    -fx-fill: black; /* color de texto de todas las celdas */
+    -fx-fill: black;
 }
 
-/* Evitar azul de selección */
 .table-view .table-row-cell:filled:selected,
 .table-view .table-row-cell:filled:selected:focused {
-    -fx-text-fill: black; /* aunque no siempre funciona sin el anterior */
+    -fx-text-fill: black;
     -fx-background-color: #91d485;
 }
-
 
 .botonConfirmar {
     -fx-font-size: 18px;
@@ -154,8 +147,8 @@
     -fx-background-color: #000000;
     -fx-padding: 5 5;
     -fx-cursor: hand;
-    -fx-pref-width: 150px;     /* Ancho preferido */
-    -fx-pref-height: 30px;     /* Alto preferido */
+    -fx-pref-width: 150px;
+    -fx-pref-height: 30px;
     -fx-border-radius: 15px;
     -fx-background-radius: 15px;
 }

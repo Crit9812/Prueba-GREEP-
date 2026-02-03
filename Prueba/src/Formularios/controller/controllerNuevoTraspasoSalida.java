@@ -1,20 +1,20 @@
 package Formularios.controller;
 
-import Operaciones.traspasoSalida.model.traspasoSalida;
-import Operaciones.traspasoSalida.controller.MainController;
-import Operaciones.compra.model.UbicacionCompra;
 import Formularios.model.modelNuevoTraspasoSalida;
+import Operaciones.compra.model.UbicacionCompra;
+import Operaciones.traspasoSalida.controller.MainController;
+import Operaciones.traspasoSalida.model.traspasoSalida;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.concurrent.Task;
+import javafx.util.Duration;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
@@ -40,19 +40,13 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     private boolean modoAjusteInventario = false;
 
     // === CONSTANTE ESPECÍFICA ===
-    private static final BigDecimal IVA_TASA = new BigDecimal("0.16");
+    private static final BigDecimal IVA_TASA = new BigDecimal("0.16"); // se conserva por compatibilidad
 
     @FXML
     public void initialize() {
-        // Configurar título
-        if (lblTitulo != null) {
-            lblTitulo.setText(tituloFormulario);
-        }
+        if (lblTitulo != null) lblTitulo.setText(tituloFormulario);
 
-        // Inicialización base
         initializeBase();
-
-        // Configuración específica de traspaso
         aplicarModoSoloNormal();
 
         if (itemParaEditar != null) {
@@ -66,71 +60,46 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         }
     }
 
-    // === IMPLEMENTACIÓN DE MÉTODOS ABSTRACTS ===
+    // =========================
+    // IMPLEMENTACIÓN ABSTRACTA
+    // =========================
 
     @Override
     protected void guardarItem() {
-        if (esModoRapido()) {
-            guardarItemRapido();
-            return;
-        }
+        if (esModoRapido()) { guardarItemRapido(); return; }
 
+        // Lectura de campos (menos repetición / mismas reglas)
         String clave = productoController.getIdSeleccionado();
         String nombre = productoController.getNombreSeleccionado();
-        String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
-        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        LocalDate caducidad = dpCaducidad.getValue();
-        String cantidadTexto = txtCantidad.getText() != null ? txtCantidad.getText().trim() : "";
-        String nota = txtNota != null && txtNota.getText() != null ? txtNota.getText().trim() : "";
-        String presentacion = cbPresentacion.getValue();
-        String factorTexto = txtFactor.getText() != null ? txtFactor.getText().trim() : "";
-        String precioEntrada = txtPrecioEntrada != null ? txtPrecioEntrada.getText().trim() : "";
-        String precioEntradaIva = txtPrecioEntradaIva != null ? txtPrecioEntradaIva.getText().trim() : "";
-        String precioSalida = txtPrecioSalida != null ? txtPrecioSalida.getText().trim() : "";
-        String precioIva = txtPrecioIVA != null ? txtPrecioIVA.getText().trim() : "";
-        String precioBruto = txtPrecioBruto != null ? txtPrecioBruto.getText().trim() : "";
-        String precioTotal = txtPrecioTotal != null ? txtPrecioTotal.getText().trim() : "";
 
-        if (clave == null || clave.isBlank()
-                || nombre == null || nombre.isBlank()
-                || descripcion.isBlank()
-                || lote.isBlank()
-                || cantidadTexto.isBlank()
-                || presentacion == null || presentacion.isBlank()
-                || factorTexto.isBlank()
-                || precioEntrada.isBlank()
-                || precioEntradaIva.isBlank()
-                || precioSalida.isBlank()
-                || precioIva.isBlank()
-                || precioBruto.isBlank()
-                || precioTotal.isBlank()) {
+        String descripcion = t(txtDescripcion);
+        String lote = t(txtLote);
+        LocalDate caducidad = dpCaducidad != null ? dpCaducidad.getValue() : null;
+        String cantidadTexto = t(txtCantidad);
+        String nota = txtNota != null ? t(txtNota) : "";
+
+        String presentacion = cbPresentacion != null ? cbPresentacion.getValue() : null;
+        String factorTexto = t(txtFactor);
+
+        String precioEntrada = t(txtPrecioEntrada);
+        String precioEntradaIva = t(txtPrecioEntradaIva);
+        String precioSalida = t(txtPrecioSalida);
+        String precioIva = t(txtPrecioIVA);
+        String precioBruto = t(txtPrecioBruto);
+        String precioTotal = t(txtPrecioTotal);
+
+        // Validación: mismos campos requeridos
+        if (isBlank(clave, nombre, descripcion, lote, cantidadTexto, presentacion, factorTexto,
+                precioEntrada, precioEntradaIva, precioSalida, precioIva, precioBruto, precioTotal)) {
             mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar, excepto el comentario.");
             return;
         }
 
-        int cantidad;
-        int factor;
-        try {
-            cantidad = Integer.parseInt(cantidadTexto);
-            if (cantidad <= 0) {
-                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            mostrarAlerta("Error", "La cantidad debe ser un número válido.");
-            return;
-        }
+        Integer cantidad = parsePositivo(cantidadTexto, "cantidad");
+        if (cantidad == null) return;
 
-        try {
-            factor = Integer.parseInt(factorTexto);
-            if (factor <= 0) {
-                mostrarAlerta("Advertencia", "El factor debe ser mayor a 0.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            mostrarAlerta("Error", "El factor debe ser un número válido.");
-            return;
-        }
+        Integer factor = parsePositivo(factorTexto, "factor");
+        if (factor == null) return;
 
         List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
         if (ubicacionesSeleccionadas.isEmpty()) {
@@ -149,29 +118,19 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        int sumaUbicaciones = ubicacionesSeleccionadas.stream()
-                .mapToInt(UbicacionCompra::getCantidad)
-                .sum();
+        int sumaUbicaciones = ubicacionesSeleccionadas.stream().mapToInt(UbicacionCompra::getCantidad).sum();
         if (sumaUbicaciones != cantidad) {
             mostrarAlerta("Advertencia", "La suma de cantidades por ubicación debe ser igual a la cantidad total.");
             return;
         }
 
         // En traspaso salida, el precio de salida debe ser igual al de entrada
-        BigDecimal precioEntradaDecimal = parseDecimal(precioEntrada);
-        BigDecimal precioSalidaDecimal = parseDecimal(precioSalida);
-        if (precioSalidaDecimal.compareTo(precioEntradaDecimal) != 0) {
-            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-            confirmacion.setTitle("Advertencia");
-            confirmacion.setHeaderText("El precio de salida no coincide con el precio de entrada.");
-            confirmacion.setContentText("En traspaso de salida, el precio debe ser el mismo. ¿Deseas ajustarlo automáticamente?");
-            Optional<ButtonType> respuesta = confirmacion.showAndWait();
-            if (respuesta.isPresent() && respuesta.get() == ButtonType.OK) {
-                txtPrecioSalida.setText(precioEntrada);
-                precioSalidaDecimal = precioEntradaDecimal;
-            } else {
-                return;
-            }
+        BigDecimal precioEntradaDec = parseDecimal(precioEntrada);
+        BigDecimal precioSalidaDec = parseDecimal(precioSalida);
+        if (precioSalidaDec.compareTo(precioEntradaDec) != 0) {
+            if (!confirmarAjustePrecioSalida(precioEntrada, false)) return;
+            if (txtPrecioSalida != null) txtPrecioSalida.setText(precioEntrada);
+            precioSalida = precioEntrada;
         }
 
         if (itemsTraspaso == null) {
@@ -214,9 +173,7 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             itemsTraspaso.add(item);
         }
 
-        if (mainController != null) {
-            mainController.refrescarTabla();
-        }
+        if (mainController != null) mainController.refrescarTabla();
 
         if (itemParaEditar != null) {
             mostrarAlertaSinEspera("Éxito", "Producto actualizado.");
@@ -235,121 +192,73 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
         String clave = productoController.getIdSeleccionado();
         String nombre = productoController.getNombreSeleccionado();
-        String descripcion = txtDescripcion.getText() != null ? txtDescripcion.getText().trim() : "";
-        String cantidadTexto = txtCantidadRapida != null && txtCantidadRapida.getText() != null
-                ? txtCantidadRapida.getText().trim()
-                : "";
+        String descripcion = t(txtDescripcion);
+        String cantidadTexto = t(txtCantidadRapida);
 
-        // Obtener presentación y factor del modo rápido
-        String presentacionRapida = "pz"; // Valor por defecto
-        int factorRapido = 1; // Valor por defecto
+        // Presentación y factor
+        String presentacionRapida = (cbPresentacionRapida != null && cbPresentacionRapida.getValue() != null
+                && !cbPresentacionRapida.getValue().isBlank())
+                ? cbPresentacionRapida.getValue().trim()
+                : "pz";
 
-        if (cbPresentacionRapida != null && cbPresentacionRapida.getValue() != null
-                && !cbPresentacionRapida.getValue().isBlank()) {
-            presentacionRapida = cbPresentacionRapida.getValue().trim();
-        }
-
-        if (txtFactorRapido != null && txtFactorRapido.getText() != null && !txtFactorRapido.getText().isBlank()) {
-            try {
-                factorRapido = Integer.parseInt(txtFactorRapido.getText().trim());
-                if (factorRapido <= 0) {
-                    mostrarAlerta("Advertencia", "El factor debe ser mayor a 0.");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                mostrarAlerta("Error", "El factor debe ser un número válido.");
-                return;
-            }
+        int factorRapido = 1;
+        String factorRapidoTxt = t(txtFactorRapido);
+        if (!factorRapidoTxt.isBlank()) {
+            Integer f = parsePositivo(factorRapidoTxt, "factor");
+            if (f == null) return;
+            factorRapido = f;
         } else if (!presentacionRapida.equalsIgnoreCase("pz")) {
-            // Si no es "pz" y no tiene factor, mostrar error
             mostrarAlerta("Advertencia", "Debe especificar un factor para la presentación seleccionada.");
             return;
         }
 
-        // VALIDACIÓN 1: Verificar que el producto esté seleccionado
-        if (clave == null || clave.isBlank() || nombre == null || nombre.isBlank()) {
+        // VALIDACIÓN 1: producto
+        if (isBlank(clave, nombre)) {
             mostrarAlerta("Advertencia", "Debe seleccionar un producto.");
             return;
         }
 
-        // VALIDACIÓN 2: Verificar que la presentación esté seleccionada
+        // VALIDACIÓN 2: presentación
         if (presentacionRapida.isBlank()) {
             mostrarAlerta("Advertencia", "Debe seleccionar una presentación.");
             return;
         }
 
-        // VALIDACIÓN 3: Verificar que la cantidad esté capturada
+        // VALIDACIÓN 3: cantidad
         if (cantidadTexto.isBlank()) {
             mostrarAlerta("Advertencia", "Debe capturar la cantidad.");
             return;
         }
 
-        // VALIDACIÓN 4: Verificar que los precios estén completos
-        String precioSalida = txtPrecioSalidaRapida != null && txtPrecioSalidaRapida.getText() != null
-                ? txtPrecioSalidaRapida.getText().trim()
-                : "";
-        String precioIva = txtPrecioIVARapida != null && txtPrecioIVARapida.getText() != null
-                ? txtPrecioIVARapida.getText().trim()
-                : "";
-        String precioBruto = txtPrecioBrutoRapida != null && txtPrecioBrutoRapida.getText() != null
-                ? txtPrecioBrutoRapida.getText().trim()
-                : "";
-        String precioTotal = txtPrecioTotalRapida != null && txtPrecioTotalRapida.getText() != null
-                ? txtPrecioTotalRapida.getText().trim()
-                : "";
+        // VALIDACIÓN 4: precios completos
+        String precioSalida = t(txtPrecioSalidaRapida);
+        String precioIva = t(txtPrecioIVARapida);
+        String precioBruto = t(txtPrecioBrutoRapida);
+        String precioTotal = t(txtPrecioTotalRapida);
 
-        if (descripcion.isBlank() || precioSalida.isBlank() || precioIva.isBlank()
-                || precioBruto.isBlank() || precioTotal.isBlank()) {
+        if (isBlank(descripcion, precioSalida, precioIva, precioBruto, precioTotal)) {
             mostrarAlerta("Advertencia", "Debe completar todos los campos antes de guardar.");
             return;
         }
 
-        // VALIDACIÓN 5: Validar cantidad numérica
-        int cantidad;
-        try {
-            cantidad = Integer.parseInt(cantidadTexto);
-            if (cantidad <= 0) {
-                mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            mostrarAlerta("Error", "La cantidad debe ser un número válido.");
-            return;
-        }
+        // VALIDACIÓN 5: cantidad numérica
+        Integer cantidad = parsePositivo(cantidadTexto, "cantidad");
+        if (cantidad == null) return;
 
-        // VALIDACIÓN 6: Verificar que el precio de salida coincida con el de entrada
-        if (txtPrecioEntradaRapida != null && txtPrecioSalidaRapida != null) {
-            String precioEntradaTexto = txtPrecioEntradaRapida.getText() != null
-                    ? txtPrecioEntradaRapida.getText().trim()
-                    : "";
-            String precioSalidaTexto = txtPrecioSalidaRapida.getText() != null
-                    ? txtPrecioSalidaRapida.getText().trim()
-                    : "";
-
-            if (!precioEntradaTexto.isBlank() && !precioSalidaTexto.isBlank()) {
-                BigDecimal precioEntrada = parseDecimal(precioEntradaTexto);
-                BigDecimal precioSalidaDec = parseDecimal(precioSalidaTexto);
-
-                if (precioSalidaDec.compareTo(precioEntrada) != 0) {
-                    Alert alerta = new Alert(Alert.AlertType.WARNING);
-                    alerta.setTitle("Advertencia de precio");
-                    alerta.setHeaderText("El precio de salida no coincide con el precio de entrada.");
-                    alerta.setContentText("En traspaso de salida, el precio debe ser el mismo. ¿Deseas ajustarlo automáticamente?");
-                    alerta.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-
-                    Optional<ButtonType> respuesta = alerta.showAndWait();
-                    if (respuesta.isPresent() && respuesta.get() == ButtonType.OK) {
-                        txtPrecioSalidaRapida.setText(precioEntradaTexto);
-                    } else {
-                        return;
-                    }
-                }
+        // VALIDACIÓN 6: precio salida == precio entrada (auto-ajuste)
+        String precioEntradaTexto = t(txtPrecioEntradaRapida);
+        if (!precioEntradaTexto.isBlank() && !precioSalida.isBlank()) {
+            BigDecimal precioEntradaDec = parseDecimal(precioEntradaTexto);
+            BigDecimal precioSalidaDec = parseDecimal(precioSalida);
+            if (precioSalidaDec.compareTo(precioEntradaDec) != 0) {
+                if (!confirmarAjustePrecioSalida(precioEntradaTexto, true)) return;
+                if (txtPrecioSalidaRapida != null) txtPrecioSalidaRapida.setText(precioEntradaTexto);
+                precioSalida = precioEntradaTexto;
             }
         }
 
-        // VALIDACIÓN 7: Verificar disponibilidad del producto con presentación y factor específicos
-        int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(
-                clave, presentacionRapida, factorRapido);
+        // VALIDACIÓN 7: disponibilidad (se conserva)
+        int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(clave, presentacionRapida, factorRapido);
         if (cantidad > disponible) {
             mostrarAlerta("Advertencia",
                     "La cantidad supera la disponible para la presentación " + presentacionRapida
@@ -357,168 +266,110 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        // VALIDACIÓN 8: Verificar que la combinación producto-presentación-factor exista en inventario
-        String claveSnapshot = clave;
-        String presentacionSnapshot = presentacionRapida;
-        int factorSnapshot = factorRapido;
-        int cantidadSnapshot = cantidad;
+        // VALIDACIÓN 8: verificar combinación y disponibilidad en background (sin repetir consulta de disponibilidad)
+        final String claveSnapshot = clave;
+        final String nombreSnapshot = nombre;
+        final String descripcionSnapshot = descripcion;
+        final String presentacionSnapshot = presentacionRapida;
+        final int factorSnapshot = factorRapido;
+        final int cantidadSnapshot = cantidad;
+        final int disponibleSnapshot = disponible;
+
+        final String precioSalidaSnapshot = precioSalida;
+        final String precioIvaSnapshot = precioIva;
+        final String precioBrutoSnapshot = precioBruto;
+        final String precioTotalSnapshot = precioTotal;
 
         Task<Boolean> validacionTask = new Task<>() {
             @Override
             protected Boolean call() {
-                // Primero verificar si la combinación existe
                 boolean combinacionExiste = modelo.existeCombinacionProductoPresentacionFactor(
                         claveSnapshot, presentacionSnapshot, factorSnapshot);
+                if (!combinacionExiste) return false;
 
-                if (!combinacionExiste) {
-                    return false;
-                }
-
-                // Luego verificar disponibilidad específica
-                return modelo.obtenerCantidadDisponibleProductoPresentacionFactor(
-                        claveSnapshot, presentacionSnapshot, factorSnapshot) >= cantidadSnapshot;
+                // Reusa la disponibilidad ya obtenida (evita un hit extra a BD)
+                return disponibleSnapshot >= cantidadSnapshot;
             }
 
             @Override
             protected void succeeded() {
-                boolean validacionExitosa = getValue();
-                if (!validacionExitosa) {
-                    Platform.runLater(() -> {
-                        mostrarAlerta("Error",
-                                "La combinación de producto, presentación y factor no existe en inventario " +
-                                        "o no hay suficiente cantidad disponible.");
-                    });
-                } else {
-                    // Si la validación es exitosa, continuar con el resto del proceso
-                    Platform.runLater(() -> continuarGuardadoRapido(claveSnapshot, nombre, descripcion,
-                            presentacionSnapshot, factorSnapshot, cantidadSnapshot,
-                            precioSalida, precioIva, precioBruto, precioTotal));
+                if (!Boolean.TRUE.equals(getValue())) {
+                    Platform.runLater(() ->
+                            mostrarAlerta("Error",
+                                    "La combinación de producto, presentación y factor no existe en inventario " +
+                                            "o no hay suficiente cantidad disponible."));
+                    return;
                 }
+
+                Platform.runLater(() -> continuarGuardadoRapido(
+                        claveSnapshot, nombreSnapshot, descripcionSnapshot,
+                        presentacionSnapshot, factorSnapshot, cantidadSnapshot,
+                        precioSalidaSnapshot, precioIvaSnapshot, precioBrutoSnapshot, precioTotalSnapshot
+                ));
             }
 
             @Override
             protected void failed() {
-                Platform.runLater(() -> {
-                    mostrarAlerta("Error", "Error al validar la disponibilidad del producto.");
-                });
+                Platform.runLater(() -> mostrarAlerta("Error", "Error al validar la disponibilidad del producto."));
             }
         };
 
-        // Ejecutar la validación en segundo plano
         Thread hiloValidacion = new Thread(validacionTask);
         hiloValidacion.setDaemon(true);
         hiloValidacion.start();
     }
 
-
     @Override
     protected boolean existeProductoLoteEnLista(String clave, String lote, traspasoSalida itemExcluir) {
-        if (clave == null || clave.isBlank() || lote == null || lote.isBlank()) {
-            return false;
-        }
+        if (isBlank(clave, lote)) return false;
 
-        if (mainController != null && mainController.existeProductoLote(clave, lote, itemExcluir)) {
-            return true;
-        }
+        if (mainController != null && mainController.existeProductoLote(clave, lote, itemExcluir)) return true;
+        if (itemsTraspaso == null) return false;
 
-        if (itemsTraspaso == null) {
-            return false;
-        }
+        String c = clave.trim();
+        String l = lote.trim();
 
-        String claveNormalizada = clave.trim();
-        String loteNormalizado = lote.trim();
-
-        return itemsTraspaso.stream()
-                .anyMatch(item -> item != null
-                        && item != itemExcluir
-                        && claveNormalizada.equals(item.getClaveProducto())
-                        && loteNormalizado.equals(item.getLote()));
+        return itemsTraspaso.stream().anyMatch(item ->
+                item != null && item != itemExcluir &&
+                        c.equals(item.getClaveProducto()) &&
+                        l.equals(item.getLote()));
     }
 
     @Override
     protected List<UbicacionCompra> obtenerUbicacionesSeleccionadas() {
-        List<UbicacionCompra> resultado = new java.util.ArrayList<>();
+        List<UbicacionCompra> resultado = new ArrayList<>();
+        if (contenedorUbicaciones == null) return resultado;
 
-        if (contenedorUbicaciones == null) {
-            return resultado;
-        }
+        for (javafx.scene.Node n : contenedorUbicaciones.getChildren()) {
+            if (!(n instanceof HBox fila)) continue;
+            if (fila.getChildren().size() < 2) continue;
 
-        for (javafx.scene.Node nodo : contenedorUbicaciones.getChildren()) {
-            if (!(nodo instanceof HBox)) {
-                continue;
-            }
-
-            HBox fila = (HBox) nodo;
-            if (fila.getChildren().size() < 2) {
-                continue;
-            }
-
-            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
-            VBox contenedorCantidad = (VBox) fila.getChildren().get(1);
-
-            ComboBox<String> combo = null;
-            TextField campoCantidad = null;
-
-            if (contenedorUbicacion != null && !contenedorUbicacion.getChildren().isEmpty()) {
-                javafx.scene.Node nodoCombo = contenedorUbicacion.getChildren().get(1);
-                if (nodoCombo instanceof ComboBox) {
-                    combo = (ComboBox<String>) nodoCombo;
-                }
-            }
-
-            if (contenedorCantidad != null && !contenedorCantidad.getChildren().isEmpty()) {
-                javafx.scene.Node nodoCantidad = contenedorCantidad.getChildren().get(1);
-                if (nodoCantidad instanceof TextField) {
-                    campoCantidad = (TextField) nodoCantidad;
-                }
-            }
-
-            if (combo == null || campoCantidad == null) {
-                continue;
-            }
+            ComboBox<String> combo = extraerComboUbicacion(fila);
+            TextField campoCantidad = extraerCampoCantidadUbicacion(fila);
+            if (combo == null || campoCantidad == null) continue;
 
             String ubicacion = combo.getValue();
-            String cantidadTexto = campoCantidad.getText() != null ? campoCantidad.getText().trim() : "";
+            String cantidadTxt = t(campoCantidad);
+            if (isBlank(ubicacion, cantidadTxt)) continue;
 
-            if (ubicacion == null || ubicacion.isBlank() || cantidadTexto.isBlank()) {
-                continue;
-            }
+            Integer cant = parsePositivo(cantidadTxt, null); // aquí solo filtra inválidos (sin alertas)
+            if (cant == null) continue;
 
-            int cantidad;
-            try {
-                cantidad = Integer.parseInt(cantidadTexto);
-            } catch (NumberFormatException e) {
-                continue;
-            }
-
-            if (cantidad <= 0) {
-                continue;
-            }
-
-            resultado.add(new UbicacionCompra(ubicacion, cantidad));
+            resultado.add(new UbicacionCompra(ubicacion.trim(), cant));
         }
-
         return resultado;
     }
 
     @Override
     protected boolean tieneUbicacionesDuplicadas(List<UbicacionCompra> ubicacionesSeleccionadas) {
-        if (ubicacionesSeleccionadas == null) {
-            return false;
-        }
+        if (ubicacionesSeleccionadas == null) return false;
 
-        HashSet<String> ubicacionesUnicas = new HashSet<>();
-        for (UbicacionCompra ubicacionCompra : ubicacionesSeleccionadas) {
-            if (ubicacionCompra == null || ubicacionCompra.getUbicacion() == null) {
-                continue;
-            }
-            String ubicacion = ubicacionCompra.getUbicacion().trim();
-            if (ubicacion.isEmpty()) {
-                continue;
-            }
-            if (!ubicacionesUnicas.add(ubicacion)) {
-                return true;
-            }
+        HashSet<String> set = new HashSet<>();
+        for (UbicacionCompra u : ubicacionesSeleccionadas) {
+            if (u == null || u.getUbicacion() == null) continue;
+            String key = u.getUbicacion().trim();
+            if (key.isEmpty()) continue;
+            if (!set.add(key)) return true;
         }
         return false;
     }
@@ -528,25 +379,17 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         limpiarValidacionesInventario();
         seleccionarClaveAlternaPendiente = false;
 
-        if (productoController != null) {
-            productoController.limpiarSeleccion();
-        }
+        if (productoController != null) productoController.limpiarSeleccion();
 
         limpiarFormularioDependiente();
 
-        if (txtPrecioSalida != null) {
-            txtPrecioSalida.clear();
-        }
+        if (txtPrecioSalida != null) txtPrecioSalida.clear();
 
         ubicacionesCapturadas.clear();
         debounceCantidadUbicacion.clear();
         limpiarFilasAdicionales();
 
-        Platform.runLater(() -> {
-            if (cbClaveProducto != null) {
-                cbClaveProducto.requestFocus();
-            }
-        });
+        Platform.runLater(() -> { if (cbClaveProducto != null) cbClaveProducto.requestFocus(); });
     }
 
     @Override
@@ -569,23 +412,15 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             alert.setContentText(mensaje);
             alert.show();
 
-            new Thread(() -> {
-                try {
-                    Thread.sleep(2000);
-                    if (alert.isShowing()) {
-                        Platform.runLater(alert::close);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }).start();
+            PauseTransition pt = new PauseTransition(Duration.millis(2000));
+            pt.setOnFinished(e -> { if (alert.isShowing()) alert.close(); });
+            pt.play();
         });
     }
 
     @Override
     protected void recalcularPrecios() {
         int cantidad = parseEntero(txtCantidad != null ? txtCantidad.getText() : "");
-
         if (cantidad <= 0) {
             if (txtPrecioBruto != null) txtPrecioBruto.clear();
             if (txtPrecioTotal != null) txtPrecioTotal.clear();
@@ -596,27 +431,25 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         BigDecimal precioSalida = parseDecimal(txtPrecioSalida != null ? txtPrecioSalida.getText() : "");
         BigDecimal precioConIva = precioSalida;
 
-        // En traspaso no se aplica/quita IVA - el precio con IVA viene del precio de entrada con IVA
-        if (txtPrecioEntradaIva != null && !txtPrecioEntradaIva.getText().isBlank()) {
+        // En traspaso no se aplica/quita IVA - viene de entrada con IVA
+        if (txtPrecioEntradaIva != null && txtPrecioEntradaIva.getText() != null && !txtPrecioEntradaIva.getText().isBlank()) {
             precioConIva = parseDecimal(txtPrecioEntradaIva.getText());
         }
 
-        BigDecimal precioBruto = precioSalida.multiply(BigDecimal.valueOf(cantidad));
-        BigDecimal precioTotal = precioConIva.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal cant = BigDecimal.valueOf(cantidad);
+        BigDecimal bruto = precioSalida.multiply(cant);
+        BigDecimal total = precioConIva.multiply(cant);
 
         if (txtPrecioIVA != null) txtPrecioIVA.setText(formatearDecimal(precioConIva));
-        if (txtPrecioBruto != null) txtPrecioBruto.setText(formatearDecimal(precioBruto));
-        if (txtPrecioTotal != null) txtPrecioTotal.setText(formatearDecimal(precioTotal));
+        if (txtPrecioBruto != null) txtPrecioBruto.setText(formatearDecimal(bruto));
+        if (txtPrecioTotal != null) txtPrecioTotal.setText(formatearDecimal(total));
     }
 
     @Override
     protected void recalcularPreciosRapido() {
-        if (txtCantidadRapida == null || txtPrecioSalidaRapida == null) {
-            return;
-        }
+        if (txtCantidadRapida == null || txtPrecioSalidaRapida == null) return;
 
         int cantidad = parseEntero(txtCantidadRapida.getText());
-
         if (cantidad <= 0) {
             if (txtPrecioBrutoRapida != null) txtPrecioBrutoRapida.clear();
             if (txtPrecioTotalRapida != null) txtPrecioTotalRapida.clear();
@@ -627,17 +460,18 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         BigDecimal precioSalida = parseDecimal(txtPrecioSalidaRapida.getText());
         BigDecimal precioConIva = precioSalida;
 
-        // En traspaso no se aplica/quita IVA
-        if (txtPrecioEntradaIvaRapida != null && !txtPrecioEntradaIvaRapida.getText().isBlank()) {
+        if (txtPrecioEntradaIvaRapida != null && txtPrecioEntradaIvaRapida.getText() != null
+                && !txtPrecioEntradaIvaRapida.getText().isBlank()) {
             precioConIva = parseDecimal(txtPrecioEntradaIvaRapida.getText());
         }
 
-        BigDecimal precioBruto = precioSalida.multiply(BigDecimal.valueOf(cantidad));
-        BigDecimal precioTotal = precioConIva.multiply(BigDecimal.valueOf(cantidad));
+        BigDecimal cant = BigDecimal.valueOf(cantidad);
+        BigDecimal bruto = precioSalida.multiply(cant);
+        BigDecimal total = precioConIva.multiply(cant);
 
         if (txtPrecioIVARapida != null) txtPrecioIVARapida.setText(formatearDecimal(precioConIva));
-        if (txtPrecioBrutoRapida != null) txtPrecioBrutoRapida.setText(formatearDecimal(precioBruto));
-        if (txtPrecioTotalRapida != null) txtPrecioTotalRapida.setText(formatearDecimal(precioTotal));
+        if (txtPrecioBrutoRapida != null) txtPrecioBrutoRapida.setText(formatearDecimal(bruto));
+        if (txtPrecioTotalRapida != null) txtPrecioTotalRapida.setText(formatearDecimal(total));
     }
 
     @Override
@@ -666,26 +500,16 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     @Override
     protected void cargarPreciosDesdeProducto() {
         String idProducto = productoController.getIdSeleccionado();
-        if (idProducto == null || idProducto.isBlank()) {
+        if (idProducto == null || idProducto.isBlank() || !datosCompletosParaPrecioEntrada()) {
             limpiarPrecios();
             return;
         }
 
-        if (!datosCompletosParaPrecioEntrada()) {
-            limpiarPrecios();
-            return;
-        }
+        boolean precioSalidaVacio = txtPrecioSalida == null || txtPrecioSalida.getText() == null || txtPrecioSalida.getText().isBlank();
+        if (!precioSalidaVacio) return;
 
-        boolean precioSalidaVacio = txtPrecioSalida == null ||
-                txtPrecioSalida.getText() == null ||
-                txtPrecioSalida.getText().isBlank();
-
-        if (!precioSalidaVacio) {
-            return;
-        }
-
-        String lote = txtLote.getText() != null ? txtLote.getText().trim() : "";
-        String presentacion = cbPresentacion.getValue();
+        String lote = t(txtLote);
+        String presentacion = cbPresentacion != null ? cbPresentacion.getValue() : null;
 
         Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new Task<>() {
             @Override
@@ -695,10 +519,8 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
             @Override
             protected void succeeded() {
-                Optional<modelNuevoTraspasoSalida.PreciosProducto> resultado = getValue();
-                if (resultado.isPresent()) {
-                    aplicarPrecioEntrada(resultado.get());
-                }
+                Optional<modelNuevoTraspasoSalida.PreciosProducto> r = getValue();
+                r.ifPresent(controllerNuevoTraspasoSalida.this::aplicarPrecioEntrada);
             }
         };
 
@@ -715,7 +537,7 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        String idSnapshot = idProducto;
+        final String idSnapshot = idProducto;
         Task<Optional<modelNuevoTraspasoSalida.PreciosProducto>> task = new Task<>() {
             @Override
             protected Optional<modelNuevoTraspasoSalida.PreciosProducto> call() {
@@ -725,16 +547,11 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             @Override
             protected void succeeded() {
                 String idActual = productoController.getIdSeleccionado();
-                if (!idSnapshot.equals(idActual)) {
-                    return;
-                }
+                if (!idSnapshot.equals(idActual)) return;
 
-                Optional<modelNuevoTraspasoSalida.PreciosProducto> resultado = getValue();
-                if (resultado.isPresent()) {
-                    aplicarPreciosRapidos(resultado.get());
-                } else {
-                    limpiarPreciosRapidos();
-                }
+                Optional<modelNuevoTraspasoSalida.PreciosProducto> r = getValue();
+                if (r.isPresent()) aplicarPreciosRapidos(r.get());
+                else limpiarPreciosRapidos();
             }
 
             @Override
@@ -750,7 +567,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
     @Override
     protected void configurarCamposLecturaEspecificos() {
-        // Campos específicos de traspaso de solo lectura
         if (txtPrecioEntrada != null) txtPrecioEntrada.setEditable(false);
         if (txtPrecioEntradaIva != null) txtPrecioEntradaIva.setEditable(false);
         if (txtPrecioEntradaRapida != null) txtPrecioEntradaRapida.setEditable(false);
@@ -769,77 +585,48 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
     @Override
     protected void configurarCalculoPreciosEspecifico() {
-        // Configuración específica de cálculo de precios para traspaso
-        if (txtPrecioSalida != null) {
-            txtPrecioSalida.textProperty().addListener((obs, oldVal, newVal) -> recalcularPrecios());
-        }
-
-        if (txtPrecioSalidaRapida != null) {
-            txtPrecioSalidaRapida.textProperty().addListener((obs, oldVal, newVal) -> recalcularPreciosRapido());
-        }
+        if (txtPrecioSalida != null) txtPrecioSalida.textProperty().addListener((obs, o, n) -> recalcularPrecios());
+        if (txtPrecioSalidaRapida != null) txtPrecioSalidaRapida.textProperty().addListener((obs, o, n) -> recalcularPreciosRapido());
     }
 
-    // === MÉTODOS ESPECÍFICOS DE TRASPASO ===
+    // =========================
+    // MÉTODOS ESPECÍFICOS
+    // =========================
 
     private void aplicarModoSoloNormal() {
-        if (!modoSoloNormal || tabPaneModo == null) {
-            return;
-        }
+        if (!modoSoloNormal || tabPaneModo == null) return;
 
-        if (tabRapido != null) {
-            tabPaneModo.getTabs().remove(tabRapido);
-        }
-
-        if (tabNormal != null) {
-            tabPaneModo.getSelectionModel().select(tabNormal);
-        }
+        if (tabRapido != null) tabPaneModo.getTabs().remove(tabRapido);
+        if (tabNormal != null) tabPaneModo.getSelectionModel().select(tabNormal);
 
         tabPaneModo.getStyleClass().add("modo-tabs-sin-header");
     }
 
     private void aplicarModoAjusteInventario() {
-        if (!modoAjusteInventario) {
-            return;
-        }
-
-        if (txtPrecioSalida != null) {
-            txtPrecioSalida.setEditable(false);
-        }
-
-        if (txtPrecioSalidaRapida != null) {
-            txtPrecioSalidaRapida.setEditable(false);
-        }
+        if (!modoAjusteInventario) return;
+        if (txtPrecioSalida != null) txtPrecioSalida.setEditable(false);
+        if (txtPrecioSalidaRapida != null) txtPrecioSalidaRapida.setEditable(false);
     }
 
     private boolean datosCompletosParaPrecioEntrada() {
-        return productoController.getIdSeleccionado() != null
-                && !productoController.getIdSeleccionado().isBlank()
+        String id = productoController.getIdSeleccionado();
+        return id != null && !id.isBlank()
                 && loteValidado
+                && cbPresentacion != null
                 && cbPresentacion.getValue() != null
                 && !cbPresentacion.getValue().isBlank();
     }
 
     private void aplicarPrecioEntrada(modelNuevoTraspasoSalida.PreciosProducto precios) {
-        if (precios == null) {
-            limpiarPrecios();
-            return;
-        }
+        if (precios == null) { limpiarPrecios(); return; }
 
         precioEntradaBase = precios.getPrecioUnitario() != null ? precios.getPrecioUnitario() : BigDecimal.ZERO;
         precioIvaBase = precios.getPrecioIva() != null ? precios.getPrecioIva() : BigDecimal.ZERO;
 
-        // SOLO actualizar txtPrecioEntrada (solo lectura)
-        if (txtPrecioEntrada != null) {
-            txtPrecioEntrada.setText(formatearDecimal(precioEntradaBase));
-        }
+        if (txtPrecioEntrada != null) txtPrecioEntrada.setText(formatearDecimal(precioEntradaBase));
+        if (txtPrecioEntradaIva != null) txtPrecioEntradaIva.setText(formatearDecimal(precioIvaBase));
 
-        if (txtPrecioEntradaIva != null) {
-            txtPrecioEntradaIva.setText(formatearDecimal(precioIvaBase));
-        }
-
-        // SOLO actualizar txtPrecioSalida si está vacío
-        if (txtPrecioSalida != null &&
-                (txtPrecioSalida.getText() == null || txtPrecioSalida.getText().isBlank())) {
+        if (txtPrecioSalida != null && (txtPrecioSalida.getText() == null || txtPrecioSalida.getText().isBlank())) {
             txtPrecioSalida.setText(formatearDecimal(precioEntradaBase));
         }
 
@@ -847,29 +634,14 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     }
 
     private void aplicarPreciosRapidos(modelNuevoTraspasoSalida.PreciosProducto precios) {
-        if (precios == null) {
-            limpiarPreciosRapidos();
-            return;
-        }
+        if (precios == null) { limpiarPreciosRapidos(); return; }
 
-        BigDecimal precioEntradaRapida = precios.getPrecioUnitario() != null
-                ? precios.getPrecioUnitario()
-                : BigDecimal.ZERO;
-        BigDecimal precioEntradaIvaRapida = precios.getPrecioIva() != null
-                ? precios.getPrecioIva()
-                : BigDecimal.ZERO;
+        BigDecimal pe = precios.getPrecioUnitario() != null ? precios.getPrecioUnitario() : BigDecimal.ZERO;
+        BigDecimal pi = precios.getPrecioIva() != null ? precios.getPrecioIva() : BigDecimal.ZERO;
 
-        if (txtPrecioEntradaRapida != null) {
-            txtPrecioEntradaRapida.setText(formatearDecimal(precioEntradaRapida));
-        }
-
-        if (txtPrecioEntradaIvaRapida != null) {
-            txtPrecioEntradaIvaRapida.setText(formatearDecimal(precioEntradaIvaRapida));
-        }
-
-        if (txtPrecioSalidaRapida != null) {
-            txtPrecioSalidaRapida.setText(formatearDecimal(precioEntradaRapida));
-        }
+        if (txtPrecioEntradaRapida != null) txtPrecioEntradaRapida.setText(formatearDecimal(pe));
+        if (txtPrecioEntradaIvaRapida != null) txtPrecioEntradaIvaRapida.setText(formatearDecimal(pi));
+        if (txtPrecioSalidaRapida != null) txtPrecioSalidaRapida.setText(formatearDecimal(pe));
 
         recalcularPreciosRapido();
     }
@@ -884,7 +656,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        // Obtener disponibilidades rápidas
         List<modelNuevoTraspasoSalida.DisponibilidadRapida> disponibles =
                 modelo.obtenerDisponibilidadesRapidas(clave, presentacionRapida, factorRapido);
 
@@ -893,23 +664,15 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        // Construir asignaciones
         List<AsignacionRapida> asignaciones = construirAsignacionesRapidas(disponibles, cantidad);
         if (asignaciones.isEmpty()) {
             mostrarAlerta("Error", "No se pudo distribuir la cantidad solicitada con la disponibilidad actual.");
             return;
         }
 
-        // Confirmaciones del usuario
-        if (!confirmarRevisionUbicacionesRapidas()) {
-            return;
-        }
+        if (!confirmarRevisionUbicacionesRapidas()) return;
+        if (!mostrarResumenUbicacionesRapidas(asignaciones)) return;
 
-        if (!mostrarResumenUbicacionesRapidas(asignaciones)) {
-            return;
-        }
-
-        // Construir items de traspaso
         List<traspasoSalida> itemsGenerados = construirItemsRapidosTraspaso(
                 clave, nombre, descripcion, asignaciones, presentacionRapida, factorRapido);
 
@@ -918,39 +681,31 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
-        // Procesar cada item generado
-        BigDecimal precioSalidaDecimal = parseDecimal(precioSalida);
-        BigDecimal precioIvaDecimal = parseDecimal(precioIva);
+        BigDecimal precioSalidaDec = parseDecimal(precioSalida);
+        BigDecimal precioIvaDec = parseDecimal(precioIva);
 
         for (traspasoSalida item : itemsGenerados) {
-            // Verificar si ya existe en el traspaso
             if (existeProductoLoteEnLista(clave, item.getLote(), null)) {
                 mostrarAlerta("Advertencia",
                         "Ya se agregó este producto con el mismo lote. Finaliza el traspaso para poder repetirlo.");
                 return;
             }
 
-            // Calcular precios para este item
             int cantidadItem = item.getCantidad();
-            BigDecimal brutoItem = precioSalidaDecimal.multiply(BigDecimal.valueOf(cantidadItem));
-            BigDecimal totalItem = precioIvaDecimal.multiply(BigDecimal.valueOf(cantidadItem));
+            BigDecimal cant = BigDecimal.valueOf(cantidadItem);
 
-            // Establecer precios en el item
-            item.setPrecioEntrada(formatearDecimal(precioSalidaDecimal));
-            item.setPrecioIva(formatearDecimal(precioIvaDecimal));
+            BigDecimal brutoItem = precioSalidaDec.multiply(cant);
+            BigDecimal totalItem = precioIvaDec.multiply(cant);
+
+            item.setPrecioEntrada(formatearDecimal(precioSalidaDec));
+            item.setPrecioIva(formatearDecimal(precioIvaDec));
             item.setPrecioBruto(formatearDecimal(brutoItem));
             item.setPrecioTotal(formatearDecimal(totalItem));
 
-            // Agregar a la lista de traspasos
             itemsTraspaso.add(item);
         }
 
-        // Actualizar interfaz si hay controlador principal
-        if (mainController != null) {
-            mainController.refrescarTabla();
-        }
-
-        // Limpiar formulario
+        if (mainController != null) mainController.refrescarTabla();
         limpiarFormularioParaNuevo();
     }
 
@@ -966,56 +721,52 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     }
 
     private void cargarItemParaEditar() {
-        if (itemParaEditar == null) {
-            return;
-        }
+        if (itemParaEditar == null) return;
 
         limpiarFormularioParaNuevo();
+
         cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
         cbProductoNombre.setValue(itemParaEditar.getProducto());
         txtDescripcion.setText(itemParaEditar.getDescripcion());
 
-        if (txtNota != null) {
-            txtNota.setText(itemParaEditar.getNota());
-        }
+        if (txtNota != null) txtNota.setText(itemParaEditar.getNota());
 
         txtLote.setText(itemParaEditar.getLote());
         configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
         loteValidado = true;
         caducidadValidada = true;
+
         txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
         cbPresentacion.setValue(itemParaEditar.getPresentacion());
         txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
         presentacionValida = true;
         factorValido = true;
+
         cargarPreciosDesdeProducto();
 
         String precioSalida = itemParaEditar.getPrecioEntrada();
-        txtPrecioSalida.setText(precioSalida);
-        txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
-        txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
-        txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
+        if (txtPrecioSalida != null) txtPrecioSalida.setText(precioSalida);
+
+        if (txtPrecioIVA != null) txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
+        if (txtPrecioBruto != null) txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
+        if (txtPrecioTotal != null) txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
 
         cargarUbicacionesParaEdicion(itemParaEditar.getUbicaciones());
         recalcularPrecios();
     }
 
     private void configurarCaducidadDesdeTexto(String caducidadTexto) {
+        if (dpCaducidad == null) return;
+
         if (caducidadTexto == null || caducidadTexto.isBlank()) {
-            if (dpCaducidad != null) {
-                dpCaducidad.setValue(null);
-            }
+            dpCaducidad.setValue(null);
             return;
         }
 
         try {
-            if (dpCaducidad != null) {
-                dpCaducidad.setValue(java.time.LocalDate.parse(caducidadTexto));
-            }
+            dpCaducidad.setValue(LocalDate.parse(caducidadTexto));
         } catch (java.time.format.DateTimeParseException e) {
-            if (dpCaducidad != null) {
-                dpCaducidad.setValue(null);
-            }
+            dpCaducidad.setValue(null);
         }
     }
 
@@ -1024,41 +775,96 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         ubicacionesCapturadas.clear();
         ultimaCantidadUbicacionValidada.clear();
 
-        if (ubicacionesLista == null || ubicacionesLista.isEmpty()) {
-            return;
-        }
+        if (ubicacionesLista == null || ubicacionesLista.isEmpty()) return;
 
         for (int i = 0; i < ubicacionesLista.size(); i++) {
-            UbicacionCompra ubicacion = ubicacionesLista.get(i);
-            if (i > 0) {
-                agregarUbicacionCombo();
-            }
+            UbicacionCompra u = ubicacionesLista.get(i);
+            if (i > 0) agregarUbicacionCombo();
 
             HBox fila = (HBox) contenedorUbicaciones.getChildren().get(i);
-            VBox contenedorUbicacion = (VBox) fila.getChildren().get(0);
-            VBox contenedorCantidad = (VBox) fila.getChildren().get(1);
-            ComboBox<String> combo = (ComboBox<String>) contenedorUbicacion.getChildren().get(1);
-            TextField campoCantidad = (TextField) contenedorCantidad.getChildren().get(1);
+            ComboBox<String> combo = extraerComboUbicacion(fila);
+            TextField cantidad = extraerCampoCantidadUbicacion(fila);
 
-            combo.setValue(ubicacion.getUbicacion());
-            if (combo.getEditor() != null) {
-                combo.getEditor().setText(ubicacion.getUbicacion());
+            if (combo != null) {
+                combo.setValue(u.getUbicacion());
+                if (combo.getEditor() != null) combo.getEditor().setText(u.getUbicacion());
             }
-
-            campoCantidad.setText(String.valueOf(ubicacion.getCantidad()));
+            if (cantidad != null) cantidad.setText(String.valueOf(u.getCantidad()));
         }
     }
 
     private void cerrarFormulario() {
-        if (btnGuardar != null && btnGuardar.getScene() != null) {
-            Stage stage = (Stage) btnGuardar.getScene().getWindow();
-            if (stage != null) {
-                stage.close();
+        if (btnGuardar == null || btnGuardar.getScene() == null) return;
+        Stage stage = (Stage) btnGuardar.getScene().getWindow();
+        if (stage != null) stage.close();
+    }
+
+    // =========================
+    // Helpers internos (sin cambiar validaciones)
+    // =========================
+
+    private static String t(TextInputControl c) {
+        return (c == null || c.getText() == null) ? "" : c.getText().trim();
+    }
+
+    private static boolean isBlank(String... vals) {
+        if (vals == null) return true;
+        for (String v : vals) if (v == null || v.isBlank()) return true;
+        return false;
+    }
+
+    private Integer parsePositivo(String texto, String campo) {
+        try {
+            int v = Integer.parseInt(texto.trim());
+            if (v <= 0) {
+                if ("cantidad".equalsIgnoreCase(campo)) mostrarAlerta("Advertencia", "La cantidad debe ser mayor a 0.");
+                else if ("factor".equalsIgnoreCase(campo)) mostrarAlerta("Advertencia", "El factor debe ser mayor a 0.");
+                return null;
             }
+            return v;
+        } catch (NumberFormatException e) {
+            if ("cantidad".equalsIgnoreCase(campo)) mostrarAlerta("Error", "La cantidad debe ser un número válido.");
+            else if ("factor".equalsIgnoreCase(campo)) mostrarAlerta("Error", "El factor debe ser un número válido.");
+            return null;
         }
     }
 
-    // === GETTERS Y SETTERS ESPECÍFICOS ===
+    private boolean confirmarAjustePrecioSalida(String precioEntradaTexto, boolean modoRapido) {
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle(modoRapido ? "Advertencia de precio" : "Advertencia");
+        confirmacion.setHeaderText("El precio de salida no coincide con el precio de entrada.");
+        confirmacion.setContentText("En traspaso de salida, el precio debe ser el mismo. ¿Deseas ajustarlo automáticamente?");
+        confirmacion.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        Optional<ButtonType> r = confirmacion.showAndWait();
+        return r.isPresent() && r.get() == ButtonType.OK;
+    }
+
+    @SuppressWarnings("unchecked")
+    private ComboBox<String> extraerComboUbicacion(HBox fila) {
+        try {
+            VBox contU = (VBox) fila.getChildren().get(0);
+            if (contU == null || contU.getChildren().size() < 2) return null;
+            javafx.scene.Node n = contU.getChildren().get(1);
+            return (n instanceof ComboBox) ? (ComboBox<String>) n : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private TextField extraerCampoCantidadUbicacion(HBox fila) {
+        try {
+            VBox contC = (VBox) fila.getChildren().get(1);
+            if (contC == null || contC.getChildren().size() < 2) return null;
+            javafx.scene.Node n = contC.getChildren().get(1);
+            return (n instanceof TextField) ? (TextField) n : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // =========================
+    // GETTERS Y SETTERS
+    // =========================
 
     public void setItemsTraspaso(ObservableList<traspasoSalida> itemsTraspaso) {
         this.itemsTraspaso = itemsTraspaso;
@@ -1070,20 +876,13 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
     public void setItemParaEditar(traspasoSalida item) {
         this.itemParaEditar = item;
-        if (itemParaEditar != null && inicializado) {
-            cargarItemParaEditar();
-        }
+        if (itemParaEditar != null && inicializado) cargarItemParaEditar();
     }
 
     public void setTituloFormulario(String tituloFormulario) {
-        if (tituloFormulario == null || tituloFormulario.isBlank()) {
-            return;
-        }
-
+        if (tituloFormulario == null || tituloFormulario.isBlank()) return;
         this.tituloFormulario = tituloFormulario;
-        if (lblTitulo != null) {
-            lblTitulo.setText(tituloFormulario);
-        }
+        if (lblTitulo != null) lblTitulo.setText(tituloFormulario);
     }
 
     public void setModoSoloNormal(boolean modoSoloNormal) {
@@ -1093,8 +892,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
     public void setModoAjusteInventario(boolean modoAjusteInventario) {
         this.modoAjusteInventario = modoAjusteInventario;
-        if (inicializado) {
-            aplicarModoAjusteInventario();
-        }
+        if (inicializado) aplicarModoAjusteInventario();
     }
 }

@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambio en modelos de ts">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambos en operaciones">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/style/estilos.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/pedidos/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/pedidos/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/pedidos/model/itemPedido.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/pedidos/model/itemPedido.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/pedidos/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/pedidos/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/style/estilos.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -211,14 +211,7 @@
       <workItem from="1769522123737" duration="3870000" />
       <workItem from="1769608343193" duration="5782000" />
       <workItem from="1769695864013" duration="11647000" />
-    </task>
-    <task id="LOCAL-00008" summary="pedidos">
-      <option name="closed" value="true" />
-      <created>1766515384047</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1766515384047</updated>
+      <workItem from="1770127176849" duration="2194000" />
     </task>
     <task id="LOCAL-00009" summary="Merge remote-tracking branch 'origin/detached' into detached">
       <option name="closed" value="true" />
@@ -604,7 +597,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769801300657</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="cambos en operaciones">
+      <option name="closed" value="true" />
+      <created>1769805716924</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1769805716924</updated>
+    </task>
+    <option name="localTasksCounter" value="58" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -657,7 +658,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Venta finalizada, y nose" />
     <MESSAGE value="Venta finalizada, y nose que mas" />
     <MESSAGE value="Modificacione en proveedores, compra y ventas" />
     <MESSAGE value="Modificaciones de consultas agregadas" />
@@ -682,7 +682,8 @@
     <MESSAGE value="inventario edicion" />
     <MESSAGE value="cambio en modelos de consulta" />
     <MESSAGE value="cambio en modelos de ts" />
-    <option name="LAST_COMMIT_MESSAGE" value="cambio en modelos de ts" />
+    <MESSAGE value="cambos en operaciones" />
+    <option name="LAST_COMMIT_MESSAGE" value="cambos en operaciones" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
