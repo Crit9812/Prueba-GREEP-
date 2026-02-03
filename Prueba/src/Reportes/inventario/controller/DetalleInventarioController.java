@@ -21,6 +21,8 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -204,7 +206,9 @@ public class DetalleInventarioController {
                     valorTexto(ubicacion.nombre), ubicacion.articulos.size()));
             titulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50;");
             CheckBox chkDetalles = new CheckBox("Mostrar detalles");
+            chkDetalles.getStyleClass().add("custom-check");
             Button btnAgregar = new Button("Agregar");
+            configurarBotonIcono(btnAgregar, "/img/agregar.png", "Agregar");
             btnAgregar.setOnAction(event -> abrirFormularioCompra(ubicacion.nombre));
 
             Region spacer = new Region();
@@ -232,8 +236,10 @@ public class DetalleInventarioController {
                     );
                     Label texto = new Label(descripcion);
                     Button btnEditar = new Button("Editar");
+                    configurarBotonIcono(btnEditar, "/img/editar.png", "Editar");
                     btnEditar.setOnAction(event -> editarArticulo(articulo));
                     Button btnEliminar = new Button("Eliminar");
+                    configurarBotonIcono(btnEliminar, "/img/eliminar.png", "Eliminar");
                     btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
                     fila.getChildren().addAll(texto, btnEditar, btnEliminar);
                     listaArticulos.getChildren().add(fila);
@@ -309,17 +315,21 @@ public class DetalleInventarioController {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Editar artículo");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        agregarEstilosDialogo(dialog);
 
         VBox contenido = new VBox(8);
         ComboBox<String> cbUbicacion = new ComboBox<>();
         cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
         cbUbicacion.setPromptText("Selecciona ubicación");
+        cbUbicacion.getStyleClass().add("textfield");
         String ubicacionActual = valorTexto(articulo.ubicacion);
         if (!ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
             cbUbicacion.setValue(ubicacionActual);
         }
         TextField txtLote = new TextField(valorTexto(articulo.lote));
+        txtLote.getStyleClass().add("textfield");
         javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
+        dpCaducidad.getStyleClass().add("textfield");
         if (articulo.caducidad != null && !articulo.caducidad.isBlank()) {
             try {
                 dpCaducidad.setValue(java.time.LocalDate.parse(articulo.caducidad.trim()));
@@ -330,11 +340,13 @@ public class DetalleInventarioController {
         ComboBox<String> cbPresentacion = new ComboBox<>();
         cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
         cbPresentacion.setPromptText("Selecciona presentación");
+        cbPresentacion.getStyleClass().add("textfield");
         String presentacionActual = valorTexto(articulo.presentacion);
         if (!presentacionActual.isBlank()) {
             cbPresentacion.setValue(presentacionActual);
         }
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
+        txtFactor.getStyleClass().add("textfield");
 
         contenido.getChildren().addAll(
                 new Label("Ubicación:"), cbUbicacion,
@@ -446,6 +458,26 @@ public class DetalleInventarioController {
 
     private List<String> obtenerUbicacionesActivas() {
         return new Operaciones.compra.model.model().obtenerNombresUbicaciones();
+    }
+
+    private void configurarBotonIcono(Button boton, String rutaIcono, String textoFallback) {
+        boton.getStyleClass().add("boton-icono");
+        try {
+            ImageView icono = new ImageView(new Image(getClass().getResourceAsStream(rutaIcono)));
+            icono.setFitWidth(16);
+            icono.setFitHeight(16);
+            boton.setGraphic(icono);
+            boton.setText("");
+        } catch (Exception e) {
+            boton.setText(textoFallback);
+        }
+    }
+
+    private void agregarEstilosDialogo(Dialog<ButtonType> dialog) {
+        dialog.getDialogPane().getStylesheets().add(
+                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm());
+        dialog.getDialogPane().lookupButton(ButtonType.OK).getStyleClass().add("boton-formulario");
+        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).getStyleClass().add("boton-formulario");
     }
 
     private static class UbicacionDetalle {

@@ -140,4 +140,29 @@
     -fx-background-color: #91d485;
 }
 
+.boton-formulario {
+    -fx-background-color: #333;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-border-radius: 5;
+    -fx-font-weight: bold;
+    -fx-pref-width: 180;
+    -fx-pref-height: 30;
+    -fx-background-radius: 5;
+}
+
+.boton-formulario:hover {
+    -fx-background-color: #444;
+}
+
+.boton-icono {
+    -fx-background-color: #333;
+    -fx-cursor: hand;
+    -fx-padding: 5 10;
+    -fx-background-radius: 4;
+}
+
+.boton-icono:hover {
+    -fx-background-color: #444;
+}
 
