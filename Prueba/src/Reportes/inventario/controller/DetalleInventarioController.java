@@ -316,7 +316,7 @@ public class DetalleInventarioController {
         }
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Editar artículo");
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
         agregarEstilosDialogo(dialog);
 
         VBox contenido = new VBox(10);

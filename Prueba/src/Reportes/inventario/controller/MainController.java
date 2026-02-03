@@ -223,8 +223,8 @@ public class MainController {
         }
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
         dialog.setTitle("Editar artículo");
-        dialog.getDialogPane().getButtonTypes().addAll(javafx.scene.control.ButtonType.OK,
-                javafx.scene.control.ButtonType.CANCEL);
+        dialog.getDialogPane().getButtonTypes().addAll(javafx.scene.control.ButtonType.CANCEL,
+                javafx.scene.control.ButtonType.OK);
         dialog.getDialogPane().getStylesheets().add(
                 getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm());
         dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK)
