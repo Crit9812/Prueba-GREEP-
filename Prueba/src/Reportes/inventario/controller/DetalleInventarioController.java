@@ -4,6 +4,7 @@ import Formularios.controller.controllerCompraEmergente;
 import Operaciones.ajusteInventario.model.model;
 import Operaciones.compra.model.compra;
 import Reportes.inventario.model.ItemInventario;
+import Compartido.helper.OverlayCarga;
 import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -21,7 +22,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -30,13 +30,12 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.geometry.Pos;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.scene.layout.StackPane;
-import javafx.stage.Window;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -61,16 +60,22 @@ public class DetalleInventarioController {
     @FXML private VBox contenedorDetalles;
     @FXML private ScrollPane scrollPane;
     @FXML private Button btnCerrar;
+    @FXML private StackPane root;
+    @FXML private Pane overlayPane;
 
     private ItemInventario itemInventario;
     private Stage stage;
     private Runnable onRefresh;
+    private OverlayCarga overlayCarga;
     private static final List<String> PRESENTACIONES_COMPRA = List.of(
             "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
     );
 
     @FXML
     public void initialize() {
+        if (root != null && overlayPane != null) {
+            overlayCarga = new OverlayCarga(root, overlayPane);
+        }
         actualizarDatosProducto();
     }
 
@@ -324,6 +329,7 @@ public class DetalleInventarioController {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Editar artículo");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+        configurarDialogoModal(dialog);
 
         // ✅ aplica estilos + orden de botones
         agregarEstilosDialogo(dialog);
@@ -379,7 +385,7 @@ public class DetalleInventarioController {
 
         Button btnSegmentar = new Button("Segmentar");
         btnSegmentar.getStyleClass().add("boton-formulario");
-        btnSegmentar.setOnAction(event -> iniciarSegmentacion(articulo));
+        btnSegmentar.setOnAction(event -> iniciarSegmentacion(articulo, dialog));
         Button btnEliminar = new Button("Eliminar");
         btnEliminar.getStyleClass().add("boton-formulario");
         btnEliminar.setOnAction(event -> {
@@ -539,7 +545,7 @@ public class DetalleInventarioController {
         }
     }
 
-    private void iniciarSegmentacion(ArticuloDetalle articulo) {
+    private void iniciarSegmentacion(ArticuloDetalle articulo, Dialog<ButtonType> dialogPadre) {
         if (articulo == null || articulo.idArticulo <= 0) {
             return;
         }
@@ -560,15 +566,19 @@ public class DetalleInventarioController {
         confirmacion.getButtonTypes().setAll(btnCancelar, btnAceptar);
         configurarOrdenBotones(confirmacion.getDialogPane(), btnCancelar, btnAceptar);
 
+        confirmacion.initModality(Modality.APPLICATION_MODAL);
+        if (dialogPadre != null) {
+            confirmacion.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
+        }
         confirmacion.showAndWait().ifPresent(respuesta -> {
             if (respuesta != btnAceptar) {
                 return;
             }
-            abrirFormularioSegmentacion(articulo, factor);
+            abrirFormularioSegmentacion(articulo, factor, dialogPadre);
         });
     }
 
-    private void abrirFormularioSegmentacion(ArticuloDetalle articulo, int factor) {
+    private void abrirFormularioSegmentacion(ArticuloDetalle articulo, int factor, Dialog<ButtonType> dialogPadre) {
         if (articulo == null || factor <= 0) {
             return;
         }
@@ -579,6 +589,10 @@ public class DetalleInventarioController {
         ButtonType btnAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnCancelar, btnAceptar);
         configurarDialogoAcciones(dialog, btnCancelar, btnAceptar);
+        configurarDialogoModal(dialog);
+        if (dialogPadre != null) {
+            dialog.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
+        }
 
         VBox contenido = new VBox(12);
         Label lblDescripcionArticulo = new Label(obtenerDescripcionArticulo(articulo, factor));
@@ -592,8 +606,13 @@ public class DetalleInventarioController {
         List<UbicacionFila> filas = new ArrayList<>();
         agregarFilaUbicacion(contenedorUbicaciones, filas, true);
 
-        contenido.getChildren().addAll(lblDescripcionArticulo, lblUbicaciones, contenedorUbicaciones);
+        ScrollPane scroll = new ScrollPane(contenedorUbicaciones);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(320);
+        contenido.getChildren().addAll(lblDescripcionArticulo, lblUbicaciones, scroll);
         dialog.getDialogPane().setContent(contenido);
+        dialog.getDialogPane().setPrefWidth(520);
+        dialog.getDialogPane().setPrefHeight(520);
 
         AtomicReference<List<UbicacionCantidad>> seleccionadasRef = new AtomicReference<>(Collections.emptyList());
         Button btnOk = (Button) dialog.getDialogPane().lookupButton(btnAceptar);
@@ -620,18 +639,18 @@ public class DetalleInventarioController {
             if (respuesta != btnAceptar) {
                 return;
             }
-            ejecutarSegmentacion(articulo, factor, seleccionadasRef.get());
+            ejecutarSegmentacion(articulo, factor, seleccionadasRef.get(), dialogPadre);
         });
     }
 
-    private void ejecutarSegmentacion(ArticuloDetalle articulo, int factor, List<UbicacionCantidad> ubicaciones) {
+    private void ejecutarSegmentacion(ArticuloDetalle articulo, int factor, List<UbicacionCantidad> ubicaciones,
+                                      Dialog<ButtonType> dialogPadre) {
         if (articulo == null || ubicaciones == null || ubicaciones.isEmpty()) {
             return;
         }
 
-        Stage espera = crearVentanaEspera();
-        if (espera != null) {
-            espera.show();
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
         }
 
         Task<String> task = new Task<>() {
@@ -683,8 +702,8 @@ public class DetalleInventarioController {
         };
 
         task.setOnSucceeded(event -> {
-            if (espera != null) {
-                espera.close();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
             }
             String mensaje = task.getValue();
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -694,11 +713,14 @@ public class DetalleInventarioController {
             alert.showAndWait();
             notificarActualizacion();
             cargarDetalles();
+            if (dialogPadre != null) {
+                dialogPadre.close();
+            }
         });
 
         task.setOnFailed(event -> {
-            if (espera != null) {
-                espera.close();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
             }
             Throwable ex = task.getException();
             mostrarAdvertencia("Error", ex != null ? ex.getMessage() : "No se pudo segmentar el artículo.");
@@ -779,29 +801,6 @@ public class DetalleInventarioController {
         return resultado;
     }
 
-    private Stage crearVentanaEspera() {
-        Window owner = null;
-        if (btnCerrar != null && btnCerrar.getScene() != null) {
-            owner = btnCerrar.getScene().getWindow();
-        }
-        Stage stageEspera = new Stage();
-        stageEspera.initModality(Modality.APPLICATION_MODAL);
-        if (owner != null) {
-            stageEspera.initOwner(owner);
-        }
-        stageEspera.setResizable(false);
-        stageEspera.setTitle("Procesando");
-
-        ProgressIndicator indicator = new ProgressIndicator();
-        Label label = new Label("Procesando...");
-        VBox box = new VBox(10, indicator, label);
-        box.setAlignment(Pos.CENTER);
-        box.setStyle("-fx-padding: 20;");
-        StackPane root = new StackPane(box);
-        stageEspera.setScene(new Scene(root, 220, 160));
-        return stageEspera;
-    }
-
     private int parseFactor(String valor) {
         if (valor == null || valor.isBlank()) {
             return 0;
@@ -838,6 +837,16 @@ public class DetalleInventarioController {
                 getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
         );
         configurarOrdenBotones(pane, cancelar, aceptar);
+    }
+
+    private void configurarDialogoModal(Dialog<ButtonType> dialog) {
+        if (dialog == null) {
+            return;
+        }
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        if (btnCerrar != null && btnCerrar.getScene() != null) {
+            dialog.initOwner(btnCerrar.getScene().getWindow());
+        }
     }
 
     private String construirMensajeSegmentacion(ArticuloDetalle articulo, int factor, List<UbicacionCantidad> ubicaciones) {

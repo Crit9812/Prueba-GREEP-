@@ -5,6 +5,7 @@ import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
+import Compartido.helper.OverlayCarga;
 import Reportes.inventario.model.ItemInventario;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -19,7 +20,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar; // ✅ IMPORT AGREGADO (para controlar orden)
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -94,6 +94,7 @@ public class MainController {
     private String direccionOrden = "asc";
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
+    private OverlayCarga overlayCarga;
 
 
     @FXML
@@ -148,6 +149,9 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Inventario", "#ffffff");
+            if (root != null && overlayPane != null) {
+                overlayCarga = new OverlayCarga(root, overlayPane);
+            }
 
             contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
                 if (newVal.doubleValue() > 0) {
@@ -226,6 +230,10 @@ public class MainController {
         }
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
         dialog.setTitle("Editar artículo");
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (root != null && root.getScene() != null) {
+            dialog.initOwner(root.getScene().getWindow());
+        }
 
         dialog.getDialogPane().getButtonTypes().addAll(
                 javafx.scene.control.ButtonType.CANCEL,
@@ -304,7 +312,7 @@ public class MainController {
 
         javafx.scene.control.Button btnSegmentar = new javafx.scene.control.Button("Segmentar");
         btnSegmentar.getStyleClass().add("boton-formulario");
-        btnSegmentar.setOnAction(event -> iniciarSegmentacionInventario(item, idArticulo));
+        btnSegmentar.setOnAction(event -> iniciarSegmentacionInventario(item, idArticulo, dialog));
         javafx.scene.control.Button btnEliminar = new javafx.scene.control.Button("Eliminar");
         btnEliminar.getStyleClass().add("boton-formulario");
         btnEliminar.setOnAction(event -> {
@@ -333,7 +341,8 @@ public class MainController {
         });
     }
 
-    private void iniciarSegmentacionInventario(ItemInventario item, int idArticulo) {
+    private void iniciarSegmentacionInventario(ItemInventario item, int idArticulo,
+                                               javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
         if (item == null || idArticulo <= 0) {
             return;
         }
@@ -356,18 +365,27 @@ public class MainController {
         confirmacion.getButtonTypes().setAll(btnCancelar, btnAceptar);
         configurarOrdenBotones(confirmacion.getDialogPane(), btnCancelar, btnAceptar);
 
+        confirmacion.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (dialogPadre != null) {
+            confirmacion.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
+        }
         confirmacion.showAndWait().ifPresent(respuesta -> {
             if (respuesta != btnAceptar) {
                 return;
             }
-            abrirFormularioSegmentacionInventario(item, idArticulo, factor);
+            abrirFormularioSegmentacionInventario(item, idArticulo, factor, dialogPadre);
         });
     }
 
-    private void abrirFormularioSegmentacionInventario(ItemInventario item, int idArticulo, int factor) {
+    private void abrirFormularioSegmentacionInventario(ItemInventario item, int idArticulo, int factor,
+                                                       javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
                 new javafx.scene.control.Dialog<>();
         dialog.setTitle("Segmentar artículo");
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        if (dialogPadre != null) {
+            dialog.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
+        }
 
         javafx.scene.control.ButtonType btnCancelar = new javafx.scene.control.ButtonType("Cancelar",
                 ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -392,8 +410,14 @@ public class MainController {
         List<UbicacionFila> filas = new ArrayList<>();
         agregarFilaUbicacion(contenedorUbicaciones, filas, true);
 
-        contenido.getChildren().addAll(lblDescripcion, lblUbicaciones, contenedorUbicaciones);
+        ScrollPane scroll = new ScrollPane(contenedorUbicaciones);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(320);
+
+        contenido.getChildren().addAll(lblDescripcion, lblUbicaciones, scroll);
         dialog.getDialogPane().setContent(contenido);
+        dialog.getDialogPane().setPrefWidth(520);
+        dialog.getDialogPane().setPrefHeight(520);
 
         AtomicReference<List<UbicacionCantidad>> seleccionadasRef = new AtomicReference<>(List.of());
         Button btnOk = (Button) dialog.getDialogPane().lookupButton(btnAceptar);
@@ -420,19 +444,19 @@ public class MainController {
             if (respuesta != btnAceptar) {
                 return;
             }
-            ejecutarSegmentacionInventario(item, idArticulo, factor, seleccionadasRef.get());
+            ejecutarSegmentacionInventario(item, idArticulo, factor, seleccionadasRef.get(), dialogPadre);
         });
     }
 
     private void ejecutarSegmentacionInventario(ItemInventario item, int idArticulo, int factor,
-                                                List<UbicacionCantidad> ubicaciones) {
+                                                List<UbicacionCantidad> ubicaciones,
+                                                javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
         if (item == null || ubicaciones == null || ubicaciones.isEmpty()) {
             return;
         }
 
-        Stage espera = crearVentanaEspera();
-        if (espera != null) {
-            espera.show();
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
         }
 
         javafx.concurrent.Task<String> task = new javafx.concurrent.Task<>() {
@@ -484,8 +508,8 @@ public class MainController {
         };
 
         task.setOnSucceeded(event -> {
-            if (espera != null) {
-                espera.close();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
             }
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Segmentación completada");
@@ -493,11 +517,14 @@ public class MainController {
             alert.setContentText(task.getValue());
             alert.showAndWait();
             cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+            if (dialogPadre != null) {
+                dialogPadre.close();
+            }
         });
 
         task.setOnFailed(event -> {
-            if (espera != null) {
-                espera.close();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
             }
             Throwable ex = task.getException();
             mostrarAdvertencia("Error", ex != null ? ex.getMessage() : "No se pudo segmentar el artículo.");
@@ -1489,25 +1516,6 @@ public class MainController {
         if (bar != null) {
             bar.setButtonOrder(ButtonBar.BUTTON_ORDER_NONE);
         }
-    }
-
-    private Stage crearVentanaEspera() {
-        Stage stageEspera = new Stage();
-        stageEspera.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-        if (root != null && root.getScene() != null) {
-            stageEspera.initOwner(root.getScene().getWindow());
-        }
-        stageEspera.setResizable(false);
-        stageEspera.setTitle("Procesando");
-
-        ProgressIndicator indicator = new ProgressIndicator();
-        Label label = new Label("Procesando...");
-        VBox box = new VBox(10, indicator, label);
-        box.setAlignment(javafx.geometry.Pos.CENTER);
-        box.setStyle("-fx-padding: 20;");
-        StackPane panel = new StackPane(box);
-        stageEspera.setScene(new javafx.scene.Scene(panel, 220, 160));
-        return stageEspera;
     }
 
     private String construirMensajeSegmentacion(ItemInventario item, int factor, List<UbicacionCantidad> ubicaciones) {
