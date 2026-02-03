@@ -15,7 +15,8 @@
             fx:controller="Reportes.inventario.controller.DetalleInventarioController"
             prefHeight="520"
             prefWidth="760"
-            style="-fx-background-color: white;">
+            style="-fx-background-color: white;"
+            stylesheets="@/Reportes/inventario/style/estilos.css">
     <top>
         <VBox spacing="10" style="-fx-background-color: white;">
             <padding>
@@ -62,7 +63,7 @@
                 <Insets top="10" bottom="20"/>
             </padding>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="btnCerrar" text="Cerrar" onAction="#cerrarVentana"/>
+            <Button fx:id="btnCerrar" text="Cerrar" onAction="#cerrarVentana" styleClass="boton-formulario"/>
         </HBox>
     </bottom>
 </BorderPane>
