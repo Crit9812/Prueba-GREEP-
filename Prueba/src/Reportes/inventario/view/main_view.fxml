@@ -155,28 +155,32 @@
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
-                        <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
-                            <columnResizePolicy>
-                                <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
-                            </columnResizePolicy>
-                            <columns>
-                                <TableColumn fx:id="colId" text="ID" minWidth="70"/>
-                                <TableColumn fx:id="colClaveProducto" text="ID producto" minWidth="90"/>
-                                <TableColumn fx:id="colCantidad" text="Cantidad" minWidth="100" />
-                                <TableColumn fx:id="colProducto" text="Producto" minWidth="200" />
-                                <TableColumn fx:id="colMarca" text="Marca" minWidth="180"  />
-                                <TableColumn fx:id="colCategoria" text="Categoría" minWidth="140" />
-                                <TableColumn fx:id="colMaterial" text="Material" minWidth="170" />
-                                <TableColumn fx:id="colUnidad" text="Unidad de medida" minWidth="140" />
-                                <TableColumn fx:id="colPresentacion" text="Presentación" minWidth="120" />
-                                <TableColumn fx:id="colFactor" text="Factor" minWidth="70" />
-                                <TableColumn fx:id="colLote" text="Lote" minWidth="140" />
-                                <TableColumn fx:id="colCaducidad" text="Caducidad" minWidth="140" />
-                                <TableColumn fx:id="colUbicacion" text="Ubicación" minWidth="140" />
-                                <TableColumn fx:id="colDescripcion" text="Descripción" minWidth="180" />
-                                <TableColumn fx:id="colInventarioMinimo" text="Inventario mínimo" minWidth="180" />
-                            </columns>
-                        </TableView>
+                        <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="ALWAYS" vbarPolicy="AS_NEEDED">
+                            <content>
+                                <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
+                                    <columnResizePolicy>
+                                        <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
+                                    </columnResizePolicy>
+                                    <columns>
+                                        <TableColumn fx:id="colId" text="ID" minWidth="70"/>
+                                        <TableColumn fx:id="colClaveProducto" text="ID producto" minWidth="90"/>
+                                        <TableColumn fx:id="colCantidad" text="Cantidad" minWidth="100" />
+                                        <TableColumn fx:id="colProducto" text="Producto" minWidth="200" />
+                                        <TableColumn fx:id="colMarca" text="Marca" minWidth="180"  />
+                                        <TableColumn fx:id="colCategoria" text="Categoría" minWidth="140" />
+                                        <TableColumn fx:id="colMaterial" text="Material" minWidth="170" />
+                                        <TableColumn fx:id="colUnidad" text="Unidad de medida" minWidth="140" />
+                                        <TableColumn fx:id="colPresentacion" text="Presentación" minWidth="120" />
+                                        <TableColumn fx:id="colFactor" text="Factor" minWidth="70" />
+                                        <TableColumn fx:id="colLote" text="Lote" minWidth="140" />
+                                        <TableColumn fx:id="colCaducidad" text="Caducidad" minWidth="140" />
+                                        <TableColumn fx:id="colUbicacion" text="Ubicación" minWidth="140" />
+                                        <TableColumn fx:id="colDescripcion" text="Descripción" minWidth="180" />
+                                        <TableColumn fx:id="colInventarioMinimo" text="Inventario mínimo" minWidth="180" />
+                                    </columns>
+                                </TableView>
+                            </content>
+                        </ScrollPane>
                     </VBox>
                 </VBox>
             </SplitPane>
