@@ -865,6 +865,7 @@ public class controllerCompraEmergente {
             if (!llave.equals(ultimoAvisoDuplicado)) {
                 ultimoAvisoDuplicado = llave;
                 mostrarAlerta("Advertencia", "Este producto con el mismo lote ya está agregado a la compra.");
+                if (txtLote != null) txtLote.clear();
             }
         } else {
             ultimoAvisoDuplicado = "";
