@@ -492,7 +492,7 @@ public class MainController {
                     }
 
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion) VALUES (?, ?)")) {
+                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion, estado) VALUES (?, ?, 'activo')")) {
                         for (UbicacionCantidad ubicacion : ubicaciones) {
                             for (int i = 0; i < ubicacion.cantidad; i++) {
                                 ps.setInt(1, idArticulo);
@@ -1328,36 +1328,94 @@ public class MainController {
             LEFT JOIN marcas m ON p.marca = m.id
             LEFT JOIN ubicaciones u ON a.ubicacion = u.id
             WHERE a.Estado = 'disponible'
-            """ : """
+            UNION ALL
             SELECT
-                NULL AS idArticulo,
+                da.idDetalleArticulo AS idArticulo,
                 p.id AS claveProducto,
-                COUNT(a.idArticulo) AS cantidad,
                 p.nombre AS producto,
                 m.nombre AS marca,
                 p.categoria AS categoria,
                 p.material AS material,
                 p.unidadMedida AS unidadMedida,
-                a.presentacion AS presentacion,
-                a.factor AS factor,
+                'pz' AS presentacion,
+                '1' AS factor,
+                a.lote AS lote,
+                a.caducidad AS caducidad,
+                u.nombre AS ubicacion,
                 p.descripcion AS descripcion,
                 p.inventarioMin AS inventarioMinimo
-            FROM articulo a
+            FROM detalleArticulo da
+            INNER JOIN articulo a ON da.idArticulo = a.idArticulo
             INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
             INNER JOIN productos p ON de.claveProducto = p.id
             LEFT JOIN marcas m ON p.marca = m.id
-            WHERE a.Estado = 'disponible'
+            LEFT JOIN ubicaciones u ON da.idUbicacion = u.id
+            WHERE da.estado = 'activo'
+              AND a.Estado = 'segmentado'
+            """ : """
+            SELECT
+                NULL AS idArticulo,
+                claveProducto,
+                SUM(cantidad) AS cantidad,
+                producto,
+                marca,
+                categoria,
+                material,
+                unidadMedida,
+                presentacion,
+                factor,
+                descripcion,
+                inventarioMinimo
+            FROM (
+                SELECT
+                    p.id AS claveProducto,
+                    1 AS cantidad,
+                    p.nombre AS producto,
+                    m.nombre AS marca,
+                    p.categoria AS categoria,
+                    p.material AS material,
+                    p.unidadMedida AS unidadMedida,
+                    a.presentacion AS presentacion,
+                    a.factor AS factor,
+                    p.descripcion AS descripcion,
+                    p.inventarioMin AS inventarioMinimo
+                FROM articulo a
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN marcas m ON p.marca = m.id
+                WHERE a.Estado = 'disponible'
+                UNION ALL
+                SELECT
+                    p.id AS claveProducto,
+                    1 AS cantidad,
+                    p.nombre AS producto,
+                    m.nombre AS marca,
+                    p.categoria AS categoria,
+                    p.material AS material,
+                    p.unidadMedida AS unidadMedida,
+                    'pz' AS presentacion,
+                    '1' AS factor,
+                    p.descripcion AS descripcion,
+                    p.inventarioMin AS inventarioMinimo
+                FROM detalleArticulo da
+                INNER JOIN articulo a ON da.idArticulo = a.idArticulo
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN marcas m ON p.marca = m.id
+                WHERE da.estado = 'activo'
+                  AND a.Estado = 'segmentado'
+            ) AS inventario
             GROUP BY
-                p.id,
-                p.nombre,
-                m.nombre,
-                p.categoria,
-                p.material,
-                p.unidadMedida,
-                a.presentacion,
-                a.factor,
-                p.descripcion,
-                p.inventarioMin
+                claveProducto,
+                producto,
+                marca,
+                categoria,
+                material,
+                unidadMedida,
+                presentacion,
+                factor,
+                descripcion,
+                inventarioMinimo
             """;
 
         String campoActual = comboFiltro.getValue();

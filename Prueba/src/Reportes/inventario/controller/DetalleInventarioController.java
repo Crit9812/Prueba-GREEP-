@@ -686,7 +686,7 @@ public class DetalleInventarioController {
                     }
 
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion) VALUES (?, ?)")) {
+                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion, estado) VALUES (?, ?, 'activo')")) {
                         for (UbicacionCantidad ubicacion : ubicaciones) {
                             for (int i = 0; i < ubicacion.cantidad; i++) {
                                 ps.setInt(1, articulo.idArticulo);
