@@ -115,13 +115,19 @@ public class controllerCompraEmergente {
 
     // Debounce para ajuste inventario (evita disparar consulta por cada tecla en lote/factor)
     private PauseTransition debouncePrecioAjuste;
+    private PauseTransition debounceLoteDuplicado;
+    private String ultimoAvisoDuplicado = "";
 
     @FXML
     public void initialize() {
         if (lblTitulo != null) lblTitulo.setText(tituloFormulario);
 
         productoController = new productoCboxController();
-        productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+        if (proveedorId != null && !proveedorId.isBlank()) {
+            productoController.inicializarConProveedor(cbClaveProducto, cbProductoNombre, cbClaveAlterna, proveedorId);
+        } else {
+            productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+        }
 
         configurarPresentaciones();
         configurarEventos();
@@ -169,7 +175,7 @@ public class controllerCompraEmergente {
         this.proveedorNombre = proveedorNombre;
 
         if (inicializado && productoController != null) {
-            productoController.recargarConProveedor(null);
+            productoController.recargarConProveedor(proveedorId);
         }
     }
 
@@ -315,6 +321,7 @@ public class controllerCompraEmergente {
         if (txtLote != null) {
             txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (modoAjusteInventario) solicitarPrecioAjusteDebounced();
+                solicitarValidacionDuplicadoDebounced();
             });
         }
 
@@ -349,6 +356,15 @@ public class controllerCompraEmergente {
         }
         debouncePrecioAjuste.stop();
         debouncePrecioAjuste.playFromStart();
+    }
+
+    private void solicitarValidacionDuplicadoDebounced() {
+        if (debounceLoteDuplicado == null) {
+            debounceLoteDuplicado = new PauseTransition(Duration.millis(250));
+            debounceLoteDuplicado.setOnFinished(e -> validarProductoLoteDuplicadoEnTiempoReal());
+        }
+        debounceLoteDuplicado.stop();
+        debounceLoteDuplicado.playFromStart();
     }
 
     private void configurarSeleccionClaveAlternaPorDefecto() {
@@ -721,6 +737,11 @@ public class controllerCompraEmergente {
             return;
         }
 
+        if (existeProductoLoteDuplicado(clave, lote)) {
+            mostrarAlerta("Advertencia", "Este producto con el mismo lote ya está agregado a la compra.");
+            return;
+        }
+
         // 2) Validar formulario con helper (MISMA)
         List<UbicacionCompra> ubicacionesSeleccionadas = obtenerUbicacionesSeleccionadas();
 
@@ -830,6 +851,45 @@ public class controllerCompraEmergente {
         return null;
     }
 
+    private void validarProductoLoteDuplicadoEnTiempoReal() {
+        if (itemsCompra == null) return;
+        String clave = productoController != null ? productoController.getIdSeleccionado() : null;
+        String lote = t(txtLote);
+        if (clave == null || clave.isBlank() || lote.isBlank()) {
+            ultimoAvisoDuplicado = "";
+            return;
+        }
+
+        if (existeProductoLoteDuplicado(clave, lote)) {
+            String llave = clave.trim() + "|" + lote.trim().toLowerCase(Locale.ROOT);
+            if (!llave.equals(ultimoAvisoDuplicado)) {
+                ultimoAvisoDuplicado = llave;
+                mostrarAlerta("Advertencia", "Este producto con el mismo lote ya está agregado a la compra.");
+                if (txtLote != null) txtLote.clear();
+            }
+        } else {
+            ultimoAvisoDuplicado = "";
+        }
+    }
+
+    private boolean existeProductoLoteDuplicado(String clave, String lote) {
+        if (itemsCompra == null) return false;
+        String claveLimpia = clave == null ? "" : clave.trim();
+        String loteLimpio = lote == null ? "" : lote.trim().toLowerCase(Locale.ROOT);
+        if (claveLimpia.isBlank() || loteLimpio.isBlank()) return false;
+
+        for (compra item : itemsCompra) {
+            if (item == null) continue;
+            if (itemParaEditar != null && item == itemParaEditar) continue;
+            String claveItem = item.getClaveProducto() == null ? "" : item.getClaveProducto().trim();
+            String loteItem = item.getLote() == null ? "" : item.getLote().trim().toLowerCase(Locale.ROOT);
+            if (claveLimpia.equals(claveItem) && loteLimpio.equals(loteItem)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean esVacio(String valor) {
         return valor == null || valor.isBlank();
     }
@@ -848,6 +908,7 @@ public class controllerCompraEmergente {
     private void limpiarFormularioParaNuevo() {
         if (productoController != null) productoController.limpiarSeleccion();
         seleccionarClaveAlternaPendiente = false;
+        ultimoAvisoDuplicado = "";
 
         limpiarCombosProducto();
         if (txtDescripcion != null) txtDescripcion.clear();
@@ -859,7 +920,7 @@ public class controllerCompraEmergente {
         if (txtCantidad != null) txtCantidad.clear();
 
         if (cbPresentacion != null) cbPresentacion.setValue("pz");
-        if (txtFactor != null) txtFactor.clear();
+        if (txtFactor != null) txtFactor.setText("1");
 
         if (txtNota != null) txtNota.clear();
 
@@ -1017,6 +1078,7 @@ public class controllerCompraEmergente {
         if (txtNota != null) txtNota.setText(itemParaEditar.getNota());
 
         if (txtLote != null) txtLote.setText(itemParaEditar.getLote());
+        ultimoAvisoDuplicado = "";
         configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
 
         if (txtCantidad != null) txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
