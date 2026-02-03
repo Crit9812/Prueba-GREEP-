@@ -66,6 +66,7 @@ public class MainController {
 
     @FXML private VBox contenedorTabla;
     @FXML private TableView<ItemInventario> contenidoTabla;
+    @FXML private TableColumn<ItemInventario, String> colId;
     @FXML private TableColumn<ItemInventario, String> colClaveProducto;
     @FXML private TableColumn<ItemInventario, String> colCantidad;
     @FXML private TableColumn<ItemInventario, String> colProducto;
@@ -491,12 +492,14 @@ public class MainController {
                         }
                     }
 
+                    int consecutivoDetalle = obtenerSiguienteConsecutivoDetalle(conn);
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO detalleArticulo (idArticulo, idUbicacion) VALUES (?, ?)")) {
+                            "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'activo')")) {
                         for (UbicacionCantidad ubicacion : ubicaciones) {
                             for (int i = 0; i < ubicacion.cantidad; i++) {
-                                ps.setInt(1, idArticulo);
-                                ps.setInt(2, ubicacion.id);
+                                ps.setString(1, "S-" + consecutivoDetalle++);
+                                ps.setString(2, String.valueOf(idArticulo));
+                                ps.setInt(3, ubicacion.id);
                                 ps.addBatch();
                             }
                         }
@@ -848,6 +851,7 @@ public class MainController {
     }
 
     private void configurarColumnasTabla() {
+        colId.setCellValueFactory(new PropertyValueFactory<>("idArticulo"));
         colClaveProducto.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
         colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         colProducto.setCellValueFactory(new PropertyValueFactory<>("producto"));
@@ -864,6 +868,7 @@ public class MainController {
         colInventarioMinimo.setCellValueFactory(new PropertyValueFactory<>("inventarioMinimo"));
 
         TableColumn<ItemInventario, ?>[] columnas = new TableColumn[] {
+                colId,
                 colClaveProducto,
                 colCantidad,
                 colProducto,
@@ -958,6 +963,9 @@ public class MainController {
 
     private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
         List<TableColumn<ItemInventario, ?>> columnas = new ArrayList<>();
+        if (detallado) {
+            columnas.add(colId);
+        }
         columnas.add(colClaveProducto);
         if (!detallado) {
             columnas.add(colCantidad);
@@ -1014,6 +1022,7 @@ public class MainController {
 
         List<String> opciones = new ArrayList<>();
         opciones.add("ID");
+        opciones.add("ID producto");
         opciones.add("Producto");
         opciones.add("Marca");
         opciones.add("Categoría");
@@ -1169,6 +1178,8 @@ public class MainController {
     private String obtenerValorCampo(ItemInventario item, String campo) {
         switch (campo) {
             case "ID":
+                return item.getIdArticulo();
+            case "ID producto":
                 return item.getClaveProducto();
             case "Producto":
                 return item.getProducto();
@@ -1251,6 +1262,7 @@ public class MainController {
         boolean detallado = chkInventarioDetallado.isSelected();
         List<String> criterios = new ArrayList<>();
         criterios.add("id");
+        criterios.add("id producto");
         if (!detallado) {
             criterios.add("cantidad");
         }
@@ -1292,9 +1304,12 @@ public class MainController {
             case "ubicacion":
                 comparator = Comparator.comparing(item -> normalizar.apply(item.getUbicacion()));
                 break;
+            case "id producto":
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveProducto()));
+                break;
             case "id":
             default:
-                comparator = Comparator.comparing(item -> normalizar.apply(item.getClaveProducto()));
+                comparator = Comparator.comparing(item -> normalizar.apply(item.getIdArticulo()));
                 break;
         }
         if ("desc".equalsIgnoreCase(direccionOrden)) {
@@ -1328,36 +1343,94 @@ public class MainController {
             LEFT JOIN marcas m ON p.marca = m.id
             LEFT JOIN ubicaciones u ON a.ubicacion = u.id
             WHERE a.Estado = 'disponible'
-            """ : """
+            UNION ALL
             SELECT
-                NULL AS idArticulo,
+                da.idDetalle AS idArticulo,
                 p.id AS claveProducto,
-                COUNT(a.idArticulo) AS cantidad,
                 p.nombre AS producto,
                 m.nombre AS marca,
                 p.categoria AS categoria,
                 p.material AS material,
                 p.unidadMedida AS unidadMedida,
-                a.presentacion AS presentacion,
-                a.factor AS factor,
+                'pz' AS presentacion,
+                '1' AS factor,
+                a.lote AS lote,
+                a.caducidad AS caducidad,
+                u.nombre AS ubicacion,
                 p.descripcion AS descripcion,
                 p.inventarioMin AS inventarioMinimo
-            FROM articulo a
+            FROM detalleArticulo da
+            INNER JOIN articulo a ON da.idArticulo = a.idArticulo
             INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
             INNER JOIN productos p ON de.claveProducto = p.id
             LEFT JOIN marcas m ON p.marca = m.id
-            WHERE a.Estado = 'disponible'
+            LEFT JOIN ubicaciones u ON da.idUbicacion = u.id
+            WHERE da.estado = 'activo'
+              AND a.Estado = 'segmentado'
+            """ : """
+            SELECT
+                NULL AS idArticulo,
+                claveProducto,
+                SUM(cantidad) AS cantidad,
+                producto,
+                marca,
+                categoria,
+                material,
+                unidadMedida,
+                presentacion,
+                factor,
+                descripcion,
+                inventarioMinimo
+            FROM (
+                SELECT
+                    p.id AS claveProducto,
+                    1 AS cantidad,
+                    p.nombre AS producto,
+                    m.nombre AS marca,
+                    p.categoria AS categoria,
+                    p.material AS material,
+                    p.unidadMedida AS unidadMedida,
+                    a.presentacion AS presentacion,
+                    a.factor AS factor,
+                    p.descripcion AS descripcion,
+                    p.inventarioMin AS inventarioMinimo
+                FROM articulo a
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN marcas m ON p.marca = m.id
+                WHERE a.Estado = 'disponible'
+                UNION ALL
+                SELECT
+                    p.id AS claveProducto,
+                    1 AS cantidad,
+                    p.nombre AS producto,
+                    m.nombre AS marca,
+                    p.categoria AS categoria,
+                    p.material AS material,
+                    p.unidadMedida AS unidadMedida,
+                    'pz' AS presentacion,
+                    '1' AS factor,
+                    p.descripcion AS descripcion,
+                    p.inventarioMin AS inventarioMinimo
+                FROM detalleArticulo da
+                INNER JOIN articulo a ON da.idArticulo = a.idArticulo
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN marcas m ON p.marca = m.id
+                WHERE da.estado = 'activo'
+                  AND a.Estado = 'segmentado'
+            ) AS inventario
             GROUP BY
-                p.id,
-                p.nombre,
-                m.nombre,
-                p.categoria,
-                p.material,
-                p.unidadMedida,
-                a.presentacion,
-                a.factor,
-                p.descripcion,
-                p.inventarioMin
+                claveProducto,
+                producto,
+                marca,
+                categoria,
+                material,
+                unidadMedida,
+                presentacion,
+                factor,
+                descripcion,
+                inventarioMinimo
             """;
 
         String campoActual = comboFiltro.getValue();
@@ -1408,6 +1481,18 @@ public class MainController {
 
     private List<String> obtenerUbicacionesActivas() {
         return new Operaciones.compra.model.model().obtenerNombresUbicaciones();
+    }
+
+    private int obtenerSiguienteConsecutivoDetalle(Connection conn) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(idDetalle, 3) AS UNSIGNED)), 0) " +
+                "FROM detalleArticulo WHERE idDetalle LIKE 'S-%'";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) + 1;
+            }
+        }
+        return 1;
     }
 
     private void actualizarVisibilidadSegmentar(Button botonSegmentar, String presentacion) {
