@@ -1330,7 +1330,7 @@ public class MainController {
             WHERE a.Estado = 'disponible'
             UNION ALL
             SELECT
-                da.idDetalleArticulo AS idArticulo,
+                da.idDetalle AS idArticulo,
                 p.id AS claveProducto,
                 p.nombre AS producto,
                 m.nombre AS marca,
