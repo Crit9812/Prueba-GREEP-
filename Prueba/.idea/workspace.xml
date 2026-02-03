@@ -6,11 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambos en operaciones">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/model/model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/DetalleInventarioController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/DetalleInventarioController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

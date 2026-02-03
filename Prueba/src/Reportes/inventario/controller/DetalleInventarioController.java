@@ -14,10 +14,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar; // ✅ Import necesario
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
@@ -317,6 +319,8 @@ public class DetalleInventarioController {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Editar artículo");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+
+        // ✅ aplica estilos + orden de botones
         agregarEstilosDialogo(dialog);
 
         VBox contenido = new VBox(10);
@@ -328,8 +332,10 @@ public class DetalleInventarioController {
         if (!ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
             cbUbicacion.setValue(ubicacionActual);
         }
+
         TextField txtLote = new TextField(valorTexto(articulo.lote));
         txtLote.getStyleClass().add("textfield");
+
         javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
         dpCaducidad.getStyleClass().add("textfield");
         if (articulo.caducidad != null && !articulo.caducidad.isBlank()) {
@@ -339,6 +345,7 @@ public class DetalleInventarioController {
                 dpCaducidad.setValue(null);
             }
         }
+
         ComboBox<String> cbPresentacion = new ComboBox<>();
         cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
         cbPresentacion.setPromptText("Selecciona presentación");
@@ -347,6 +354,7 @@ public class DetalleInventarioController {
         if (!presentacionActual.isBlank()) {
             cbPresentacion.setValue(presentacionActual);
         }
+
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
         txtFactor.getStyleClass().add("textfield");
 
@@ -500,11 +508,29 @@ public class DetalleInventarioController {
         }
     }
 
+    // ✅ CORREGIDO: sin getButtonBar() (no existe en tu JavaFX)
+    // ✅ Cancelar izquierda y OK derecha
     private void agregarEstilosDialogo(Dialog<ButtonType> dialog) {
-        dialog.getDialogPane().getStylesheets().add(
-                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm());
-        dialog.getDialogPane().lookupButton(ButtonType.OK).getStyleClass().add("boton-formulario");
-        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).getStyleClass().add("boton-formulario");
+        DialogPane pane = dialog.getDialogPane();
+
+        pane.getStylesheets().add(
+                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
+        );
+
+        Button btnOk = (Button) pane.lookupButton(ButtonType.OK);
+        Button btnCancel = (Button) pane.lookupButton(ButtonType.CANCEL);
+
+        if (btnOk != null) btnOk.getStyleClass().add("boton-formulario");
+        if (btnCancel != null) btnCancel.getStyleClass().add("boton-formulario");
+
+        if (btnCancel != null) ButtonBar.setButtonData(btnCancel, ButtonBar.ButtonData.CANCEL_CLOSE);
+        if (btnOk != null) ButtonBar.setButtonData(btnOk, ButtonBar.ButtonData.OK_DONE);
+
+        // 🔥 Obtiene el ButtonBar real por lookup y define el orden manual
+        ButtonBar bar = (ButtonBar) pane.lookup(".button-bar");
+        if (bar != null) {
+            bar.setButtonOrder(ButtonBar.BUTTON_ORDER_NONE);
+        }
     }
 
     private void actualizarVisibilidadSegmentar(Button botonSegmentar, String presentacion) {

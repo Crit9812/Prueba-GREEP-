@@ -16,6 +16,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar; // ✅ IMPORT AGREGADO (para controlar orden)
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
@@ -157,7 +158,7 @@ public class MainController {
 
             // Escuchar cambios en el tamaño de la tabla
             contenidoTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
-               System.out.println("escuchando");
+                System.out.println("escuchando");
                 if (newVal.doubleValue() > 0 && newVal.doubleValue() != oldVal.doubleValue()) {
                     Platform.runLater(this::actualizarPoliticaRedimensionamiento);
                 }
@@ -223,14 +224,31 @@ public class MainController {
         }
         javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
         dialog.setTitle("Editar artículo");
-        dialog.getDialogPane().getButtonTypes().addAll(javafx.scene.control.ButtonType.CANCEL,
-                javafx.scene.control.ButtonType.OK);
+
+        dialog.getDialogPane().getButtonTypes().addAll(
+                javafx.scene.control.ButtonType.CANCEL,
+                javafx.scene.control.ButtonType.OK
+        );
+
         dialog.getDialogPane().getStylesheets().add(
-                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm());
-        dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK)
-                .getStyleClass().add("boton-formulario");
-        dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CANCEL)
-                .getStyleClass().add("boton-formulario");
+                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
+        );
+
+        // Estilos
+        Button btnOk = (Button) dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
+        Button btnCancel = (Button) dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CANCEL);
+
+        if (btnOk != null) btnOk.getStyleClass().add("boton-formulario");
+        if (btnCancel != null) btnCancel.getStyleClass().add("boton-formulario");
+
+        // ✅ FORZAR: Cancelar a la izquierda y Aceptar a la derecha (sin getButtonBar)
+        if (btnCancel != null) ButtonBar.setButtonData(btnCancel, ButtonBar.ButtonData.CANCEL_CLOSE);
+        if (btnOk != null) ButtonBar.setButtonData(btnOk, ButtonBar.ButtonData.OK_DONE);
+
+        ButtonBar bar = (ButtonBar) dialog.getDialogPane().lookup(".button-bar");
+        if (bar != null) {
+            bar.setButtonOrder(ButtonBar.BUTTON_ORDER_NONE); // respeta el orden agregado: CANCEL, OK
+        }
 
         List<String> ubicacionesActivas = obtenerUbicacionesActivas();
         javafx.scene.control.ComboBox<String> cbUbicacion = new javafx.scene.control.ComboBox<>();
@@ -730,7 +748,6 @@ public class MainController {
         }
     }
 
-
     private List<TableColumn<ItemInventario, ?>> obtenerColumnasModo(boolean detallado) {
         List<TableColumn<ItemInventario, ?>> columnas = new ArrayList<>();
         columnas.add(colClaveProducto);
@@ -845,7 +862,6 @@ public class MainController {
 
         comboValor.getItems().setAll(valores);
     }
-
 
     @FXML
     private void agregarFiltro() {
@@ -976,7 +992,6 @@ public class MainController {
             return;
         }
 
-        // Crear lista de filtros aplicados
         List<String> filtrosAplicados = new ArrayList<>();
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
@@ -992,7 +1007,6 @@ public class MainController {
             return;
         }
 
-        // Crear lista de filtros aplicados
         List<String> filtrosAplicados = new ArrayList<>();
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
@@ -1008,7 +1022,6 @@ public class MainController {
             return;
         }
 
-        // Crear lista de filtros aplicados
         List<String> filtrosAplicados = new ArrayList<>();
         for (Filtro filtro : filtrosActivos) {
             filtrosAplicados.add(filtro.campo + ": " + filtro.valor);
@@ -1139,7 +1152,6 @@ public class MainController {
                 p.inventarioMin
             """;
 
-        // 1️⃣ Guardar selección actual de filtros
         String campoActual = comboFiltro.getValue();
         String valorActual = comboValor.getValue();
 
@@ -1183,7 +1195,6 @@ public class MainController {
 
         restaurandoFiltros = false;
 
-        // 3️⃣ Aplicar filtros activos
         aplicarFiltros();
     }
 
