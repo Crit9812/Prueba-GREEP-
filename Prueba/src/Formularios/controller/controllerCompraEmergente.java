@@ -121,7 +121,11 @@ public class controllerCompraEmergente {
         if (lblTitulo != null) lblTitulo.setText(tituloFormulario);
 
         productoController = new productoCboxController();
-        productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+        if (proveedorId != null && !proveedorId.isBlank()) {
+            productoController.inicializarConProveedor(cbClaveProducto, cbProductoNombre, cbClaveAlterna, proveedorId);
+        } else {
+            productoController.inicializar(cbClaveProducto, cbProductoNombre, cbClaveAlterna);
+        }
 
         configurarPresentaciones();
         configurarEventos();
@@ -169,7 +173,7 @@ public class controllerCompraEmergente {
         this.proveedorNombre = proveedorNombre;
 
         if (inicializado && productoController != null) {
-            productoController.recargarConProveedor(null);
+            productoController.recargarConProveedor(proveedorId);
         }
     }
 
