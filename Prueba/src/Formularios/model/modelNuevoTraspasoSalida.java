@@ -330,6 +330,25 @@ public class modelNuevoTraspasoSalida {
         }
     }
 
+    /**
+     * Método de compatibilidad para controladores antiguos (ej. FormularioSalidaController)
+     * que aún invocan verificarExistenciaProducto(String, String).
+     *
+     * En el flujo actual la validación real corresponde a lote + idProducto con inventario
+     * disponible para salida. Para tolerar variaciones históricas en el orden de parámetros,
+     * se valida en ambos sentidos.
+     */
+    public boolean verificarExistenciaProducto(String primerValor, String segundoValor) {
+        String valor1 = primerValor != null ? primerValor.trim() : "";
+        String valor2 = segundoValor != null ? segundoValor.trim() : "";
+
+        if (valor1.isEmpty() || valor2.isEmpty()) {
+            return false;
+        }
+
+        return existeLoteParaProducto(valor1, valor2) || existeLoteParaProducto(valor2, valor1);
+    }
+
 
     public Optional<java.time.LocalDate> obtenerCaducidadParaLoteProducto(String lote, String idProducto) {
         String sql = """
