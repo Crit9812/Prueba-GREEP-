@@ -188,7 +188,7 @@ public class model {
                         return false;
                     }
 
-                    // Actualizar artículos como vendidos
+                // Actualizar artículos (y sus detalleArticulo asociados) como vendidos
                     if (!actualizarArticulosVendidos(conn, articulosParaEliminar, idDetalleSalida)) {
                         conn.rollback();
                         return false;
@@ -324,8 +324,31 @@ public class model {
             }
 
             int actualizadas = ps.executeUpdate();
-            return actualizadas >= articulosIds.size();
+            if (actualizadas < articulosIds.size()) {
+                return false;
+            }
         }
+
+        // Reflejar salida sobre detalleArticulo ligado a los artículos vendidos
+        String placeholdersDetalle = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
+        String sqlUpdateDetalle = "UPDATE detalleArticulo " +
+                "SET idDetalleSalida = ?, estado = ? " +
+                "WHERE idArticulo IN (" + placeholdersDetalle + ") " +
+                "AND (idDetalleSalida IS NULL OR idDetalleSalida = 0) " +
+                "AND LOWER(estado) = ?";
+
+        try (PreparedStatement psDetalle = conn.prepareStatement(sqlUpdateDetalle)) {
+            int index = 1;
+            psDetalle.setLong(index++, idDetalleSalida);
+            psDetalle.setString(index++, "vendido");
+            for (Integer idArticulo : articulosIds) {
+                psDetalle.setInt(index++, idArticulo);
+            }
+            psDetalle.setString(index, "activo");
+            psDetalle.executeUpdate();
+        }
+
+        return true;
     }
 
     private void actualizarEstadoEntradaPorDetalle(Connection conn, int detalleEntradaId) throws SQLException {

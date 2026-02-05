@@ -365,6 +365,24 @@ public class model {
                 throw new SQLException("No se actualizaron todos los artículos.");
             }
         }
+
+        // Reflejar salida sobre detalleArticulo ligado a los artículos ajustados
+        String placeholdersDetalle = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
+        String sqlDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? " +
+                "WHERE idArticulo IN (" + placeholdersDetalle + ") " +
+                "AND (idDetalleSalida IS NULL OR idDetalleSalida = 0) " +
+                "AND LOWER(estado) = ?";
+
+        try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
+            int index = 1;
+            psDetalle.setLong(index++, idDetalleSalida);
+            psDetalle.setString(index++, "eliminado");
+            for (Integer idArticulo : articulosIds) {
+                psDetalle.setInt(index++, idArticulo);
+            }
+            psDetalle.setString(index, "activo");
+            psDetalle.executeUpdate();
+        }
     }
 
     private void actualizarEstadoEntradaPorDetalle(Connection conn, int detalleEntradaId) throws SQLException {

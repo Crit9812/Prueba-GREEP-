@@ -336,6 +336,24 @@ public class model {
                         }
                     }
 
+                    // Reflejar salida sobre detalleArticulo ligado a los artículos apartados
+                    String placeholdersDetalle = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
+                    String sqlUpdateDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? " +
+                            "WHERE idArticulo IN (" + placeholdersDetalle + ") " +
+                            "AND (idDetalleSalida IS NULL OR idDetalleSalida = 0) " +
+                            "AND LOWER(estado) = ?";
+
+                    try (PreparedStatement psDetalle = conn.prepareStatement(sqlUpdateDetalle)) {
+                        int index = 1;
+                        psDetalle.setLong(index++, idDetalleSalida);
+                        psDetalle.setString(index++, "pendiente");
+                        for (Integer idArticulo : articulosParaActualizar) {
+                            psDetalle.setInt(index++, idArticulo);
+                        }
+                        psDetalle.setString(index, "activo");
+                        psDetalle.executeUpdate();
+                    }
+
                     detallesEntradaActualizados.addAll(detallesEntrada);
                 }
             }

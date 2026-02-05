@@ -335,13 +335,25 @@ public class modelNuevoTraspasoSalida {
     public boolean existeLoteParaProducto(String lote, String idProducto) {
         // Método mejorado que verifica existencia sin depender de caducidad
         String sql = """
-        SELECT COUNT(*) AS total
-        FROM articulo a
-        JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-        WHERE de.claveProducto = ? 
-          AND a.lote = ?
-          AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-          AND LOWER(a.estado) = 'disponible'
+        SELECT (
+            SELECT COUNT(*)
+            FROM articulo a
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+              AND LOWER(a.estado) = 'disponible'
+        ) + (
+            SELECT COUNT(*)
+            FROM detalleArticulo da
+            JOIN articulo a ON a.idArticulo = da.idArticulo
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+              AND LOWER(da.estado) = 'activo'
+              AND LOWER(a.estado) = 'segmentado'
+        ) AS total
         """;
 
         try (Connection conn = new Conexion().conectar();
@@ -349,6 +361,8 @@ public class modelNuevoTraspasoSalida {
 
             ps.setString(1, idProducto);
             ps.setString(2, lote);
+            ps.setString(3, idProducto);
+            ps.setString(4, lote);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -368,8 +382,16 @@ public class modelNuevoTraspasoSalida {
         FROM articulo a
         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
         WHERE a.lote = ? AND de.claveProducto = ?
-          AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-          AND LOWER(a.estado) = 'disponible'
+          AND (
+                ((a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0) AND LOWER(a.estado) = 'disponible')
+                OR EXISTS (
+                    SELECT 1
+                    FROM detalleArticulo da
+                    WHERE da.idArticulo = a.idArticulo
+                      AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                      AND LOWER(da.estado) = 'activo'
+                )
+              )
         ORDER BY 
             CASE 
                 WHEN a.caducidad IS NOT NULL THEN 0  -- Primero los que tienen caducidad
@@ -408,8 +430,16 @@ public class modelNuevoTraspasoSalida {
         WHERE de.claveProducto = ? 
           AND a.lote = ?
           AND (a.caducidad IS NULL OR a.caducidad = '')
-          AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-          AND LOWER(a.estado) = 'disponible'
+          AND (
+                ((a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0) AND LOWER(a.estado) = 'disponible')
+                OR EXISTS (
+                    SELECT 1
+                    FROM detalleArticulo da
+                    WHERE da.idArticulo = a.idArticulo
+                      AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                      AND LOWER(da.estado) = 'activo'
+                )
+              )
         LIMIT 1
     """;
 
@@ -429,8 +459,46 @@ public class modelNuevoTraspasoSalida {
 
     public int obtenerCantidadDisponibleProductoLoteCaducidad(String idProducto, String lote,
                                                               java.time.LocalDate caducidad) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaPorLoteProductoCaducidad(conn, lote, idProducto, caducidad);
+        String sql = """
+            SELECT (
+                SELECT COUNT(*)
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                WHERE de.claveProducto = ?
+                  AND a.lote = ?
+                  AND (a.caducidad = ? OR (a.caducidad IS NULL AND ? IS NULL))
+                  AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+                  AND LOWER(a.estado) = 'disponible'
+            ) + (
+                SELECT COUNT(*)
+                FROM detalleArticulo da
+                JOIN articulo a ON a.idArticulo = da.idArticulo
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                WHERE de.claveProducto = ?
+                  AND a.lote = ?
+                  AND (a.caducidad = ? OR (a.caducidad IS NULL AND ? IS NULL))
+                  AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(a.estado) = 'segmentado'
+            ) AS total
+        """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            java.sql.Date cad = caducidad != null ? java.sql.Date.valueOf(caducidad) : null;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote);
+            ps.setDate(index++, cad);
+            ps.setDate(index++, cad);
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote);
+            ps.setDate(index++, cad);
+            ps.setDate(index++, cad);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("total");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return 0;
@@ -453,16 +521,25 @@ public class modelNuevoTraspasoSalida {
             FROM articulo a
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ?
+              AND (
+                    ((a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0) AND LOWER(a.estado) = 'disponible')
+                    OR EXISTS (
+                        SELECT 1
+                        FROM detalleArticulo da
+                        WHERE da.idArticulo = a.idArticulo
+                          AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                          AND LOWER(da.estado) = 'activo'
+                    )
+                  )
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
+             PreparedStatement ps = conn.prepareStatement(sql + " LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, idProducto);
             ps.setString(index++, lote);
             ps.setString(index++, presentacion);
-            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -479,17 +556,26 @@ public class modelNuevoTraspasoSalida {
             FROM articulo a
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE de.claveProducto = ? AND a.lote = ? AND a.presentacion = ? AND a.factor = ?
+              AND (
+                    ((a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0) AND LOWER(a.estado) = 'disponible')
+                    OR EXISTS (
+                        SELECT 1
+                        FROM detalleArticulo da
+                        WHERE da.idArticulo = a.idArticulo
+                          AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                          AND LOWER(da.estado) = 'activo'
+                    )
+                  )
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn) + " LIMIT 1")) {
+             PreparedStatement ps = conn.prepareStatement(sql + " LIMIT 1")) {
 
             int index = 1;
             ps.setString(index++, idProducto);
             ps.setString(index++, lote);
             ps.setString(index++, presentacion);
             ps.setInt(index++, factor);
-            index = agregarParametroEstado(ps, conn, index);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -501,21 +587,35 @@ public class modelNuevoTraspasoSalida {
 
     public int obtenerCantidadDisponibleProductoPresentacionFactor(String idProducto, String presentacion, int factor) {
         String sql = """
-            SELECT COUNT(*) AS total
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
-              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+            SELECT (
+                SELECT COUNT(*)
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+                  AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+                  AND LOWER(a.estado) = 'disponible'
+            ) + (
+                SELECT COUNT(*)
+                FROM detalleArticulo da
+                JOIN articulo a ON a.idArticulo = da.idArticulo
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+                  AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(a.estado) = 'segmentado'
+            ) AS total
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
             int index = 1;
             ps.setString(index++, idProducto);
             ps.setString(index++, presentacion);
             ps.setInt(index++, factor);
-            index = agregarParametroEstado(ps, conn, index);
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("total");
@@ -532,30 +632,50 @@ public class modelNuevoTraspasoSalida {
     public List<DisponibilidadRapida> obtenerDisponibilidadesRapidas(String idProducto, String presentacion, int factor) {
         List<DisponibilidadRapida> resultado = new ArrayList<>();
         String sql = """
-            SELECT a.lote, a.caducidad, u.nombre AS ubicacion, COUNT(*) AS total
-            FROM articulo a
-            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
-            JOIN ubicaciones u ON u.id = a.ubicacion
-            WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
-              AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
-            GROUP BY a.lote, a.caducidad, u.nombre
+            SELECT lotes.lote, lotes.caducidad, lotes.ubicacion, SUM(lotes.total) AS total
+            FROM (
+                SELECT a.lote, a.caducidad, u.nombre AS ubicacion, COUNT(*) AS total
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                JOIN ubicaciones u ON u.id = a.ubicacion
+                WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+                  AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+                  AND LOWER(a.estado) = 'disponible'
+                GROUP BY a.lote, a.caducidad, u.nombre
+
+                UNION ALL
+
+                SELECT a.lote, a.caducidad, u.nombre AS ubicacion, COUNT(*) AS total
+                FROM detalleArticulo da
+                JOIN articulo a ON a.idArticulo = da.idArticulo
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                JOIN ubicaciones u ON u.id = da.idUbicacion
+                WHERE de.claveProducto = ? AND a.presentacion = ? AND a.factor = ?
+                  AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(a.estado) = 'segmentado'
+                GROUP BY a.lote, a.caducidad, u.nombre
+            ) lotes
+            GROUP BY lotes.lote, lotes.caducidad, lotes.ubicacion
             ORDER BY 
                 CASE 
-                    WHEN a.caducidad IS NOT NULL THEN 0
+                    WHEN lotes.caducidad IS NOT NULL THEN 0
                     ELSE 1
                 END,
-                a.caducidad ASC, 
-                a.lote ASC
+                lotes.caducidad ASC, 
+                lotes.lote ASC
         """;
 
         try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(agregarFiltroEstado(sql, conn))) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
             int index = 1;
             ps.setString(index++, idProducto);
             ps.setString(index++, presentacion);
             ps.setInt(index++, factor);
-            index = agregarParametroEstado(ps, conn, index);
+            ps.setString(index++, idProducto);
+            ps.setString(index++, presentacion);
+            ps.setInt(index++, factor);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String lote = rs.getString("lote");
