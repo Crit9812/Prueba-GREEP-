@@ -1230,7 +1230,7 @@ public class DetalleFacturaController {
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         VBox contenido = new VBox(8);
-        TextField txtUbicacion = new TextField(valorTexto(articulo.ubicacion));
+        ComboBox<String> cbUbicacion = new ComboBox<>(cargarUbicacionesActivas());
         TextField txtLote = new TextField(valorTexto(articulo.lote));
         DatePicker dpCaducidad = new DatePicker();
         dpCaducidad.getEditor().setDisable(true);
@@ -1275,8 +1275,23 @@ public class DetalleFacturaController {
 
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
 
+        String ubicacionActual = valorTexto(articulo.ubicacion);
+        if (!ubicacionActual.isBlank() && cbUbicacion.getItems().stream().noneMatch(item -> item.equalsIgnoreCase(ubicacionActual))) {
+            cbUbicacion.getItems().add(ubicacionActual);
+        }
+        if (!ubicacionActual.isBlank()) {
+            for (String opcion : cbUbicacion.getItems()) {
+                if (opcion.equalsIgnoreCase(ubicacionActual)) {
+                    cbUbicacion.setValue(opcion);
+                    break;
+                }
+            }
+        }
+        cbUbicacion.setPromptText("Selecciona ubicación");
+        cbUbicacion.setEditable(false);
+
         contenido.getChildren().addAll(
-                new Label("Ubicación:"), txtUbicacion,
+                new Label("Ubicación:"), cbUbicacion,
                 new Label("Lote:"), txtLote,
                 new Label("Caducidad:"), dpCaducidad,
                 new Label("Presentación:"), cbPresentacion,
@@ -1284,7 +1299,7 @@ public class DetalleFacturaController {
         );
 
         // Hacer que los campos tengan el mismo ancho
-        txtUbicacion.setPrefWidth(200);
+        cbUbicacion.setPrefWidth(200);
         txtLote.setPrefWidth(200);
         dpCaducidad.setPrefWidth(200);
         cbPresentacion.setPrefWidth(200);
@@ -1325,13 +1340,18 @@ public class DetalleFacturaController {
                 }
 
                 Integer ubicacionId = null;
-                String ubicacionTexto = txtUbicacion.getText();
+                String ubicacionTexto = cbUbicacion.getValue();
                 if (ubicacionTexto != null && !ubicacionTexto.isBlank() && colUbicacion != null) {
                     String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
                     String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
+                    String colUbicacionEstado = resolverColumna(columnasUbicacion, "estado", "Estado", "status");
                     if (colUbicacionId != null && colUbicacionNombre != null) {
-                        try (PreparedStatement ps = conn.prepareStatement(
-                                "SELECT `" + colUbicacionId + "` FROM ubicaciones WHERE `" + colUbicacionNombre + "` = ?")) {
+                        StringBuilder consultaUbicacion = new StringBuilder(
+                                "SELECT `" + colUbicacionId + "` FROM ubicaciones WHERE `" + colUbicacionNombre + "` = ?");
+                        if (colUbicacionEstado != null) {
+                            consultaUbicacion.append(" AND LOWER(`").append(colUbicacionEstado).append("`) = 'activo'");
+                        }
+                        try (PreparedStatement ps = conn.prepareStatement(consultaUbicacion.toString())) {
                             ps.setString(1, ubicacionTexto.trim());
                             try (ResultSet rs = ps.executeQuery()) {
                                 if (rs.next()) {
@@ -1452,6 +1472,46 @@ public class DetalleFacturaController {
                 e.printStackTrace();
             }
         });
+    }
+
+
+    private ObservableList<String> cargarUbicacionesActivas() {
+        ObservableList<String> ubicaciones = FXCollections.observableArrayList();
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return ubicaciones;
+            }
+
+            Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
+            String colNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
+            String colEstado = resolverColumna(columnasUbicacion, "estado", "Estado", "status");
+
+            if (colNombre == null) {
+                return ubicaciones;
+            }
+
+            StringBuilder sql = new StringBuilder(
+                    "SELECT `" + colNombre + "` FROM ubicaciones");
+            if (colEstado != null) {
+                sql.append(" WHERE LOWER(`").append(colEstado).append("`) = 'activo'");
+            }
+            sql.append(" ORDER BY `").append(colNombre).append("` ASC");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString());
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String nombre = valorTexto(rs.getObject(1));
+                    if (!nombre.isBlank()) {
+                        ubicaciones.add(nombre);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return ubicaciones;
     }
 
     private void editarPrecioEntrada(DetalleLinea linea) {

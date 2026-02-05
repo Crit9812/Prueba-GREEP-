@@ -142,6 +142,10 @@ public class SelectorOrdenPopup {
     }
 
     private static String textoCriterio(String criterio) {
+        if (criterio == null || criterio.isBlank()) {
+            return "ID";
+        }
+
         switch (criterio.toLowerCase()) {
             case "cantidad":
                 return "Cantidad";
@@ -149,10 +153,16 @@ public class SelectorOrdenPopup {
                 return "Producto";
             case "fecha":
                 return "Fecha y hora";
+            case "hora":
+                return "Hora";
             case "clave":
                 return "Clave";
             case "factura":
                 return "Factura";
+            case "facturaentrada":
+                return "Factura entrada";
+            case "facturasalida":
+                return "Factura salida";
             case "tipo":
                 return "Tipo";
             case "usuario":
@@ -161,6 +171,19 @@ public class SelectorOrdenPopup {
                 return "Externo";
             case "movimiento":
                 return "Movimiento";
+            case "antes":
+                return "Antes";
+            case "despues":
+            case "después":
+                return "Después";
+            case "entradas":
+                return "Entradas";
+            case "salidas":
+                return "Salidas";
+            case "proveedor":
+                return "Proveedor";
+            case "cliente":
+                return "Cliente";
             case "sucursal":
                 return "Sucursal";
             case "ubicacion":
@@ -170,10 +193,34 @@ public class SelectorOrdenPopup {
                 return "Lote";
             case "caducidad":
                 return "Caducidad";
-            case "id":
             default:
-                return "ID";
+                return "id".equalsIgnoreCase(criterio) ? "ID" : formatearCriterio(criterio);
         }
+    }
+
+    private static String formatearCriterio(String criterio) {
+        String criterioNormalizado = criterio
+                .replaceAll("([a-z])([A-Z])", "$1 $2")
+                .replace("_", " ")
+                .trim();
+        if (criterioNormalizado.isBlank()) {
+            return "ID";
+        }
+
+        String[] palabras = criterioNormalizado.split("\\s+");
+        StringBuilder texto = new StringBuilder();
+        for (String palabra : palabras) {
+            if (palabra.isBlank()) {
+                continue;
+            }
+            if (texto.length() > 0) {
+                texto.append(' ');
+            }
+            String minuscula = palabra.toLowerCase();
+            texto.append(Character.toUpperCase(minuscula.charAt(0)))
+                    .append(minuscula.substring(1));
+        }
+        return texto.length() == 0 ? "ID" : texto.toString();
     }
 
 }
