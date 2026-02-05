@@ -142,6 +142,10 @@ public class SelectorOrdenPopup {
     }
 
     private static String textoCriterio(String criterio) {
+        if (criterio == null || criterio.isBlank()) {
+            return "ID";
+        }
+
         switch (criterio.toLowerCase()) {
             case "cantidad":
                 return "Cantidad";
@@ -158,10 +162,40 @@ public class SelectorOrdenPopup {
                 return "Lote";
             case "caducidad":
                 return "Caducidad";
+            case "proveedor":
+                return "Proveedor";
+            case "entradas":
+                return "Entradas";
+            case "salidas":
+                return "Salidas";
             case "id":
-            default:
                 return "ID";
+            default:
+                return formatearTexto(criterio);
         }
+    }
+
+    private static String formatearTexto(String criterio) {
+        String texto = criterio.trim().replace('_', ' ');
+        if (texto.isEmpty()) {
+            return "ID";
+        }
+
+        String[] palabras = texto.split("\\s+");
+        StringBuilder resultado = new StringBuilder();
+        for (String palabra : palabras) {
+            if (palabra.isEmpty()) {
+                continue;
+            }
+            if (!resultado.isEmpty()) {
+                resultado.append(' ');
+            }
+            resultado.append(Character.toUpperCase(palabra.charAt(0)));
+            if (palabra.length() > 1) {
+                resultado.append(palabra.substring(1).toLowerCase());
+            }
+        }
+        return resultado.toString();
     }
 
 }
