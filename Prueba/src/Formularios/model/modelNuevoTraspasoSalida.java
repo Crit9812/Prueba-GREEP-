@@ -278,58 +278,33 @@ public class modelNuevoTraspasoSalida {
     }
 
     public boolean existeLoteCaducidadUbicacion(String lote, java.time.LocalDate caducidad, String ubicacionNombre) {
-        try (Connection conn = new Conexion().conectar()) {
-            int disponibles = GenericDAO.contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(
-                    conn, lote, caducidad, ubicacionNombre);
-            return disponibles > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+        int disponibles = contarDisponiblesConDetalle(null, lote, caducidad, true,
+                null, null, ubicacionNombre);
+        return disponibles > 0;
     }
 
     public int obtenerCantidadDisponible(String lote, java.time.LocalDate caducidad, String ubicacionNombre) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaPorLoteCaducidadUbicacion(
-                    conn, lote, caducidad, ubicacionNombre);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+        return contarDisponiblesConDetalle(null, lote, caducidad, true,
+                null, null, ubicacionNombre);
     }
 
     public boolean existeLoteCaducidadUbicacionProducto(String idProducto, String lote,
                                                         java.time.LocalDate caducidad, String ubicacionNombre) {
-        try (Connection conn = new Conexion().conectar()) {
-            int disponibles = GenericDAO.contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(
-                    conn, idProducto, lote, caducidad, ubicacionNombre);
-            return disponibles > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+        int disponibles = contarDisponiblesConDetalle(idProducto, lote, caducidad, true,
+                null, null, ubicacionNombre);
+        return disponibles > 0;
     }
 
     public int obtenerCantidadDisponibleProductoUbicacion(String idProducto, String lote,
                                                           java.time.LocalDate caducidad, String ubicacionNombre) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaPorProductoLoteCaducidadUbicacion(
-                    conn, idProducto, lote, caducidad, ubicacionNombre);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+        return contarDisponiblesConDetalle(idProducto, lote, caducidad, true,
+                null, null, ubicacionNombre);
     }
 
     public int obtenerCantidadDisponibleDetalle(String idProducto, String lote, java.time.LocalDate caducidad,
                                                 String presentacion, int factor, String ubicacionNombre) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaDetalle(
-                    conn, idProducto, lote, caducidad, presentacion, factor, ubicacionNombre);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+        return contarDisponiblesConDetalle(idProducto, lote, caducidad, true,
+                presentacion, factor, ubicacionNombre);
     }
 
     public boolean existeLoteParaProducto(String lote, String idProducto) {
@@ -490,22 +465,16 @@ public class modelNuevoTraspasoSalida {
 
     public int obtenerCantidadDisponibleProductoLoteCaducidad(String idProducto, String lote,
                                                               java.time.LocalDate caducidad) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaPorLoteProductoCaducidad(conn, lote, idProducto, caducidad);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+        return contarDisponiblesConDetalle(idProducto, lote, caducidad, true,
+                null, null, null);
     }
 
     public GenericDAO.ValidacionDisponibilidadSalida validarEntradaYDisponibilidadLoteProducto(String lote,
                                                                                                String idProducto) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.validarEntradaYDisponibilidadLoteProducto(conn, lote, idProducto);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new GenericDAO.ValidacionDisponibilidadSalida(false, 0);
-        }
+        int total = contarUnidadesTotalesLoteProducto(idProducto, lote);
+        int disponibles = contarDisponiblesConDetalle(idProducto, lote, null, false,
+                null, null, null);
+        return new GenericDAO.ValidacionDisponibilidadSalida(total > 0, disponibles);
     }
 
     public boolean existePresentacionParaProductoLote(String idProducto, String lote, String presentacion) {
@@ -853,22 +822,162 @@ public class modelNuevoTraspasoSalida {
     public int obtenerCantidadDisponibleProductoLoteCaducidadPresentacionFactor(
             String idProducto, String lote, java.time.LocalDate caducidad,
             String presentacion, int factor) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaPorLoteProductoPresentacionFactor(
-                    conn, lote, idProducto, presentacion, factor);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+        return contarDisponiblesConDetalle(idProducto, lote, caducidad, true,
+                presentacion, factor, null);
     }
 
     public int obtenerCantidadDisponibleProductoLote(String idProducto, String lote) {
-        try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaPorLoteProducto(conn, lote, idProducto);
+        return contarDisponiblesConDetalle(idProducto, lote, null, false,
+                null, null, null);
+    }
+
+    private int contarDisponiblesConDetalle(String idProducto, String lote, java.time.LocalDate caducidad,
+                                            boolean filtrarCaducidad, String presentacion, Integer factor,
+                                            String ubicacionNombre) {
+        StringBuilder detalleWhere = new StringBuilder();
+        StringBuilder articuloWhere = new StringBuilder();
+        List<Object> parametros = new ArrayList<>();
+
+        agregarFiltrosBase(detalleWhere, parametros, idProducto, lote, caducidad,
+                filtrarCaducidad, presentacion, factor, ubicacionNombre, true);
+        List<Object> parametrosArticulo = new ArrayList<>();
+        agregarFiltrosBase(articuloWhere, parametrosArticulo, idProducto, lote, caducidad,
+                filtrarCaducidad, presentacion, factor, ubicacionNombre, false);
+
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM (
+                SELECT da.idDetalle AS unidad
+                FROM detalleArticulo da
+                JOIN articulo a ON a.idArticulo = da.idArticulo
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                LEFT JOIN ubicaciones u ON u.id = da.idUbicacion
+                WHERE 1 = 1
+        """ + detalleWhere + """
+                  AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                  AND LOWER(COALESCE(da.estado, '')) IN ('activo', 'disponible')
+                UNION ALL
+                SELECT CAST(a.idArticulo AS CHAR) AS unidad
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                LEFT JOIN ubicaciones u ON u.id = a.ubicacion
+                WHERE 1 = 1
+        """ + articuloWhere + """
+                  AND (a.idDetalleSalida IS NULL OR a.idDetalleSalida = 0)
+                  AND LOWER(a.estado) = 'disponible'
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM detalleArticulo da
+                        WHERE da.idArticulo = a.idArticulo
+                          AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+                          AND LOWER(COALESCE(da.estado, '')) IN ('activo', 'disponible')
+                  )
+            ) t
+        """;
+
+        parametros.addAll(parametrosArticulo);
+        return ejecutarConteo(sql, parametros);
+    }
+
+    private int contarUnidadesTotalesLoteProducto(String idProducto, String lote) {
+        List<Object> parametros = new ArrayList<>();
+        StringBuilder where = new StringBuilder();
+
+        if (idProducto != null && !idProducto.isBlank()) {
+            where.append(" AND de.claveProducto = ?");
+            parametros.add(idProducto);
+        }
+        if (lote != null && !lote.isBlank()) {
+            where.append(" AND a.lote = ?");
+            parametros.add(lote);
+        }
+
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM (
+                SELECT da.idDetalle AS unidad
+                FROM detalleArticulo da
+                JOIN articulo a ON a.idArticulo = da.idArticulo
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                WHERE 1 = 1
+        """ + where + """
+                UNION ALL
+                SELECT CAST(a.idArticulo AS CHAR) AS unidad
+                FROM articulo a
+                JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+                WHERE 1 = 1
+        """ + where + """
+                  AND NOT EXISTS (
+                        SELECT 1 FROM detalleArticulo da
+                        WHERE da.idArticulo = a.idArticulo
+                  )
+            ) t
+        """;
+
+        List<Object> parametrosArticulo = new ArrayList<>(parametros);
+        parametros.addAll(parametrosArticulo);
+        return ejecutarConteo(sql, parametros);
+    }
+
+    private void agregarFiltrosBase(StringBuilder where, List<Object> parametros, String idProducto, String lote,
+                                    java.time.LocalDate caducidad, boolean filtrarCaducidad,
+                                    String presentacion, Integer factor, String ubicacionNombre,
+                                    boolean esDetalle) {
+        if (idProducto != null && !idProducto.isBlank()) {
+            where.append(" AND de.claveProducto = ?");
+            parametros.add(idProducto);
+        }
+        if (lote != null && !lote.isBlank()) {
+            where.append(" AND a.lote = ?");
+            parametros.add(lote);
+        }
+        if (filtrarCaducidad) {
+            where.append(" AND (a.caducidad = ? OR (a.caducidad IS NULL AND ? IS NULL))");
+            java.sql.Date fecha = caducidad != null ? java.sql.Date.valueOf(caducidad) : null;
+            parametros.add(fecha);
+            parametros.add(fecha);
+        }
+        if (presentacion != null && !presentacion.isBlank()) {
+            where.append(" AND a.presentacion = ?");
+            parametros.add(presentacion);
+        }
+        if (factor != null) {
+            where.append(" AND a.factor = ?");
+            parametros.add(factor);
+        }
+        if (ubicacionNombre != null && !ubicacionNombre.isBlank()) {
+            where.append(" AND u.nombre = ?");
+            parametros.add(ubicacionNombre);
+            if (esDetalle) {
+                where.append(" AND da.idUbicacion IS NOT NULL");
+            }
+        }
+    }
+
+    private int ejecutarConteo(String sql, List<Object> parametros) {
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int index = 1;
+            for (Object parametro : parametros) {
+                if (parametro instanceof java.sql.Date) {
+                    ps.setDate(index++, (java.sql.Date) parametro);
+                } else if (parametro instanceof Integer) {
+                    ps.setInt(index++, (Integer) parametro);
+                } else {
+                    ps.setString(index++, parametro != null ? parametro.toString() : null);
+                }
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            return 0;
         }
+        return 0;
     }
 
 
