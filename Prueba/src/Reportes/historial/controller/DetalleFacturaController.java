@@ -1,5 +1,12 @@
 package Reportes.historial.controller;
 
+import java.time.LocalDate;
+
+import javafx.collections.ObservableList;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.ComboBox;
+import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -19,7 +26,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
@@ -41,6 +47,9 @@ public class DetalleFacturaController {
     @FXML private Button btnCancelar;
     @FXML private Button btnCancelarEntrada;
     @FXML private ScrollPane scrollPane;
+    private final ObservableList<String> presentaciones = FXCollections.observableArrayList(
+            "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
+    );
 
     private HistorialFactura historial;
     private Stage stage;
@@ -1104,21 +1113,21 @@ public class DetalleFacturaController {
 
                             // Segunda línea: Caducidad y Presentación
                             HBox linea2 = new HBox(15);
-                            Label lblCaducidad = crearEtiquetaDetalleElegante("Caducidad:", valorTexto(articulo.caducidad));
                             Label lblPresentacion = crearEtiquetaDetalleElegante("Presentación:", valorTexto(articulo.presentacion));
-                            linea2.getChildren().addAll(lblCaducidad, lblPresentacion);
-
-                            // Tercera línea: Factor y Estado (ESTADO EN NEGRITAS)
-                            HBox linea3 = new HBox(15);
                             Label lblFactor = crearEtiquetaDetalleElegante("Factor:", valorTexto(articulo.factor));
+                            linea2.getChildren().addAll(lblPresentacion, lblFactor);
+                            HBox linea3 = new HBox(15);
+                            Label lblCaducidad = crearEtiquetaDetalleElegante("Caducidad:", valorTexto(articulo.caducidad));
+                            linea3.getChildren().add(lblCaducidad);
 
-                            // Estado con color según condición - EN NEGRITAS
+                            // Cuarta línea: Solo Estado
+                            HBox linea4 = new HBox(15);
                             Label lblEstado = new Label("Estado: " + valorTexto(articulo.estado));
                             String colorEstado = obtenerColorEstado(articulo.estado);
                             lblEstado.setStyle("-fx-font-weight: bold; -fx-text-fill: " + colorEstado + "; -fx-font-size: 12;");
-                            linea3.getChildren().addAll(lblFactor, lblEstado);
+                            linea4.getChildren().add(lblEstado);
 
-                            infoBox.getChildren().addAll(linea1, linea2, linea3);
+                            infoBox.getChildren().addAll(linea1, linea2, linea3, linea4);
 
                             // ORDEN CORREGIDO: Botones a la izquierda, luego número, luego información
                             articuloCard.getChildren().addAll(numero, infoBox, botonesContainer);
@@ -1215,6 +1224,7 @@ public class DetalleFacturaController {
         if (articulo == null || articulo.idArticulo <= 0) {
             return;
         }
+
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Editar artículo");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -1222,27 +1232,84 @@ public class DetalleFacturaController {
         VBox contenido = new VBox(8);
         TextField txtUbicacion = new TextField(valorTexto(articulo.ubicacion));
         TextField txtLote = new TextField(valorTexto(articulo.lote));
-        TextField txtCaducidad = new TextField(valorTexto(articulo.caducidad));
-        TextField txtPresentacion = new TextField(valorTexto(articulo.presentacion));
+        DatePicker dpCaducidad = new DatePicker();
+        dpCaducidad.getEditor().setDisable(true);
+        dpCaducidad.getEditor().setStyle("-fx-opacity: 1.0; -fx-background-color: white;");
+        dpCaducidad.setPromptText("Haz clic en el calendario");
+
+        if (articulo.caducidad != null && !articulo.caducidad.trim().isEmpty()) {
+            try {
+                // Parsear la fecha en formato YYYY-MM-DD
+                String[] partes = articulo.caducidad.trim().split("-");
+                if (partes.length == 3) {
+                    int year = Integer.parseInt(partes[0]);
+                    int month = Integer.parseInt(partes[1]);
+                    int day = Integer.parseInt(partes[2]);
+                    LocalDate fecha = LocalDate.of(year, month, day);
+                    dpCaducidad.setValue(fecha);
+                }
+            } catch (Exception e) {
+                System.err.println("Error parsing date: " + articulo.caducidad);
+            }
+        }
+
+        ComboBox<String> cbPresentacion = new ComboBox<>(presentaciones);
+
+        String presentacionActual = valorTexto(articulo.presentacion).toLowerCase();
+        if (presentacionActual != null && !presentacionActual.isEmpty()) {
+            for (String opcion : presentaciones) {
+                if (opcion.equalsIgnoreCase(presentacionActual)) {
+                    cbPresentacion.setValue(opcion);
+                    break;
+                }
+            }
+            if (cbPresentacion.getValue() == null && !presentaciones.isEmpty()) {
+                cbPresentacion.setValue(presentaciones.get(0));
+            }
+        } else if (!presentaciones.isEmpty()) {
+            cbPresentacion.setValue(presentaciones.get(0));
+        }
+
+        // Deshabilitar edición manual
+        cbPresentacion.setEditable(false);
+
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
 
         contenido.getChildren().addAll(
                 new Label("Ubicación:"), txtUbicacion,
                 new Label("Lote:"), txtLote,
-                new Label("Caducidad (YYYY-MM-DD):"), txtCaducidad,
-                new Label("Presentación:"), txtPresentacion,
+                new Label("Caducidad:"), dpCaducidad,
+                new Label("Presentación:"), cbPresentacion,
                 new Label("Factor:"), txtFactor
         );
+
+        // Hacer que los campos tengan el mismo ancho
+        txtUbicacion.setPrefWidth(200);
+        txtLote.setPrefWidth(200);
+        dpCaducidad.setPrefWidth(200);
+        cbPresentacion.setPrefWidth(200);
+        txtFactor.setPrefWidth(200);
+
         dialog.getDialogPane().setContent(contenido);
+
+        ButtonType btnOk = ButtonType.OK;
+        dialog.getDialogPane().lookupButton(btnOk).addEventFilter(ActionEvent.ACTION, event -> {
+            if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isEmpty()) {
+                mostrarAdvertencia("Presentación requerida", "Selecciona una presentación de la lista");
+                event.consume();
+            }
+        });
 
         dialog.showAndWait().ifPresent(respuesta -> {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
                 }
+
                 Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
                 Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
 
@@ -1281,15 +1348,29 @@ public class DetalleFacturaController {
 
                 StringBuilder sql = new StringBuilder("UPDATE articulo SET ");
                 List<Object> valores = new ArrayList<>();
+
                 agregarCampoActualizacion(sql, valores, colUbicacion, ubicacionId);
                 agregarCampoActualizacion(sql, valores, colLote, valorTexto(txtLote.getText()));
-                agregarCampoActualizacion(sql, valores, colCaducidad, parseDate(txtCaducidad.getText()));
-                agregarCampoActualizacion(sql, valores, colPresentacion, valorTexto(txtPresentacion.getText()));
+
+                java.sql.Date fechaCaducidad = null;
+                if (dpCaducidad.getValue() != null) {
+                    LocalDate fecha = dpCaducidad.getValue();
+                    fechaCaducidad = java.sql.Date.valueOf(fecha);
+                }
+                agregarCampoActualizacion(sql, valores, colCaducidad, fechaCaducidad);
+
+                String presentacionSeleccionada = cbPresentacion.getValue();
+                if (presentacionSeleccionada == null && !presentaciones.isEmpty()) {
+                    presentacionSeleccionada = presentaciones.get(0);
+                }
+                agregarCampoActualizacion(sql, valores, colPresentacion, valorTexto(presentacionSeleccionada));
+
                 agregarCampoActualizacion(sql, valores, colFactor, parseInteger(txtFactor.getText()));
 
                 if (valores.isEmpty()) {
                     return;
                 }
+
                 sql.append(" WHERE `").append(colId).append("` = ?");
                 valores.add(articulo.idArticulo);
 
@@ -1299,7 +1380,9 @@ public class DetalleFacturaController {
                     }
                     ps.executeUpdate();
                 }
+
                 cargarDetalles();
+
             } catch (SQLException e) {
                 e.printStackTrace();
             }

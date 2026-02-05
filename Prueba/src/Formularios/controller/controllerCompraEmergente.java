@@ -61,6 +61,8 @@ public class controllerCompraEmergente {
     @FXML private Button btnLimpiar;
     @FXML private Label lblTitulo;
 
+    private String prefillPresentacion;
+    private String prefillFactor;
     private static final int MAX_FILAS = 10;
     private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -156,6 +158,16 @@ public class controllerCompraEmergente {
     // SETTERS
     // ==========================
 
+    public void setPresentacionPrefill(String presentacion) {
+        this.prefillPresentacion = presentacion;
+        if (inicializado) aplicarPrefillPresentacionFactor();
+    }
+
+    public void setFactorPrefill(String factor) {
+        this.prefillFactor = factor;
+        if (inicializado) aplicarPrefillPresentacionFactor();
+    }
+
     public void setItemsCompra(ObservableList<compra> itemsCompra) {
         this.itemsCompra = itemsCompra;
     }
@@ -203,12 +215,6 @@ public class controllerCompraEmergente {
     // ==========================
     // PREFILL
     // ==========================
-
-    private void aplicarPrefill() {
-        aplicarPrefillProducto();
-        aplicarPrefillUbicacion();
-    }
-
     private void aplicarPrefillProducto() {
         if (prefillProductoId == null || prefillProductoNombre == null || productoController == null) return;
         intentarAplicarSeleccion(8);
@@ -1387,6 +1393,26 @@ public class controllerCompraEmergente {
             this.contenedor = contenedor;
             this.combo = combo;
             this.cantidad = cantidad;
+        }
+    }
+
+    private void aplicarPrefill() {
+        aplicarPrefillProducto();
+        aplicarPrefillUbicacion();
+        aplicarPrefillPresentacionFactor(); // Nueva línea
+    }
+
+    private void aplicarPrefillPresentacionFactor() {
+        if (prefillPresentacion != null && !prefillPresentacion.isBlank()) {
+            if (cbPresentacion != null) {
+                cbPresentacion.setValue(prefillPresentacion);
+            }
+        }
+
+        if (prefillFactor != null && !prefillFactor.isBlank()) {
+            if (txtFactor != null) {
+                txtFactor.setText(prefillFactor);
+            }
         }
     }
 }

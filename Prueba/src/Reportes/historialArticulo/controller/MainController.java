@@ -11,6 +11,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -331,19 +332,28 @@ public class MainController {
     }
 
     private Node crearChipFiltro(Filtro filtro) {
-        HBox chip = new HBox(6);
+        HBox chip = new HBox(5);
         chip.setAlignment(javafx.geometry.Pos.CENTER);
-        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        chip.getStyleClass().add("chip");
+
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
-        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
-        Button quitar = new Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
+        texto.getStyleClass().add("chip-text");
+
+        Button quitar = new Button("✕");
+        quitar.getStyleClass().add("chip-close");
+
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
             aplicarFiltros();
         });
+
         chip.getChildren().addAll(texto, quitar);
+
+        if (contenedorFiltros.getChildren().isEmpty()) {
+            HBox.setMargin(chip, new Insets(0, 0, 0, 25));
+        }
+
         return chip;
     }
 

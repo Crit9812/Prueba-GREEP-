@@ -4,9 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambos en operaciones">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambos en operaciones y formularios">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/DetalleInventarioController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/DetalleInventarioController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerCompraEmergente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/view/main_view.fxml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -39,7 +43,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/add-loading-message-during-purchase" />
+        <entry key="$PROJECT_DIR$/.." value="codex/update-inventory-item-segment-functionality" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -209,6 +213,7 @@
       <workItem from="1769608343193" duration="5782000" />
       <workItem from="1769695864013" duration="11647000" />
       <workItem from="1770127176849" duration="2194000" />
+      <workItem from="1770226606726" duration="4603000" />
     </task>
     <task id="LOCAL-00009" summary="Merge remote-tracking branch 'origin/detached' into detached">
       <option name="closed" value="true" />

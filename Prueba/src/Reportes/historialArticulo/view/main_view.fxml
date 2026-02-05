@@ -73,7 +73,7 @@
                                 </HBox.margin>
                             </Label>
                             <Region fx:id="expansorBusqueda"/>
-                            <ComboBox fx:id="buscarProducto" promptText="Buscar producto" styleClass="textfield">
+                            <ComboBox fx:id="buscarProducto" promptText="Buscar producto" styleClass="barraBusqueda">
                                 <HBox.margin>
                                     <Insets right="40"/>
                                 </HBox.margin>
