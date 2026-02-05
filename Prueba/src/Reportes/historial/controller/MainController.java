@@ -597,7 +597,7 @@ public class MainController {
                 String horaAjuste = formatearHoraAjuste(rs.getObject("horaAjuste"));
                 registros.add(new HistorialFactura(
                         "Ajuste",
-                        String.valueOf(rs.getInt("idAjuste")),
+                        valorTexto(rs.getObject("idAjuste")),
                         "-",
                         valorTexto(rs.getObject("fechaAjuste")),
                         horaAjuste,
