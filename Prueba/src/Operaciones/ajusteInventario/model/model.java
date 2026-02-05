@@ -210,17 +210,17 @@ public class model {
                 // Obtener detalle de entrada relacionado
                 Integer detalleEntradaId = obtenerDetalleEntradaId(conn, item, ubicacionId);
 
-                // Seleccionar artículos para actualizar/eliminar
-                List<Integer> articulosParaActualizar = obtenerArticulosParaSalida(
+                // Seleccionar unidades para actualizar/eliminar (artículo + detalleArticulo)
+                UnidadesSalida unidadesParaActualizar = obtenerUnidadesParaSalida(
                         conn, item, ubicacionId, cantidad, detalleEntradaId
                 );
 
-                if (articulosParaActualizar.size() < cantidad) {
+                if (unidadesParaActualizar.total() < cantidad) {
                     throw new SQLException("No hay suficientes artículos para la salida.");
                 }
 
-                // Actualizar o eliminar artículos
-                actualizarArticulosParaSalida(conn, idDetalleSalida, articulosParaActualizar);
+                // Actualizar o eliminar unidades
+                actualizarUnidadesParaSalida(conn, idDetalleSalida, unidadesParaActualizar);
 
                 // Actualizar estado de la entrada si corresponde
                 if (detalleEntradaId != null) {
@@ -290,9 +290,51 @@ public class model {
         return null;
     }
 
-    private List<Integer> obtenerArticulosParaSalida(Connection conn, traspasoSalida item,
+    private UnidadesSalida obtenerUnidadesParaSalida(Connection conn, traspasoSalida item,
                                                      int ubicacionId, int cantidad, Integer detalleEntradaId)
             throws SQLException {
+        List<String> detallesParaActualizar = new ArrayList<>();
+        List<Integer> articulosParaActualizar = new ArrayList<>();
+
+        StringBuilder sqlDetalle = new StringBuilder(
+                "SELECT da.idDetalle FROM detalleArticulo da " +
+                        "JOIN articulo a ON a.idArticulo = da.idArticulo"
+        );
+        if (detalleEntradaId != null) {
+            sqlDetalle.append(" JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada");
+        }
+        sqlDetalle.append(" WHERE 1=1")
+                .append(" AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)")
+                .append(" AND LOWER(COALESCE(da.estado, '')) IN ('activo','disponible')")
+                .append(" AND a.lote = ?")
+                .append(" AND da.idUbicacion = ?")
+                .append(" AND a.presentacion = ?")
+                .append(" AND a.factor = ?");
+        if (detalleEntradaId != null) {
+            sqlDetalle.append(" AND de.claveProducto = ?");
+        }
+        sqlDetalle.append(" LIMIT ?");
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlDetalle.toString())) {
+            int index = 1;
+            ps.setString(index++, item.getLote());
+            ps.setInt(index++, ubicacionId);
+            ps.setString(index++, item.getPresentacion());
+            ps.setInt(index++, item.getFactor());
+            if (detalleEntradaId != null) {
+                ps.setString(index++, item.getClaveProducto());
+            }
+            ps.setInt(index, cantidad);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    detallesParaActualizar.add(rs.getString("idDetalle"));
+                }
+            }
+        }
+
+        int faltantes = Math.max(0, cantidad - detallesParaActualizar.size());
+
         StringBuilder sql = new StringBuilder(
                 "SELECT a.idArticulo " +
                         "FROM articulo a"
@@ -314,9 +356,11 @@ public class model {
             sql.append(" AND de.claveProducto = ?");
         }
 
-        sql.append(" LIMIT ?");
+        sql.append(" AND NOT EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.idArticulo = a.idArticulo ")
+                .append("AND LOWER(COALESCE(da.estado, '')) IN ('activo','disponible') ")
+                .append("AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0))");
 
-        List<Integer> articulosParaActualizar = new ArrayList<>();
+        sql.append(" LIMIT ?");
 
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int index = 1;
@@ -330,7 +374,7 @@ public class model {
                 ps.setString(index++, item.getClaveProducto());
             }
 
-            ps.setInt(index, cantidad);
+            ps.setInt(index, faltantes);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -339,31 +383,69 @@ public class model {
             }
         }
 
-        return articulosParaActualizar;
+        return new UnidadesSalida(articulosParaActualizar, detallesParaActualizar);
     }
 
-    private void actualizarArticulosParaSalida(Connection conn, long idDetalleSalida, List<Integer> articulosIds)
+    private void actualizarUnidadesParaSalida(Connection conn, long idDetalleSalida, UnidadesSalida unidades)
             throws SQLException {
-        if (articulosIds.isEmpty()) {
+        if (unidades.total() == 0) {
             return;
         }
 
-        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
+        if (!unidades.detallesIds.isEmpty()) {
+            String placeholdersDetalle = String.join(", ", java.util.Collections.nCopies(unidades.detallesIds.size(), "?"));
+            String sqlDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? WHERE idDetalle IN (" + placeholdersDetalle + ")";
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlDetalle)) {
+                int index = 1;
+                ps.setLong(index++, idDetalleSalida);
+                ps.setString(index++, "eliminado");
+
+                for (String idDetalle : unidades.detallesIds) {
+                    ps.setString(index++, idDetalle);
+                }
+
+                int actualizadas = ps.executeUpdate();
+                if (actualizadas < unidades.detallesIds.size()) {
+                    throw new SQLException("No se actualizaron todos los detalleArticulo.");
+                }
+            }
+        }
+
+        if (unidades.articulosIds.isEmpty()) {
+            return;
+        }
+
+        String placeholders = String.join(", ", java.util.Collections.nCopies(unidades.articulosIds.size(), "?"));
         String sql = "UPDATE articulo SET idDetalleSalida = ?, Estado = ? WHERE idArticulo IN (" + placeholders + ")";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
             ps.setLong(index++, idDetalleSalida);
-            ps.setString(index++, "ajustado");
+            ps.setString(index++, "eliminado");
 
-            for (Integer idArticulo : articulosIds) {
+            for (Integer idArticulo : unidades.articulosIds) {
                 ps.setInt(index++, idArticulo);
             }
 
             int actualizadas = ps.executeUpdate();
-            if (actualizadas < articulosIds.size()) {
+            if (actualizadas < unidades.articulosIds.size()) {
                 throw new SQLException("No se actualizaron todos los artículos.");
             }
+        }
+    }
+
+    private static class UnidadesSalida {
+        private final List<Integer> articulosIds;
+        private final List<String> detallesIds;
+
+        private UnidadesSalida(List<Integer> articulosIds, List<String> detallesIds) {
+            this.articulosIds = articulosIds;
+            this.detallesIds = detallesIds;
+        }
+
+        private int total() {
+            return articulosIds.size() + detallesIds.size();
         }
     }
 

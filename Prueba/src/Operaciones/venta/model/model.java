@@ -178,18 +178,18 @@ public class model {
                         return false;
                     }
 
-                    // Obtener artículos disponibles para vender
-                    List<Integer> articulosParaEliminar = obtenerArticulosDisponibles(
+                    // Obtener unidades disponibles (artículos + detalleArticulo) para vender
+                    UnidadesSalida unidadesParaVenta = obtenerUnidadesDisponibles(
                             conn, item, ubicacionId, cantidad, detalleEntradaId
                     );
 
-                    if (articulosParaEliminar.size() < cantidad) {
+                    if (unidadesParaVenta.total() < cantidad) {
                         conn.rollback();
                         return false;
                     }
 
-                    // Actualizar artículos como vendidos
-                    if (!actualizarArticulosVendidos(conn, articulosParaEliminar, idDetalleSalida)) {
+                    // Actualizar artículos/detalleArticulo como vendidos
+                    if (!actualizarUnidadesVendidas(conn, unidadesParaVenta, idDetalleSalida)) {
                         conn.rollback();
                         return false;
                     }
@@ -262,9 +262,55 @@ public class model {
         return null;
     }
 
-    private List<Integer> obtenerArticulosDisponibles(Connection conn, traspasoSalida item,
+    private UnidadesSalida obtenerUnidadesDisponibles(Connection conn, traspasoSalida item,
                                                       int ubicacionId, int cantidad, int detalleEntradaId) throws SQLException {
-        List<Integer> articulosParaEliminar = new ArrayList<>();
+        List<String> detallesParaActualizar = new ArrayList<>();
+        List<Integer> articulosParaActualizar = new ArrayList<>();
+
+        String sqlDetalle = "SELECT da.idDetalle " +
+                "FROM detalleArticulo da " +
+                "JOIN articulo a ON a.idArticulo = da.idArticulo " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE a.idDetalleEntrada = ? " +
+                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "AND a.lote = ? " +
+                "AND da.idUbicacion = ? " +
+                "AND a.presentacion = ? " +
+                "AND a.factor = ? " +
+                "AND LOWER(COALESCE(da.estado, '')) IN ('disponible', 'activo') ";
+
+        Date caducidad = parseDate(item.getCaducidad());
+        if (caducidad != null) {
+            sqlDetalle += "AND a.caducidad = ? ";
+        } else {
+            sqlDetalle += "AND a.caducidad IS NULL ";
+        }
+        sqlDetalle += "AND de.claveProducto = ? LIMIT ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlDetalle)) {
+            int index = 1;
+            ps.setInt(index++, detalleEntradaId);
+            ps.setString(index++, item.getLote());
+            ps.setInt(index++, ubicacionId);
+            ps.setString(index++, item.getPresentacion());
+            ps.setInt(index++, item.getFactor());
+            if (caducidad != null) {
+                ps.setDate(index++, caducidad);
+            }
+            ps.setString(index++, item.getClaveProducto());
+            ps.setInt(index, cantidad);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    detallesParaActualizar.add(rs.getString("idDetalle"));
+                }
+            }
+        }
+
+        int faltantes = cantidad - detallesParaActualizar.size();
+        if (faltantes <= 0) {
+            return new UnidadesSalida(articulosParaActualizar, detallesParaActualizar);
+        }
 
         String sql = "SELECT a.idArticulo " +
                 "FROM articulo a " +
@@ -276,12 +322,14 @@ public class model {
                 "AND a.factor = ? " +
                 "AND LOWER(a.Estado) = ? ";
 
-        Date caducidad = parseDate(item.getCaducidad());
         if (caducidad != null) {
             sql += "AND a.caducidad = ? ";
         } else {
             sql += "AND a.caducidad IS NULL ";
         }
+        sql += "AND NOT EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.idArticulo = a.idArticulo " +
+                "AND LOWER(COALESCE(da.estado, '')) IN ('disponible', 'activo') " +
+                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)) ";
         sql += "LIMIT ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -295,36 +343,75 @@ public class model {
             if (caducidad != null) {
                 ps.setDate(index++, caducidad);
             }
-            ps.setInt(index, cantidad);
+            ps.setInt(index, faltantes);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    articulosParaEliminar.add(rs.getInt("idArticulo"));
+                    articulosParaActualizar.add(rs.getInt("idArticulo"));
                 }
             }
         }
 
-        return articulosParaEliminar;
+        return new UnidadesSalida(articulosParaActualizar, detallesParaActualizar);
     }
 
-    private boolean actualizarArticulosVendidos(Connection conn, List<Integer> articulosIds, long idDetalleSalida) throws SQLException {
-        if (articulosIds.isEmpty()) {
+    private boolean actualizarUnidadesVendidas(Connection conn, UnidadesSalida unidades, long idDetalleSalida) throws SQLException {
+        if (unidades.total() == 0) {
             return false;
         }
 
-        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
+        if (!unidades.detallesIds.isEmpty()) {
+            String placeholdersDetalle = String.join(", ", java.util.Collections.nCopies(unidades.detallesIds.size(), "?"));
+            String sqlUpdateDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? " +
+                    "WHERE idDetalle IN (" + placeholdersDetalle + ")";
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdateDetalle)) {
+                int index = 1;
+                ps.setLong(index++, idDetalleSalida);
+                ps.setString(index++, "vendido");
+                for (String idDetalle : unidades.detallesIds) {
+                    ps.setString(index++, idDetalle);
+                }
+
+                int actualizadas = ps.executeUpdate();
+                if (actualizadas < unidades.detallesIds.size()) {
+                    return false;
+                }
+            }
+        }
+
+        if (unidades.articulosIds.isEmpty()) {
+            return true;
+        }
+
+        String placeholders = String.join(", ", java.util.Collections.nCopies(unidades.articulosIds.size(), "?"));
         String sqlUpdate = "UPDATE articulo SET idDetalleSalida = ?, Estado = ? WHERE idArticulo IN (" + placeholders + ")";
+
 
         try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
             int index = 1;
             ps.setLong(index++, idDetalleSalida);
             ps.setString(index++, "vendido");
-            for (Integer idArticulo : articulosIds) {
+            for (Integer idArticulo : unidades.articulosIds) {
                 ps.setInt(index++, idArticulo);
             }
 
             int actualizadas = ps.executeUpdate();
-            return actualizadas >= articulosIds.size();
+            return actualizadas >= unidades.articulosIds.size();
+        }
+    }
+
+    private static class UnidadesSalida {
+        private final List<Integer> articulosIds;
+        private final List<String> detallesIds;
+
+        private UnidadesSalida(List<Integer> articulosIds, List<String> detallesIds) {
+            this.articulosIds = articulosIds;
+            this.detallesIds = detallesIds;
+        }
+
+        private int total() {
+            return articulosIds.size() + detallesIds.size();
         }
     }
 

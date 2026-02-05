@@ -223,7 +223,78 @@ public class model {
                     }
 
                     List<Integer> articulosParaActualizar = new ArrayList<>();
+                    List<String> detallesParaActualizar = new ArrayList<>();
                     List<Integer> detallesEntrada = new ArrayList<>();
+
+                    StringBuilder sqlSelectDetalle = new StringBuilder("SELECT da.idDetalle, a.")
+                            .append(colArticuloDetalleEntrada)
+                            .append(" FROM detalleArticulo da JOIN articulo a ON a.")
+                            .append(colArticuloId)
+                            .append(" = da.idArticulo JOIN detalle_Entrada de ON de.")
+                            .append(colDetalleEntradaId)
+                            .append(" = a.")
+                            .append(colArticuloDetalleEntrada)
+                            .append(" WHERE 1=1");
+                    sqlSelectDetalle.append(" AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)");
+                    sqlSelectDetalle.append(" AND LOWER(COALESCE(da.estado, '')) IN ('activo','disponible')");
+                    if (colArticuloLote != null) {
+                        sqlSelectDetalle.append(" AND a.").append(colArticuloLote).append(" = ?");
+                    }
+                    if (colArticuloCaducidad != null) {
+                        Date caducidad = parseDate(item.getCaducidad());
+                        if (caducidad != null) {
+                            sqlSelectDetalle.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                        } else {
+                            sqlSelectDetalle.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                        }
+                    }
+                    sqlSelectDetalle.append(" AND da.idUbicacion = ?");
+                    if (colArticuloPresentacion != null) {
+                        sqlSelectDetalle.append(" AND a.").append(colArticuloPresentacion).append(" = ?");
+                    }
+                    if (colArticuloFactor != null) {
+                        sqlSelectDetalle.append(" AND a.").append(colArticuloFactor).append(" = ?");
+                    }
+                    if (colDetalleEntradaProducto != null) {
+                        sqlSelectDetalle.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
+                    }
+                    sqlSelectDetalle.append(" LIMIT ?");
+
+                    try (PreparedStatement ps = conn.prepareStatement(sqlSelectDetalle.toString())) {
+                        int index = 1;
+                        if (colArticuloLote != null) {
+                            ps.setString(index++, item.getLote());
+                        }
+                        if (colArticuloCaducidad != null) {
+                            Date caducidad = parseDate(item.getCaducidad());
+                            if (caducidad != null) {
+                                ps.setDate(index++, caducidad);
+                            }
+                        }
+                        ps.setInt(index++, ubicacionId);
+                        if (colArticuloPresentacion != null) {
+                            ps.setString(index++, item.getPresentacion());
+                        }
+                        if (colArticuloFactor != null) {
+                            ps.setInt(index++, item.getFactor());
+                        }
+                        if (colDetalleEntradaProducto != null) {
+                            ps.setString(index++, item.getClaveProducto());
+                        }
+                        ps.setInt(index, cantidad);
+
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                detallesParaActualizar.add(rs.getString("idDetalle"));
+                                detallesEntrada.add(rs.getInt(colArticuloDetalleEntrada));
+                            }
+                        }
+                    }
+
+                    int faltantes = cantidad - detallesParaActualizar.size();
+                    if (faltantes <= 0) {
+                        faltantes = 0;
+                    }
 
                     // Busca esta sección en el método registrarTraspasoSalida (alrededor de la línea 162-179)
                     StringBuilder sqlSelect = new StringBuilder("SELECT a.")
@@ -265,6 +336,9 @@ public class model {
                     if (colArticuloEstado != null) {
                         sqlSelect.append(" AND LOWER(a.").append(colArticuloEstado).append(") = ?");
                     }
+                    sqlSelect.append(" AND NOT EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.idArticulo = a.")
+                            .append(colArticuloId)
+                            .append(" AND LOWER(COALESCE(da.estado, '')) IN ('activo','disponible') AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0))");
                     if (colDetalleEntradaProducto != null) {
                         sqlSelect.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
                     }
@@ -296,7 +370,7 @@ public class model {
                         if (colDetalleEntradaProducto != null) {
                             ps.setString(index++, item.getClaveProducto());
                         }
-                        ps.setInt(index, cantidad);
+                        ps.setInt(index, faltantes);
 
                         try (ResultSet rs = ps.executeQuery()) {
                             while (rs.next()) {
@@ -306,33 +380,53 @@ public class model {
                         }
                     }
 
-                    if (articulosParaActualizar.size() < cantidad) {
+                    if (articulosParaActualizar.size() + detallesParaActualizar.size() < cantidad) {
                         conn.rollback();
                         return null;
                     }
 
-                    String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
-                    StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
-                            .append(colArticuloDetalleSalida)
-                            .append(" = ?");
-                    if (colArticuloEstado != null) {
-                        sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
+                    if (!detallesParaActualizar.isEmpty()) {
+                        String placeholdersDetalle = String.join(", ", java.util.Collections.nCopies(detallesParaActualizar.size(), "?"));
+                        String sqlUpdateDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? WHERE idDetalle IN (" + placeholdersDetalle + ")";
+                        try (PreparedStatement psUpdateDetalle = conn.prepareStatement(sqlUpdateDetalle)) {
+                            int index = 1;
+                            psUpdateDetalle.setLong(index++, idDetalleSalida);
+                            psUpdateDetalle.setString(index++, "pendiente");
+                            for (String idDetalle : detallesParaActualizar) {
+                                psUpdateDetalle.setString(index++, idDetalle);
+                            }
+                            int actualizadas = psUpdateDetalle.executeUpdate();
+                            if (actualizadas < detallesParaActualizar.size()) {
+                                conn.rollback();
+                                return null;
+                            }
+                        }
                     }
-                    sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
 
-                    try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
-                        int index = 1;
-                        psUpdate.setLong(index++, idDetalleSalida);
+                    if (!articulosParaActualizar.isEmpty()) {
+                        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
+                        StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
+                                .append(colArticuloDetalleSalida)
+                                .append(" = ?");
                         if (colArticuloEstado != null) {
-                            psUpdate.setString(index++, "pendiente");
+                            sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
                         }
-                        for (Integer idArticulo : articulosParaActualizar) {
-                            psUpdate.setInt(index++, idArticulo);
-                        }
-                        int actualizadas = psUpdate.executeUpdate();
-                        if (actualizadas < cantidad) {
-                            conn.rollback();
-                            return null;
+                        sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
+
+                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
+                            int index = 1;
+                            psUpdate.setLong(index++, idDetalleSalida);
+                            if (colArticuloEstado != null) {
+                                psUpdate.setString(index++, "pendiente");
+                            }
+                            for (Integer idArticulo : articulosParaActualizar) {
+                                psUpdate.setInt(index++, idArticulo);
+                            }
+                            int actualizadas = psUpdate.executeUpdate();
+                            if (actualizadas < articulosParaActualizar.size()) {
+                                conn.rollback();
+                                return null;
+                            }
                         }
                     }
 
