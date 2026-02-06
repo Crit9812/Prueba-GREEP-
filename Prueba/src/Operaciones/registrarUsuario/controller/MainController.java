@@ -1,6 +1,7 @@
 package Operaciones.registrarUsuario.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Operaciones.registrarUsuario.model.usuario;
@@ -41,6 +42,7 @@ public class MainController {
     @FXML private TableView<usuario> contenidoTabla;
 
     @FXML private encabezadoController paneNavbarController;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -69,6 +71,7 @@ public class MainController {
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Registrar Usuario", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
             colClaveUsuario.setCellValueFactory(cellData ->
                     new javafx.beans.property.SimpleStringProperty(cellData.getValue().getIdUsuario()));
@@ -171,6 +174,9 @@ public class MainController {
         });
 
         // 2. Recargar datos de forma asíncrona
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
         Task<ArrayList<usuario>> task = new Task<>() {
             @Override
             protected java.util.ArrayList<usuario> call() {
@@ -182,14 +188,22 @@ public class MainController {
             protected void succeeded() {
                 java.util.ArrayList<usuario> lista = getValue();
                 contenidoTabla.getItems().setAll(lista);
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
             }
 
             @Override
             protected void failed() {
                 System.err.println("✗ Error al cargar usuarios: " + getException().getMessage());
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
             }
         };
-        new Thread(task).start();
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private boolean solicitarContrasena(usuario user) {
@@ -299,12 +313,44 @@ public class MainController {
 
 
     public void cargarUsuariosEnTabla() {
-        Platform.runLater(() -> {
-            if (contenidoTabla != null) {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+        Task<ArrayList<usuario>> task = new Task<>() {
+            @Override
+            protected ArrayList<usuario> call() {
                 model model = new model();
-                ArrayList<usuario> lista = model.obtenerUsuarios();
-                contenidoTabla.getItems().setAll(lista);
+                return model.obtenerUsuarios();
             }
-        });
+
+            @Override
+            protected void succeeded() {
+                if (contenidoTabla != null) {
+                    contenidoTabla.getItems().setAll(getValue());
+                }
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+                mostrarError("No se pudieron cargar los usuarios.");
+            }
+        };
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void mostrarError(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
     }
 }

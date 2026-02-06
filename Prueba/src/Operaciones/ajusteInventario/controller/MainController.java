@@ -2,6 +2,7 @@ package Operaciones.ajusteInventario.controller;
 
 import Compartido.exportar.ReporteAjusteExporter;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.OverlayCarga;
 import javafx.concurrent.Task;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
@@ -71,6 +72,7 @@ public class MainController {
     private final ObservableList<Object> itemsAjuste = FXCollections.observableArrayList();
     private boolean actualizandoSeleccionTodo = false;
     private final model ajusteModel = new model();
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -137,6 +139,7 @@ public class MainController {
             HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
             paneNavbarController.setTitulo("Ajuste de Inventario", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
         });
         configurarTabla();
@@ -608,28 +611,60 @@ public class MainController {
 
         String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
         List<Object> copiaItems = new ArrayList<>(itemsAjuste);
+        List<compra> itemsEntradaSnapshot = new ArrayList<>(itemsEntrada);
+        List<traspasoSalida> itemsSalidaSnapshot = new ArrayList<>(itemsSalida);
 
-        String idAjuste = ajusteModel.registrarAjuste(itemsEntrada, itemsSalida, comentarioTexto);
-
-        if (idAjuste != null && !idAjuste.isEmpty()) {
-            String claveAjuste = "" + idAjuste;
-
-            // 3. Mostrar diálogo de confirmación y exportación
-            mostrarConfirmacionReporte(claveAjuste, comentarioTexto, copiaItems);
-
-            // 4. Limpiar la interfaz SOLO si se registró exitosamente
-            itemsEntrada.clear();
-            itemsSalida.clear();
-            itemsAjuste.clear();
-            if (comentario != null) {
-                comentario.clear();
-            }
-            actualizarTotalAjuste();
-            actualizarSeleccionTodo();
-
-        } else {
-            mostrarAlerta("Error", "No se pudo registrar el ajuste.");
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
         }
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() {
+                return ajusteModel.registrarAjuste(itemsEntradaSnapshot, itemsSalidaSnapshot, comentarioTexto);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            String idAjuste = task.getValue();
+            if (idAjuste != null && !idAjuste.isEmpty()) {
+                String claveAjuste = "" + idAjuste;
+
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+
+                // 3. Mostrar diálogo de confirmación y exportación
+                mostrarConfirmacionReporte(claveAjuste, comentarioTexto, copiaItems);
+
+                // 4. Limpiar la interfaz SOLO si se registró exitosamente
+                itemsEntrada.clear();
+                itemsSalida.clear();
+                itemsAjuste.clear();
+                if (comentario != null) {
+                    comentario.clear();
+                }
+                actualizarTotalAjuste();
+                actualizarSeleccionTodo();
+
+            } else {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+                mostrarAlerta("Error", "No se pudo registrar el ajuste.");
+            }
+        });
+
+        task.setOnFailed(e -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+            mostrarAlerta("Error", "No se pudo registrar el ajuste.");
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void mostrarConfirmacionReporte(String claveAjuste, String comentario, List<Object> itemsAjuste) {
