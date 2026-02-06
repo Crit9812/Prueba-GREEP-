@@ -384,14 +384,14 @@ public class model {
                         return null;
                     }
 
-                    String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
+                    String placeholdersArticulos = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
                     StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
                             .append(colArticuloDetalleSalida)
                             .append(" = ?");
                     if (colArticuloEstado != null) {
                         sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
                     }
-                    sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
+                    sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholdersArticulos).append(")");
 
                     try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
                         int index = 1;
@@ -410,10 +410,10 @@ public class model {
                     }
 
                     if (!detalleArticulosParaActualizar.isEmpty()) {
-                        String placeholders = String.join(", ", java.util.Collections.nCopies(
+                        String placeholdersDetalles = String.join(", ", java.util.Collections.nCopies(
                                 detalleArticulosParaActualizar.size(), "?"));
                         String sqlUpdateDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? " +
-                                "WHERE idDetalle IN (" + placeholders + ")";
+                                "WHERE idDetalle IN (" + placeholdersDetalles + ")";
                         try (PreparedStatement psDetalleUpdate = conn.prepareStatement(sqlUpdateDetalle)) {
                             int index = 1;
                             psDetalleUpdate.setLong(index++, idDetalleSalida);
