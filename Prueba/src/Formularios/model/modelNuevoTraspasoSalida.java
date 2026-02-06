@@ -497,12 +497,69 @@ public class modelNuevoTraspasoSalida {
     public int obtenerCantidadDisponibleDetalle(String idProducto, String lote, java.time.LocalDate caducidad,
                                                 String presentacion, int factor, String ubicacionNombre) {
         try (Connection conn = new Conexion().conectar()) {
-            return GenericDAO.contarDisponiblesSinSalidaDetalle(
+            int disponibles = GenericDAO.contarDisponiblesSinSalidaDetalle(
                     conn, idProducto, lote, caducidad, presentacion, factor, ubicacionNombre);
+            if (disponibles > 0 || esPresentacionDetalle(presentacion, factor)) {
+                return disponibles;
+            }
+
+            return contarDetalleArticuloPorUbicacion(
+                    conn,
+                    idProducto,
+                    lote,
+                    caducidad,
+                    ubicacionNombre
+            );
         } catch (Exception e) {
             e.printStackTrace();
             return 0;
         }
+    }
+
+    private int contarDetalleArticuloPorUbicacion(Connection conn, String idProducto, String lote,
+                                                  java.time.LocalDate caducidad, String ubicacionNombre) {
+        if (conn == null || idProducto == null || lote == null || ubicacionNombre == null) {
+            return 0;
+        }
+
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM detalleArticulo da
+            JOIN articulo a ON a.idArticulo = da.idArticulo
+            JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
+            JOIN ubicaciones u ON u.id = da.idUbicacion
+            WHERE de.claveProducto = ?
+              AND a.lote = ?
+              AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
+              AND LOWER(da.estado) = 'activo'
+              AND LOWER(a.Estado) = 'segmentado'
+              AND u.nombre = ?
+        """;
+
+        if (caducidad != null) {
+            sql += " AND a.caducidad = ? ";
+        } else {
+            sql += " AND a.caducidad IS NULL ";
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            ps.setString(index++, idProducto);
+            ps.setString(index++, lote);
+            ps.setString(index++, ubicacionNombre);
+            if (caducidad != null) {
+                ps.setDate(index, java.sql.Date.valueOf(caducidad));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 
     public boolean existeLoteParaProducto(String lote, String idProducto) {
