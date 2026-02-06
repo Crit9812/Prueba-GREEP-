@@ -13,27 +13,24 @@
     -fx-border-color: white transparent transparent transparent;
 }
 
-/* Contenedor gris */
 .opciones {
     -fx-background-color: #fff;
     -fx-border-color: transparent;
     -fx-border-width: 0;
     -fx-padding: 15;
-    -fx-spacing: 15;     /* Separación entre elementos */
+    -fx-spacing: 15;
 }
 
-/* Botones de reporte */
 .botones {
-    -fx-background-color: #000000;   /* Fondo negro */
+    -fx-background-color: #000000;
     -fx-padding: 5 5;
-    -fx-cursor: hand;               /* Mano al pasar el mouse */
+    -fx-cursor: hand;
 }
 
 .botones:hover {
-    -fx-background-color: #666666;  /* Gris oscuro al pasar */
+    -fx-background-color: #666666;
 }
 
-/* Labels de reporte */
 .labels {
     -fx-font-size: 12pt;
     -fx-underline: true;
@@ -68,18 +65,18 @@
 }
 
 .textfield {
-    -fx-border-color: black;       /* Contorno negro */
-    -fx-border-width: 1px;         /* Grosor del borde */
-    -fx-font-weight: bold;          /* Letra en negritas */
-    -fx-border-radius: 8px;         /* Borde redondeado */
-    -fx-background-radius: 8px;     /* Redondea el fondo */
-    -fx-font-size: 10pt;            /* Tamaño de letra (opcional) */
-    -fx-pref-width: 200px;          /* Ancho */
-    -fx-pref-height: 30px;          /* Alto */
+    -fx-border-color: black;
+    -fx-border-width: 1px;
+    -fx-font-weight: bold;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-size: 10pt;
+    -fx-pref-width: 200px;
+    -fx-pref-height: 30px;
 }
 
 .tabla {
-    -fx-background-color: #ebebeb;     /* Fondo de la tabla */
+    -fx-background-color: #ebebeb;
 }
 
 .contenidoTable {
@@ -94,11 +91,10 @@
 .table-view .column-header,
 .table-view .column-header .label {
     -fx-background-color: #333;
-    -fx-text-fill: white;          /* texto blanco en encabezado */
+    -fx-text-fill: white;
     -fx-font-weight: bold;
 }
 
-/* Scrollbars automáticos */
 .table-view {
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
@@ -163,6 +159,95 @@
 }
 
 .boton-icono:hover {
+    -fx-background-color: #444;
+}
+
+
+/* ================ DETALLE INVENTARIO ================ */
+
+.root.detalle-inventario {
+    -fx-background-color: #ffffff;
+}
+
+.scroll-pane.detalle-inventario {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-pane.detalle-inventario > .viewport {
+    -fx-background-color: #ffffff;
+}
+
+.pane.detalle-inventario {
+    -fx-background-color: #ffffff;
+    -fx-padding: 0;
+}
+
+.contenedor-detalles {
+    -fx-background-color: #ffffff;
+    -fx-padding: 15 0 15 0;
+    -fx-spacing: 15;
+    -fx-alignment: center;
+}
+
+.tarjeta-ubicacion {
+    -fx-background-color: #f5f5f5;
+    -fx-background-radius: 6;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+    -fx-max-width: 750px;
+    -fx-min-width: 750px;
+    -fx-pref-width: 750px;
+    -fx-alignment: center-left;
+}
+
+.titulo-ubicacion {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 14px;
+}
+
+.label-producto {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333;
+    -fx-padding: 5 0;
+}
+
+.header-producto {
+    -fx-background-color: #ffffff;
+    -fx-padding: 15;
+    -fx-border-color: #eee;
+    -fx-border-width: 0 0 1 0;
+}
+
+.botones{
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: #000000;
+    -fx-padding: 5 5;
+    -fx-cursor: hand;
+}
+
+.botones:hover {
+    -fx-background-color: #666666;
+}
+
+.boton-form{
+    -fx-background-color: #333;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-border-radius: 5;
+    -fx-font-weight: bold;
+    -fx-pref-width: 200;
+    -fx-pref-height: 35;
+    -fx-background-radius: 5;
+}
+
+.boton-form:hover {
     -fx-background-color: #444;
 }
 

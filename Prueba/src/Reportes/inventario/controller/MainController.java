@@ -968,10 +968,9 @@ public class MainController {
         columnas.add(colCategoria);
         columnas.add(colMaterial);
         columnas.add(colUnidad);
-        if (detallado) {
-            columnas.add(colPresentacion);
-            columnas.add(colFactor);
-        }
+        columnas.add(colPresentacion);
+        columnas.add(colFactor);
+
         if (detallado) {
             columnas.add(colLote);
             columnas.add(colCaducidad);
@@ -1021,9 +1020,9 @@ public class MainController {
         opciones.add("Categoría");
         opciones.add("Material");
         opciones.add("Unidad");
+        opciones.add("Presentación");
+        opciones.add("Factor");
         if (detallado) {
-            opciones.add("Presentación");
-            opciones.add("Factor");
             opciones.add("Lote");
             opciones.add("Caducidad");
             opciones.add("Ubicación");
@@ -1192,6 +1191,8 @@ public class MainController {
                 return item.getCaducidad();
             case "Ubicación":
                 return item.getUbicacion();
+            case "Factor":
+                return item.getFactor();
             default:
                 return "";
         }
@@ -1254,7 +1255,6 @@ public class MainController {
     private void mostrarOrdenPopup(MouseEvent event) {
         boolean detallado = chkInventarioDetallado.isSelected();
         List<String> criterios = new ArrayList<>();
-        criterios.add("id");
         criterios.add("id producto");
         if (!detallado) {
             criterios.add("cantidad");

@@ -4,8 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambos en operaciones y formularios">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="Cambios en inventario">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/DetalleInventarioController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/DetalleInventarioController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/view/detalle_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/view/detalle_view.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +41,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
+        <entry key="$PROJECT_DIR$/.." value="codex/integrate-loading-message-during-sale-adjustments" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -93,7 +97,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#134 on codex/update-column-labels-in-sor…story",
+    "git-widget-placeholder": "Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -208,14 +212,6 @@
       <workItem from="1769695864013" duration="11647000" />
       <workItem from="1770127176849" duration="2194000" />
       <workItem from="1770226606726" duration="4603000" />
-    </task>
-    <task id="LOCAL-00009" summary="Merge remote-tracking branch 'origin/detached' into detached">
-      <option name="closed" value="true" />
-      <created>1766517583553</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1766517583553</updated>
     </task>
     <task id="LOCAL-00010" summary="subida de todos los archivos a una rama">
       <option name="closed" value="true" />
@@ -601,7 +597,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769805716924</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="Cambios en inventario">
+      <option name="closed" value="true" />
+      <created>1770317791488</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1770317791488</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -654,7 +658,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Venta finalizada, y nose que mas" />
     <MESSAGE value="Modificacione en proveedores, compra y ventas" />
     <MESSAGE value="Modificaciones de consultas agregadas" />
     <MESSAGE value="Correccion en el formulario de compra, dos botones agregados" />
@@ -679,7 +682,8 @@
     <MESSAGE value="cambio en modelos de consulta" />
     <MESSAGE value="cambio en modelos de ts" />
     <MESSAGE value="cambos en operaciones" />
-    <option name="LAST_COMMIT_MESSAGE" value="cambos en operaciones" />
+    <MESSAGE value="Cambios en inventario" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cambios en inventario" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

@@ -1,5 +1,8 @@
 package Reportes.inventario.controller;
 
+import javafx.scene.Node;
+import javafx.scene.control.Separator;
+import javafx.geometry.Insets;
 import Formularios.controller.controllerCompraEmergente;
 import Operaciones.ajusteInventario.model.model;
 import Operaciones.compra.model.compra;
@@ -15,7 +18,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar; // ✅ Import necesario
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -26,18 +29,13 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.*;
 import javafx.geometry.Pos;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -62,7 +60,10 @@ public class DetalleInventarioController {
     @FXML private Button btnCerrar;
     @FXML private StackPane root;
     @FXML private Pane overlayPane;
-
+    @FXML private Button btnAgregarArticulo;
+    @FXML private Region expansor;
+    private String presentacionFiltro;
+    private String factorFiltro;
     private ItemInventario itemInventario;
     private Stage stage;
     private Runnable onRefresh;
@@ -70,23 +71,50 @@ public class DetalleInventarioController {
     private static final List<String> PRESENTACIONES_COMPRA = List.of(
             "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
     );
+    private static final int MAX_FILAS = 10;
 
     @FXML
     public void initialize() {
         if (root != null && overlayPane != null) {
             overlayCarga = new OverlayCarga(root, overlayPane);
         }
+        HBox.setHgrow(expansor, Priority.ALWAYS);
+        expansor.setMinWidth(10);
         actualizarDatosProducto();
     }
 
     public void setItemInventario(ItemInventario itemInventario) {
         this.itemInventario = itemInventario;
+        this.presentacionFiltro = itemInventario.getPresentacion();
+        this.factorFiltro = itemInventario.getFactor();
+        if (root != null) {
+            root.getStyleClass().add("detalle-inventario");
+        }
+        if (scrollPane != null) {
+            scrollPane.getStyleClass().add("detalle-inventario");
+        }
+        if (btnCerrar != null) {
+            btnCerrar.getStyleClass().add("boton-cerrar");
+        }
+        if (contenedorDetalles != null) {
+            contenedorDetalles.getStyleClass().add("contenedor-detalles");
+        }
+
         actualizarDatosProducto();
         cargarDetalles();
     }
 
     public void setStage(Stage stage) {
         this.stage = stage;
+        if (stage != null) {
+            stage.setResizable(false);
+            stage.setMinWidth(800);
+            stage.setMinHeight(700);
+            stage.setWidth(800);
+            stage.setHeight(700);
+            stage.setMaxWidth(800);
+            stage.setMaxHeight(700);
+        }
     }
 
     public void setOnRefresh(Runnable onRefresh) {
@@ -149,54 +177,130 @@ public class DetalleInventarioController {
         hilo.start();
     }
 
+    @FXML
+    private void abrirFormularioCompraDesdeBoton() {
+        abrirFormularioCompra(null);
+    }
+
     private List<UbicacionDetalle> obtenerUbicaciones() {
         if (itemInventario == null || itemInventario.getClaveProducto() == null) {
             return List.of();
         }
 
-        String sql = """
-                SELECT a.idArticulo,
-                       a.lote,
-                       a.caducidad,
-                       a.presentacion,
-                       a.factor,
-                       u.nombre AS ubicacion
-                FROM articulo a
-                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
-                INNER JOIN productos p ON de.claveProducto = p.id
-                LEFT JOIN ubicaciones u ON a.ubicacion = u.id
-                WHERE a.Estado = 'disponible'
-                  AND p.id = ?
-                ORDER BY u.nombre, a.idArticulo
-                """;
+        String presentacion = valorTexto(presentacionFiltro);
+        String factor = valorTexto(factorFiltro);
 
         Map<String, UbicacionDetalle> ubicaciones = new LinkedHashMap<>();
 
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, itemInventario.getClaveProducto());
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String ubicacion = valorTexto(rs.getString("ubicacion"));
-                    if (ubicacion.isBlank()) {
-                        ubicacion = "Sin ubicación";
+        try (Connection conn = new Conexion().conectar()) {
+
+            // 1. Obtener artículos NO segmentados según la presentación/filtro actual
+            String sqlBase = """
+            SELECT a.idArticulo,
+                   a.lote,
+                   a.caducidad,
+                   a.presentacion,
+                   a.factor,
+                   u.nombre AS ubicacion,
+                   'no_segmentado' AS tipo
+            FROM articulo a
+            INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+            INNER JOIN productos p ON de.claveProducto = p.id
+            LEFT JOIN ubicaciones u ON a.ubicacion = u.id
+            WHERE a.Estado = 'disponible'
+              AND p.id = ?
+              AND a.presentacion = ?
+              AND a.factor = ?
+            ORDER BY u.nombre, a.idArticulo
+            """;
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlBase)) {
+                ps.setString(1, itemInventario.getClaveProducto());
+                ps.setString(2, presentacion);
+                ps.setString(3, factor);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        agregarArticuloDesdeResultSet(rs, ubicaciones);
                     }
-                    UbicacionDetalle detalle = ubicaciones.computeIfAbsent(ubicacion, UbicacionDetalle::new);
-                    detalle.articulos.add(new ArticuloDetalle(
-                            rs.getInt("idArticulo"),
-                            ubicacion,
-                            valorTexto(rs.getString("lote")),
-                            valorTexto(rs.getString("caducidad")),
-                            valorTexto(rs.getString("presentacion")),
-                            valorTexto(rs.getString("factor"))
-                    ));
                 }
             }
+
+            // 2. Si el filtro actual es para "pz" factor "1", incluir también los segmentados
+            if ("pz".equalsIgnoreCase(presentacion) && "1".equals(factor)) {
+                // Buscar artículos segmentados del mismo producto
+                String sqlSegmentados = """
+                SELECT da.idDetalle,
+                       a.lote,
+                       a.caducidad,
+                       'pz' AS presentacion,
+                       '1' AS factor,
+                       u.nombre AS ubicacion,
+                       'segmentado' AS tipo,
+                       a.idArticulo AS idArticuloPadre
+                FROM detalleArticulo da
+                INNER JOIN articulo a ON da.idArticulo = a.idArticulo
+                INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
+                INNER JOIN productos p ON de.claveProducto = p.id
+                LEFT JOIN ubicaciones u ON da.idUbicacion = u.id
+                WHERE da.estado = 'activo'
+                  AND a.Estado = 'segmentado'
+                  AND p.id = ?
+                ORDER BY u.nombre, da.idDetalle
+                """;
+
+                try (PreparedStatement ps = conn.prepareStatement(sqlSegmentados)) {
+                    ps.setString(1, itemInventario.getClaveProducto());
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            agregarArticuloDesdeResultSet(rs, ubicaciones);
+                        }
+                    }
+                }
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return new ArrayList<>(ubicaciones.values());
+    }
+
+    private void agregarArticuloDesdeResultSet(ResultSet rs, Map<String, UbicacionDetalle> ubicaciones)
+            throws SQLException {
+
+        String ubicacion = valorTexto(rs.getString("ubicacion"));
+        if (ubicacion.isBlank()) {
+            ubicacion = "Sin ubicación";
+        }
+
+        UbicacionDetalle detalle = ubicaciones.computeIfAbsent(ubicacion, UbicacionDetalle::new);
+
+        String tipo = rs.getString("tipo");
+        boolean esSegmentado = "segmentado".equals(tipo);
+
+        ArticuloDetalle articulo;
+        if (esSegmentado) {
+            // Para segmentados: usar idDetalle, mostrar como pz factor 1
+            articulo = new ArticuloDetalle(
+                    rs.getString("idDetalle"),           // idDetalle (S-1, S-2, etc.)
+                    rs.getInt("idArticuloPadre"),        // id del artículo padre
+                    ubicacion,
+                    valorTexto(rs.getString("lote")),
+                    valorTexto(rs.getString("caducidad"))
+            );
+        } else {
+            articulo = new ArticuloDetalle(
+                    rs.getInt("idArticulo"),
+                    ubicacion,
+                    valorTexto(rs.getString("lote")),
+                    valorTexto(rs.getString("caducidad")),
+                    valorTexto(rs.getString("presentacion")),
+                    valorTexto(rs.getString("factor"))
+            );
+        }
+
+        detalle.articulos.add(articulo);
     }
 
     private void renderizarDetalles(List<UbicacionDetalle> ubicaciones) {
@@ -212,25 +316,22 @@ public class DetalleInventarioController {
 
         for (UbicacionDetalle ubicacion : ubicaciones) {
             VBox card = new VBox(8);
-            card.setStyle("-fx-padding: 12; -fx-background-color: #f5f5f5; " +
-                    "-fx-border-color: #ddd; -fx-border-radius: 6; -fx-background-radius: 6;");
+            card.getStyleClass().add("tarjeta-ubicacion");
+            card.setPrefWidth(750);
+            card.setMaxWidth(750);
 
             HBox header = new HBox(10);
             Label titulo = new Label(String.format("Ubicación: %s (%d artículos)",
                     valorTexto(ubicacion.nombre), ubicacion.articulos.size()));
-            titulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+            titulo.getStyleClass().add("titulo-ubicacion");
             CheckBox chkDetalles = new CheckBox("Mostrar detalles");
             chkDetalles.getStyleClass().add("custom-check");
-            Button btnAgregar = new Button("Agregar");
-            configurarBotonIcono(btnAgregar, "/img/agregar.png", "Agregar");
-            btnAgregar.setOnAction(event -> abrirFormularioCompra(ubicacion.nombre));
-
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
-            header.getChildren().addAll(titulo, spacer, chkDetalles, btnAgregar);
+            header.getChildren().addAll(titulo, spacer, chkDetalles);
 
             VBox listaArticulos = new VBox(6);
-            listaArticulos.setStyle("-fx-padding: 4 0 0 18;");
+            listaArticulos.setStyle("-fx-padding: 4 0 0 0;");
             listaArticulos.setVisible(false);
             listaArticulos.setManaged(false);
 
@@ -240,23 +341,85 @@ public class DetalleInventarioController {
                 int index = 1;
                 for (ArticuloDetalle articulo : ubicacion.articulos) {
                     HBox fila = new HBox(8);
-                    String descripcion = String.format(
-                            "%d) Lote: %s | Caducidad: %s | Presentación: %s | Factor: %s",
-                            index++,
-                            valorTexto(articulo.lote),
-                            valorTexto(articulo.caducidad),
-                            valorTexto(articulo.presentacion),
-                            valorTexto(articulo.factor)
-                    );
-                    Label texto = new Label(descripcion);
+
+                    // Construir descripción según tipo
+                    StringBuilder descripcion = new StringBuilder();
+                    descripcion.append(index++).append(") ");
+
+                    if (articulo.isEsSegmentado()) {
+                        // Mostrar información para artículos segmentados
+                        descripcion.append("[SEGMENTADO] ");
+                        descripcion.append("ID Pieza: ").append(valorTexto(articulo.getIdDetalle()));
+
+                        // Solo mostrar lote si tiene valor
+                        String lote = valorTexto(articulo.getLote());
+                        if (!lote.isBlank() && !"N/A".equalsIgnoreCase(lote)) {
+                            descripcion.append(" | Lote: ").append(lote);
+                        }
+
+                        // Solo mostrar caducidad si tiene valor
+                        String caducidad = valorTexto(articulo.getCaducidad());
+                        if (!caducidad.isBlank() && !"N/A".equalsIgnoreCase(caducidad)) {
+                            descripcion.append(" | Caducidad: ").append(caducidad);
+                        }
+
+                        // Siempre mostrar presentación y factor (que serán "pz" y "1")
+                        descripcion.append(" | Presentación: ").append(valorTexto(articulo.getPresentacion()));
+                        descripcion.append(" | Factor: ").append(valorTexto(articulo.getFactor()));
+                    } else {
+                        // Mostrar información para artículos no segmentados
+                        descripcion.append("ID: ").append(articulo.getIdArticulo());
+
+                        // Solo mostrar lote si tiene valor
+                        String lote = valorTexto(articulo.getLote());
+                        if (!lote.isBlank() && !"N/A".equalsIgnoreCase(lote)) {
+                            descripcion.append(" | Lote: ").append(lote);
+                        }
+
+                        // Solo mostrar caducidad si tiene valor
+                        String caducidad = valorTexto(articulo.getCaducidad());
+                        if (!caducidad.isBlank() && !"N/A".equalsIgnoreCase(caducidad)) {
+                            descripcion.append(" | Caducidad: ").append(caducidad);
+                        }
+
+                        // Mostrar presentación y factor
+                        descripcion.append(" | Presentación: ").append(valorTexto(articulo.getPresentacion()));
+                        descripcion.append(" | Factor: ").append(valorTexto(articulo.getFactor()));
+                    }
+
+                    Label texto = new Label(descripcion.toString());
+
+                    // Configurar botones según tipo de artículo
+                    HBox contenedorBotones = new HBox(5);
+                    contenedorBotones.setAlignment(Pos.CENTER_RIGHT);
+
+                    // TODOS los artículos pueden editarse (tanto segmentados como no segmentados)
                     Button btnEditar = new Button("Editar");
                     configurarBotonIcono(btnEditar, "/img/editar.png", "Editar");
+                    btnEditar.getStyleClass().add("boton-detalle");
                     btnEditar.setOnAction(event -> editarArticulo(articulo));
+                    contenedorBotones.getChildren().add(btnEditar);
+
+                    // Todos los artículos pueden eliminarse
                     Button btnEliminar = new Button("Eliminar");
                     configurarBotonIcono(btnEliminar, "/img/eliminar.png", "Eliminar");
+                    btnEliminar.getStyleClass().add("boton-detalle");
                     btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
-                    fila.getChildren().addAll(texto, btnEditar, btnEliminar);
+                    contenedorBotones.getChildren().add(btnEliminar);
+
+                    // Configurar layout de la fila
+                    Region spacerFila = new Region();
+                    HBox.setHgrow(spacerFila, Priority.ALWAYS);
+
+                    fila.getChildren().addAll(texto, spacerFila, contenedorBotones);
                     listaArticulos.getChildren().add(fila);
+
+                    // Agregar separador visual entre filas (excepto en la última)
+                    if (index <= ubicacion.articulos.size()) {
+                        Separator separador = new Separator();
+                        separador.setPadding(new javafx.geometry.Insets(5, 0, 5, 0));
+                        listaArticulos.getChildren().add(separador);
+                    }
                 }
             }
 
@@ -283,10 +446,12 @@ public class DetalleInventarioController {
         if (itemInventario == null) {
             return;
         }
-        String ubicacionPrefill = ubicacion;
-        if ("Sin ubicación".equalsIgnoreCase(ubicacionPrefill)) {
+
+        String ubicacionPrefill = ubicacion; // Mantener el parámetro por compatibilidad
+        if ("Sin ubicación".equalsIgnoreCase(ubicacionPrefill) || ubicacionPrefill == null) {
             ubicacionPrefill = null;
         }
+
         ObservableList<compra> itemsEntrada = FXCollections.observableArrayList();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/compraEmergente.fxml"));
@@ -296,7 +461,19 @@ public class DetalleInventarioController {
             controlador.setModoAjusteInventario(true);
             controlador.setProductoPrefill(itemInventario.getClaveProducto(), itemInventario.getProducto(),
                     itemInventario.getDescripcion());
-            controlador.setUbicacionPrefill(ubicacionPrefill);
+            controlador.setUbicacionPrefill(ubicacionPrefill); // Ahora puede ser null
+
+            controlador.setPresentacionPrefill(presentacionFiltro);
+            controlador.setFactorPrefill(factorFiltro);
+
+            try {
+                Method metodo = controlador.getClass().getMethod("setProductoSoloLectura", boolean.class);
+                metodo.invoke(controlador, true);
+            } catch (Exception e) {
+                System.out.println("Nota: No se pudo hacer el producto de solo lectura");
+            }
+            // ==========================================================
+
             loader.setController(controlador);
 
             Pane formulario = loader.load();
@@ -323,96 +500,253 @@ public class DetalleInventarioController {
     }
 
     private void editarArticulo(ArticuloDetalle articulo) {
-        if (articulo == null || articulo.idArticulo <= 0) {
+        if (articulo == null) {
             return;
         }
+
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Editar artículo");
+
+        // Configurar título según tipo
+        if (articulo.isEsSegmentado()) {
+            dialog.setTitle("Editar artículo segmentado");
+        } else {
+            dialog.setTitle("Editar artículo");
+        }
+
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
         configurarDialogoModal(dialog);
 
-        // ✅ aplica estilos + orden de botones
-        agregarEstilosDialogo(dialog);
+        // Configurar el DialogPane para evitar el espacio gris inferior
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.setPadding(new Insets(0));
 
-        VBox contenido = new VBox(10);
-        ComboBox<String> cbUbicacion = new ComboBox<>();
-        cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
-        cbUbicacion.setPromptText("Selecciona ubicación");
-        cbUbicacion.getStyleClass().add("textfield");
-        String ubicacionActual = valorTexto(articulo.ubicacion);
-        if (!ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
-            cbUbicacion.setValue(ubicacionActual);
+        // Eliminar estilos por defecto que causan el espacio gris
+        dialogPane.setStyle("-fx-background-color: white; -fx-border-color: white;");
+
+        VBox mainContainer = new VBox();
+        mainContainer.setStyle("-fx-background-color: white;");
+        mainContainer.setPadding(new Insets(0));
+        mainContainer.getStylesheets().add(
+                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
+        );
+
+        // Título superior con espacio
+        Label lblTitulo = new Label("Editar artículo");
+        lblTitulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-padding: 15 0 10 0;");
+        lblTitulo.setAlignment(Pos.CENTER);
+        lblTitulo.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(lblTitulo, new Insets(10, 0, 10, 0));
+
+        // Contenido central - Campos del formulario
+        VBox contenido = new VBox(15);
+        contenido.setPadding(new Insets(0, 20, 0, 20));
+        contenido.setStyle("-fx-background-color: white;");
+
+        // Para segmentados, mostrar información del artículo padre
+        if (articulo.isEsSegmentado()) {
+            Label lblInfo = new Label("NOTA: Los cambios de lote y caducidad se aplicarán a TODAS las piezas segmentadas. La ubicación se cambia solo para esta pieza.");
+            lblInfo.setStyle("-fx-font-weight: bold; -fx-text-fill: #e74c3c; -fx-wrap-text: true; -fx-padding: 0 0 10 0;");
+            contenido.getChildren().add(lblInfo);
         }
 
-        TextField txtLote = new TextField(valorTexto(articulo.lote));
-        txtLote.getStyleClass().add("textfield");
+        TextField txtLote = new TextField(valorTexto(articulo.getLote()));
+        txtLote.setPrefWidth(180);
 
         javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
-        dpCaducidad.getStyleClass().add("textfield");
-        if (articulo.caducidad != null && !articulo.caducidad.isBlank()) {
+        String caducidadTexto = valorTexto(articulo.getCaducidad());
+        if (!caducidadTexto.isBlank()) {
             try {
-                dpCaducidad.setValue(java.time.LocalDate.parse(articulo.caducidad.trim()));
+                dpCaducidad.setValue(java.time.LocalDate.parse(caducidadTexto.trim()));
             } catch (java.time.format.DateTimeParseException ignored) {
                 dpCaducidad.setValue(null);
             }
         }
+        dpCaducidad.setPrefWidth(180);
 
         ComboBox<String> cbPresentacion = new ComboBox<>();
         cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
         cbPresentacion.setPromptText("Selecciona presentación");
-        cbPresentacion.getStyleClass().add("textfield");
-        String presentacionActual = valorTexto(articulo.presentacion);
-        if (!presentacionActual.isBlank()) {
-            cbPresentacion.setValue(presentacionActual);
+        if (articulo.isEsSegmentado()) {
+            cbPresentacion.setValue("pz");
+            cbPresentacion.setDisable(true);
+        } else {
+            String presentacionActual = valorTexto(articulo.getPresentacion());
+            if (!presentacionActual.isBlank()) {
+                cbPresentacion.setValue(presentacionActual);
+            }
+        }
+        cbPresentacion.setPrefWidth(180);
+
+        TextField txtFactor = new TextField(valorTexto(articulo.getFactor()));
+        // Para segmentados, el factor siempre es "1" y no se puede cambiar
+        if (articulo.isEsSegmentado()) {
+            txtFactor.setText("1");
+            txtFactor.setDisable(true);
+        }
+        txtFactor.setPrefWidth(180);
+
+        ComboBox<String> cbUbicacion = new ComboBox<>();
+        cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
+        cbUbicacion.setPromptText("Selecciona ubicación");
+        String ubicacionActual = valorTexto(articulo.getUbicacion());
+        if (!ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
+            cbUbicacion.setValue(ubicacionActual);
+        }
+        cbUbicacion.setPrefWidth(180);
+
+        // ============ ORGANIZACIÓN EN 3 FILAS DE 2 CAMPOS ============
+
+        // Fila 1: Lote y Caducidad
+        HBox fila1 = new HBox(15);
+        fila1.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vboxLote = new VBox(5);
+        Label lblLote = new Label("Lote:");
+        vboxLote.getChildren().addAll(lblLote, txtLote);
+        HBox.setHgrow(vboxLote, Priority.ALWAYS);
+
+        VBox vboxCaducidad = new VBox(5);
+        Label lblCaducidad = new Label("Caducidad:");
+        vboxCaducidad.getChildren().addAll(lblCaducidad, dpCaducidad);
+        HBox.setHgrow(vboxCaducidad, Priority.ALWAYS);
+
+        fila1.getChildren().addAll(vboxLote, vboxCaducidad);
+
+        // Fila 2: Presentación y Factor
+        HBox fila2 = new HBox(15);
+        fila2.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vboxPresentacion = new VBox(5);
+        Label lblPresentacion = new Label("Presentación:");
+        vboxPresentacion.getChildren().addAll(lblPresentacion, cbPresentacion);
+        HBox.setHgrow(vboxPresentacion, Priority.ALWAYS);
+
+        VBox vboxFactor = new VBox(5);
+        Label lblFactor = new Label("Factor:");
+        vboxFactor.getChildren().addAll(lblFactor, txtFactor);
+        HBox.setHgrow(vboxFactor, Priority.ALWAYS);
+
+        fila2.getChildren().addAll(vboxPresentacion, vboxFactor);
+
+        // Fila 3: Ubicación (ocupa el ancho completo de 2 columnas)
+        HBox fila3 = new HBox();
+        fila3.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vboxUbicacion = new VBox(5);
+        Label lblUbicacion = new Label("Ubicación:");
+        vboxUbicacion.getChildren().addAll(lblUbicacion, cbUbicacion);
+        HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
+
+        // Espaciador a la derecha para mantener la alineación
+        Region espaciadorUbicacion = new Region();
+        HBox.setHgrow(espaciadorUbicacion, Priority.ALWAYS);
+
+        fila3.getChildren().addAll(vboxUbicacion, espaciadorUbicacion);
+
+        // Agregar todas las filas al contenido
+        contenido.getChildren().addAll(fila1, fila2, fila3);
+
+        // ============ BOTONES EN LA PARTE INFERIOR ============
+
+        // Contenedor de botones inferior
+        HBox contenedorBotones = new HBox(15);
+        contenedorBotones.setAlignment(Pos.CENTER);
+        contenedorBotones.setPadding(new Insets(20));
+        contenedorBotones.setStyle("-fx-background-color: white; -fx-border-color: #eee; -fx-border-width: 1 0 0 0;");
+
+        // Botón Segmentar (solo para no segmentados)
+        Button btnSegmentar = new Button("Segmentar");
+        btnSegmentar.getStyleClass().add("boton-form");
+        btnSegmentar.setPrefWidth(120);
+        btnSegmentar.setOnAction(event -> iniciarSegmentacion(articulo, dialog));
+
+        // Actualizar visibilidad del botón Segmentar
+        if (!articulo.isEsSegmentado()) {
+            actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
+            cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) ->
+                    actualizarVisibilidadSegmentar(btnSegmentar, newVal));
         }
 
-        TextField txtFactor = new TextField(valorTexto(articulo.factor));
-        txtFactor.getStyleClass().add("textfield");
+        // CORRECCIÓN: Forma segura de eliminar el ButtonBar original
+        // En lugar de hacer cast a StackPane, obtenemos el ButtonBar y lo ocultamos
+        ButtonBar buttonBar = (ButtonBar) dialog.getDialogPane().lookup(".button-bar");
+        if (buttonBar != null) {
+            // Ocultar completamente el ButtonBar
+            buttonBar.setVisible(false);
+            buttonBar.setManaged(false);
+            buttonBar.setPrefHeight(0);
+            buttonBar.setMinHeight(0);
+            buttonBar.setMaxHeight(0);
+        }
 
-        GridPane formulario = new GridPane();
-        formulario.setHgap(10);
-        formulario.setVgap(8);
-        formulario.add(new Label("Ubicación:"), 0, 0);
-        formulario.add(cbUbicacion, 1, 0);
-        formulario.add(new Label("Lote:"), 0, 1);
-        formulario.add(txtLote, 1, 1);
-        formulario.add(new Label("Caducidad:"), 0, 2);
-        formulario.add(dpCaducidad, 1, 2);
-        formulario.add(new Label("Presentación:"), 0, 3);
-        formulario.add(cbPresentacion, 1, 3);
-        formulario.add(new Label("Factor:"), 0, 4);
-        formulario.add(txtFactor, 1, 4);
+        // Ocultar también los botones individuales del ButtonBar
+        Button btnOkOriginal = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        Button btnCancelOriginal = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (btnOkOriginal != null) {
+            btnOkOriginal.setVisible(false);
+            btnOkOriginal.setManaged(false);
+        }
+        if (btnCancelOriginal != null) {
+            btnCancelOriginal.setVisible(false);
+            btnCancelOriginal.setManaged(false);
+        }
 
-        Button btnSegmentar = new Button("Segmentar");
-        btnSegmentar.getStyleClass().add("boton-formulario");
-        btnSegmentar.setOnAction(event -> iniciarSegmentacion(articulo, dialog));
-        Button btnEliminar = new Button("Eliminar");
-        btnEliminar.getStyleClass().add("boton-formulario");
-        btnEliminar.setOnAction(event -> {
-            eliminarArticulo(articulo);
-            dialog.setResult(ButtonType.CANCEL);
+        Button btnAceptar = new Button("Aceptar");
+        btnAceptar.getStyleClass().add("boton-form");
+        btnAceptar.setPrefWidth(120);
+        btnAceptar.setOnAction(e -> {
+            // Validar campos antes de aceptar
+            if (cbUbicacion.getValue() == null || cbUbicacion.getValue().isEmpty()) {
+                mostrarAdvertencia("Campo requerido", "La ubicación es requerida.");
+                return;
+            }
+
+            if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isEmpty()) {
+                mostrarAdvertencia("Campo requerido", "La presentación es requerida.");
+                return;
+            }
+
+            if (txtFactor.getText() == null || txtFactor.getText().isEmpty()) {
+                mostrarAdvertencia("Campo requerido", "El factor es requerido.");
+                return;
+            }
+
+            // Si pasa validación, establecer resultado OK
+            dialog.setResult(ButtonType.OK);
             dialog.close();
         });
 
-        HBox accionesSecundarias = new HBox(12, btnEliminar, btnSegmentar);
-        accionesSecundarias.setAlignment(Pos.CENTER_RIGHT);
+        // Agregar botones al contenedor
+        if (!articulo.isEsSegmentado() && btnSegmentar.isVisible()) {
+            contenedorBotones.getChildren().addAll(btnSegmentar, btnAceptar);
+        } else {
+            contenedorBotones.getChildren().addAll(btnAceptar);
+        }
 
-        actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
-        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) ->
-                actualizarVisibilidadSegmentar(btnSegmentar, newVal));
+        // Agregar todos los componentes al contenedor principal
+        mainContainer.getChildren().addAll(lblTitulo, contenido, contenedorBotones);
 
-        contenido.getChildren().addAll(formulario, accionesSecundarias);
-        dialog.getDialogPane().setContent(contenido);
+        // Configurar el crecimiento del contenido
+        VBox.setVgrow(contenido, Priority.ALWAYS);
+
+        // Establecer el contenido del diálogo
+        dialog.getDialogPane().setContent(mainContainer);
+
+        // Configurar tamaño del diálogo
+        dialog.getDialogPane().setPrefWidth(430);
+        dialog.getDialogPane().setPrefHeight(450);
 
         dialog.showAndWait().ifPresent(respuesta -> {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
                 }
 
+                // Obtener ID de ubicación
                 Integer ubicacionId = null;
                 String ubicacionTexto = cbUbicacion.getValue();
                 if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
@@ -431,56 +765,160 @@ public class DetalleInventarioController {
                     }
                 }
 
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE articulo SET ubicacion = ?, lote = ?, caducidad = ?, presentacion = ?, factor = ? WHERE idArticulo = ?")) {
-                    if (ubicacionId == null) {
-                        ps.setNull(1, java.sql.Types.INTEGER);
-                    } else {
-                        ps.setInt(1, ubicacionId);
+                if (articulo.isEsSegmentado()) {
+                    // CASO SEGMENTADO: Actualizar el artículo PADRE (sin ubicación) y solo el segmentado actual
+
+                    // 1. Actualizar el artículo padre en la tabla 'articulo' (SOLO lote y caducidad)
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET lote = ?, caducidad = ? WHERE idArticulo = ?")) {
+                        ps.setString(1, txtLote.getText().trim());
+                        if (dpCaducidad.getValue() != null) {
+                            ps.setString(2, dpCaducidad.getValue().toString());
+                        } else {
+                            ps.setNull(2, java.sql.Types.DATE);
+                        }
+                        ps.setInt(3, articulo.getIdArticulo());
+                        ps.executeUpdate();
                     }
-                    ps.setString(2, txtLote.getText());
-                    String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
-                    ps.setString(3, caducidadTexto);
-                    String presentacionSeleccionada = cbPresentacion.getValue();
-                    ps.setString(4, presentacionSeleccionada != null ? presentacionSeleccionada : "");
-                    ps.setString(5, txtFactor.getText());
-                    ps.setInt(6, articulo.idArticulo);
-                    ps.executeUpdate();
+
+                    // 2. Actualizar SOLO el segmentado actual en 'detalleArticulo' (ubicación individual)
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE detalleArticulo SET idUbicacion = ? WHERE idDetalle = ? AND estado = 'activo'")) {
+                        if (ubicacionId == null) {
+                            ps.setNull(1, java.sql.Types.INTEGER);
+                        } else {
+                            ps.setInt(1, ubicacionId);
+                        }
+                        ps.setString(2, articulo.getIdDetalle()); // Usar idDetalle específico, no idArticulo
+                        int actualizados = ps.executeUpdate();
+
+                        if (actualizados == 0) {
+                            // Si no se encontró el detalle, intentar insertar como nuevo registro
+                            try (PreparedStatement psInsert = conn.prepareStatement(
+                                    "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'activo')")) {
+                                psInsert.setString(1, articulo.getIdDetalle());
+                                psInsert.setInt(2, articulo.getIdArticulo());
+                                if (ubicacionId == null) {
+                                    psInsert.setNull(3, java.sql.Types.INTEGER);
+                                } else {
+                                    psInsert.setInt(3, ubicacionId);
+                                }
+                                psInsert.executeUpdate();
+                            }
+                        }
+                    }
+
+                    // Mostrar mensaje informativo
+                    Alert info = new Alert(Alert.AlertType.INFORMATION);
+                    info.setTitle("Actualización completada");
+                    info.setHeaderText(null);
+                    info.setContentText("Se actualizó el segmentado individual ID: " + articulo.getIdDetalle());
+                    info.showAndWait();
+                } else {
+                    // CASO NO SEGMENTADO: Actualizar solo el artículo individual
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET ubicacion = ?, lote = ?, caducidad = ?, presentacion = ?, factor = ? WHERE idArticulo = ?")) {
+                        if (ubicacionId == null) {
+                            ps.setNull(1, java.sql.Types.INTEGER);
+                        } else {
+                            ps.setInt(1, ubicacionId);
+                        }
+                        ps.setString(2, txtLote.getText().trim());
+                        if (dpCaducidad.getValue() != null) {
+                            ps.setString(3, dpCaducidad.getValue().toString());
+                        } else {
+                            ps.setNull(3, java.sql.Types.DATE);
+                        }
+                        String presentacionSeleccionada = cbPresentacion.getValue();
+                        ps.setString(4, presentacionSeleccionada != null ? presentacionSeleccionada : "");
+                        ps.setString(5, txtFactor.getText().trim());
+                        ps.setInt(6, articulo.getIdArticulo());
+                        ps.executeUpdate();
+                    }
                 }
 
                 notificarActualizacion();
                 cargarDetalles();
+
             } catch (SQLException e) {
                 e.printStackTrace();
+                mostrarAdvertencia("Error", "No se pudo actualizar el artículo: " + e.getMessage());
             }
         });
     }
 
     private void eliminarArticulo(ArticuloDetalle articulo) {
-        if (articulo == null || articulo.idArticulo <= 0) {
+        if (articulo == null) {
             return;
         }
+
+        String mensaje;
+        String titulo;
+
+        if (articulo.isEsSegmentado()) {
+            titulo = "Eliminar pieza segmentada";
+            mensaje = "¿Deseas eliminar esta pieza segmentada (ID: " + articulo.getIdDetalle() + ")?\n\n" +
+                    "NOTA: Solo se eliminará esta pieza específica, no todas las del grupo.";
+        } else {
+            titulo = "Eliminar artículo";
+            mensaje = "¿Deseas eliminar el artículo (ID: " + articulo.getIdArticulo() + ")?";
+        }
+
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmacion.setTitle("Eliminar artículo");
+        confirmacion.setTitle(titulo);
         confirmacion.setHeaderText(null);
-        confirmacion.setContentText("¿Deseas eliminar el artículo seleccionado?");
+        confirmacion.setContentText(mensaje);
+
         confirmacion.showAndWait().ifPresent(respuesta -> {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
                 }
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE articulo SET Estado = 'eliminado' WHERE idArticulo = ?")) {
-                    ps.setInt(1, articulo.idArticulo);
-                    ps.executeUpdate();
+
+                if (articulo.isEsSegmentado()) {
+                    // Para segmentados: inactivar solo esta pieza en detalleArticulo
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE detalleArticulo SET estado = 'inactivo' WHERE idDetalle = ?")) {
+                        ps.setString(1, articulo.getIdDetalle());
+                        int afectados = ps.executeUpdate();
+
+                        if (afectados > 0) {
+                            // Verificar si quedan segmentados activos para este artículo padre
+                            try (PreparedStatement psVerificar = conn.prepareStatement(
+                                    "SELECT COUNT(*) FROM detalleArticulo WHERE idArticulo = ? AND estado = 'activo'")) {
+                                psVerificar.setInt(1, articulo.getIdArticulo());
+                                try (ResultSet rs = psVerificar.executeQuery()) {
+                                    if (rs.next() && rs.getInt(1) == 0) {
+                                        // Si no quedan segmentados activos, cambiar estado del artículo padre
+                                        try (PreparedStatement psActualizarPadre = conn.prepareStatement(
+                                                "UPDATE articulo SET Estado = 'disponible', segmentado = 0 WHERE idArticulo = ?")) {
+                                            psActualizarPadre.setInt(1, articulo.getIdArticulo());
+                                            psActualizarPadre.executeUpdate();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Para no segmentados: marcar como eliminado en articulo
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE articulo SET Estado = 'eliminado' WHERE idArticulo = ?")) {
+                        ps.setInt(1, articulo.getIdArticulo());
+                        ps.executeUpdate();
+                    }
                 }
+
                 notificarActualizacion();
                 cargarDetalles();
+
             } catch (SQLException e) {
                 e.printStackTrace();
+                mostrarAdvertencia("Error", "No se pudo eliminar el artículo: " + e.getMessage());
             }
         });
     }
@@ -520,8 +958,6 @@ public class DetalleInventarioController {
         }
     }
 
-    // ✅ CORREGIDO: sin getButtonBar() (no existe en tu JavaFX)
-    // ✅ Cancelar izquierda y OK derecha
     private void agregarEstilosDialogo(Dialog<ButtonType> dialog) {
         DialogPane pane = dialog.getDialogPane();
 
@@ -583,60 +1019,180 @@ public class DetalleInventarioController {
             return;
         }
 
+        // Crear ventana de diálogo
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Segmentar artículo");
-        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        ButtonType btnAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(btnCancelar, btnAceptar);
-        configurarDialogoAcciones(dialog, btnCancelar, btnAceptar);
+
+        // Configurar fondo blanco en el diálogo
+        dialog.getDialogPane().setStyle("-fx-background-color: white; -fx-border-color: white;");
+
+        // Crear tipos de botones
+        ButtonType btnCancelarType = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType btnAceptarType = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnCancelarType, btnAceptarType);
+
+        // Ocultar completamente el ButtonBar por defecto
+        ButtonBar buttonBar = (ButtonBar) dialog.getDialogPane().lookup(".button-bar");
+        if (buttonBar != null) {
+            buttonBar.setVisible(false);
+            buttonBar.setManaged(false);
+            buttonBar.setPrefHeight(0);
+            buttonBar.setMinHeight(0);
+            buttonBar.setMaxHeight(0);
+        }
+
+        // También ocultar los botones individuales del ButtonBar
+        Button btnOkOriginal = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        Button btnCancelOriginal = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (btnOkOriginal != null) {
+            btnOkOriginal.setVisible(false);
+            btnOkOriginal.setManaged(false);
+        }
+        if (btnCancelOriginal != null) {
+            btnCancelOriginal.setVisible(false);
+            btnCancelOriginal.setManaged(false);
+        }
+
         configurarDialogoModal(dialog);
         if (dialogPadre != null) {
             dialog.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
         }
 
-        VBox contenido = new VBox(12);
+        // ============ CREAR ESTRUCTURA PRINCIPAL ============
+        BorderPane borderPane = new BorderPane();
+        borderPane.setStyle("-fx-background-color: white;");
+
+        // ============ PARTE SUPERIOR - TÍTULO ============
+        VBox topBox = new VBox();
+        topBox.setAlignment(Pos.CENTER);
+        topBox.setStyle("-fx-background-color: white;");
+        topBox.setPadding(new Insets(15, 0, 10, 0));
+
+        Label lblTitulo = new Label("Segmentar artículo");
+        lblTitulo.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333333;");
+
+        topBox.getChildren().add(lblTitulo);
+        borderPane.setTop(topBox);
+
+        // ============ PARTE CENTRAL - CONTENIDO ============
+        VBox centerBox = new VBox(15);
+        centerBox.setPadding(new Insets(20, 25, 20, 25));
+        centerBox.setStyle("-fx-background-color: white;");
+
+        // Descripción del artículo
         Label lblDescripcionArticulo = new Label(obtenerDescripcionArticulo(articulo, factor));
         lblDescripcionArticulo.setWrapText(true);
-        lblDescripcionArticulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+        lblDescripcionArticulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-font-size: 12px; -fx-padding: 0 0 10 0;");
 
+        // Título de ubicaciones
         Label lblUbicaciones = new Label("Ubicaciones para segmentar:");
-        lblUbicaciones.setStyle("-fx-font-weight: bold;");
+        lblUbicaciones.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
 
-        VBox contenedorUbicaciones = new VBox(10);
+        // Contenedor para las filas de ubicaciones
+        VBox contenedorUbicaciones = new VBox(8);
+        contenedorUbicaciones.setStyle("-fx-background-color: white;"); // Cambia a blanco
+        contenedorUbicaciones.setMinHeight(200); // Altura mínima para que siempre se vea blanco
+
         List<UbicacionFila> filas = new ArrayList<>();
+
+        // Agregar la primera fila
         agregarFilaUbicacion(contenedorUbicaciones, filas, true);
 
+        // ScrollPane para las ubicaciones - CONFIGURAR CORRECTAMENTE
         ScrollPane scroll = new ScrollPane(contenedorUbicaciones);
         scroll.setFitToWidth(true);
-        scroll.setPrefViewportHeight(320);
-        contenido.getChildren().addAll(lblDescripcionArticulo, lblUbicaciones, scroll);
-        dialog.getDialogPane().setContent(contenido);
-        dialog.getDialogPane().setPrefWidth(520);
-        dialog.getDialogPane().setPrefHeight(520);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
-        AtomicReference<List<UbicacionCantidad>> seleccionadasRef = new AtomicReference<>(Collections.emptyList());
-        Button btnOk = (Button) dialog.getDialogPane().lookupButton(btnAceptar);
-        if (btnOk != null) {
-            btnOk.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
-                List<UbicacionCantidad> seleccionadas = obtenerUbicacionesSeleccionadas(filas);
-                if (seleccionadas.isEmpty()) {
-                    mostrarAdvertencia("Validación", "Debe capturar al menos una ubicación con cantidad.");
-                    event.consume();
-                    return;
-                }
-                int suma = seleccionadas.stream().mapToInt(ubicacion -> ubicacion.cantidad).sum();
-                if (suma != factor) {
-                    mostrarAdvertencia("Validación",
-                            "La suma de las ubicaciones debe ser " + factor + " y actualmente es " + suma + ".");
-                    event.consume();
-                    return;
-                }
-                seleccionadasRef.set(seleccionadas);
-            });
+        scroll.setStyle("-fx-background-color: white; " + "-fx-background-radius: 4;");
+
+        // También configurar el viewport para que sea blanco
+        scroll.viewportBoundsProperty().addListener((obs, oldBounds, newBounds) -> {
+            // Asegurar que el contenido ocupe toda la altura disponible
+            contenedorUbicaciones.setMinHeight(newBounds.getHeight());
+        });
+
+        scroll.setPrefViewportHeight(280);
+        scroll.setMinViewportHeight(200);
+
+        // Agregar elementos al centro
+        centerBox.getChildren().addAll(lblDescripcionArticulo, lblUbicaciones, scroll);
+
+        // Poner el centerBox directamente en el BorderPane
+        borderPane.setCenter(centerBox);
+
+        // ============ PARTE INFERIOR - BOTONES ============
+        HBox bottomBox = new HBox(15);
+        bottomBox.setAlignment(Pos.CENTER);
+        bottomBox.setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-width: 1 0 0 0;");
+        bottomBox.setPadding(new Insets(15, 0, 15, 0));
+
+        Button btnCancelar = new Button("Cancelar");
+        btnCancelar.getStyleClass().add("boton");
+        btnCancelar.setPrefWidth(110);
+        btnCancelar.setPrefHeight(35);
+        btnCancelar.setOnAction(e -> {
+            dialog.setResult(btnCancelarType);
+            dialog.close();
+        });
+
+        Button btnAceptar = new Button("Aceptar");
+        btnAceptar.getStyleClass().add("boton");
+        btnAceptar.setPrefWidth(110);
+        btnAceptar.setPrefHeight(35);
+
+        bottomBox.getChildren().addAll(btnCancelar, btnAceptar);
+        borderPane.setBottom(bottomBox);
+
+        // ============ CONFIGURAR DIÁLOGO ============
+        dialog.getDialogPane().setContent(borderPane);
+        dialog.getDialogPane().setPrefWidth(480);
+        dialog.getDialogPane().setPrefHeight(580);
+        dialog.getDialogPane().setMinWidth(450);
+        dialog.getDialogPane().setMinHeight(500);
+
+        // Cargar estilos del formulario de ubicaciones
+        try {
+            dialog.getDialogPane().getStylesheets().add(
+                    getClass().getResource("/Formularios/style/estilos.css").toExternalForm()
+            );
+        } catch (Exception e) {
+            System.out.println("No se pudo cargar el CSS, usando estilos inline");
         }
 
+        // ============ CONFIGURAR COMPORTAMIENTO ============
+        AtomicReference<List<UbicacionCantidad>> seleccionadasRef = new AtomicReference<>(Collections.emptyList());
+
+        btnAceptar.setOnAction(event -> {
+            List<UbicacionCantidad> seleccionadas = obtenerUbicacionesSeleccionadas(filas);
+            if (seleccionadas.isEmpty()) {
+                mostrarAdvertencia("Validación", "Debe capturar al menos una ubicación con cantidad.");
+                event.consume();
+                return;
+            }
+            int suma = seleccionadas.stream().mapToInt(ubicacion -> ubicacion.cantidad).sum();
+            if (suma != factor) {
+                mostrarAdvertencia("Validación",
+                        "La suma de las ubicaciones debe ser " + factor + " y actualmente es " + suma + ".");
+                event.consume();
+                return;
+            }
+            seleccionadasRef.set(seleccionadas);
+            dialog.setResult(btnAceptarType);
+            dialog.close();
+        });
+
+        // También manejar el botón Cancelar con ESC
+        dialog.getDialogPane().setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ESCAPE) {
+                dialog.setResult(btnCancelarType);
+                dialog.close();
+            }
+        });
+
+        // Mostrar diálogo y procesar resultado
         dialog.showAndWait().ifPresent(respuesta -> {
-            if (respuesta != btnAceptar) {
+            if (respuesta != btnAceptarType) {
                 return;
             }
             ejecutarSegmentacion(articulo, factor, seleccionadasRef.get(), dialogPadre);
@@ -757,6 +1313,11 @@ public class DetalleInventarioController {
     }
 
     private void agregarFilaUbicacion(VBox contenedor, List<UbicacionFila> filas, boolean inicial) {
+        if (filas.size() >= MAX_FILAS) {
+            mostrarAdvertencia("Límite alcanzado",
+                    "Solo se pueden agregar hasta " + MAX_FILAS + " ubicaciones.");
+            return;
+        }
         HBox fila = new HBox(15);
 
         VBox vboxUbicacion = new VBox(5);
@@ -900,21 +1461,65 @@ public class DetalleInventarioController {
     }
 
     private static class ArticuloDetalle {
-        private final int idArticulo;
+        private int idArticulo; // Para no segmentados, o id padre para segmentados
+        private String idDetalle; // Solo para segmentados (ej: "S-1", "S-2")
         private final String ubicacion;
         private final String lote;
         private final String caducidad;
         private final String presentacion;
         private final String factor;
+        private final boolean esSegmentado;
 
+        // Constructor para NO segmentados
         private ArticuloDetalle(int idArticulo, String ubicacion, String lote,
                                 String caducidad, String presentacion, String factor) {
             this.idArticulo = idArticulo;
+            this.idDetalle = null;
             this.ubicacion = ubicacion;
             this.lote = lote;
             this.caducidad = caducidad;
             this.presentacion = presentacion;
             this.factor = factor;
+            this.esSegmentado = false;
+        }
+
+        // Constructor para SEGMENTADOS (siempre pz factor 1)
+        private ArticuloDetalle(String idDetalle, int idArticuloPadre, String ubicacion,
+                                String lote, String caducidad) {
+            this.idArticulo = idArticuloPadre;
+            this.idDetalle = idDetalle;
+            this.ubicacion = ubicacion;
+            this.lote = lote;
+            this.caducidad = caducidad;
+            this.presentacion = "pz";
+            this.factor = "1";
+            this.esSegmentado = true;
+        }
+
+        // Getters (mantener públicos)
+        public int getIdArticulo() { return idArticulo; }
+        public String getIdDetalle() { return idDetalle; }
+        public String getUbicacion() { return ubicacion; }
+        public String getLote() { return lote; }
+        public String getCaducidad() { return caducidad; }
+        public String getPresentacion() { return presentacion; }
+        public String getFactor() { return factor; }
+        public boolean isEsSegmentado() { return esSegmentado; }
+
+        public String getIdentificadorUnico() {
+            return esSegmentado ? idDetalle : String.valueOf(idArticulo);
+        }
+
+        public Object getIdentificadorBD() {
+            if (esSegmentado) {
+                return idDetalle;
+            } else {
+                return idArticulo;
+            }
+        }
+
+        public String getTipoDescripcion() {
+            return esSegmentado ? "Pieza segmentada" : "Artículo completo";
         }
     }
 
