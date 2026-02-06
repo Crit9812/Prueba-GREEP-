@@ -1,6 +1,7 @@
 package Operaciones.venta.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.exportar.ReporteSalidaExporter;
 import javafx.scene.control.ButtonBar;
 import Compartido.controller.encabezadoController;
@@ -66,6 +67,7 @@ public class MainController {
     private String clienteSeleccionadoId;
     private boolean actualizandoFiltroCliente = false;
     private boolean actualizandoSeleccion = false;
+    private OverlayCarga overlayCarga;
     @FXML private TableColumn<traspasoSalida, Boolean> colSelect;
     @FXML private TableColumn<traspasoSalida, String> colClaveProduct;
     @FXML private TableColumn<traspasoSalida, String> colProducto;
@@ -140,8 +142,8 @@ public class MainController {
             contenedorBtnConfirmar.setMaxWidth(Region.USE_PREF_SIZE);
             HBox.setHgrow(contenedorBtnConfirmar, Priority.NEVER);
 
-
             paneNavbarController.setTitulo("Venta", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
         });
         configurarAutocompleteClientes();
@@ -339,41 +341,64 @@ public class MainController {
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 String nota = comentario != null ? comentario.getText() : "";
-                boolean registrado = model.registrarVenta(
-                        clienteSeleccionadoId,
-                        nota,
-                        facturaTexto,
-                        new ArrayList<>(itemsVenta)
-                );
-                if (registrado) {
-                    // Guardar copia de los items para el reporte ANTES de limpiar
-                    List<traspasoSalida> copiaItems = new ArrayList<>(itemsVenta);
+                String nombreCliente = buscador != null ? buscador.getValue() : "";
+                List<traspasoSalida> copiaItems = new ArrayList<>(itemsVenta);
 
-                    // Obtener nombre del cliente
-                    String nombreCliente = buscador.getValue();
-
-                    // Limpiar la tabla
-                    itemsVenta.clear();
-                    if (comentario != null) {
-                        comentario.clear();
-                    }
-                    if (factura != null) {
-                        factura.clear();
-                    }
-
-                    // Mostrar opción para descargar reporte
-                    mostrarConfirmacionReporteVenta(facturaTexto, nombreCliente, nota, copiaItems);
-
-                    if (buscador != null) {
-                        buscador.setValue(null);
-                        if (buscador.getEditor() != null) {
-                            buscador.getEditor().clear();
-                        }
-                        clienteSeleccionadoId = null;
-                    }
-                } else {
-                    mostrarAlerta("Error", "No se pudo registrar la venta.");
+                if (overlayCarga != null) {
+                    overlayCarga.mostrar();
                 }
+
+                Task<Boolean> task = new Task<>() {
+                    @Override
+                    protected Boolean call() {
+                        return model.registrarVenta(
+                                clienteSeleccionadoId,
+                                nota,
+                                facturaTexto,
+                                new ArrayList<>(copiaItems)
+                        );
+                    }
+                };
+
+                task.setOnSucceeded(e -> {
+                    boolean registrado = task.getValue();
+                    if (registrado) {
+                        itemsVenta.clear();
+                        if (comentario != null) {
+                            comentario.clear();
+                        }
+                        if (factura != null) {
+                            factura.clear();
+                        }
+                        if (buscador != null) {
+                            buscador.setValue(null);
+                            if (buscador.getEditor() != null) {
+                                buscador.getEditor().clear();
+                            }
+                            clienteSeleccionadoId = null;
+                        }
+                        if (overlayCarga != null) {
+                            overlayCarga.ocultar();
+                        }
+                        mostrarConfirmacionReporteVenta(facturaTexto, nombreCliente, nota, copiaItems);
+                    } else {
+                        if (overlayCarga != null) {
+                            overlayCarga.ocultar();
+                        }
+                        mostrarAlerta("Error", "No se pudo registrar la venta.");
+                    }
+                });
+
+                task.setOnFailed(e -> {
+                    if (overlayCarga != null) {
+                        overlayCarga.ocultar();
+                    }
+                    mostrarAlerta("Error", "No se pudo registrar la venta.");
+                });
+
+                Thread hilo = new Thread(task);
+                hilo.setDaemon(true);
+                hilo.start();
             }
         });
     }
