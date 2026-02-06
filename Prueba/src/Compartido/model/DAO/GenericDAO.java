@@ -452,6 +452,18 @@ public class GenericDAO<T> {
                     if (rs.next()) {
                         int completados = rs.getInt("total_articulos");
                         int disponibles = rs.getInt("disponibles");
+                        int detalleDisponible = contarDetalleArticuloDisponible(
+                                conn,
+                                idProducto,
+                                lote,
+                                null,
+                                false,
+                                null,
+                                null,
+                                null
+                        );
+                        completados += detalleDisponible;
+                        disponibles += detalleDisponible;
                         return new ValidacionDisponibilidadSalida(completados > 0, disponibles);
                     }
                 }
@@ -511,7 +523,18 @@ public class GenericDAO<T> {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt("total");
+                        int totalArticulos = rs.getInt("total");
+                        int totalDetalles = contarDetalleArticuloDisponible(
+                                conn,
+                                idProducto,
+                                lote,
+                                null,
+                                false,
+                                null,
+                                null,
+                                null
+                        );
+                        return totalArticulos + totalDetalles;
                     }
                 }
             }
@@ -580,7 +603,18 @@ public class GenericDAO<T> {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt("total");
+                        int totalArticulos = rs.getInt("total");
+                        int totalDetalles = contarDetalleArticuloDisponible(
+                                conn,
+                                idProducto,
+                                lote,
+                                caducidad,
+                                true,
+                                null,
+                                null,
+                                null
+                        );
+                        return totalArticulos + totalDetalles;
                     }
                 }
             }
@@ -648,7 +682,18 @@ public class GenericDAO<T> {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt("total");
+                        int totalArticulos = rs.getInt("total");
+                        int totalDetalles = contarDetalleArticuloDisponible(
+                                conn,
+                                idProducto,
+                                lote,
+                                null,
+                                false,
+                                null,
+                                presentacion,
+                                factor
+                        );
+                        return totalArticulos + totalDetalles;
                     }
                 }
             }
@@ -717,7 +762,18 @@ public class GenericDAO<T> {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt("total");
+                        int totalArticulos = rs.getInt("total");
+                        int totalDetalles = contarDetalleArticuloDisponible(
+                                conn,
+                                null,
+                                lote,
+                                caducidad,
+                                true,
+                                ubicacionNombre,
+                                null,
+                                null
+                        );
+                        return totalArticulos + totalDetalles;
                     }
                 }
             }
@@ -806,7 +862,18 @@ public class GenericDAO<T> {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt("total");
+                        int totalArticulos = rs.getInt("total");
+                        int totalDetalles = contarDetalleArticuloDisponible(
+                                conn,
+                                idProducto,
+                                lote,
+                                caducidad,
+                                true,
+                                ubicacionNombre,
+                                null,
+                                null
+                        );
+                        return totalArticulos + totalDetalles;
                     }
                 }
             }
@@ -895,12 +962,167 @@ public class GenericDAO<T> {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        return rs.getInt("total");
+                        int totalArticulos = rs.getInt("total");
+                        int totalDetalles = contarDetalleArticuloDisponible(
+                                conn,
+                                idProducto,
+                                lote,
+                                caducidad,
+                                true,
+                                ubicacionNombre,
+                                presentacion,
+                                factor
+                        );
+                        return totalArticulos + totalDetalles;
                     }
                 }
             }
         } catch (Exception e) {
             System.out.println("Error en contarDisponiblesSinSalidaDetalle: " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    private static boolean esPresentacionDetalleValida(String presentacion, Integer factor) {
+        if (presentacion == null || factor == null) {
+            return false;
+        }
+        String normalizada = presentacion.trim().toLowerCase();
+        return ("pz".equals(normalizada) || "pieza".equals(normalizada)) && factor == 1;
+    }
+
+    private static int contarDetalleArticuloDisponible(Connection conn,
+                                                       String idProducto,
+                                                       String lote,
+                                                       java.time.LocalDate caducidad,
+                                                       boolean filtrarCaducidad,
+                                                       String ubicacionNombre,
+                                                       String presentacion,
+                                                       Integer factor) {
+        if (conn == null) {
+            return 0;
+        }
+
+        if (presentacion != null || factor != null) {
+            if (!esPresentacionDetalleValida(presentacion, factor)) {
+                return 0;
+            }
+        }
+
+        try {
+            Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasUbicaciones = ubicacionNombre != null ? obtenerColumnas(conn, "ubicaciones") : null;
+
+            String colDetalleArticuloId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id");
+            String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo",
+                    "id_articulo", "articulo_id");
+            String colDetalleArticuloUbicacion = resolverColumna(columnasDetalleArticulo, "idUbicacion",
+                    "id_ubicacion", "ubicacion_id");
+            String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+            String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                    "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+
+            String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
+                    "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+            String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+            String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
+            String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
+                    "id_detalle_entrada");
+            String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
+                    "id_producto", "producto_id");
+
+            String colUbicacionId = null;
+            String colUbicacionNombre = null;
+            String colUbicacionEstado = null;
+            if (columnasUbicaciones != null) {
+                colUbicacionId = resolverColumna(columnasUbicaciones, "id", "idUbicacion", "ubicacion_id",
+                        "id_ubicacion");
+                colUbicacionNombre = resolverColumna(columnasUbicaciones, "nombre", "nombreUbicacion", "ubicacion");
+                colUbicacionEstado = resolverColumna(columnasUbicaciones, "estado", "Estado");
+            }
+
+            if (colDetalleArticuloId == null || colDetalleArticuloArticulo == null || colDetalleArticuloEstado == null
+                    || colDetalleArticuloSalida == null || colArticuloId == null || colArticuloDetalleEntrada == null
+                    || colDetalleEntradaId == null || colDetalleEntradaProducto == null) {
+                return 0;
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COUNT(*) AS total ")
+                    .append("FROM detalleArticulo da ")
+                    .append("JOIN articulo a ON a.`").append(colArticuloId).append("` = da.`")
+                    .append(colDetalleArticuloArticulo).append("` ")
+                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaId)
+                    .append("` = a.`").append(colArticuloDetalleEntrada).append("` ");
+
+            if (ubicacionNombre != null && colUbicacionId != null) {
+                sql.append("JOIN ubicaciones u ON u.`").append(colUbicacionId)
+                        .append("` = da.`").append(colDetalleArticuloUbicacion).append("` ");
+            }
+
+            sql.append("WHERE (da.`").append(colDetalleArticuloSalida).append("` IS NULL OR da.`")
+                    .append(colDetalleArticuloSalida).append("` = 0) ")
+                    .append("AND LOWER(da.`").append(colDetalleArticuloEstado).append("`) = ?");
+
+            if (idProducto != null) {
+                sql.append(" AND de.`").append(colDetalleEntradaProducto).append("` = ?");
+            }
+            if (lote != null && colArticuloLote != null) {
+                sql.append(" AND a.`").append(colArticuloLote).append("` = ?");
+            }
+            if (filtrarCaducidad && colArticuloCaducidad != null) {
+                if (caducidad == null) {
+                    sql.append(" AND a.`").append(colArticuloCaducidad).append("` IS NULL");
+                } else {
+                    sql.append(" AND a.`").append(colArticuloCaducidad).append("` = ?");
+                }
+            }
+            if (ubicacionNombre != null && colUbicacionNombre != null) {
+                sql.append(" AND u.`").append(colUbicacionNombre).append("` = ?");
+            }
+            if (colArticuloEstado != null) {
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+            }
+            if (ubicacionNombre != null && colUbicacionEstado != null) {
+                sql.append(" AND LOWER(u.`").append(colUbicacionEstado).append("`) = ?");
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                ps.setString(index++, "activo");
+                if (idProducto != null) {
+                    ps.setString(index++, idProducto);
+                }
+                if (lote != null && colArticuloLote != null) {
+                    ps.setString(index++, lote);
+                }
+                if (filtrarCaducidad && colArticuloCaducidad != null && caducidad != null) {
+                    ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                if (ubicacionNombre != null && colUbicacionNombre != null) {
+                    ps.setString(index++, ubicacionNombre);
+                }
+                if (colArticuloEstado != null) {
+                    ps.setString(index++, "segmentado");
+                }
+                if (ubicacionNombre != null && colUbicacionEstado != null) {
+                    ps.setString(index, "activo");
+                }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("total");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error en contarDetalleArticuloDisponible: " + e.getMessage());
         }
 
         return 0;

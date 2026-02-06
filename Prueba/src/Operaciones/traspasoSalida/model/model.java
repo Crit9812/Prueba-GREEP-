@@ -224,6 +224,7 @@ public class model {
 
                     List<Integer> articulosParaActualizar = new ArrayList<>();
                     List<Integer> detallesEntrada = new ArrayList<>();
+                    List<String> detalleArticulosParaActualizar = new ArrayList<>();
 
                     // Busca esta sección en el método registrarTraspasoSalida (alrededor de la línea 162-179)
                     StringBuilder sqlSelect = new StringBuilder("SELECT a.")
@@ -306,7 +307,79 @@ public class model {
                         }
                     }
 
-                    if (articulosParaActualizar.size() < cantidad) {
+                    if (articulosParaActualizar.size() < cantidad
+                            && esPresentacionDetalle(item.getPresentacion(), item.getFactor())) {
+                        int restantes = cantidad - articulosParaActualizar.size();
+                        String sqlDetalle = """
+                            SELECT da.idDetalle AS idDetalle, a.%s AS detalleEntrada
+                            FROM detalleArticulo da
+                            JOIN articulo a ON a.%s = da.idArticulo
+                            JOIN detalle_Entrada de ON de.%s = a.%s
+                            WHERE (da.%s IS NULL OR da.%s = 0)
+                              AND LOWER(da.%s) = ?
+                              AND LOWER(a.%s) = ?
+                        """.formatted(
+                                colArticuloDetalleEntrada,
+                                colArticuloId,
+                                colDetalleEntradaId,
+                                colArticuloDetalleEntrada,
+                                "idDetalleSalida",
+                                "idDetalleSalida",
+                                "estado",
+                                colArticuloEstado != null ? colArticuloEstado : "Estado"
+                        );
+
+                        StringBuilder sqlDetalleBuilder = new StringBuilder(sqlDetalle);
+                        if (colArticuloLote != null) {
+                            sqlDetalleBuilder.append(" AND a.").append(colArticuloLote).append(" = ?");
+                        }
+                        if (colArticuloCaducidad != null) {
+                            Date caducidad = parseDate(item.getCaducidad());
+                            if (caducidad != null) {
+                                sqlDetalleBuilder.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                            } else {
+                                sqlDetalleBuilder.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                            }
+                        }
+                        if (colArticuloUbicacion != null) {
+                            sqlDetalleBuilder.append(" AND da.idUbicacion = ?");
+                        }
+                        if (colDetalleEntradaProducto != null) {
+                            sqlDetalleBuilder.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
+                        }
+                        sqlDetalleBuilder.append(" LIMIT ?");
+
+                        try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalleBuilder.toString())) {
+                            int indexDetalle = 1;
+                            psDetalle.setString(indexDetalle++, "activo");
+                            psDetalle.setString(indexDetalle++, "segmentado");
+                            if (colArticuloLote != null) {
+                                psDetalle.setString(indexDetalle++, item.getLote());
+                            }
+                            if (colArticuloCaducidad != null) {
+                                Date caducidad = parseDate(item.getCaducidad());
+                                if (caducidad != null) {
+                                    psDetalle.setDate(indexDetalle++, caducidad);
+                                }
+                            }
+                            if (colArticuloUbicacion != null) {
+                                psDetalle.setInt(indexDetalle++, ubicacionId);
+                            }
+                            if (colDetalleEntradaProducto != null) {
+                                psDetalle.setString(indexDetalle++, item.getClaveProducto());
+                            }
+                            psDetalle.setInt(indexDetalle, restantes);
+
+                            try (ResultSet rsDetalle = psDetalle.executeQuery()) {
+                                while (rsDetalle.next()) {
+                                    detalleArticulosParaActualizar.add(rsDetalle.getString("idDetalle"));
+                                    detallesEntrada.add(rsDetalle.getInt("detalleEntrada"));
+                                }
+                            }
+                        }
+                    }
+
+                    if (articulosParaActualizar.size() + detalleArticulosParaActualizar.size() < cantidad) {
                         conn.rollback();
                         return null;
                     }
@@ -330,9 +403,29 @@ public class model {
                             psUpdate.setInt(index++, idArticulo);
                         }
                         int actualizadas = psUpdate.executeUpdate();
-                        if (actualizadas < cantidad) {
+                        if (actualizadas < articulosParaActualizar.size()) {
                             conn.rollback();
                             return null;
+                        }
+                    }
+
+                    if (!detalleArticulosParaActualizar.isEmpty()) {
+                        String placeholders = String.join(", ", java.util.Collections.nCopies(
+                                detalleArticulosParaActualizar.size(), "?"));
+                        String sqlUpdateDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? " +
+                                "WHERE idDetalle IN (" + placeholders + ")";
+                        try (PreparedStatement psDetalleUpdate = conn.prepareStatement(sqlUpdateDetalle)) {
+                            int index = 1;
+                            psDetalleUpdate.setLong(index++, idDetalleSalida);
+                            psDetalleUpdate.setString(index++, "pendiente");
+                            for (String idDetalle : detalleArticulosParaActualizar) {
+                                psDetalleUpdate.setString(index++, idDetalle);
+                            }
+                            int actualizadas = psDetalleUpdate.executeUpdate();
+                            if (actualizadas < detalleArticulosParaActualizar.size()) {
+                                conn.rollback();
+                                return null;
+                            }
                         }
                     }
 
@@ -404,6 +497,14 @@ public class model {
             }
         }
         return null;
+    }
+
+    private boolean esPresentacionDetalle(String presentacion, int factor) {
+        if (presentacion == null) {
+            return false;
+        }
+        String normalizada = presentacion.trim().toLowerCase();
+        return ("pz".equals(normalizada) || "pieza".equals(normalizada)) && factor == 1;
     }
 
     private long insertarRegistro(Connection conn, String tabla, Map<String, String> columnas, Map<String, Object> valores)
