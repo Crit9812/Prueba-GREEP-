@@ -287,6 +287,36 @@ public class model {
             }
         }
 
+        if (!esPresentacionDetalle(item.getPresentacion(), item.getFactor())) {
+            return null;
+        }
+
+        String sqlDetalle = "SELECT a.idDetalleEntrada AS detalleEntrada " +
+                "FROM detalleArticulo da " +
+                "JOIN articulo a ON a.idArticulo = da.idArticulo " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE de.claveProducto = ? " +
+                "AND a.lote = ? " +
+                "AND da.idUbicacion = ? " +
+                "AND LOWER(da.estado) = ? " +
+                "AND LOWER(a.Estado) = ? " +
+                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "LIMIT 1";
+
+        try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
+            int index = 1;
+            psDetalle.setString(index++, item.getClaveProducto());
+            psDetalle.setString(index++, item.getLote());
+            psDetalle.setInt(index++, ubicacionId);
+            psDetalle.setString(index++, "activo");
+            psDetalle.setString(index++, "segmentado");
+            try (ResultSet rs = psDetalle.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("detalleEntrada");
+                }
+            }
+        }
+
         return null;
     }
 
