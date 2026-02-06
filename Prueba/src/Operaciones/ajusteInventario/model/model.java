@@ -211,16 +211,16 @@ public class model {
                 Integer detalleEntradaId = obtenerDetalleEntradaId(conn, item, ubicacionId);
 
                 // Seleccionar artículos para actualizar/eliminar
-                List<Integer> articulosParaActualizar = obtenerArticulosParaSalida(
+                List<RegistroSalida> registrosParaActualizar = obtenerRegistrosParaSalida(
                         conn, item, ubicacionId, cantidad, detalleEntradaId
                 );
 
-                if (articulosParaActualizar.size() < cantidad) {
+                if (registrosParaActualizar.size() < cantidad) {
                     throw new SQLException("No hay suficientes artículos para la salida.");
                 }
 
                 // Actualizar o eliminar artículos
-                actualizarArticulosParaSalida(conn, idDetalleSalida, articulosParaActualizar);
+                actualizarRegistrosParaSalida(conn, idDetalleSalida, registrosParaActualizar);
 
                 // Actualizar estado de la entrada si corresponde
                 if (detalleEntradaId != null) {
@@ -287,14 +287,45 @@ public class model {
             }
         }
 
+        if (!esPresentacionDetalle(item.getPresentacion(), item.getFactor())) {
+            return null;
+        }
+
+        String sqlDetalle = "SELECT a.idDetalleEntrada AS detalleEntrada " +
+                "FROM detalleArticulo da " +
+                "JOIN articulo a ON a.idArticulo = da.idArticulo " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE de.claveProducto = ? " +
+                "AND a.lote = ? " +
+                "AND da.idUbicacion = ? " +
+                "AND LOWER(da.estado) = ? " +
+                "AND LOWER(a.Estado) = ? " +
+                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "LIMIT 1";
+
+        try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
+            int index = 1;
+            psDetalle.setString(index++, item.getClaveProducto());
+            psDetalle.setString(index++, item.getLote());
+            psDetalle.setInt(index++, ubicacionId);
+            psDetalle.setString(index++, "activo");
+            psDetalle.setString(index++, "segmentado");
+            try (ResultSet rs = psDetalle.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("detalleEntrada");
+                }
+            }
+        }
+
         return null;
     }
 
-    private List<Integer> obtenerArticulosParaSalida(Connection conn, traspasoSalida item,
-                                                     int ubicacionId, int cantidad, Integer detalleEntradaId)
+    private List<RegistroSalida> obtenerRegistrosParaSalida(Connection conn, traspasoSalida item,
+                                                            int ubicacionId, int cantidad, Integer detalleEntradaId)
             throws SQLException {
+        List<RegistroSalida> registros = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT a.idArticulo " +
+                "SELECT a.idArticulo AS idRegistro, 'ARTICULO' AS tipo " +
                         "FROM articulo a"
         );
 
@@ -316,8 +347,6 @@ public class model {
 
         sql.append(" LIMIT ?");
 
-        List<Integer> articulosParaActualizar = new ArrayList<>();
-
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int index = 1;
             ps.setString(index++, item.getLote());
@@ -334,36 +363,134 @@ public class model {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    articulosParaActualizar.add(rs.getInt("idArticulo"));
+                    registros.add(new RegistroSalida(rs.getString("idRegistro"), TipoRegistro.ARTICULO));
                 }
             }
         }
 
-        return articulosParaActualizar;
+        if (!esPresentacionDetalle(item.getPresentacion(), item.getFactor()) || registros.size() >= cantidad) {
+            return registros;
+        }
+
+        int restantes = cantidad - registros.size();
+        StringBuilder sqlDetalle = new StringBuilder(
+                "SELECT da.idDetalle AS idRegistro, 'DETALLE' AS tipo " +
+                        "FROM detalleArticulo da " +
+                        "JOIN articulo a ON a.idArticulo = da.idArticulo"
+        );
+        if (detalleEntradaId != null) {
+            sqlDetalle.append(" JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada");
+        }
+        sqlDetalle.append(" WHERE 1=1");
+        sqlDetalle.append(" AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)");
+        sqlDetalle.append(" AND da.idUbicacion = ?");
+        sqlDetalle.append(" AND a.lote = ?");
+        sqlDetalle.append(" AND LOWER(da.estado) = ?");
+        sqlDetalle.append(" AND LOWER(a.Estado) = ?");
+        if (detalleEntradaId != null) {
+            sqlDetalle.append(" AND de.claveProducto = ?");
+        }
+        sqlDetalle.append(" LIMIT ?");
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlDetalle.toString())) {
+            int index = 1;
+            ps.setInt(index++, ubicacionId);
+            ps.setString(index++, item.getLote());
+            ps.setString(index++, "activo");
+            ps.setString(index++, "segmentado");
+            if (detalleEntradaId != null) {
+                ps.setString(index++, item.getClaveProducto());
+            }
+            ps.setInt(index, restantes);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    registros.add(new RegistroSalida(rs.getString("idRegistro"), TipoRegistro.DETALLE));
+                }
+            }
+        }
+
+        return registros;
     }
 
-    private void actualizarArticulosParaSalida(Connection conn, long idDetalleSalida, List<Integer> articulosIds)
+    private void actualizarRegistrosParaSalida(Connection conn, long idDetalleSalida, List<RegistroSalida> registros)
             throws SQLException {
-        if (articulosIds.isEmpty()) {
+        if (registros.isEmpty()) {
             return;
         }
 
-        String placeholders = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
-        String sql = "UPDATE articulo SET idDetalleSalida = ?, Estado = ? WHERE idArticulo IN (" + placeholders + ")";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            int index = 1;
-            ps.setLong(index++, idDetalleSalida);
-            ps.setString(index++, "ajustado");
-
-            for (Integer idArticulo : articulosIds) {
-                ps.setInt(index++, idArticulo);
+        List<String> articulosIds = new ArrayList<>();
+        List<String> detalleIds = new ArrayList<>();
+        for (RegistroSalida registro : registros) {
+            if (registro.tipo == TipoRegistro.ARTICULO) {
+                articulosIds.add(registro.id);
+            } else {
+                detalleIds.add(registro.id);
             }
+        }
 
-            int actualizadas = ps.executeUpdate();
-            if (actualizadas < articulosIds.size()) {
-                throw new SQLException("No se actualizaron todos los artículos.");
+        if (!articulosIds.isEmpty()) {
+            String placeholders = String.join(", ", java.util.Collections.nCopies(articulosIds.size(), "?"));
+            String sql = "UPDATE articulo SET idDetalleSalida = ?, Estado = ? WHERE idArticulo IN (" + placeholders + ")";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                int index = 1;
+                ps.setLong(index++, idDetalleSalida);
+                ps.setString(index++, "ajustado");
+
+                for (String idArticulo : articulosIds) {
+                    ps.setInt(index++, Integer.parseInt(idArticulo));
+                }
+
+                int actualizadas = ps.executeUpdate();
+                if (actualizadas < articulosIds.size()) {
+                    throw new SQLException("No se actualizaron todos los artículos.");
+                }
             }
+        }
+
+        if (!detalleIds.isEmpty()) {
+            String placeholders = String.join(", ", java.util.Collections.nCopies(detalleIds.size(), "?"));
+            String sql = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? WHERE idDetalle IN ("
+                    + placeholders + ")";
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                int index = 1;
+                ps.setLong(index++, idDetalleSalida);
+                ps.setString(index++, "eliminado");
+
+                for (String idDetalle : detalleIds) {
+                    ps.setString(index++, idDetalle);
+                }
+
+                int actualizadas = ps.executeUpdate();
+                if (actualizadas < detalleIds.size()) {
+                    throw new SQLException("No se actualizaron todos los detalles.");
+                }
+            }
+        }
+    }
+
+    private boolean esPresentacionDetalle(String presentacion, int factor) {
+        if (presentacion == null) {
+            return false;
+        }
+        String normalizada = presentacion.trim().toLowerCase();
+        return ("pz".equals(normalizada) || "pieza".equals(normalizada)) && factor == 1;
+    }
+
+    private enum TipoRegistro {
+        ARTICULO,
+        DETALLE
+    }
+
+    private static class RegistroSalida {
+        private final String id;
+        private final TipoRegistro tipo;
+
+        private RegistroSalida(String id, TipoRegistro tipo) {
+            this.id = id;
+            this.tipo = tipo;
         }
     }
 

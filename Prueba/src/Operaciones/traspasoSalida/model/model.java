@@ -122,6 +122,7 @@ public class model {
 
             Map<String, String> columnasDetalleSalida = obtenerColumnas(conn, "detalle_Salida");
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
             Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
             Map<String, String> columnasAjustes = obtenerColumnas(conn, "ajuste_inventario");
@@ -154,6 +155,15 @@ public class model {
             String colEntradaId = resolverColumna(columnasEntradas, "idEntrada", "id", "id_entrada");
             String colAjusteEstado = resolverColumna(columnasAjustes, "Estado", "estado");
             String colAjusteId = resolverColumna(columnasAjustes, "idAjuste", "id", "id_ajuste");
+
+            String colDetalleArticuloId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id");
+            String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                    "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+            String colDetalleArticuloUbicacion = resolverColumna(columnasDetalleArticulo, "idUbicacion",
+                    "id_ubicacion", "ubicacion_id");
+            String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo",
+                    "id_articulo", "articulo_id");
 
             if (colArticuloId == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
                     || colDetalleEntradaClaveEntrada == null || colEntradaEstado == null || colEntradaId == null) {
@@ -224,6 +234,7 @@ public class model {
 
                     List<Integer> articulosParaActualizar = new ArrayList<>();
                     List<Integer> detallesEntrada = new ArrayList<>();
+                    List<String> detalleArticulosParaActualizar = new ArrayList<>();
 
                     // Busca esta sección en el método registrarTraspasoSalida (alrededor de la línea 162-179)
                     StringBuilder sqlSelect = new StringBuilder("SELECT a.")
@@ -306,33 +317,133 @@ public class model {
                         }
                     }
 
-                    if (articulosParaActualizar.size() < cantidad) {
+                    if (articulosParaActualizar.size() < cantidad
+                            && esPresentacionDetalle(item.getPresentacion(), item.getFactor())) {
+                        int restantes = cantidad - articulosParaActualizar.size();
+                        String sqlDetalle = """
+                            SELECT da.%s AS idDetalle, a.%s AS detalleEntrada
+                            FROM detalleArticulo da
+                            JOIN articulo a ON a.%s = da.%s
+                            JOIN detalle_Entrada de ON de.%s = a.%s
+                            WHERE (da.%s IS NULL OR da.%s = 0)
+                              AND LOWER(da.%s) = ?
+                              AND LOWER(a.%s) = ?
+                        """.formatted(
+                                colDetalleArticuloId,
+                                colArticuloDetalleEntrada,
+                                colArticuloId,
+                                colDetalleArticuloArticulo,
+                                colDetalleEntradaId,
+                                colArticuloDetalleEntrada,
+                                colDetalleArticuloSalida,
+                                colDetalleArticuloSalida,
+                                colDetalleArticuloEstado,
+                                colArticuloEstado != null ? colArticuloEstado : "Estado"
+                        );
+
+                        StringBuilder sqlDetalleBuilder = new StringBuilder(sqlDetalle);
+                        if (colArticuloLote != null) {
+                            sqlDetalleBuilder.append(" AND a.").append(colArticuloLote).append(" = ?");
+                        }
+                        if (colArticuloCaducidad != null) {
+                            Date caducidad = parseDate(item.getCaducidad());
+                            if (caducidad != null) {
+                                sqlDetalleBuilder.append(" AND a.").append(colArticuloCaducidad).append(" = ?");
+                            } else {
+                                sqlDetalleBuilder.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
+                            }
+                        }
+                        if (colDetalleArticuloUbicacion != null) {
+                            sqlDetalleBuilder.append(" AND da.").append(colDetalleArticuloUbicacion).append(" = ?");
+                        }
+                        if (colDetalleEntradaProducto != null) {
+                            sqlDetalleBuilder.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
+                        }
+                        sqlDetalleBuilder.append(" LIMIT ?");
+
+                        try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalleBuilder.toString())) {
+                            int indexDetalle = 1;
+                            psDetalle.setString(indexDetalle++, "activo");
+                            psDetalle.setString(indexDetalle++, "segmentado");
+                            if (colArticuloLote != null) {
+                                psDetalle.setString(indexDetalle++, item.getLote());
+                            }
+                            if (colArticuloCaducidad != null) {
+                                Date caducidad = parseDate(item.getCaducidad());
+                                if (caducidad != null) {
+                                    psDetalle.setDate(indexDetalle++, caducidad);
+                                }
+                            }
+                            if (colArticuloUbicacion != null) {
+                                psDetalle.setInt(indexDetalle++, ubicacionId);
+                            }
+                            if (colDetalleEntradaProducto != null) {
+                                psDetalle.setString(indexDetalle++, item.getClaveProducto());
+                            }
+                            psDetalle.setInt(indexDetalle, restantes);
+
+                            try (ResultSet rsDetalle = psDetalle.executeQuery()) {
+                                while (rsDetalle.next()) {
+                                    detalleArticulosParaActualizar.add(rsDetalle.getString("idDetalle"));
+                                    detallesEntrada.add(rsDetalle.getInt("detalleEntrada"));
+                                }
+                            }
+                        }
+                    }
+
+                    if (articulosParaActualizar.size() + detalleArticulosParaActualizar.size() < cantidad) {
                         conn.rollback();
                         return null;
                     }
 
-                    String placeholders = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
-                    StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
-                            .append(colArticuloDetalleSalida)
-                            .append(" = ?");
-                    if (colArticuloEstado != null) {
-                        sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
-                    }
-                    sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholders).append(")");
-
-                    try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
-                        int index = 1;
-                        psUpdate.setLong(index++, idDetalleSalida);
+                    if (!articulosParaActualizar.isEmpty()) {
+                        String placeholdersArticulos = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
+                        StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
+                                .append(colArticuloDetalleSalida)
+                                .append(" = ?");
                         if (colArticuloEstado != null) {
-                            psUpdate.setString(index++, "pendiente");
+                            sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
                         }
-                        for (Integer idArticulo : articulosParaActualizar) {
-                            psUpdate.setInt(index++, idArticulo);
+                        sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholdersArticulos).append(")");
+
+                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
+                            int index = 1;
+                            psUpdate.setLong(index++, idDetalleSalida);
+                            if (colArticuloEstado != null) {
+                                psUpdate.setString(index++, "pendiente");
+                            }
+                            for (Integer idArticulo : articulosParaActualizar) {
+                                psUpdate.setInt(index++, idArticulo);
+                            }
+                            int actualizadas = psUpdate.executeUpdate();
+                            if (actualizadas < articulosParaActualizar.size()) {
+                                conn.rollback();
+                                return null;
+                            }
                         }
-                        int actualizadas = psUpdate.executeUpdate();
-                        if (actualizadas < cantidad) {
-                            conn.rollback();
-                            return null;
+                    }
+
+                    if (!detalleArticulosParaActualizar.isEmpty()
+                            && colDetalleArticuloSalida != null
+                            && colDetalleArticuloEstado != null
+                            && colDetalleArticuloId != null) {
+                        String placeholdersDetalles = String.join(", ", java.util.Collections.nCopies(
+                                detalleArticulosParaActualizar.size(), "?"));
+                        String sqlUpdateDetalle = "UPDATE detalleArticulo SET " + colDetalleArticuloSalida + " = ?, " +
+                                colDetalleArticuloEstado + " = ? WHERE " + colDetalleArticuloId + " IN ("
+                                + placeholdersDetalles + ")";
+                        try (PreparedStatement psDetalleUpdate = conn.prepareStatement(sqlUpdateDetalle)) {
+                            int index = 1;
+                            psDetalleUpdate.setLong(index++, idDetalleSalida);
+                            psDetalleUpdate.setString(index++, "pendiente");
+                            for (String idDetalle : detalleArticulosParaActualizar) {
+                                psDetalleUpdate.setString(index++, idDetalle);
+                            }
+                            int actualizadas = psDetalleUpdate.executeUpdate();
+                            if (actualizadas < detalleArticulosParaActualizar.size()) {
+                                conn.rollback();
+                                return null;
+                            }
                         }
                     }
 
@@ -404,6 +515,14 @@ public class model {
             }
         }
         return null;
+    }
+
+    private boolean esPresentacionDetalle(String presentacion, int factor) {
+        if (presentacion == null) {
+            return false;
+        }
+        String normalizada = presentacion.trim().toLowerCase();
+        return ("pz".equals(normalizada) || "pieza".equals(normalizada)) && factor == 1;
     }
 
     private long insertarRegistro(Connection conn, String tabla, Map<String, String> columnas, Map<String, Object> valores)
