@@ -122,6 +122,7 @@ public class model {
 
             Map<String, String> columnasDetalleSalida = obtenerColumnas(conn, "detalle_Salida");
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+            Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
             Map<String, String> columnasEntradas = obtenerColumnas(conn, "entradas");
             Map<String, String> columnasAjustes = obtenerColumnas(conn, "ajuste_inventario");
@@ -154,6 +155,15 @@ public class model {
             String colEntradaId = resolverColumna(columnasEntradas, "idEntrada", "id", "id_entrada");
             String colAjusteEstado = resolverColumna(columnasAjustes, "Estado", "estado");
             String colAjusteId = resolverColumna(columnasAjustes, "idAjuste", "id", "id_ajuste");
+
+            String colDetalleArticuloId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id");
+            String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                    "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+            String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+            String colDetalleArticuloUbicacion = resolverColumna(columnasDetalleArticulo, "idUbicacion",
+                    "id_ubicacion", "ubicacion_id");
+            String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo",
+                    "id_articulo", "articulo_id");
 
             if (colArticuloId == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
                     || colDetalleEntradaClaveEntrada == null || colEntradaEstado == null || colEntradaId == null) {
@@ -311,21 +321,23 @@ public class model {
                             && esPresentacionDetalle(item.getPresentacion(), item.getFactor())) {
                         int restantes = cantidad - articulosParaActualizar.size();
                         String sqlDetalle = """
-                            SELECT da.idDetalle AS idDetalle, a.%s AS detalleEntrada
+                            SELECT da.%s AS idDetalle, a.%s AS detalleEntrada
                             FROM detalleArticulo da
-                            JOIN articulo a ON a.%s = da.idArticulo
+                            JOIN articulo a ON a.%s = da.%s
                             JOIN detalle_Entrada de ON de.%s = a.%s
                             WHERE (da.%s IS NULL OR da.%s = 0)
                               AND LOWER(da.%s) = ?
                               AND LOWER(a.%s) = ?
                         """.formatted(
+                                colDetalleArticuloId,
                                 colArticuloDetalleEntrada,
                                 colArticuloId,
+                                colDetalleArticuloArticulo,
                                 colDetalleEntradaId,
                                 colArticuloDetalleEntrada,
-                                "idDetalleSalida",
-                                "idDetalleSalida",
-                                "estado",
+                                colDetalleArticuloSalida,
+                                colDetalleArticuloSalida,
+                                colDetalleArticuloEstado,
                                 colArticuloEstado != null ? colArticuloEstado : "Estado"
                         );
 
@@ -341,8 +353,8 @@ public class model {
                                 sqlDetalleBuilder.append(" AND a.").append(colArticuloCaducidad).append(" IS NULL");
                             }
                         }
-                        if (colArticuloUbicacion != null) {
-                            sqlDetalleBuilder.append(" AND da.idUbicacion = ?");
+                        if (colDetalleArticuloUbicacion != null) {
+                            sqlDetalleBuilder.append(" AND da.").append(colDetalleArticuloUbicacion).append(" = ?");
                         }
                         if (colDetalleEntradaProducto != null) {
                             sqlDetalleBuilder.append(" AND de.").append(colDetalleEntradaProducto).append(" = ?");
@@ -384,36 +396,42 @@ public class model {
                         return null;
                     }
 
-                    String placeholdersArticulos = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
-                    StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
-                            .append(colArticuloDetalleSalida)
-                            .append(" = ?");
-                    if (colArticuloEstado != null) {
-                        sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
-                    }
-                    sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholdersArticulos).append(")");
-
-                    try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
-                        int index = 1;
-                        psUpdate.setLong(index++, idDetalleSalida);
+                    if (!articulosParaActualizar.isEmpty()) {
+                        String placeholdersArticulos = String.join(", ", java.util.Collections.nCopies(articulosParaActualizar.size(), "?"));
+                        StringBuilder sqlUpdate = new StringBuilder("UPDATE articulo SET ")
+                                .append(colArticuloDetalleSalida)
+                                .append(" = ?");
                         if (colArticuloEstado != null) {
-                            psUpdate.setString(index++, "pendiente");
+                            sqlUpdate.append(", ").append(colArticuloEstado).append(" = ?");
                         }
-                        for (Integer idArticulo : articulosParaActualizar) {
-                            psUpdate.setInt(index++, idArticulo);
-                        }
-                        int actualizadas = psUpdate.executeUpdate();
-                        if (actualizadas < articulosParaActualizar.size()) {
-                            conn.rollback();
-                            return null;
+                        sqlUpdate.append(" WHERE ").append(colArticuloId).append(" IN (").append(placeholdersArticulos).append(")");
+
+                        try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdate.toString())) {
+                            int index = 1;
+                            psUpdate.setLong(index++, idDetalleSalida);
+                            if (colArticuloEstado != null) {
+                                psUpdate.setString(index++, "pendiente");
+                            }
+                            for (Integer idArticulo : articulosParaActualizar) {
+                                psUpdate.setInt(index++, idArticulo);
+                            }
+                            int actualizadas = psUpdate.executeUpdate();
+                            if (actualizadas < articulosParaActualizar.size()) {
+                                conn.rollback();
+                                return null;
+                            }
                         }
                     }
 
-                    if (!detalleArticulosParaActualizar.isEmpty()) {
+                    if (!detalleArticulosParaActualizar.isEmpty()
+                            && colDetalleArticuloSalida != null
+                            && colDetalleArticuloEstado != null
+                            && colDetalleArticuloId != null) {
                         String placeholdersDetalles = String.join(", ", java.util.Collections.nCopies(
                                 detalleArticulosParaActualizar.size(), "?"));
-                        String sqlUpdateDetalle = "UPDATE detalleArticulo SET idDetalleSalida = ?, estado = ? " +
-                                "WHERE idDetalle IN (" + placeholdersDetalles + ")";
+                        String sqlUpdateDetalle = "UPDATE detalleArticulo SET " + colDetalleArticuloSalida + " = ?, " +
+                                colDetalleArticuloEstado + " = ? WHERE " + colDetalleArticuloId + " IN ("
+                                + placeholdersDetalles + ")";
                         try (PreparedStatement psDetalleUpdate = conn.prepareStatement(sqlUpdateDetalle)) {
                             int index = 1;
                             psDetalleUpdate.setLong(index++, idDetalleSalida);
