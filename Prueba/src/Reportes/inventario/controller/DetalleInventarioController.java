@@ -40,6 +40,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -556,8 +558,8 @@ public class DetalleInventarioController {
         String caducidadTexto = valorTexto(articulo.getCaducidad());
         if (!caducidadTexto.isBlank()) {
             try {
-                dpCaducidad.setValue(java.time.LocalDate.parse(caducidadTexto.trim()));
-            } catch (java.time.format.DateTimeParseException ignored) {
+                dpCaducidad.setValue(LocalDate.parse(caducidadTexto.trim()));
+            } catch (DateTimeParseException ignored) {
                 dpCaducidad.setValue(null);
             }
         }
@@ -745,6 +747,7 @@ public class DetalleInventarioController {
                 if (conn == null) {
                     return;
                 }
+                LocalDate caducidadSeleccionada = obtenerCaducidadSeleccionada(dpCaducidad);
 
                 // Obtener ID de ubicación
                 Integer ubicacionId = null;
@@ -772,8 +775,8 @@ public class DetalleInventarioController {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE articulo SET lote = ?, caducidad = ? WHERE idArticulo = ?")) {
                         ps.setString(1, txtLote.getText().trim());
-                        if (dpCaducidad.getValue() != null) {
-                            ps.setString(2, dpCaducidad.getValue().toString());
+                        if (caducidadSeleccionada != null) {
+                            ps.setString(2, caducidadSeleccionada.toString());
                         } else {
                             ps.setNull(2, java.sql.Types.DATE);
                         }
@@ -824,8 +827,8 @@ public class DetalleInventarioController {
                             ps.setInt(1, ubicacionId);
                         }
                         ps.setString(2, txtLote.getText().trim());
-                        if (dpCaducidad.getValue() != null) {
-                            ps.setString(3, dpCaducidad.getValue().toString());
+                        if (caducidadSeleccionada != null) {
+                            ps.setString(3, caducidadSeleccionada.toString());
                         } else {
                             ps.setNull(3, java.sql.Types.DATE);
                         }
@@ -935,6 +938,25 @@ public class DetalleInventarioController {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+    private LocalDate obtenerCaducidadSeleccionada(javafx.scene.control.DatePicker dpCaducidad) {
+        if (dpCaducidad == null) {
+            return null;
+        }
+        String texto = dpCaducidad.getEditor() != null ? dpCaducidad.getEditor().getText() : "";
+        if (texto == null || texto.trim().isEmpty()) {
+            return null;
+        }
+        LocalDate valor = dpCaducidad.getValue();
+        if (valor != null) {
+            return valor;
+        }
+        try {
+            return LocalDate.parse(texto.trim());
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
     }
 
     private String valorTexto(String texto) {
