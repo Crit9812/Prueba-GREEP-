@@ -3,6 +3,7 @@ package Operaciones.pedidos.controller;
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
+import Compartido.helper.OverlayCarga;
 import Formularios.controller.controllerNuevoPedido;
 import Operaciones.pedidos.model.itemPedido;
 import javafx.application.Platform;
@@ -10,6 +11,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
@@ -48,6 +50,7 @@ public class MainController {
     private final ObservableList<itemPedido> itemsPedido = FXCollections.observableArrayList();
     private Stage formularioStage;
     private itemPedido itemSeleccionadoParaEditar;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -83,6 +86,7 @@ public class MainController {
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
             paneNavbarController.setTitulo("Pedidos", "#ffffff");
+            overlayCarga = new OverlayCarga(root, overlayPane);
 
             // ===== CONFIGURACIONES =====
             configurarColumnasTabla();
@@ -211,7 +215,30 @@ public class MainController {
             new Alert(Alert.AlertType.WARNING, "No hay datos para exportar.").showAndWait();
             return;
         }
-        exportador.exportarTabla(contenidoTabla, "pedidos", "pdf");
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                exportador.exportarTabla(contenidoTabla, "pedidos", "pdf");
+                return null;
+            }
+        };
+        task.setOnSucceeded(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+            mostrarError("No se pudo exportar el pedido.");
+        });
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     @FXML
