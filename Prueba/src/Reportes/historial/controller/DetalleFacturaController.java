@@ -180,6 +180,24 @@ public class DetalleFacturaController {
                         }
                     }
 
+                    Set<Integer> detalleEntradaIds = new HashSet<>();
+                    if (!detallesSalida.isEmpty() && colArticuloDetalleEntrada != null && colArticuloDetalleSalida != null) {
+                        String sqlDetalleEntrada = "SELECT DISTINCT `" + colArticuloDetalleEntrada
+                                + "` AS idDetalleEntrada FROM articulo WHERE `" + colArticuloDetalleSalida + "` IN ("
+                                + placeholders(detallesSalida.size()) + ")";
+                        try (PreparedStatement ps = conn.prepareStatement(sqlDetalleEntrada)) {
+                            int index = 1;
+                            for (Integer detalleId : detallesSalida) {
+                                ps.setInt(index++, detalleId);
+                            }
+                            try (ResultSet rs = ps.executeQuery()) {
+                                while (rs.next()) {
+                                    detalleEntradaIds.add(rs.getInt("idDetalleEntrada"));
+                                }
+                            }
+                        }
+                    }
+
                     if (colArticuloDetalleSalida != null && colArticuloEstado != null && !detallesSalida.isEmpty()) {
                         String sqlActualizarArticulo = "UPDATE articulo SET `" + colArticuloEstado + "` = ?, `"
                                 + colArticuloDetalleSalida + "` = NULL WHERE `" + colArticuloDetalleSalida + "` = ?";
@@ -203,24 +221,6 @@ public class DetalleFacturaController {
                                 ps.addBatch();
                             }
                             ps.executeBatch();
-                        }
-                    }
-
-                    Set<Integer> detalleEntradaIds = new HashSet<>();
-                    if (!detallesSalida.isEmpty() && colArticuloDetalleEntrada != null && colArticuloDetalleSalida != null) {
-                        String sqlDetalleEntrada = "SELECT DISTINCT `" + colArticuloDetalleEntrada
-                                + "` AS idDetalleEntrada FROM articulo WHERE `" + colArticuloDetalleSalida + "` IN ("
-                                + placeholders(detallesSalida.size()) + ")";
-                        try (PreparedStatement ps = conn.prepareStatement(sqlDetalleEntrada)) {
-                            int index = 1;
-                            for (Integer detalleId : detallesSalida) {
-                                ps.setInt(index++, detalleId);
-                            }
-                            try (ResultSet rs = ps.executeQuery()) {
-                                while (rs.next()) {
-                                    detalleEntradaIds.add(rs.getInt("idDetalleEntrada"));
-                                }
-                            }
                         }
                     }
 
@@ -675,6 +675,24 @@ public class DetalleFacturaController {
                         }
                     }
 
+                    Set<Integer> detalleEntradaIds = new HashSet<>();
+                    if (!detallesSalida.isEmpty() && colArticuloDetalleEntrada != null && colArticuloDetalleSalida != null) {
+                        String sqlDetalleEntrada = "SELECT DISTINCT `" + colArticuloDetalleEntrada
+                                + "` AS idDetalleEntrada FROM articulo WHERE `" + colArticuloDetalleSalida + "` IN ("
+                                + placeholders(detallesSalida.size()) + ")";
+                        try (PreparedStatement ps = conn.prepareStatement(sqlDetalleEntrada)) {
+                            int index = 1;
+                            for (Integer detalleId : detallesSalida) {
+                                ps.setInt(index++, detalleId);
+                            }
+                            try (ResultSet rs = ps.executeQuery()) {
+                                while (rs.next()) {
+                                    detalleEntradaIds.add(rs.getInt("idDetalleEntrada"));
+                                }
+                            }
+                        }
+                    }
+
                     if (!detallesSalida.isEmpty() && colArticuloDetalleSalida != null && colArticuloEstado != null) {
                         String sqlActualizarArticulo = "UPDATE articulo SET `" + colArticuloEstado + "` = ?, `"
                                 + colArticuloDetalleSalida + "` = NULL WHERE `" + colArticuloDetalleSalida + "` = ?";
@@ -698,24 +716,6 @@ public class DetalleFacturaController {
                                 ps.addBatch();
                             }
                             ps.executeBatch();
-                        }
-                    }
-
-                    Set<Integer> detalleEntradaIds = new HashSet<>();
-                    if (!detallesSalida.isEmpty() && colArticuloDetalleEntrada != null && colArticuloDetalleSalida != null) {
-                        String sqlDetalleEntrada = "SELECT DISTINCT `" + colArticuloDetalleEntrada
-                                + "` AS idDetalleEntrada FROM articulo WHERE `" + colArticuloDetalleSalida + "` IN ("
-                                + placeholders(detallesSalida.size()) + ")";
-                        try (PreparedStatement ps = conn.prepareStatement(sqlDetalleEntrada)) {
-                            int index = 1;
-                            for (Integer detalleId : detallesSalida) {
-                                ps.setInt(index++, detalleId);
-                            }
-                            try (ResultSet rs = ps.executeQuery()) {
-                                while (rs.next()) {
-                                    detalleEntradaIds.add(rs.getInt("idDetalleEntrada"));
-                                }
-                            }
                         }
                     }
 
