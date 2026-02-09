@@ -1642,7 +1642,10 @@ public class DetalleFacturaController {
         if (estado != null && estado.equalsIgnoreCase("cancelado")) {
             return false;
         }
-        return !ajusteTieneDetalleEntradaDesactivado(conn, ajusteId);
+        if (ajusteTieneDetalleEntradaDesactivado(conn, ajusteId)) {
+            return false;
+        }
+        return !ajusteTieneVentasEnEntrada(conn, ajusteId);
     }
 
     private boolean ajusteTieneDetalleEntradaDesactivado(Connection conn, String ajusteId) throws SQLException {
@@ -1666,6 +1669,63 @@ public class DetalleFacturaController {
                 }
             }
         }
+        return false;
+    }
+
+    private boolean ajusteTieneVentasEnEntrada(Connection conn, String ajusteId) throws SQLException {
+        if (ajusteId == null || ajusteId.isBlank()) {
+            return false;
+        }
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+
+        String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetalleClave = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+        String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+        String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo",
+                "articulo_id");
+        String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+
+        if (colDetalleId == null || colDetalleClave == null) {
+            return false;
+        }
+
+        if (colArticuloDetalleEntrada != null && colArticuloEstado != null) {
+            String sqlArticulo = "SELECT COUNT(*) FROM articulo a JOIN detalle_Entrada d ON a.`"
+                    + colArticuloDetalleEntrada + "` = d.`" + colDetalleId + "` WHERE d.`" + colDetalleClave
+                    + "` = ? AND LOWER(a.`" + colArticuloEstado + "`) = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlArticulo)) {
+                ps.setString(1, ajusteId);
+                ps.setString(2, "vendido");
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (colDetalleArticuloArticulo != null && colDetalleArticuloEstado != null && colArticuloId != null
+                && colArticuloDetalleEntrada != null) {
+            String sqlDetalleArticulo = "SELECT COUNT(*) FROM detalleArticulo da JOIN articulo a ON a.`" + colArticuloId
+                    + "` = da.`" + colDetalleArticuloArticulo + "` JOIN detalle_Entrada d ON a.`"
+                    + colArticuloDetalleEntrada + "` = d.`" + colDetalleId + "` WHERE d.`" + colDetalleClave
+                    + "` = ? AND LOWER(da.`" + colDetalleArticuloEstado + "`) = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlDetalleArticulo)) {
+                ps.setString(1, ajusteId);
+                ps.setString(2, "vendido");
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         return false;
     }
 
