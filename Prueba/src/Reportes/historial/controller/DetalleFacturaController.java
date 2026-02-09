@@ -3,8 +3,8 @@ package Reportes.historial.controller;
 import java.time.LocalDate;
 
 import javafx.collections.ObservableList;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.ComboBox;
+import javafx.geometry.Insets;
+import javafx.scene.control.*;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
@@ -15,16 +15,11 @@ import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -1227,20 +1222,57 @@ public class DetalleFacturaController {
 
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Editar artículo");
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        VBox contenido = new VBox(8);
-        ComboBox<String> cbUbicacion = new ComboBox<>(cargarUbicacionesActivas());
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+
+        // Configurar el DialogPane para evitar el espacio gris inferior
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.setPadding(new Insets(0));
+        dialogPane.setStyle("-fx-background-color: white; -fx-border-color: white;");
+
+        VBox mainContainer = new VBox();
+        mainContainer.setStyle("-fx-background-color: white;");
+        mainContainer.setPadding(new Insets(0));
+
+        // Título superior
+        Label lblTitulo = new Label("Editar artículo");
+        lblTitulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-padding: 15 0 10 0;");
+        lblTitulo.setAlignment(Pos.CENTER);
+        lblTitulo.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(lblTitulo, new Insets(10, 0, 10, 0));
+
+        // Contenido central - Campos del formulario
+        VBox contenido = new VBox(15);
+        contenido.setPadding(new Insets(0, 20, 0, 20));
+        contenido.setStyle("-fx-background-color: white;");
+
+        // ============ ORGANIZACIÓN EN 3 FILAS DE 2 CAMPOS ============
+
+        // Fila 1: Lote y Caducidad
+        HBox fila1 = new HBox(15);
+        fila1.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vboxLote = new VBox(5);
+        Label lblLote = new Label("Lote:");
         TextField txtLote = new TextField(valorTexto(articulo.lote));
+        txtLote.setPrefWidth(180);
+        vboxLote.getChildren().addAll(lblLote, txtLote);
+        HBox.setHgrow(vboxLote, Priority.ALWAYS);
+
+        VBox vboxCaducidad = new VBox(5);
+        Label lblCaducidad = new Label("Caducidad:");
         DatePicker dpCaducidad = new DatePicker();
         dpCaducidad.getEditor().setDisable(true);
         dpCaducidad.getEditor().setStyle("-fx-opacity: 1.0; -fx-background-color: white;");
         dpCaducidad.setPromptText("Haz clic en el calendario");
+        dpCaducidad.setPrefWidth(180);
 
-        if (articulo.caducidad != null && !articulo.caducidad.trim().isEmpty()) {
+        // Establecer fecha si existe
+        String caducidadTexto = valorTexto(articulo.caducidad);
+        if (!caducidadTexto.isBlank()) {
             try {
                 // Parsear la fecha en formato YYYY-MM-DD
-                String[] partes = articulo.caducidad.trim().split("-");
+                String[] partes = caducidadTexto.trim().split("-");
                 if (partes.length == 3) {
                     int year = Integer.parseInt(partes[0]);
                     int month = Integer.parseInt(partes[1]);
@@ -1249,12 +1281,25 @@ public class DetalleFacturaController {
                     dpCaducidad.setValue(fecha);
                 }
             } catch (Exception e) {
-                System.err.println("Error parsing date: " + articulo.caducidad);
+                System.err.println("Error parsing date: " + caducidadTexto);
             }
         }
 
-        ComboBox<String> cbPresentacion = new ComboBox<>(presentaciones);
+        vboxCaducidad.getChildren().addAll(lblCaducidad, dpCaducidad);
+        HBox.setHgrow(vboxCaducidad, Priority.ALWAYS);
 
+        fila1.getChildren().addAll(vboxLote, vboxCaducidad);
+
+        // Fila 2: Presentación y Factor
+        HBox fila2 = new HBox(15);
+        fila2.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vboxPresentacion = new VBox(5);
+        Label lblPresentacion = new Label("Presentación:");
+        ComboBox<String> cbPresentacion = new ComboBox<>(presentaciones);
+        cbPresentacion.setPrefWidth(180);
+
+        // Establecer presentación actual
         String presentacionActual = valorTexto(articulo.presentacion).toLowerCase();
         if (presentacionActual != null && !presentacionActual.isEmpty()) {
             for (String opcion : presentaciones) {
@@ -1273,47 +1318,121 @@ public class DetalleFacturaController {
         // Deshabilitar edición manual
         cbPresentacion.setEditable(false);
 
+        vboxPresentacion.getChildren().addAll(lblPresentacion, cbPresentacion);
+        HBox.setHgrow(vboxPresentacion, Priority.ALWAYS);
+
+        VBox vboxFactor = new VBox(5);
+        Label lblFactor = new Label("Factor:");
         TextField txtFactor = new TextField(valorTexto(articulo.factor));
+        txtFactor.setPrefWidth(180);
+        vboxFactor.getChildren().addAll(lblFactor, txtFactor);
+        HBox.setHgrow(vboxFactor, Priority.ALWAYS);
+
+        fila2.getChildren().addAll(vboxPresentacion, vboxFactor);
+
+        // Fila 3: Ubicación (ocupa el ancho completo)
+        HBox fila3 = new HBox();
+        fila3.setAlignment(Pos.CENTER_LEFT);
+
+        VBox vboxUbicacion = new VBox(5);
+        Label lblUbicacion = new Label("Ubicación:");
+        ComboBox<String> cbUbicacion = new ComboBox<>();
+        cbUbicacion.setItems(FXCollections.observableArrayList(obtenerUbicacionesActivas()));
+        cbUbicacion.setEditable(true);
+        cbUbicacion.setPrefWidth(375); // Más ancho para ocupar dos columnas
 
         String ubicacionActual = valorTexto(articulo.ubicacion);
-        if (!ubicacionActual.isBlank() && cbUbicacion.getItems().stream().noneMatch(item -> item.equalsIgnoreCase(ubicacionActual))) {
-            cbUbicacion.getItems().add(ubicacionActual);
+        if (!ubicacionActual.isBlank() && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)) {
+            cbUbicacion.setValue(ubicacionActual);
         }
-        if (!ubicacionActual.isBlank()) {
-            for (String opcion : cbUbicacion.getItems()) {
-                if (opcion.equalsIgnoreCase(ubicacionActual)) {
-                    cbUbicacion.setValue(opcion);
-                    break;
-                }
+
+        vboxUbicacion.getChildren().addAll(lblUbicacion, cbUbicacion);
+        HBox.setHgrow(vboxUbicacion, Priority.ALWAYS);
+
+        // Espaciador a la derecha para mantener la alineación
+        Region espaciadorUbicacion = new Region();
+        HBox.setHgrow(espaciadorUbicacion, Priority.ALWAYS);
+
+        fila3.getChildren().addAll(vboxUbicacion, espaciadorUbicacion);
+
+        // Agregar todas las filas al contenido
+        contenido.getChildren().addAll(fila1, fila2, fila3);
+
+        // ============ BOTONES EN LA PARTE INFERIOR ============
+
+        // Contenedor de botones inferior
+        HBox contenedorBotones = new HBox(15);
+        contenedorBotones.setAlignment(Pos.CENTER);
+        contenedorBotones.setPadding(new Insets(20));
+        contenedorBotones.setStyle("-fx-background-color: white; -fx-border-color: #eee; -fx-border-width: 1 0 0 0;");
+
+        // Ocultar el ButtonBar original
+        ButtonBar buttonBar = (ButtonBar) dialog.getDialogPane().lookup(".button-bar");
+        if (buttonBar != null) {
+            buttonBar.setVisible(false);
+            buttonBar.setManaged(false);
+            buttonBar.setPrefHeight(0);
+            buttonBar.setMinHeight(0);
+            buttonBar.setMaxHeight(0);
+        }
+
+        // Ocultar también los botones individuales del ButtonBar
+        Button btnOkOriginal = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        Button btnCancelOriginal = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        if (btnOkOriginal != null) {
+            btnOkOriginal.setVisible(false);
+            btnOkOriginal.setManaged(false);
+        }
+        if (btnCancelOriginal != null) {
+            btnCancelOriginal.setVisible(false);
+            btnCancelOriginal.setManaged(false);
+        }
+
+        Button btnAceptar = new Button("Aceptar");
+        btnAceptar.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 8 20; -fx-background-radius: 4;");
+        btnAceptar.setPrefWidth(120);
+        btnAceptar.setOnAction(e -> {
+            // Validar campos antes de aceptar
+            if (cbUbicacion.getValue() == null || cbUbicacion.getValue().isEmpty()) {
+                mostrarAdvertencia("Campo requerido", "La ubicación es requerida.");
+                return;
             }
-        }
-        cbUbicacion.setPromptText("Selecciona ubicación");
-        cbUbicacion.setEditable(false);
 
-        contenido.getChildren().addAll(
-                new Label("Ubicación:"), cbUbicacion,
-                new Label("Lote:"), txtLote,
-                new Label("Caducidad:"), dpCaducidad,
-                new Label("Presentación:"), cbPresentacion,
-                new Label("Factor:"), txtFactor
-        );
-
-        // Hacer que los campos tengan el mismo ancho
-        cbUbicacion.setPrefWidth(200);
-        txtLote.setPrefWidth(200);
-        dpCaducidad.setPrefWidth(200);
-        cbPresentacion.setPrefWidth(200);
-        txtFactor.setPrefWidth(200);
-
-        dialog.getDialogPane().setContent(contenido);
-
-        ButtonType btnOk = ButtonType.OK;
-        dialog.getDialogPane().lookupButton(btnOk).addEventFilter(ActionEvent.ACTION, event -> {
             if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isEmpty()) {
-                mostrarAdvertencia("Presentación requerida", "Selecciona una presentación de la lista");
-                event.consume();
+                mostrarAdvertencia("Campo requerido", "La presentación es requerida.");
+                return;
             }
+
+            if (txtFactor.getText() == null || txtFactor.getText().isEmpty()) {
+                mostrarAdvertencia("Campo requerido", "El factor es requerido.");
+                return;
+            }
+
+            // Si pasa validación, establecer resultado OK
+            dialog.setResult(ButtonType.OK);
+            dialog.close();
         });
+
+        contenedorBotones.getChildren().addAll(btnAceptar);
+
+        // Agregar todos los componentes al contenedor principal
+        mainContainer.getChildren().addAll(lblTitulo, contenido, contenedorBotones);
+
+        // Configurar el crecimiento del contenido
+        VBox.setVgrow(contenido, Priority.ALWAYS);
+
+        // Establecer el contenido del diálogo
+        dialog.getDialogPane().setContent(mainContainer);
+
+        // Configurar tamaño del diálogo
+        dialog.getDialogPane().setPrefWidth(380);
+        dialog.getDialogPane().setPrefHeight(430);
+
+        // Hacer el diálogo modal
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        if (btnCerrar != null && btnCerrar.getScene() != null) {
+            dialog.initOwner(btnCerrar.getScene().getWindow());
+        }
 
         dialog.showAndWait().ifPresent(respuesta -> {
             if (respuesta != ButtonType.OK) {
@@ -1323,6 +1442,25 @@ public class DetalleFacturaController {
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
+                }
+
+                // Obtener ID de ubicación
+                Integer ubicacionId = null;
+                String ubicacionTexto = cbUbicacion.getValue();
+                if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
+                        ps.setString(1, ubicacionTexto.trim());
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                ubicacionId = rs.getInt(1);
+                            }
+                        }
+                    }
+                    if (ubicacionId == null) {
+                        mostrarAdvertencia("Ubicación inválida", "No se encontró la ubicación ingresada.");
+                        return;
+                    }
                 }
 
                 Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
@@ -1337,33 +1475,6 @@ public class DetalleFacturaController {
 
                 if (colId == null) {
                     return;
-                }
-
-                Integer ubicacionId = null;
-                String ubicacionTexto = cbUbicacion.getValue();
-                if (ubicacionTexto != null && !ubicacionTexto.isBlank() && colUbicacion != null) {
-                    String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
-                    String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
-                    String colUbicacionEstado = resolverColumna(columnasUbicacion, "estado", "Estado", "status");
-                    if (colUbicacionId != null && colUbicacionNombre != null) {
-                        StringBuilder consultaUbicacion = new StringBuilder(
-                                "SELECT `" + colUbicacionId + "` FROM ubicaciones WHERE `" + colUbicacionNombre + "` = ?");
-                        if (colUbicacionEstado != null) {
-                            consultaUbicacion.append(" AND LOWER(`").append(colUbicacionEstado).append("`) = 'activo'");
-                        }
-                        try (PreparedStatement ps = conn.prepareStatement(consultaUbicacion.toString())) {
-                            ps.setString(1, ubicacionTexto.trim());
-                            try (ResultSet rs = ps.executeQuery()) {
-                                if (rs.next()) {
-                                    ubicacionId = rs.getInt(1);
-                                }
-                            }
-                        }
-                    }
-                    if (ubicacionId == null) {
-                        mostrarAdvertencia("Ubicación inválida", "No se encontró la ubicación ingresada.");
-                        return;
-                    }
                 }
 
                 StringBuilder sql = new StringBuilder("UPDATE articulo SET ");
@@ -1405,8 +1516,30 @@ public class DetalleFacturaController {
 
             } catch (SQLException e) {
                 e.printStackTrace();
+                mostrarAdvertencia("Error", "No se pudo actualizar el artículo: " + e.getMessage());
             }
         });
+    }
+
+    private List<String> obtenerUbicacionesActivas() {
+        // Esta implementación puede variar según tu estructura
+        // Aquí un ejemplo básico:
+        List<String> ubicaciones = new ArrayList<>();
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn != null) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre")) {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            ubicaciones.add(rs.getString("nombre"));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ubicaciones;
     }
 
     private void eliminarArticulo(DetalleArticulo articulo) {
@@ -1472,46 +1605,6 @@ public class DetalleFacturaController {
                 e.printStackTrace();
             }
         });
-    }
-
-
-    private ObservableList<String> cargarUbicacionesActivas() {
-        ObservableList<String> ubicaciones = FXCollections.observableArrayList();
-
-        try (Connection conn = new Conexion().conectar()) {
-            if (conn == null) {
-                return ubicaciones;
-            }
-
-            Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
-            String colNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
-            String colEstado = resolverColumna(columnasUbicacion, "estado", "Estado", "status");
-
-            if (colNombre == null) {
-                return ubicaciones;
-            }
-
-            StringBuilder sql = new StringBuilder(
-                    "SELECT `" + colNombre + "` FROM ubicaciones");
-            if (colEstado != null) {
-                sql.append(" WHERE LOWER(`").append(colEstado).append("`) = 'activo'");
-            }
-            sql.append(" ORDER BY `").append(colNombre).append("` ASC");
-
-            try (PreparedStatement ps = conn.prepareStatement(sql.toString());
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String nombre = valorTexto(rs.getObject(1));
-                    if (!nombre.isBlank()) {
-                        ubicaciones.add(nombre);
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return ubicaciones;
     }
 
     private void editarPrecioEntrada(DetalleLinea linea) {
