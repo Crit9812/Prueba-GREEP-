@@ -916,6 +916,61 @@ public class DetalleFacturaController {
         }
     }
 
+    private boolean tieneArticulosODetallesEnDetalleSalida(int detalleSalidaId) {
+        if (detalleSalidaId <= 0) {
+            return false;
+        }
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return false;
+            }
+            return tieneArticulosODetallesEnDetalleSalida(conn, detalleSalidaId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean tieneArticulosODetallesEnDetalleSalida(Connection conn, Integer detalleSalidaId) throws SQLException {
+        if (detalleSalidaId == null || detalleSalidaId <= 0) {
+            return false;
+        }
+
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+
+        String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colArticuloDetalleSalida == null) {
+            return false;
+        }
+
+        String sqlArticulo = "SELECT COUNT(*) FROM articulo WHERE `" + colArticuloDetalleSalida + "` = ?";
+        if (ejecutarConteo(conn, sqlArticulo, detalleSalidaId) > 0) {
+            return true;
+        }
+
+        String colDetalleArticuloDetalleSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colDetalleArticuloDetalleSalida != null) {
+            String sqlDetalle = "SELECT COUNT(*) FROM detalleArticulo WHERE `" + colDetalleArticuloDetalleSalida + "` = ?";
+            if (ejecutarConteo(conn, sqlDetalle, detalleSalidaId) > 0) {
+                return true;
+            }
+        }
+
+        String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+        if (colDetalleArticuloArticulo != null && colArticuloId != null) {
+            String sqlDetallePorArticulo = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "WHERE a.`" + colArticuloDetalleSalida + "` = ?";
+            return ejecutarConteo(conn, sqlDetallePorArticulo, detalleSalidaId) > 0;
+        }
+
+        return false;
+    }
+
     private boolean esEntradaCancelada(Connection conn, Integer entradaId) throws SQLException {
         String estado = obtenerEstadoEntrada(conn, entradaId);
         return estado != null && estado.equalsIgnoreCase("cancelado");
@@ -1602,8 +1657,11 @@ public class DetalleFacturaController {
                     hayBotones = true;
                 }
 
-                if ("Salida".equalsIgnoreCase(linea.tipo)
-                        && (linea.esVenta() || esAjuste)) {
+                boolean puedeEditarSalida = "Salida".equalsIgnoreCase(linea.tipo)
+                        && (linea.esVenta() || esAjuste)
+                        && tieneArticulosODetallesEnDetalleSalida(linea.idDetalle);
+
+                if (puedeEditarSalida) {
                     Button btnEditarPrecio = new Button("Editar precio salida");
                     btnEditarPrecio.setOnAction(event -> editarPrecioSalida(linea));
                     btnEditarPrecio.getStyleClass().add("boton-formulario");
