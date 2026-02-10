@@ -11,13 +11,16 @@ import javafx.geometry.Pos;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import Reportes.historial.model.HistorialFactura;
+import Compartido.helper.OverlayCarga;
 import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -38,6 +41,8 @@ import java.util.Set;
 
 public class DetalleFacturaController {
 
+    @FXML private StackPane root;
+    @FXML private Pane overlayPane;
     @FXML private Label lblTitulo;
     @FXML private VBox contenedorDetalles;
     @FXML private CheckBox chkDetallado;
@@ -52,6 +57,7 @@ public class DetalleFacturaController {
     private HistorialFactura historial;
     private Stage stage;
     private Runnable onRefresh;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -60,6 +66,9 @@ public class DetalleFacturaController {
         }
         actualizarTitulo();
         actualizarBotonCancelar();
+        if (root != null && overlayPane != null) {
+            overlayCarga = new OverlayCarga(root, overlayPane);
+        }
 
     }
 
@@ -110,6 +119,7 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+            mostrarCargandoCancelacion();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
@@ -332,13 +342,16 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    cargarDetalles();
+                    mostrarMensajeCancelacionExitosa("La cancelación de la salida se realizó correctamente.");
+                    cerrarVentana();
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
+            } finally {
+                ocultarCargandoCancelacion();
             }
         });
     }
@@ -373,6 +386,7 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+            mostrarCargandoCancelacion();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
@@ -504,13 +518,16 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    cargarDetalles();
+                    mostrarMensajeCancelacionExitosa("La cancelación de la entrada se realizó correctamente.");
+                    cerrarVentana();
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
+            } finally {
+                ocultarCargandoCancelacion();
             }
         });
     }
@@ -532,6 +549,7 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+            mostrarCargandoCancelacion();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
@@ -827,15 +845,38 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    cargarDetalles();
+                    mostrarMensajeCancelacionExitosa("La cancelación del ajuste se realizó correctamente.");
+                    cerrarVentana();
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
+            } finally {
+                ocultarCargandoCancelacion();
             }
         });
+    }
+
+    private void mostrarCargandoCancelacion() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarCargandoCancelacion() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
+
+    private void mostrarMensajeCancelacionExitosa(String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle("Cancelación");
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 
     private void actualizarTitulo() {
@@ -914,6 +955,23 @@ public class DetalleFacturaController {
             btnCancelarEntrada.setManaged(mostrarEntrada);
             btnCancelarEntrada.setDisable(!mostrarEntrada);
         }
+    }
+
+    private String obtenerPrefijoTipoDetalle(DetalleLinea linea) {
+        if (linea == null) {
+            return "";
+        }
+        boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
+        if (!esAjuste) {
+            return "";
+        }
+        if ("Entrada".equalsIgnoreCase(linea.tipo)) {
+            return "[Entrada] ";
+        }
+        if ("Salida".equalsIgnoreCase(linea.tipo)) {
+            return "[Salida] ";
+        }
+        return "";
     }
 
     private boolean tieneArticulosODetallesEnDetalleSalida(int detalleSalidaId) {
@@ -1522,7 +1580,8 @@ public class DetalleFacturaController {
                         "-fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);");
                 card.setMaxWidth(Double.MAX_VALUE);
 
-                Label titulo = new Label(contador++ + ". " + valorTexto(linea.producto));
+                String prefijoTipo = obtenerPrefijoTipoDetalle(linea);
+                Label titulo = new Label(contador++ + ". " + prefijoTipo + valorTexto(linea.producto));
                 titulo.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2c3e50; " +
                         "-fx-padding: 0 0 5 0;");
                 titulo.setWrapText(true);
@@ -1639,7 +1698,6 @@ public class DetalleFacturaController {
                     card.getChildren().add(listaArticulos);
                 }
 
-                boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
                 boolean puedeEditarEntrada = "Entrada".equalsIgnoreCase(linea.tipo)
                         && linea.tieneArticulosSinPendienteOVendido();
 
@@ -1658,7 +1716,7 @@ public class DetalleFacturaController {
                 }
 
                 boolean puedeEditarSalida = "Salida".equalsIgnoreCase(linea.tipo)
-                        && (linea.esVenta() || esAjuste)
+                        && linea.esVenta()
                         && tieneArticulosODetallesEnDetalleSalida(linea.idDetalle);
 
                 if (puedeEditarSalida) {
