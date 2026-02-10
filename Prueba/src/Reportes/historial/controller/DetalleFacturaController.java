@@ -1665,7 +1665,7 @@ public class DetalleFacturaController {
         final String sqlConteoArticuloNoPermitido = "SELECT COUNT(*) FROM articulo a "
                 + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
                 + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
-                + "AND LOWER(a.`" + colArticuloEstado + "`) NOT IN ('eliminado', 'disponible')";
+                + "AND (a.`" + colArticuloEstado + "` IS NULL OR LOWER(a.`" + colArticuloEstado + "`) NOT IN ('eliminado', 'disponible'))";
 
         int totalArticulos = ejecutarConteo(conn, sqlConteoArticulo, entradaId);
         int articulosNoPermitidos = ejecutarConteo(conn, sqlConteoArticuloNoPermitido, entradaId);
@@ -1685,7 +1685,7 @@ public class DetalleFacturaController {
                     + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
                     + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
                     + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
-                    + "AND LOWER(da.`" + colDetalleArticuloEstado + "`) NOT IN ('eliminado', 'disponible')";
+                    + "AND (da.`" + colDetalleArticuloEstado + "` IS NULL OR LOWER(da.`" + colDetalleArticuloEstado + "`) NOT IN ('eliminado', 'disponible'))";
 
             totalDetalles = ejecutarConteo(conn, sqlConteoDetalleArticulo, entradaId);
             detallesNoPermitidos = ejecutarConteo(conn, sqlConteoDetalleNoPermitido, entradaId);
