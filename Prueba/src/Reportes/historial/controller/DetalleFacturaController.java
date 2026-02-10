@@ -1626,10 +1626,87 @@ public class DetalleFacturaController {
     private boolean puedeCancelarEntrada(Connection conn, Integer entradaId) throws SQLException {
         String estado = obtenerEstadoEntrada(conn, entradaId);
         if (estado == null) {
-            return true;
+            return entradaSoloTieneEstadosCancelables(conn, entradaId);
         }
         String estadoNormalizado = estado.trim().toLowerCase();
-        return !List.of("cancelado", "finalizada", "finalizado", "revision", "revisión").contains(estadoNormalizado);
+        if (List.of("cancelado", "finalizada", "finalizado", "revision", "revisión").contains(estadoNormalizado)) {
+            return false;
+        }
+        return entradaSoloTieneEstadosCancelables(conn, entradaId);
+    }
+
+    private boolean entradaSoloTieneEstadosCancelables(Connection conn, Integer entradaId) throws SQLException {
+        if (entradaId == null) {
+            return false;
+        }
+
+        Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+
+        String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetalleEntradaClave = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+        String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+        String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+
+        if (colDetalleEntradaId == null || colDetalleEntradaClave == null
+                || colArticuloDetalleEntrada == null || colArticuloEstado == null) {
+            return false;
+        }
+
+        final String sqlConteoArticulo = "SELECT COUNT(*) FROM articulo a "
+                + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                + "WHERE d.`" + colDetalleEntradaClave + "` = ?";
+
+        final String sqlConteoArticuloNoPermitido = "SELECT COUNT(*) FROM articulo a "
+                + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                + "AND LOWER(a.`" + colArticuloEstado + "`) NOT IN ('eliminado', 'disponible')";
+
+        int totalArticulos = ejecutarConteo(conn, sqlConteoArticulo, entradaId);
+        int articulosNoPermitidos = ejecutarConteo(conn, sqlConteoArticuloNoPermitido, entradaId);
+        if (articulosNoPermitidos > 0) {
+            return false;
+        }
+
+        int totalDetalles = 0;
+        int detallesNoPermitidos = 0;
+        if (colArticuloId != null && colDetalleArticuloArticulo != null && colDetalleArticuloEstado != null) {
+            final String sqlConteoDetalleArticulo = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                    + "WHERE d.`" + colDetalleEntradaClave + "` = ?";
+
+            final String sqlConteoDetalleNoPermitido = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                    + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                    + "AND LOWER(da.`" + colDetalleArticuloEstado + "`) NOT IN ('eliminado', 'disponible')";
+
+            totalDetalles = ejecutarConteo(conn, sqlConteoDetalleArticulo, entradaId);
+            detallesNoPermitidos = ejecutarConteo(conn, sqlConteoDetalleNoPermitido, entradaId);
+            if (detallesNoPermitidos > 0) {
+                return false;
+            }
+        }
+
+        return (totalArticulos + totalDetalles) > 0;
+    }
+
+    private int ejecutarConteo(Connection conn, String sql, Integer entradaId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, entradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     private boolean puedeCancelarSalida(Connection conn, Integer salidaId) throws SQLException {
