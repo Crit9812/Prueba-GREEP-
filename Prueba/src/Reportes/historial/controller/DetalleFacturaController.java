@@ -58,6 +58,7 @@ public class DetalleFacturaController {
     private Stage stage;
     private Runnable onRefresh;
     private OverlayCarga overlayCarga;
+    private OverlayCarga overlayCargaGlobal;
 
     @FXML
     public void initialize() {
@@ -89,6 +90,10 @@ public class DetalleFacturaController {
 
     public void setOnRefresh(Runnable onRefresh) {
         this.onRefresh = onRefresh;
+    }
+
+    public void setOverlayCargaGlobal(OverlayCarga overlayCargaGlobal) {
+        this.overlayCargaGlobal = overlayCargaGlobal;
     }
 
     @FXML
@@ -859,15 +864,21 @@ public class DetalleFacturaController {
         });
     }
 
+    private OverlayCarga overlayCargaActiva() {
+        return overlayCargaGlobal != null ? overlayCargaGlobal : overlayCarga;
+    }
+
     private void mostrarCargandoCancelacion() {
-        if (overlayCarga != null) {
-            overlayCarga.mostrar();
+        OverlayCarga overlay = overlayCargaActiva();
+        if (overlay != null) {
+            overlay.mostrar();
         }
     }
 
     private void ocultarCargandoCancelacion() {
-        if (overlayCarga != null) {
-            overlayCarga.ocultar();
+        OverlayCarga overlay = overlayCargaActiva();
+        if (overlay != null) {
+            overlay.ocultar();
         }
     }
 
