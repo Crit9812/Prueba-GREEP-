@@ -124,6 +124,7 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+            setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
@@ -347,6 +348,8 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
+                    ocultarCargandoCancelacion();
+                    setProcesandoCancelacion(false);
                     mostrarMensajeCancelacionExitosa("La cancelación de la salida se realizó correctamente.");
                     cerrarVentana();
                 } catch (SQLException e) {
@@ -357,6 +360,7 @@ public class DetalleFacturaController {
                 e.printStackTrace();
             } finally {
                 ocultarCargandoCancelacion();
+                setProcesandoCancelacion(false);
             }
         });
     }
@@ -406,8 +410,11 @@ public class DetalleFacturaController {
                 try {
                     Boolean cancelado = taskCancelacion.getValue();
                     if (Boolean.TRUE.equals(cancelado)) {
+                        ocultarCargandoCancelacion();
+                        setProcesandoCancelacion(false);
                         mostrarMensajeCancelacionExitosa("La cancelación de la entrada se realizó correctamente.");
                         cerrarVentana();
+                        return;
                     }
                 } finally {
                     ocultarCargandoCancelacion();
@@ -587,6 +594,7 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
+            setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
@@ -883,6 +891,8 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
+                    ocultarCargandoCancelacion();
+                    setProcesandoCancelacion(false);
                     mostrarMensajeCancelacionExitosa("La cancelación del ajuste se realizó correctamente.");
                     cerrarVentana();
                 } catch (SQLException e) {
@@ -893,6 +903,7 @@ public class DetalleFacturaController {
                 e.printStackTrace();
             } finally {
                 ocultarCargandoCancelacion();
+                setProcesandoCancelacion(false);
             }
         });
     }
@@ -912,21 +923,21 @@ public class DetalleFacturaController {
             root.setDisable(enProceso);
         }
     }
-    private OverlayCarga overlayCargaActiva() {
-        return overlayCargaGlobal != null ? overlayCargaGlobal : overlayCarga;
-    }
-
     private void mostrarCargandoCancelacion() {
-        OverlayCarga overlay = overlayCargaActiva();
-        if (overlay != null) {
-            overlay.mostrar();
+        if (overlayCargaGlobal != null) {
+            overlayCargaGlobal.mostrar();
+        }
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
         }
     }
 
     private void ocultarCargandoCancelacion() {
-        OverlayCarga overlay = overlayCargaActiva();
-        if (overlay != null) {
-            overlay.ocultar();
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+        if (overlayCargaGlobal != null) {
+            overlayCargaGlobal.ocultar();
         }
     }
 
