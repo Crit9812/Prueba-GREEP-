@@ -1667,14 +1667,21 @@ public class DetalleFacturaController {
                 + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
                 + "AND (a.`" + colArticuloEstado + "` IS NULL OR LOWER(a.`" + colArticuloEstado + "`) NOT IN ('eliminado', 'disponible'))";
 
+        final String sqlConteoArticuloDisponible = "SELECT COUNT(*) FROM articulo a "
+                + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                + "AND LOWER(a.`" + colArticuloEstado + "`) = 'disponible'";
+
         int totalArticulos = ejecutarConteo(conn, sqlConteoArticulo, entradaId);
         int articulosNoPermitidos = ejecutarConteo(conn, sqlConteoArticuloNoPermitido, entradaId);
+        int articulosDisponibles = ejecutarConteo(conn, sqlConteoArticuloDisponible, entradaId);
         if (articulosNoPermitidos > 0) {
             return false;
         }
 
         int totalDetalles = 0;
         int detallesNoPermitidos = 0;
+        int detallesDisponibles = 0;
         if (colArticuloId != null && colDetalleArticuloArticulo != null && colDetalleArticuloEstado != null) {
             final String sqlConteoDetalleArticulo = "SELECT COUNT(*) FROM detalleArticulo da "
                     + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
@@ -1687,14 +1694,23 @@ public class DetalleFacturaController {
                     + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
                     + "AND (da.`" + colDetalleArticuloEstado + "` IS NULL OR LOWER(da.`" + colDetalleArticuloEstado + "`) NOT IN ('eliminado', 'disponible'))";
 
+            final String sqlConteoDetalleDisponible = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                    + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                    + "AND LOWER(da.`" + colDetalleArticuloEstado + "`) = 'disponible'";
+
             totalDetalles = ejecutarConteo(conn, sqlConteoDetalleArticulo, entradaId);
             detallesNoPermitidos = ejecutarConteo(conn, sqlConteoDetalleNoPermitido, entradaId);
+            detallesDisponibles = ejecutarConteo(conn, sqlConteoDetalleDisponible, entradaId);
             if (detallesNoPermitidos > 0) {
                 return false;
             }
         }
 
-        return (totalArticulos + totalDetalles) > 0;
+        int totalRegistros = totalArticulos + totalDetalles;
+        int totalDisponibles = articulosDisponibles + detallesDisponibles;
+        return totalRegistros > 0 && totalDisponibles > 0;
     }
 
     private int ejecutarConteo(Connection conn, String sql, Integer entradaId) throws SQLException {
