@@ -127,11 +127,12 @@ public class DetalleFacturaController {
             setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
             cerrarVentana();
-            try (Connection conn = new Conexion().conectar()) {
-                if (conn == null) {
-                    return;
-                }
-                conn.setAutoCommit(false);
+            Platform.runLater(() -> {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return;
+                    }
+                    conn.setAutoCommit(false);
 
                 try {
                     if (!puedeCancelarSalida(conn, salidaId)) {
@@ -357,12 +358,13 @@ public class DetalleFacturaController {
                     conn.rollback();
                     throw e;
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } finally {
-                ocultarCargandoCancelacion();
-                setProcesandoCancelacion(false);
-            }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    ocultarCargandoCancelacion();
+                    setProcesandoCancelacion(false);
+                }
+            });
         });
     }
 
@@ -599,11 +601,12 @@ public class DetalleFacturaController {
             setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
             cerrarVentana();
-            try (Connection conn = new Conexion().conectar()) {
-                if (conn == null) {
-                    return;
-                }
-                conn.setAutoCommit(false);
+            Platform.runLater(() -> {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return;
+                    }
+                    conn.setAutoCommit(false);
 
                 try {
                     if (!puedeCancelarAjuste(conn, ajusteId)) {
@@ -902,12 +905,13 @@ public class DetalleFacturaController {
                     conn.rollback();
                     throw e;
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } finally {
-                ocultarCargandoCancelacion();
-                setProcesandoCancelacion(false);
-            }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    ocultarCargandoCancelacion();
+                    setProcesandoCancelacion(false);
+                }
+            });
         });
     }
 
