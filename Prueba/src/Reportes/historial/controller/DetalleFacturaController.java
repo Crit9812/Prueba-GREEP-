@@ -2456,8 +2456,8 @@ public class DetalleFacturaController {
                         presentacionSeleccionada = presentaciones.get(0);
                     }
 
-                    String presentacionActual = valorTexto(articulo.presentacion);
-                    boolean cambiarPresentacion = !presentacionActual.equalsIgnoreCase(valorTexto(presentacionSeleccionada));
+                    String presentacionActualArticulo = valorTexto(articulo.presentacion);
+                    boolean cambiarPresentacion = !presentacionActualArticulo.equalsIgnoreCase(valorTexto(presentacionSeleccionada));
                     boolean actualizarPresentacionMasiva = false;
 
                     if (cambiarPresentacion && articulo.esDetalleEntrada() && articulo.detalleEntradaId != null) {
