@@ -126,6 +126,7 @@ public class DetalleFacturaController {
             }
             setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
+            cerrarVentana();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
@@ -398,6 +399,7 @@ public class DetalleFacturaController {
 
             setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
+            cerrarVentana();
 
             Task<Boolean> taskCancelacion = new Task<>() {
                 @Override
@@ -596,6 +598,7 @@ public class DetalleFacturaController {
             }
             setProcesandoCancelacion(true);
             mostrarCargandoCancelacion();
+            cerrarVentana();
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) {
                     return;
