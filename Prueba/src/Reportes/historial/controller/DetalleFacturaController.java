@@ -1704,34 +1704,44 @@ public class DetalleFacturaController {
                             HBox botonesContainer = new HBox(8);
                             botonesContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-                            boolean mostrarAcciones = articulo.esDetalleSalida() || articulo.esDisponible();
-                            if (mostrarAcciones) {
+                            boolean puedeEditarArticulo = !articulo.esPendiente()
+                                    && !articulo.esVendido()
+                                    && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
+                            boolean puedeEliminarArticulo = !articulo.esPendiente()
+                                    && !articulo.esVendido()
+                                    && !articulo.esSegmentado()
+                                    && (articulo.esDetalleSalida() || articulo.esDisponible());
+                            if (puedeEditarArticulo || puedeEliminarArticulo) {
                                 // Botón Editar con icono
-                                Button btnEditar = new Button();
-                                try {
-                                    ImageView imgEditar = new ImageView(new Image(getClass().getResourceAsStream("/img/editar.png")));
-                                    imgEditar.setFitWidth(16);
-                                    imgEditar.setFitHeight(16);
-                                    btnEditar.setGraphic(imgEditar);
-                                } catch (Exception e) {
-                                    btnEditar.setText("Editar");
+                                if (puedeEditarArticulo) {
+                                    Button btnEditar = new Button();
+                                    try {
+                                        ImageView imgEditar = new ImageView(new Image(getClass().getResourceAsStream("/img/editar.png")));
+                                        imgEditar.setFitWidth(16);
+                                        imgEditar.setFitHeight(16);
+                                        btnEditar.setGraphic(imgEditar);
+                                    } catch (Exception e) {
+                                        btnEditar.setText("Editar");
+                                    }
+                                    btnEditar.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4;");
+                                    btnEditar.setOnAction(event -> editarArticulo(articulo));
+                                    botonesContainer.getChildren().add(btnEditar);
                                 }
-                                btnEditar.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4;");
-                                btnEditar.setOnAction(event -> editarArticulo(articulo));
 
-                                Button btnEliminar = new Button();
-                                try {
-                                    ImageView imgEliminar = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
-                                    imgEliminar.setFitWidth(16);
-                                    imgEliminar.setFitHeight(16);
-                                    btnEliminar.setGraphic(imgEliminar);
-                                } catch (Exception e) {
-                                    btnEliminar.setText("Eliminar");
+                                if (puedeEliminarArticulo) {
+                                    Button btnEliminar = new Button();
+                                    try {
+                                        ImageView imgEliminar = new ImageView(new Image(getClass().getResourceAsStream("/img/eliminar.png")));
+                                        imgEliminar.setFitWidth(16);
+                                        imgEliminar.setFitHeight(16);
+                                        btnEliminar.setGraphic(imgEliminar);
+                                    } catch (Exception e) {
+                                        btnEliminar.setText("Eliminar");
+                                    }
+                                    btnEliminar.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4;");
+                                    btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
+                                    botonesContainer.getChildren().add(btnEliminar);
                                 }
-                                btnEliminar.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4;");
-                                btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
-
-                                botonesContainer.getChildren().addAll(btnEditar, btnEliminar);
                             }
 
                             Label numero = new Label(index++ + ".");
@@ -2115,9 +2125,14 @@ public class DetalleFacturaController {
         if (articulo == null || articulo.idArticulo <= 0) {
             return;
         }
+        if (articulo.esPendiente() || articulo.esVendido()) {
+            mostrarAdvertencia("Acción no permitida", "No se puede editar un artículo con estado pendiente o vendido.");
+            return;
+        }
+        boolean edicionSegmentado = articulo.esSegmentado();
 
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Editar artículo");
+        dialog.setTitle(edicionSegmentado ? "Editar artículo segmentado" : "Editar artículo");
 
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
 
@@ -2131,7 +2146,7 @@ public class DetalleFacturaController {
         mainContainer.setPadding(new Insets(0));
 
         // Título superior
-        Label lblTitulo = new Label("Editar artículo");
+        Label lblTitulo = new Label(edicionSegmentado ? "Editar artículo segmentado" : "Editar artículo");
         lblTitulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-padding: 15 0 10 0;");
         lblTitulo.setAlignment(Pos.CENTER);
         lblTitulo.setMaxWidth(Double.MAX_VALUE);
@@ -2252,7 +2267,11 @@ public class DetalleFacturaController {
         fila3.getChildren().addAll(vboxUbicacion, espaciadorUbicacion);
 
         // Agregar todas las filas al contenido
-        contenido.getChildren().addAll(fila1, fila2, fila3);
+        if (edicionSegmentado) {
+            contenido.getChildren().add(fila1);
+        } else {
+            contenido.getChildren().addAll(fila1, fila2, fila3);
+        }
 
         // ============ BOTONES EN LA PARTE INFERIOR ============
 
@@ -2289,19 +2308,21 @@ public class DetalleFacturaController {
         btnAceptar.setPrefWidth(120);
         btnAceptar.setOnAction(e -> {
             // Validar campos antes de aceptar
-            if (cbUbicacion.getValue() == null || cbUbicacion.getValue().isEmpty()) {
-                mostrarAdvertencia("Campo requerido", "La ubicación es requerida.");
-                return;
-            }
+            if (!edicionSegmentado) {
+                if (cbUbicacion.getValue() == null || cbUbicacion.getValue().isEmpty()) {
+                    mostrarAdvertencia("Campo requerido", "La ubicación es requerida.");
+                    return;
+                }
 
-            if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isEmpty()) {
-                mostrarAdvertencia("Campo requerido", "La presentación es requerida.");
-                return;
-            }
+                if (cbPresentacion.getValue() == null || cbPresentacion.getValue().isEmpty()) {
+                    mostrarAdvertencia("Campo requerido", "La presentación es requerida.");
+                    return;
+                }
 
-            if (txtFactor.getText() == null || txtFactor.getText().isEmpty()) {
-                mostrarAdvertencia("Campo requerido", "El factor es requerido.");
-                return;
+                if (txtFactor.getText() == null || txtFactor.getText().isEmpty()) {
+                    mostrarAdvertencia("Campo requerido", "El factor es requerido.");
+                    return;
+                }
             }
 
             // Si pasa validación, establecer resultado OK
@@ -2340,22 +2361,23 @@ public class DetalleFacturaController {
                     return;
                 }
 
-                // Obtener ID de ubicación
                 Integer ubicacionId = null;
-                String ubicacionTexto = cbUbicacion.getValue();
-                if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
-                        ps.setString(1, ubicacionTexto.trim());
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) {
-                                ubicacionId = rs.getInt(1);
+                if (!edicionSegmentado) {
+                    String ubicacionTexto = cbUbicacion.getValue();
+                    if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
+                        try (PreparedStatement ps = conn.prepareStatement(
+                                "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
+                            ps.setString(1, ubicacionTexto.trim());
+                            try (ResultSet rs = ps.executeQuery()) {
+                                if (rs.next()) {
+                                    ubicacionId = rs.getInt(1);
+                                }
                             }
                         }
-                    }
-                    if (ubicacionId == null) {
-                        mostrarAdvertencia("Ubicación inválida", "No se encontró la ubicación ingresada.");
-                        return;
+                        if (ubicacionId == null) {
+                            mostrarAdvertencia("Ubicación inválida", "No se encontró la ubicación ingresada.");
+                            return;
+                        }
                     }
                 }
 
@@ -2376,7 +2398,6 @@ public class DetalleFacturaController {
                 StringBuilder sql = new StringBuilder("UPDATE articulo SET ");
                 List<Object> valores = new ArrayList<>();
 
-                agregarCampoActualizacion(sql, valores, colUbicacion, ubicacionId);
                 agregarCampoActualizacion(sql, valores, colLote, valorTexto(txtLote.getText()));
 
                 java.sql.Date fechaCaducidad = null;
@@ -2386,13 +2407,17 @@ public class DetalleFacturaController {
                 }
                 agregarCampoActualizacion(sql, valores, colCaducidad, fechaCaducidad);
 
-                String presentacionSeleccionada = cbPresentacion.getValue();
-                if (presentacionSeleccionada == null && !presentaciones.isEmpty()) {
-                    presentacionSeleccionada = presentaciones.get(0);
-                }
-                agregarCampoActualizacion(sql, valores, colPresentacion, valorTexto(presentacionSeleccionada));
+                if (!edicionSegmentado) {
+                    agregarCampoActualizacion(sql, valores, colUbicacion, ubicacionId);
 
-                agregarCampoActualizacion(sql, valores, colFactor, parseInteger(txtFactor.getText()));
+                    String presentacionSeleccionada = cbPresentacion.getValue();
+                    if (presentacionSeleccionada == null && !presentaciones.isEmpty()) {
+                        presentacionSeleccionada = presentaciones.get(0);
+                    }
+                    agregarCampoActualizacion(sql, valores, colPresentacion, valorTexto(presentacionSeleccionada));
+
+                    agregarCampoActualizacion(sql, valores, colFactor, parseInteger(txtFactor.getText()));
+                }
 
                 if (valores.isEmpty()) {
                     return;
@@ -2440,6 +2465,10 @@ public class DetalleFacturaController {
 
     private void eliminarArticulo(DetalleArticulo articulo) {
         if (articulo == null || articulo.idArticulo <= 0) {
+            return;
+        }
+        if (articulo.esPendiente() || articulo.esVendido()) {
+            mostrarAdvertencia("Acción no permitida", "No se puede eliminar un artículo con estado pendiente o vendido.");
             return;
         }
         boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
@@ -2614,6 +2643,8 @@ public class DetalleFacturaController {
             boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
             if (esAjuste) {
                 actualizarTotalesAjustePorPrecio(conn, tabla, linea, nuevoPrecio, precioIva, cantidad, esEntrada);
+            } else if (esEntrada) {
+                actualizarTotalesEntradaPorPrecio(conn, linea, nuevoPrecio, precioIva, cantidad);
             } else if (!esEntrada && linea.esVenta()) {
                 actualizarTotalesSalidaPorPrecio(conn, linea, nuevoPrecio, precioIva, cantidad);
             }
@@ -2722,6 +2753,109 @@ public class DetalleFacturaController {
         try (PreparedStatement ps = conn.prepareStatement(updateSalida.toString())) {
             for (int i = 0; i < valoresSalida.size(); i++) {
                 ps.setObject(i + 1, valoresSalida.get(i));
+            }
+            ps.executeUpdate();
+        }
+    }
+
+    private void actualizarTotalesEntradaPorPrecio(Connection conn, DetalleLinea linea, BigDecimal nuevoPrecioUnitario,
+                                                   BigDecimal nuevoPrecioIva, BigDecimal cantidad) throws SQLException {
+        if (linea == null || linea.idDetalle <= 0) {
+            return;
+        }
+        Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+        String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        if (colDetalleId == null || colClaveEntrada == null) {
+            return;
+        }
+
+        Integer claveEntradaId = null;
+        String sqlDetalle = "SELECT `" + colClaveEntrada + "` AS claveEntrada FROM detalle_Entrada WHERE `"
+                + colDetalleId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlDetalle)) {
+            ps.setInt(1, linea.idDetalle);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    claveEntradaId = rs.getInt("claveEntrada");
+                }
+            }
+        }
+
+        if (claveEntradaId == null || claveEntradaId <= 0) {
+            return;
+        }
+
+        BigDecimal precioUnitarioAnterior = parseDecimal(linea.precioUnitario);
+        BigDecimal precioIvaAnterior = parseDecimal(linea.precioIva);
+        if (precioUnitarioAnterior == null || precioIvaAnterior == null || cantidad == null) {
+            return;
+        }
+
+        BigDecimal deltaNeto = nuevoPrecioUnitario.subtract(precioUnitarioAnterior)
+                .multiply(cantidad)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal deltaTotal = nuevoPrecioIva.subtract(precioIvaAnterior)
+                .multiply(cantidad)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        Map<String, String> columnasEntrada = obtenerColumnas(conn, "entradas");
+        String colEntradaId = resolverColumna(columnasEntrada, "idEntrada", "id", "id_entrada");
+        String colPrecioNeto = resolverColumna(columnasEntrada, "precioNetoEntrada", "precioNeto", "precio_neto");
+        String colPrecioTotal = resolverColumna(columnasEntrada, "precioTotalEntrada", "precioTotal", "precio_total");
+        if (colEntradaId == null || (colPrecioNeto == null && colPrecioTotal == null)) {
+            return;
+        }
+
+        BigDecimal precioNetoActual = null;
+        BigDecimal precioTotalActual = null;
+        String sqlEntrada = String.format("""
+                SELECT %s AS precioNeto,
+                       %s AS precioTotal
+                FROM entradas
+                WHERE `%s` = ?
+                """,
+                colPrecioNeto != null ? "`" + colPrecioNeto + "`" : "NULL",
+                colPrecioTotal != null ? "`" + colPrecioTotal + "`" : "NULL",
+                colEntradaId
+        );
+        try (PreparedStatement ps = conn.prepareStatement(sqlEntrada)) {
+            ps.setInt(1, claveEntradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    precioNetoActual = parseDecimal(rs.getObject("precioNeto"));
+                    precioTotalActual = parseDecimal(rs.getObject("precioTotal"));
+                }
+            }
+        }
+
+        StringBuilder updateEntrada = new StringBuilder("UPDATE entradas SET ");
+        List<Object> valoresEntrada = new ArrayList<>();
+        if (colPrecioNeto != null && precioNetoActual != null) {
+            BigDecimal nuevoNeto = precioNetoActual.add(deltaNeto);
+            if (nuevoNeto.compareTo(BigDecimal.ZERO) < 0) {
+                nuevoNeto = BigDecimal.ZERO;
+            }
+            agregarCampoActualizacion(updateEntrada, valoresEntrada, colPrecioNeto,
+                    nuevoNeto.setScale(2, RoundingMode.HALF_UP));
+        }
+        if (colPrecioTotal != null && precioTotalActual != null) {
+            BigDecimal nuevoTotal = precioTotalActual.add(deltaTotal);
+            if (nuevoTotal.compareTo(BigDecimal.ZERO) < 0) {
+                nuevoTotal = BigDecimal.ZERO;
+            }
+            agregarCampoActualizacion(updateEntrada, valoresEntrada, colPrecioTotal,
+                    nuevoTotal.setScale(2, RoundingMode.HALF_UP));
+        }
+        if (valoresEntrada.isEmpty()) {
+            return;
+        }
+        updateEntrada.append(" WHERE `").append(colEntradaId).append("` = ?");
+        valoresEntrada.add(claveEntradaId);
+
+        try (PreparedStatement ps = conn.prepareStatement(updateEntrada.toString())) {
+            for (int i = 0; i < valoresEntrada.size(); i++) {
+                ps.setObject(i + 1, valoresEntrada.get(i));
             }
             ps.executeUpdate();
         }
@@ -3674,6 +3808,13 @@ public class DetalleFacturaController {
                 return false;
             }
             return "ajustado".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esSegmentado() {
+            if (estado == null) {
+                return false;
+            }
+            return "segmentado".equalsIgnoreCase(estado.trim());
         }
 
         private boolean esDetalleEntrada() {
