@@ -350,10 +350,7 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    ocultarCargandoCancelacion();
-                    setProcesandoCancelacion(false);
-                    mostrarMensajeCancelacionExitosa("La cancelación de la salida se realizó correctamente.");
-                    cerrarVentana();
+                    finalizarCancelacionConExito("La cancelación de la salida se realizó correctamente.");
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
@@ -361,8 +358,7 @@ public class DetalleFacturaController {
                 } catch (SQLException e) {
                     e.printStackTrace();
                 } finally {
-                    ocultarCargandoCancelacion();
-                    setProcesandoCancelacion(false);
+                    finalizarCancelacionSinMensaje();
                 }
             });
         });
@@ -414,15 +410,11 @@ public class DetalleFacturaController {
                 try {
                     Boolean cancelado = taskCancelacion.getValue();
                     if (Boolean.TRUE.equals(cancelado)) {
-                        ocultarCargandoCancelacion();
-                        setProcesandoCancelacion(false);
-                        mostrarMensajeCancelacionExitosa("La cancelación de la entrada se realizó correctamente.");
-                        cerrarVentana();
+                        finalizarCancelacionConExito("La cancelación de la entrada se realizó correctamente.");
                         return;
                     }
                 } finally {
-                    ocultarCargandoCancelacion();
-                    setProcesandoCancelacion(false);
+                    finalizarCancelacionSinMensaje();
                 }
             });
 
@@ -897,10 +889,7 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    ocultarCargandoCancelacion();
-                    setProcesandoCancelacion(false);
-                    mostrarMensajeCancelacionExitosa("La cancelación del ajuste se realizó correctamente.");
-                    cerrarVentana();
+                    finalizarCancelacionConExito("La cancelación del ajuste se realizó correctamente.");
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
@@ -908,11 +897,22 @@ public class DetalleFacturaController {
                 } catch (SQLException e) {
                     e.printStackTrace();
                 } finally {
-                    ocultarCargandoCancelacion();
-                    setProcesandoCancelacion(false);
+                    finalizarCancelacionSinMensaje();
                 }
             });
         });
+    }
+
+
+    private void finalizarCancelacionConExito(String mensaje) {
+        finalizarCancelacionSinMensaje();
+        mostrarMensajeCancelacionExitosa(mensaje);
+        cerrarVentana();
+    }
+
+    private void finalizarCancelacionSinMensaje() {
+        ocultarCargandoCancelacion();
+        setProcesandoCancelacion(false);
     }
 
 
