@@ -11,13 +11,16 @@ import javafx.geometry.Pos;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import Reportes.historial.model.HistorialFactura;
+import Compartido.helper.OverlayCarga;
 import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -38,6 +41,8 @@ import java.util.Set;
 
 public class DetalleFacturaController {
 
+    @FXML private StackPane root;
+    @FXML private Pane overlayPane;
     @FXML private Label lblTitulo;
     @FXML private VBox contenedorDetalles;
     @FXML private CheckBox chkDetallado;
@@ -52,6 +57,8 @@ public class DetalleFacturaController {
     private HistorialFactura historial;
     private Stage stage;
     private Runnable onRefresh;
+    private OverlayCarga overlayCarga;
+    private OverlayCarga overlayCargaGlobal;
 
     @FXML
     public void initialize() {
@@ -60,6 +67,9 @@ public class DetalleFacturaController {
         }
         actualizarTitulo();
         actualizarBotonCancelar();
+        if (root != null && overlayPane != null) {
+            overlayCarga = new OverlayCarga(root, overlayPane);
+        }
 
     }
 
@@ -80,6 +90,10 @@ public class DetalleFacturaController {
 
     public void setOnRefresh(Runnable onRefresh) {
         this.onRefresh = onRefresh;
+    }
+
+    public void setOverlayCargaGlobal(OverlayCarga overlayCargaGlobal) {
+        this.overlayCargaGlobal = overlayCargaGlobal;
     }
 
     @FXML
@@ -110,11 +124,15 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
-            try (Connection conn = new Conexion().conectar()) {
-                if (conn == null) {
-                    return;
-                }
-                conn.setAutoCommit(false);
+            setProcesandoCancelacion(true);
+            mostrarCargandoCancelacion();
+            cerrarVentana();
+            Platform.runLater(() -> {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return;
+                    }
+                    conn.setAutoCommit(false);
 
                 try {
                     if (!puedeCancelarSalida(conn, salidaId)) {
@@ -332,14 +350,17 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    cargarDetalles();
+                    finalizarCancelacionConExito("La cancelación de la salida se realizó correctamente.");
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    finalizarCancelacionSinMensaje();
+                }
+            });
         });
     }
 
@@ -373,146 +394,183 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
-            try (Connection conn = new Conexion().conectar()) {
-                if (conn == null) {
-                    return;
-                }
-                conn.setAutoCommit(false);
 
+            setProcesandoCancelacion(true);
+            mostrarCargandoCancelacion();
+            cerrarVentana();
+
+            Task<Boolean> taskCancelacion = new Task<>() {
+                @Override
+                protected Boolean call() throws Exception {
+                    return ejecutarCancelacionEntrada(entradaId);
+                }
+            };
+
+            taskCancelacion.setOnSucceeded(event -> {
                 try {
-                    if (!puedeCancelarEntrada(conn, entradaId)) {
-                        conn.rollback();
+                    Boolean cancelado = taskCancelacion.getValue();
+                    if (Boolean.TRUE.equals(cancelado)) {
+                        finalizarCancelacionConExito("La cancelación de la entrada se realizó correctamente.");
                         return;
                     }
-
-                    Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
-                    Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
-                    Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
-                    Map<String, String> columnasEntrada = obtenerColumnas(conn, "entradas");
-
-                    String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
-                    String colDetalleClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada",
-                            "entrada_id");
-                    String colDetalleCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
-                    String colDetallePrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto",
-                            "precio_bruto");
-                    String colDetallePrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
-                    String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
-
-                    String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
-                    String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
-                            "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
-                    String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
-                    String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo",
-                            "articulo_id");
-                    String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
-
-                    String colEntradaId = resolverColumna(columnasEntrada, "idEntrada", "id", "id_entrada");
-                    String colEntradaPrecioNeto = resolverColumna(columnasEntrada, "precioNetoEntrada", "precioNeto", "precio_neto");
-                    String colEntradaPrecioTotal = resolverColumna(columnasEntrada, "precioTotalEntrada", "precioTotal",
-                            "precio_total");
-                    String colEntradaEstado = resolverColumna(columnasEntrada, "Estado", "estado");
-
-                    if (colDetalleId == null || colDetalleClaveEntrada == null || colEntradaId == null || colEntradaEstado == null) {
-                        conn.rollback();
-                        return;
-                    }
-
-                    if (colArticuloDetalleEntrada == null || colArticuloEstado == null) {
-                        conn.rollback();
-                        return;
-                    }
-
-                    List<Integer> detallesEntrada = new ArrayList<>();
-                    String sqlDetalles = "SELECT `" + colDetalleId + "` AS idDetalle FROM detalle_Entrada WHERE `"
-                            + colDetalleClaveEntrada + "` = ?";
-                    try (PreparedStatement ps = conn.prepareStatement(sqlDetalles)) {
-                        ps.setInt(1, entradaId);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                detallesEntrada.add(rs.getInt("idDetalle"));
-                            }
-                        }
-                    }
-
-                    if (!detallesEntrada.isEmpty()) {
-                        String sqlActualizarArticulo = "UPDATE articulo SET `" + colArticuloEstado + "` = ? "
-                                + "WHERE `" + colArticuloDetalleEntrada + "` = ?";
-                        try (PreparedStatement ps = conn.prepareStatement(sqlActualizarArticulo)) {
-                            for (Integer detalleId : detallesEntrada) {
-                                ps.setString(1, "eliminado");
-                                ps.setInt(2, detalleId);
-                                ps.addBatch();
-                            }
-                            ps.executeBatch();
-                        }
-                    }
-
-                    if (!detallesEntrada.isEmpty() && colDetalleArticuloArticulo != null && colDetalleArticuloEstado != null
-                            && colArticuloId != null) {
-                        String sqlActualizarDetalleArticulo = "UPDATE detalleArticulo da JOIN articulo a ON a.`" + colArticuloId
-                                + "` = da.`" + colDetalleArticuloArticulo + "` SET da.`" + colDetalleArticuloEstado + "` = ? "
-                                + "WHERE a.`" + colArticuloDetalleEntrada + "` = ?";
-                        try (PreparedStatement ps = conn.prepareStatement(sqlActualizarDetalleArticulo)) {
-                            for (Integer detalleId : detallesEntrada) {
-                                ps.setString(1, "eliminado");
-                                ps.setInt(2, detalleId);
-                                ps.addBatch();
-                            }
-                            ps.executeBatch();
-                        }
-                    }
-
-                    if (!detallesEntrada.isEmpty()) {
-                        StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Entrada SET ");
-                        List<Object> valoresDetalle = new ArrayList<>();
-                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleCantidad, 0);
-                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioBruto, BigDecimal.ZERO);
-                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioTotal, BigDecimal.ZERO);
-                        agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleEstado, "desactivado");
-                        if (!valoresDetalle.isEmpty()) {
-                            updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
-                            try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
-                                for (Integer detalleId : detallesEntrada) {
-                                    int index = 1;
-                                    for (Object valor : valoresDetalle) {
-                                        ps.setObject(index++, valor);
-                                    }
-                                    ps.setInt(index, detalleId);
-                                    ps.addBatch();
-                                }
-                                ps.executeBatch();
-                            }
-                        }
-                    }
-
-                    StringBuilder updateEntrada = new StringBuilder("UPDATE entradas SET ");
-                    List<Object> valoresEntrada = new ArrayList<>();
-                    agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioNeto, BigDecimal.ZERO);
-                    agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioTotal, BigDecimal.ZERO);
-                    agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaEstado, "cancelado");
-                    if (!valoresEntrada.isEmpty()) {
-                        updateEntrada.append(" WHERE `").append(colEntradaId).append("` = ?");
-                        valoresEntrada.add(entradaId);
-                        try (PreparedStatement ps = conn.prepareStatement(updateEntrada.toString())) {
-                            for (int i = 0; i < valoresEntrada.size(); i++) {
-                                ps.setObject(i + 1, valoresEntrada.get(i));
-                            }
-                            ps.executeUpdate();
-                        }
-                    }
-
-                    conn.commit();
-                    notificarActualizacion();
-                    cargarDetalles();
-                } catch (SQLException e) {
-                    conn.rollback();
-                    throw e;
+                } finally {
+                    finalizarCancelacionSinMensaje();
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            });
+
+            taskCancelacion.setOnFailed(event -> {
+                Throwable error = taskCancelacion.getException();
+                if (error != null) {
+                    error.printStackTrace();
+                }
+                ocultarCargandoCancelacion();
+                setProcesandoCancelacion(false);
+            });
+
+            Thread hiloCancelacion = new Thread(taskCancelacion, "cancelar-entrada-historial");
+            hiloCancelacion.setDaemon(true);
+            hiloCancelacion.start();
         });
+    }
+
+    private boolean ejecutarCancelacionEntrada(Integer entradaId) throws SQLException {
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return false;
+            }
+            conn.setAutoCommit(false);
+
+            try {
+                if (!puedeCancelarEntrada(conn, entradaId)) {
+                    conn.rollback();
+                    return false;
+                }
+
+                Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+                Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+                Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+                Map<String, String> columnasEntrada = obtenerColumnas(conn, "entradas");
+
+                String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada", "id", "id_detalle_entrada");
+                String colDetalleClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada", "idEntrada", "id_entrada",
+                        "entrada_id");
+                String colDetalleCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
+                String colDetallePrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal", "precioBruto",
+                        "precio_bruto");
+                String colDetallePrecioTotal = resolverColumna(columnasDetalle, "precioTotal", "precio_total");
+                String colDetalleEstado = resolverColumna(columnasDetalle, "estado", "Estado");
+
+                String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+                String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                        "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+                String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+                String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo",
+                        "articulo_id");
+                String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+
+                String colEntradaId = resolverColumna(columnasEntrada, "idEntrada", "id", "id_entrada");
+                String colEntradaPrecioNeto = resolverColumna(columnasEntrada, "precioNetoEntrada", "precioNeto", "precio_neto");
+                String colEntradaPrecioTotal = resolverColumna(columnasEntrada, "precioTotalEntrada", "precioTotal",
+                        "precio_total");
+                String colEntradaEstado = resolverColumna(columnasEntrada, "Estado", "estado");
+
+                if (colDetalleId == null || colDetalleClaveEntrada == null || colEntradaId == null || colEntradaEstado == null) {
+                    conn.rollback();
+                    return false;
+                }
+
+                if (colArticuloDetalleEntrada == null || colArticuloEstado == null) {
+                    conn.rollback();
+                    return false;
+                }
+
+                List<Integer> detallesEntrada = new ArrayList<>();
+                String sqlDetalles = "SELECT `" + colDetalleId + "` AS idDetalle FROM detalle_Entrada WHERE `"
+                        + colDetalleClaveEntrada + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlDetalles)) {
+                    ps.setInt(1, entradaId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            detallesEntrada.add(rs.getInt("idDetalle"));
+                        }
+                    }
+                }
+
+                if (!detallesEntrada.isEmpty()) {
+                    String sqlActualizarArticulo = "UPDATE articulo SET `" + colArticuloEstado + "` = ? "
+                            + "WHERE `" + colArticuloDetalleEntrada + "` = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(sqlActualizarArticulo)) {
+                        for (Integer detalleId : detallesEntrada) {
+                            ps.setString(1, "eliminado");
+                            ps.setInt(2, detalleId);
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                    }
+                }
+
+                if (!detallesEntrada.isEmpty() && colDetalleArticuloArticulo != null && colDetalleArticuloEstado != null
+                        && colArticuloId != null) {
+                    String sqlActualizarDetalleArticulo = "UPDATE detalleArticulo da JOIN articulo a ON a.`" + colArticuloId
+                            + "` = da.`" + colDetalleArticuloArticulo + "` SET da.`" + colDetalleArticuloEstado + "` = ? "
+                            + "WHERE a.`" + colArticuloDetalleEntrada + "` = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(sqlActualizarDetalleArticulo)) {
+                        for (Integer detalleId : detallesEntrada) {
+                            ps.setString(1, "eliminado");
+                            ps.setInt(2, detalleId);
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                    }
+                }
+
+                if (!detallesEntrada.isEmpty()) {
+                    StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Entrada SET ");
+                    List<Object> valoresDetalle = new ArrayList<>();
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleCantidad, 0);
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioBruto, BigDecimal.ZERO);
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetallePrecioTotal, BigDecimal.ZERO);
+                    agregarCampoActualizacion(updateDetalle, valoresDetalle, colDetalleEstado, "desactivado");
+                    if (!valoresDetalle.isEmpty()) {
+                        updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
+                        try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
+                            for (Integer detalleId : detallesEntrada) {
+                                int index = 1;
+                                for (Object valor : valoresDetalle) {
+                                    ps.setObject(index++, valor);
+                                }
+                                ps.setInt(index, detalleId);
+                                ps.addBatch();
+                            }
+                            ps.executeBatch();
+                        }
+                    }
+                }
+
+                StringBuilder updateEntrada = new StringBuilder("UPDATE entradas SET ");
+                List<Object> valoresEntrada = new ArrayList<>();
+                agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioNeto, BigDecimal.ZERO);
+                agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaPrecioTotal, BigDecimal.ZERO);
+                agregarCampoActualizacion(updateEntrada, valoresEntrada, colEntradaEstado, "cancelado");
+                if (!valoresEntrada.isEmpty()) {
+                    updateEntrada.append(" WHERE `").append(colEntradaId).append("` = ?");
+                    valoresEntrada.add(entradaId);
+                    try (PreparedStatement ps = conn.prepareStatement(updateEntrada.toString())) {
+                        for (int i = 0; i < valoresEntrada.size(); i++) {
+                            ps.setObject(i + 1, valoresEntrada.get(i));
+                        }
+                        ps.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                notificarActualizacion();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        }
     }
 
     @FXML
@@ -532,11 +590,15 @@ public class DetalleFacturaController {
             if (respuesta != ButtonType.OK) {
                 return;
             }
-            try (Connection conn = new Conexion().conectar()) {
-                if (conn == null) {
-                    return;
-                }
-                conn.setAutoCommit(false);
+            setProcesandoCancelacion(true);
+            mostrarCargandoCancelacion();
+            cerrarVentana();
+            Platform.runLater(() -> {
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return;
+                    }
+                    conn.setAutoCommit(false);
 
                 try {
                     if (!puedeCancelarAjuste(conn, ajusteId)) {
@@ -827,15 +889,71 @@ public class DetalleFacturaController {
 
                     conn.commit();
                     notificarActualizacion();
-                    cargarDetalles();
+                    finalizarCancelacionConExito("La cancelación del ajuste se realizó correctamente.");
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    finalizarCancelacionSinMensaje();
+                }
+            });
         });
+    }
+
+
+    private void finalizarCancelacionConExito(String mensaje) {
+        finalizarCancelacionSinMensaje();
+        mostrarMensajeCancelacionExitosa(mensaje);
+        cerrarVentana();
+    }
+
+    private void finalizarCancelacionSinMensaje() {
+        ocultarCargandoCancelacion();
+        setProcesandoCancelacion(false);
+    }
+
+
+    private void setProcesandoCancelacion(boolean enProceso) {
+        if (btnCancelar != null) {
+            btnCancelar.setDisable(enProceso);
+        }
+        if (btnCancelarEntrada != null) {
+            btnCancelarEntrada.setDisable(enProceso);
+        }
+        if (btnCerrar != null) {
+            btnCerrar.setDisable(enProceso);
+        }
+        if (root != null) {
+            root.setDisable(enProceso);
+        }
+    }
+    private void mostrarCargandoCancelacion() {
+        if (overlayCargaGlobal != null) {
+            overlayCargaGlobal.mostrar();
+        }
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarCargandoCancelacion() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+        if (overlayCargaGlobal != null) {
+            overlayCargaGlobal.ocultar();
+        }
+    }
+
+    private void mostrarMensajeCancelacionExitosa(String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle("Cancelación");
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 
     private void actualizarTitulo() {
@@ -914,6 +1032,78 @@ public class DetalleFacturaController {
             btnCancelarEntrada.setManaged(mostrarEntrada);
             btnCancelarEntrada.setDisable(!mostrarEntrada);
         }
+    }
+
+    private String obtenerPrefijoTipoDetalle(DetalleLinea linea) {
+        if (linea == null) {
+            return "";
+        }
+        boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
+        if (!esAjuste) {
+            return "";
+        }
+        if ("Entrada".equalsIgnoreCase(linea.tipo)) {
+            return "[Entrada] ";
+        }
+        if ("Salida".equalsIgnoreCase(linea.tipo)) {
+            return "[Salida] ";
+        }
+        return "";
+    }
+
+    private boolean tieneArticulosODetallesEnDetalleSalida(int detalleSalidaId) {
+        if (detalleSalidaId <= 0) {
+            return false;
+        }
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return false;
+            }
+            return tieneArticulosODetallesEnDetalleSalida(conn, detalleSalidaId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean tieneArticulosODetallesEnDetalleSalida(Connection conn, Integer detalleSalidaId) throws SQLException {
+        if (detalleSalidaId == null || detalleSalidaId <= 0) {
+            return false;
+        }
+
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+
+        String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colArticuloDetalleSalida == null) {
+            return false;
+        }
+
+        String sqlArticulo = "SELECT COUNT(*) FROM articulo WHERE `" + colArticuloDetalleSalida + "` = ?";
+        if (ejecutarConteo(conn, sqlArticulo, detalleSalidaId) > 0) {
+            return true;
+        }
+
+        String colDetalleArticuloDetalleSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colDetalleArticuloDetalleSalida != null) {
+            String sqlDetalle = "SELECT COUNT(*) FROM detalleArticulo WHERE `" + colDetalleArticuloDetalleSalida + "` = ?";
+            if (ejecutarConteo(conn, sqlDetalle, detalleSalidaId) > 0) {
+                return true;
+            }
+        }
+
+        String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+        if (colDetalleArticuloArticulo != null && colArticuloId != null) {
+            String sqlDetallePorArticulo = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "WHERE a.`" + colArticuloDetalleSalida + "` = ?";
+            return ejecutarConteo(conn, sqlDetallePorArticulo, detalleSalidaId) > 0;
+        }
+
+        return false;
     }
 
     private boolean esEntradaCancelada(Connection conn, Integer entradaId) throws SQLException {
@@ -1467,7 +1657,8 @@ public class DetalleFacturaController {
                         "-fx-background-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);");
                 card.setMaxWidth(Double.MAX_VALUE);
 
-                Label titulo = new Label(contador++ + ". " + valorTexto(linea.producto));
+                String prefijoTipo = obtenerPrefijoTipoDetalle(linea);
+                Label titulo = new Label(contador++ + ". " + prefijoTipo + valorTexto(linea.producto));
                 titulo.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2c3e50; " +
                         "-fx-padding: 0 0 5 0;");
                 titulo.setWrapText(true);
@@ -1584,7 +1775,6 @@ public class DetalleFacturaController {
                     card.getChildren().add(listaArticulos);
                 }
 
-                boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
                 boolean puedeEditarEntrada = "Entrada".equalsIgnoreCase(linea.tipo)
                         && linea.tieneArticulosSinPendienteOVendido();
 
@@ -1602,8 +1792,11 @@ public class DetalleFacturaController {
                     hayBotones = true;
                 }
 
-                if ("Salida".equalsIgnoreCase(linea.tipo)
-                        && (linea.esVenta() || esAjuste)) {
+                boolean puedeEditarSalida = "Salida".equalsIgnoreCase(linea.tipo)
+                        && linea.esVenta()
+                        && tieneArticulosODetallesEnDetalleSalida(linea.idDetalle);
+
+                if (puedeEditarSalida) {
                     Button btnEditarPrecio = new Button("Editar precio salida");
                     btnEditarPrecio.setOnAction(event -> editarPrecioSalida(linea));
                     btnEditarPrecio.getStyleClass().add("boton-formulario");
@@ -1626,10 +1819,103 @@ public class DetalleFacturaController {
     private boolean puedeCancelarEntrada(Connection conn, Integer entradaId) throws SQLException {
         String estado = obtenerEstadoEntrada(conn, entradaId);
         if (estado == null) {
-            return true;
+            return entradaSoloTieneEstadosCancelables(conn, entradaId);
         }
         String estadoNormalizado = estado.trim().toLowerCase();
-        return !List.of("cancelado", "finalizada", "finalizado", "revision", "revisión").contains(estadoNormalizado);
+        if (List.of("cancelado", "finalizada", "finalizado", "revision", "revisión").contains(estadoNormalizado)) {
+            return false;
+        }
+        return entradaSoloTieneEstadosCancelables(conn, entradaId);
+    }
+
+    private boolean entradaSoloTieneEstadosCancelables(Connection conn, Integer entradaId) throws SQLException {
+        if (entradaId == null) {
+            return false;
+        }
+
+        Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+
+        String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetalleEntradaClave = resolverColumna(columnasDetalleEntrada, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+        String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+        String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+
+        if (colDetalleEntradaId == null || colDetalleEntradaClave == null
+                || colArticuloDetalleEntrada == null || colArticuloEstado == null) {
+            return false;
+        }
+
+        final String sqlConteoArticulo = "SELECT COUNT(*) FROM articulo a "
+                + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                + "WHERE d.`" + colDetalleEntradaClave + "` = ?";
+
+        final String sqlConteoArticuloNoPermitido = "SELECT COUNT(*) FROM articulo a "
+                + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                + "AND (a.`" + colArticuloEstado + "` IS NULL OR LOWER(a.`" + colArticuloEstado + "`) NOT IN ('eliminado', 'disponible'))";
+
+        final String sqlConteoArticuloDisponible = "SELECT COUNT(*) FROM articulo a "
+                + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                + "AND LOWER(a.`" + colArticuloEstado + "`) = 'disponible'";
+
+        int totalArticulos = ejecutarConteo(conn, sqlConteoArticulo, entradaId);
+        int articulosNoPermitidos = ejecutarConteo(conn, sqlConteoArticuloNoPermitido, entradaId);
+        int articulosDisponibles = ejecutarConteo(conn, sqlConteoArticuloDisponible, entradaId);
+        if (articulosNoPermitidos > 0) {
+            return false;
+        }
+
+        int totalDetalles = 0;
+        int detallesNoPermitidos = 0;
+        int detallesDisponibles = 0;
+        if (colArticuloId != null && colDetalleArticuloArticulo != null && colDetalleArticuloEstado != null) {
+            final String sqlConteoDetalleArticulo = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                    + "WHERE d.`" + colDetalleEntradaClave + "` = ?";
+
+            final String sqlConteoDetalleNoPermitido = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                    + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                    + "AND (da.`" + colDetalleArticuloEstado + "` IS NULL OR LOWER(da.`" + colDetalleArticuloEstado + "`) NOT IN ('eliminado', 'disponible'))";
+
+            final String sqlConteoDetalleDisponible = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "` "
+                    + "JOIN detalle_Entrada d ON a.`" + colArticuloDetalleEntrada + "` = d.`" + colDetalleEntradaId + "` "
+                    + "WHERE d.`" + colDetalleEntradaClave + "` = ? "
+                    + "AND LOWER(da.`" + colDetalleArticuloEstado + "`) = 'disponible'";
+
+            totalDetalles = ejecutarConteo(conn, sqlConteoDetalleArticulo, entradaId);
+            detallesNoPermitidos = ejecutarConteo(conn, sqlConteoDetalleNoPermitido, entradaId);
+            detallesDisponibles = ejecutarConteo(conn, sqlConteoDetalleDisponible, entradaId);
+            if (detallesNoPermitidos > 0) {
+                return false;
+            }
+        }
+
+        int totalRegistros = totalArticulos + totalDetalles;
+        int totalDisponibles = articulosDisponibles + detallesDisponibles;
+        return totalRegistros > 0 && totalDisponibles > 0;
+    }
+
+    private int ejecutarConteo(Connection conn, String sql, Integer entradaId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, entradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     private boolean puedeCancelarSalida(Connection conn, Integer salidaId) throws SQLException {

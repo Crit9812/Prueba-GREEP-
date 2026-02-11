@@ -5,6 +5,7 @@ import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
+import Compartido.helper.OverlayCarga;
 import Reportes.historial.model.HistorialFactura;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -83,6 +84,7 @@ public class MainController {
     private String direccionOrden = "desc";
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
+    private OverlayCarga overlayCargaGlobal;
 
     @FXML
     public void initialize() {
@@ -129,6 +131,10 @@ public class MainController {
 
             paneNavbarController.setTitulo("Historial por factura", "#ffffff");
 
+            if (root != null && overlayPane != null) {
+                overlayCargaGlobal = new OverlayCarga(root, overlayPane);
+            }
+
             configurarColumnas();
             configurarFiltros();
             configurarBusquedaFactura();
@@ -163,6 +169,7 @@ public class MainController {
             DetalleFacturaController controller = loader.getController();
             controller.setHistorial(item);
             controller.setOnRefresh(this::cargarHistorial);
+            controller.setOverlayCargaGlobal(overlayCargaGlobal);
 
             javafx.stage.Stage stage = new javafx.stage.Stage();
             stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
