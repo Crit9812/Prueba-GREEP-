@@ -2467,8 +2467,8 @@ public class DetalleFacturaController {
                             alertaMasiva.setTitle("Actualizar presentación");
                             alertaMasiva.setHeaderText(null);
                             alertaMasiva.setContentText("Se modificará la presentación de múltiples artículos del mismo detalle de entrada. ¿Deseas continuar?");
-                            ButtonType respuesta = alertaMasiva.showAndWait().orElse(ButtonType.CANCEL);
-                            if (respuesta != ButtonType.OK) {
+                            ButtonType respuestaConfirmacion = alertaMasiva.showAndWait().orElse(ButtonType.CANCEL);
+                            if (respuestaConfirmacion != ButtonType.OK) {
                                 return;
                             }
                             actualizarPresentacionMasiva = true;
