@@ -1371,6 +1371,7 @@ public class DetalleFacturaController {
                                         Map<Integer, DetalleLinea> lineasPorId) throws SQLException {
         Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
         Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
         Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
         Map<String, String> columnasProducto = obtenerColumnas(conn, "productos");
 
@@ -1392,6 +1393,8 @@ public class DetalleFacturaController {
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
         String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
                 "detalleSalida", "detalle_salida", "detalle_salida_id");
+        String colDetalleArticuloIdArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
 
         String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
         String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
@@ -1420,6 +1423,13 @@ public class DetalleFacturaController {
                 ? "CASE WHEN LOWER(a.`" + colArticuloEstado + "`) = 'eliminado' THEN 1 ELSE 0 END, "
                 : "";
 
+        String exprDetalleArticuloBloqueado = "0";
+        if (colArticuloId != null && colDetalleArticuloIdArticulo != null && colDetalleArticuloEstado != null) {
+            exprDetalleArticuloBloqueado = "EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`"
+                    + colDetalleArticuloIdArticulo + "` = a.`" + colArticuloId + "` AND LOWER(da.`"
+                    + colDetalleArticuloEstado + "`) IN ('pendiente','vendido'))";
+        }
+
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
                        %s AS idArticulo,
@@ -1431,7 +1441,8 @@ public class DetalleFacturaController {
                        %s AS producto,
                        %s AS estadoArticulo,
                        %s AS detalleEntrada,
-                       %s AS detalleSalida
+                       %s AS detalleSalida,
+                       %s AS tieneDetalleArticuloBloqueado
                 FROM articulo a
                 JOIN detalle_Entrada d ON a.`%s` = d.`%s`
                 %s
@@ -1450,6 +1461,7 @@ public class DetalleFacturaController {
                 columnaSeguro("a", colArticuloEstado),
                 columnaSeguro("a", colArticuloDetalleEntrada),
                 columnaSeguro("a", colArticuloDetalleSalida),
+                exprDetalleArticuloBloqueado,
                 colArticuloDetalle,
                 colDetalleId,
                 joinUbicacion,
@@ -1476,7 +1488,8 @@ public class DetalleFacturaController {
                             valorTexto(rs.getObject("estadoArticulo")),
                             rs.getInt("idArticulo"),
                             rs.getObject("detalleEntrada"),
-                            rs.getObject("detalleSalida")
+                            rs.getObject("detalleSalida"),
+                            rs.getBoolean("tieneDetalleArticuloBloqueado")
                     ));
                 }
             }
@@ -1487,6 +1500,7 @@ public class DetalleFacturaController {
                                        Map<Integer, DetalleLinea> lineasPorId) throws SQLException {
         Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Salida");
         Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
         Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
         Map<String, String> columnasProducto = obtenerColumnas(conn, "productos");
 
@@ -1508,6 +1522,8 @@ public class DetalleFacturaController {
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
         String colArticuloDetalleSalida = resolverColumna(columnasArticulo, "idDetalleSalida", "id_detalle_salida",
                 "detalleSalida", "detalle_salida", "detalle_salida_id");
+        String colDetalleArticuloIdArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
 
         String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
         String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
@@ -1536,6 +1552,13 @@ public class DetalleFacturaController {
                 ? "CASE WHEN LOWER(a.`" + colArticuloEstado + "`) = 'eliminado' THEN 1 ELSE 0 END, "
                 : "";
 
+        String exprDetalleArticuloBloqueado = "0";
+        if (colArticuloId != null && colDetalleArticuloIdArticulo != null && colDetalleArticuloEstado != null) {
+            exprDetalleArticuloBloqueado = "EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`"
+                    + colDetalleArticuloIdArticulo + "` = a.`" + colArticuloId + "` AND LOWER(da.`"
+                    + colDetalleArticuloEstado + "`) IN ('pendiente','vendido'))";
+        }
+
         String sql = String.format("""
                 SELECT d.`%s` AS idDetalle,
                        %s AS idArticulo,
@@ -1547,7 +1570,8 @@ public class DetalleFacturaController {
                        %s AS producto,
                        %s AS estadoArticulo,
                        %s AS detalleEntrada,
-                       %s AS detalleSalida
+                       %s AS detalleSalida,
+                       %s AS tieneDetalleArticuloBloqueado
                 FROM articulo a
                 JOIN detalle_Salida d ON a.`%s` = d.`%s`
                 %s
@@ -1566,6 +1590,7 @@ public class DetalleFacturaController {
                 columnaSeguro("a", colArticuloEstado),
                 columnaSeguro("a", colArticuloDetalleEntrada),
                 columnaSeguro("a", colArticuloDetalleSalida),
+                exprDetalleArticuloBloqueado,
                 colArticuloDetalle,
                 colDetalleId,
                 joinUbicacion,
@@ -1592,7 +1617,8 @@ public class DetalleFacturaController {
                             valorTexto(rs.getObject("estadoArticulo")),
                             rs.getInt("idArticulo"),
                             rs.getObject("detalleEntrada"),
-                            rs.getObject("detalleSalida")
+                            rs.getObject("detalleSalida"),
+                            rs.getBoolean("tieneDetalleArticuloBloqueado")
                     ));
                 }
             }
@@ -1704,10 +1730,16 @@ public class DetalleFacturaController {
                             HBox botonesContainer = new HBox(8);
                             botonesContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-                            boolean puedeEditarArticulo = !articulo.esPendiente()
+                            boolean bloqueadoPorDetalleArticulo = articulo.esSegmentado()
+                                    && articulo.esDetalleEntrada()
+                                    && articulo.tieneDetalleArticuloPendienteOVendido();
+
+                            boolean puedeEditarArticulo = !bloqueadoPorDetalleArticulo
+                                    && !articulo.esPendiente()
                                     && !articulo.esVendido()
                                     && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
-                            boolean puedeEliminarArticulo = !articulo.esPendiente()
+                            boolean puedeEliminarArticulo = !bloqueadoPorDetalleArticulo
+                                    && !articulo.esPendiente()
                                     && !articulo.esVendido()
                                     && !articulo.esSegmentado()
                                     && (articulo.esDetalleSalida() || articulo.esDisponible());
@@ -2129,6 +2161,11 @@ public class DetalleFacturaController {
             mostrarAdvertencia("Acción no permitida", "No se puede editar un artículo con estado pendiente o vendido.");
             return;
         }
+        if (articulo.esSegmentado() && articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
+            mostrarAdvertencia("Acción no permitida",
+                    "No se puede editar un artículo segmentado cuando tiene detalles en estado pendiente o vendido.");
+            return;
+        }
         boolean edicionSegmentado = articulo.esSegmentado();
 
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -2173,7 +2210,8 @@ public class DetalleFacturaController {
         VBox vboxCaducidad = new VBox(5);
         Label lblCaducidad = new Label("Caducidad:");
         DatePicker dpCaducidad = new DatePicker();
-        dpCaducidad.getEditor().setDisable(true);
+        dpCaducidad.setEditable(true);
+        dpCaducidad.getEditor().setDisable(false);
         dpCaducidad.getEditor().setStyle("-fx-opacity: 1.0; -fx-background-color: white;");
         dpCaducidad.setPromptText("Haz clic en el calendario");
         dpCaducidad.setPrefWidth(180);
@@ -2400,11 +2438,14 @@ public class DetalleFacturaController {
 
                 agregarCampoActualizacion(sql, valores, colLote, valorTexto(txtLote.getText()));
 
-                java.sql.Date fechaCaducidad = null;
-                if (dpCaducidad.getValue() != null) {
-                    LocalDate fecha = dpCaducidad.getValue();
-                    fechaCaducidad = java.sql.Date.valueOf(fecha);
+                LocalDate fechaCaducidadLocal = parsearFechaCaducidadEditable(dpCaducidad);
+                if (fechaCaducidadLocal == null && !dpCaducidad.getEditor().getText().trim().isEmpty()) {
+                    mostrarAdvertencia("Caducidad inválida", "Ingresa una fecha válida con formato yyyy-MM-dd o déjala vacía.");
+                    return;
                 }
+                java.sql.Date fechaCaducidad = fechaCaducidadLocal != null
+                        ? java.sql.Date.valueOf(fechaCaducidadLocal)
+                        : null;
                 agregarCampoActualizacion(sql, valores, colCaducidad, fechaCaducidad);
 
                 if (!edicionSegmentado) {
@@ -2414,9 +2455,33 @@ public class DetalleFacturaController {
                     if (presentacionSeleccionada == null && !presentaciones.isEmpty()) {
                         presentacionSeleccionada = presentaciones.get(0);
                     }
+
+                    String presentacionActual = valorTexto(articulo.presentacion);
+                    boolean cambiarPresentacion = !presentacionActual.equalsIgnoreCase(valorTexto(presentacionSeleccionada));
+                    boolean actualizarPresentacionMasiva = false;
+
+                    if (cambiarPresentacion && articulo.esDetalleEntrada() && articulo.detalleEntradaId != null) {
+                        int articulosSincronizados = contarArticulosPorDetalleEntrada(conn, articulo.detalleEntradaId);
+                        if (articulosSincronizados > 1) {
+                            Alert alertaMasiva = new Alert(Alert.AlertType.CONFIRMATION);
+                            alertaMasiva.setTitle("Actualizar presentación");
+                            alertaMasiva.setHeaderText(null);
+                            alertaMasiva.setContentText("Se modificará la presentación de múltiples artículos del mismo detalle de entrada. ¿Deseas continuar?");
+                            ButtonType respuesta = alertaMasiva.showAndWait().orElse(ButtonType.CANCEL);
+                            if (respuesta != ButtonType.OK) {
+                                return;
+                            }
+                            actualizarPresentacionMasiva = true;
+                        }
+                    }
+
                     agregarCampoActualizacion(sql, valores, colPresentacion, valorTexto(presentacionSeleccionada));
 
                     agregarCampoActualizacion(sql, valores, colFactor, parseInteger(txtFactor.getText()));
+
+                    if (actualizarPresentacionMasiva) {
+                        actualizarPresentacionDetalleEntrada(conn, articulo, colPresentacion, valorTexto(presentacionSeleccionada));
+                    }
                 }
 
                 if (valores.isEmpty()) {
@@ -2469,6 +2534,11 @@ public class DetalleFacturaController {
         }
         if (articulo.esPendiente() || articulo.esVendido()) {
             mostrarAdvertencia("Acción no permitida", "No se puede eliminar un artículo con estado pendiente o vendido.");
+            return;
+        }
+        if (articulo.esSegmentado() && articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
+            mostrarAdvertencia("Acción no permitida",
+                    "No se puede eliminar un artículo segmentado cuando tiene detalles en estado pendiente o vendido.");
             return;
         }
         boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
@@ -2857,6 +2927,66 @@ public class DetalleFacturaController {
             for (int i = 0; i < valoresEntrada.size(); i++) {
                 ps.setObject(i + 1, valoresEntrada.get(i));
             }
+            ps.executeUpdate();
+        }
+    }
+
+    private LocalDate parsearFechaCaducidadEditable(DatePicker datePicker) {
+        if (datePicker == null) {
+            return null;
+        }
+        String texto = datePicker.getEditor() != null ? valorTexto(datePicker.getEditor().getText()).trim() : "";
+        if (texto.isEmpty()) {
+            datePicker.setValue(null);
+            return null;
+        }
+        try {
+            LocalDate fecha = LocalDate.parse(texto);
+            datePicker.setValue(fecha);
+            return fecha;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private int contarArticulosPorDetalleEntrada(Connection conn, Integer detalleEntradaId) throws SQLException {
+        if (conn == null || detalleEntradaId == null || detalleEntradaId <= 0) {
+            return 0;
+        }
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        String colDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        if (colDetalleEntrada == null) {
+            return 0;
+        }
+        String sql = "SELECT COUNT(*) FROM articulo WHERE `" + colDetalleEntrada + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, detalleEntradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    private void actualizarPresentacionDetalleEntrada(Connection conn, DetalleArticulo articulo,
+                                                      String colPresentacion, String presentacion) throws SQLException {
+        if (conn == null || articulo == null || articulo.detalleEntradaId == null || articulo.detalleEntradaId <= 0
+                || colPresentacion == null) {
+            return;
+        }
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+        String colDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        if (colDetalleEntrada == null) {
+            return;
+        }
+        String sql = "UPDATE articulo SET `" + colPresentacion + "` = ? WHERE `" + colDetalleEntrada + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, presentacion);
+            ps.setInt(2, articulo.detalleEntradaId);
             ps.executeUpdate();
         }
     }
@@ -3767,10 +3897,12 @@ public class DetalleFacturaController {
         private final int idArticulo;
         private final Integer detalleEntradaId;
         private final Integer detalleSalidaId;
+        private final boolean tieneDetalleArticuloPendienteOVendido;
 
         private DetalleArticulo(String ubicacion, String lote, String caducidad,
                                 String presentacion, String factor, String estado, int idArticulo,
-                                Object detalleEntradaId, Object detalleSalidaId) {
+                                Object detalleEntradaId, Object detalleSalidaId,
+                                boolean tieneDetalleArticuloPendienteOVendido) {
             this.ubicacion = ubicacion;
             this.lote = lote;
             this.caducidad = caducidad;
@@ -3780,6 +3912,7 @@ public class DetalleFacturaController {
             this.idArticulo = idArticulo;
             this.detalleEntradaId = parseInteger(detalleEntradaId);
             this.detalleSalidaId = parseInteger(detalleSalidaId);
+            this.tieneDetalleArticuloPendienteOVendido = tieneDetalleArticuloPendienteOVendido;
         }
 
         private boolean esDisponible() {
@@ -3823,6 +3956,10 @@ public class DetalleFacturaController {
 
         private boolean esDetalleSalida() {
             return detalleSalidaId != null;
+        }
+
+        private boolean tieneDetalleArticuloPendienteOVendido() {
+            return tieneDetalleArticuloPendienteOVendido;
         }
 
         private static Integer parseInteger(Object valor) {
