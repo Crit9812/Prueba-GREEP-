@@ -1,6 +1,8 @@
 package Reportes.historial.controller;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -1741,8 +1743,7 @@ public class DetalleFacturaController {
                             boolean puedeEliminarArticulo = !bloqueadoPorDetalleArticulo
                                     && !articulo.esPendiente()
                                     && !articulo.esVendido()
-                                    && !articulo.esSegmentado()
-                                    && (articulo.esDetalleSalida() || articulo.esDisponible());
+                                    && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
                             if (puedeEditarArticulo || puedeEliminarArticulo) {
                                 // Botón Editar con icono
                                 if (puedeEditarArticulo) {
@@ -2213,20 +2214,16 @@ public class DetalleFacturaController {
         dpCaducidad.setEditable(true);
         dpCaducidad.getEditor().setDisable(false);
         dpCaducidad.getEditor().setStyle("-fx-opacity: 1.0; -fx-background-color: white;");
-        dpCaducidad.setPromptText("Haz clic en el calendario");
+        dpCaducidad.setPromptText("yyyy/MM/dd");
+        configurarDatePickerEditable(dpCaducidad);
         dpCaducidad.setPrefWidth(180);
 
         // Establecer fecha si existe
         String caducidadTexto = valorTexto(articulo.caducidad);
         if (!caducidadTexto.isBlank()) {
             try {
-                // Parsear la fecha en formato YYYY-MM-DD
-                String[] partes = caducidadTexto.trim().split("-");
-                if (partes.length == 3) {
-                    int year = Integer.parseInt(partes[0]);
-                    int month = Integer.parseInt(partes[1]);
-                    int day = Integer.parseInt(partes[2]);
-                    LocalDate fecha = LocalDate.of(year, month, day);
+                LocalDate fecha = parsearFechaCaducidadTexto(caducidadTexto);
+                if (fecha != null) {
                     dpCaducidad.setValue(fecha);
                 }
             } catch (Exception e) {
@@ -2440,7 +2437,7 @@ public class DetalleFacturaController {
 
                 LocalDate fechaCaducidadLocal = parsearFechaCaducidadEditable(dpCaducidad);
                 if (fechaCaducidadLocal == null && !dpCaducidad.getEditor().getText().trim().isEmpty()) {
-                    mostrarAdvertencia("Caducidad inválida", "Ingresa una fecha válida con formato yyyy-MM-dd o déjala vacía.");
+                    mostrarAdvertencia("Caducidad inválida", "Ingresa una fecha válida con formato yyyy/MM/dd (o yyyy-MM-dd) o déjala vacía.");
                     return;
                 }
                 java.sql.Date fechaCaducidad = fechaCaducidadLocal != null
@@ -2455,18 +2452,21 @@ public class DetalleFacturaController {
                     if (presentacionSeleccionada == null && !presentaciones.isEmpty()) {
                         presentacionSeleccionada = presentaciones.get(0);
                     }
+                    Integer factorSeleccionado = parseInteger(txtFactor.getText());
 
                     String presentacionActualArticulo = valorTexto(articulo.presentacion);
                     boolean cambiarPresentacion = !presentacionActualArticulo.equalsIgnoreCase(valorTexto(presentacionSeleccionada));
+                    Integer factorActualArticulo = parseInteger(articulo.factor);
+                    boolean cambiarFactor = factorSeleccionado != null && !factorSeleccionado.equals(factorActualArticulo);
                     boolean actualizarPresentacionMasiva = false;
 
-                    if (cambiarPresentacion && articulo.esDetalleEntrada() && articulo.detalleEntradaId != null) {
+                    if ((cambiarPresentacion || cambiarFactor) && articulo.esDetalleEntrada() && articulo.detalleEntradaId != null) {
                         int articulosSincronizados = contarArticulosPorDetalleEntrada(conn, articulo.detalleEntradaId);
                         if (articulosSincronizados > 1) {
                             Alert alertaMasiva = new Alert(Alert.AlertType.CONFIRMATION);
-                            alertaMasiva.setTitle("Actualizar presentación");
+                            alertaMasiva.setTitle("Actualizar artículos sincronizados");
                             alertaMasiva.setHeaderText(null);
-                            alertaMasiva.setContentText("Se modificará la presentación de múltiples artículos del mismo detalle de entrada. ¿Deseas continuar?");
+                            alertaMasiva.setContentText("Se modificarán presentación y/o factor de múltiples artículos del mismo detalle de entrada. ¿Deseas continuar?");
                             ButtonType respuestaConfirmacion = alertaMasiva.showAndWait().orElse(ButtonType.CANCEL);
                             if (respuestaConfirmacion != ButtonType.OK) {
                                 return;
@@ -2477,10 +2477,11 @@ public class DetalleFacturaController {
 
                     agregarCampoActualizacion(sql, valores, colPresentacion, valorTexto(presentacionSeleccionada));
 
-                    agregarCampoActualizacion(sql, valores, colFactor, parseInteger(txtFactor.getText()));
+                    agregarCampoActualizacion(sql, valores, colFactor, factorSeleccionado);
 
                     if (actualizarPresentacionMasiva) {
-                        actualizarPresentacionDetalleEntrada(conn, articulo, colPresentacion, valorTexto(presentacionSeleccionada));
+                        actualizarCamposDetalleEntrada(conn, articulo, colPresentacion, valorTexto(presentacionSeleccionada),
+                                colFactor, factorSeleccionado);
                     }
                 }
 
@@ -2940,13 +2941,47 @@ public class DetalleFacturaController {
             datePicker.setValue(null);
             return null;
         }
-        try {
-            LocalDate fecha = LocalDate.parse(texto);
+        LocalDate fecha = parsearFechaCaducidadTexto(texto);
+        if (fecha != null) {
             datePicker.setValue(fecha);
-            return fecha;
-        } catch (Exception ignored) {
+        }
+        return fecha;
+    }
+
+    private LocalDate parsearFechaCaducidadTexto(String texto) {
+        String limpio = valorTexto(texto).trim();
+        if (limpio.isEmpty()) {
             return null;
         }
+        DateTimeFormatter formatoSlash = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+        DateTimeFormatter formatoGuion = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        try {
+            return LocalDate.parse(limpio, formatoSlash);
+        } catch (DateTimeParseException ignored) {
+        }
+        try {
+            return LocalDate.parse(limpio, formatoGuion);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
+    private void configurarDatePickerEditable(DatePicker datePicker) {
+        if (datePicker == null) {
+            return;
+        }
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+        datePicker.setConverter(new javafx.util.StringConverter<LocalDate>() {
+            @Override
+            public String toString(LocalDate object) {
+                return object != null ? object.format(formato) : "";
+            }
+
+            @Override
+            public LocalDate fromString(String string) {
+                return parsearFechaCaducidadTexto(string);
+            }
+        });
     }
 
     private int contarArticulosPorDetalleEntrada(Connection conn, Integer detalleEntradaId) throws SQLException {
@@ -2971,10 +3006,11 @@ public class DetalleFacturaController {
         return 0;
     }
 
-    private void actualizarPresentacionDetalleEntrada(Connection conn, DetalleArticulo articulo,
-                                                      String colPresentacion, String presentacion) throws SQLException {
+    private void actualizarCamposDetalleEntrada(Connection conn, DetalleArticulo articulo,
+                                                String colPresentacion, String presentacion,
+                                                String colFactor, Integer factor) throws SQLException {
         if (conn == null || articulo == null || articulo.detalleEntradaId == null || articulo.detalleEntradaId <= 0
-                || colPresentacion == null) {
+                || (colPresentacion == null && colFactor == null)) {
             return;
         }
         Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
@@ -2983,10 +3019,19 @@ public class DetalleFacturaController {
         if (colDetalleEntrada == null) {
             return;
         }
-        String sql = "UPDATE articulo SET `" + colPresentacion + "` = ? WHERE `" + colDetalleEntrada + "` = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, presentacion);
-            ps.setInt(2, articulo.detalleEntradaId);
+        StringBuilder sql = new StringBuilder("UPDATE articulo SET ");
+        List<Object> valores = new ArrayList<>();
+        agregarCampoActualizacion(sql, valores, colPresentacion, presentacion);
+        agregarCampoActualizacion(sql, valores, colFactor, factor);
+        if (valores.isEmpty()) {
+            return;
+        }
+        sql.append(" WHERE `").append(colDetalleEntrada).append("` = ?");
+        valores.add(articulo.detalleEntradaId);
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < valores.size(); i++) {
+                ps.setObject(i + 1, valores.get(i));
+            }
             ps.executeUpdate();
         }
     }
