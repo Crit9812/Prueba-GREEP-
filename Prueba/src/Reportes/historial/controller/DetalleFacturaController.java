@@ -1936,7 +1936,7 @@ public class DetalleFacturaController {
                                     VBox itemSeg = new VBox(2);
                                     itemSeg.setStyle("-fx-background-color: #eef3f7; -fx-padding: 8; -fx-background-radius: 6;");
                                     itemSeg.getChildren().addAll(
-                                            crearEtiquetaDetalleElegante("Detalle #" + idxSeg++, ""),
+                                            crearEtiquetaTituloSegmentado("Detalle #" + idxSeg++),
                                             crearEtiquetaDetalleElegante("Ubicación:", valorTexto(detSeg.ubicacion)),
                                             crearEtiquetaDetalleElegante("Estado:", valorTexto(detSeg.estado))
                                     );
@@ -2265,6 +2265,12 @@ public class DetalleFacturaController {
             }
         }
         return null;
+    }
+
+    private Label crearEtiquetaTituloSegmentado(String titulo) {
+        Label label = new Label(titulo);
+        label.setStyle("-fx-font-size: 12; -fx-text-fill: #2c3e50; -fx-font-weight: bold; -fx-font-family: 'Segoe UI', Arial, sans-serif;");
+        return label;
     }
 
     private Label crearEtiquetaDetalleElegante(String titulo, String valor) {
