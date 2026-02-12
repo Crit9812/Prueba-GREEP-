@@ -1639,6 +1639,124 @@ public class DetalleFacturaController {
         if (!articulosPorId.isEmpty()) {
             cargarDetallesArticuloPorArticulo(conn, articulosPorId, true);
         }
+        cargarArticulosSegmentadosDesdeDetalleSalida(conn, lineasPorId, articulosPorId);
+    }
+
+    private void cargarArticulosSegmentadosDesdeDetalleSalida(Connection conn,
+                                                              Map<Integer, DetalleLinea> lineasPorId,
+                                                              Map<Integer, DetalleArticulo> articulosPorId) throws SQLException {
+        if (conn == null || lineasPorId == null || lineasPorId.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+        Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
+
+        String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
+        String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        String colDetalleArticuloLote = resolverColumna(columnasDetalleArticulo, "lote");
+        String colDetalleArticuloCaducidad = resolverColumna(columnasDetalleArticulo, "caducidad");
+        String colDetalleArticuloPresentacion = resolverColumna(columnasDetalleArticulo, "presentacion");
+        String colDetalleArticuloFactor = resolverColumna(columnasDetalleArticulo, "factor");
+        String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+        String colDetalleArticuloUbicacion = resolverColumna(columnasDetalleArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+
+        String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
+        String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
+
+        if (colDetalleArticuloSalida == null) {
+            return;
+        }
+
+        String joinUbicacion = (colDetalleArticuloUbicacion != null && colUbicacionId != null && colUbicacionNombre != null)
+                ? "LEFT JOIN ubicaciones u ON da.`" + colDetalleArticuloUbicacion + "` = u.`" + colUbicacionId + "`"
+                : "";
+        String ubicacionExpr = (colDetalleArticuloUbicacion != null && colUbicacionId != null && colUbicacionNombre != null)
+                ? "u.`" + colUbicacionNombre + "`"
+                : "NULL";
+
+        List<Integer> detalleSalidaIds = new ArrayList<>(lineasPorId.keySet());
+        String sql = String.format("""
+                SELECT da.`%s` AS idDetalleSalida,
+                       %s AS idArticulo,
+                       %s AS lote,
+                       %s AS caducidad,
+                       %s AS presentacion,
+                       %s AS factor,
+                       %s AS estado,
+                       %s AS ubicacion
+                FROM detalleArticulo da
+                %s
+                WHERE da.`%s` IN (%s)
+                ORDER BY da.`%s`
+                """,
+                colDetalleArticuloSalida,
+                colDetalleArticuloArticulo != null ? "da.`" + colDetalleArticuloArticulo + "`" : "NULL",
+                columnaSeguro("da", colDetalleArticuloLote),
+                columnaSeguro("da", colDetalleArticuloCaducidad),
+                columnaSeguro("da", colDetalleArticuloPresentacion),
+                columnaSeguro("da", colDetalleArticuloFactor),
+                columnaSeguro("da", colDetalleArticuloEstado),
+                ubicacionExpr,
+                joinUbicacion,
+                colDetalleArticuloSalida,
+                placeholders(detalleSalidaIds.size()),
+                colDetalleArticuloSalida
+        );
+
+        Map<Integer, DetalleArticulo> virtualesPorDetalleSalida = new HashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            for (Integer idDetalleSalida : detalleSalidaIds) {
+                ps.setInt(index++, idDetalleSalida);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Integer idDetalleSalida = parseInteger(rs.getObject("idDetalleSalida"));
+                    if (idDetalleSalida == null) {
+                        continue;
+                    }
+
+                    Integer idArticulo = parseInteger(rs.getObject("idArticulo"));
+                    if (idArticulo != null && articulosPorId != null && articulosPorId.containsKey(idArticulo)) {
+                        continue;
+                    }
+
+                    DetalleLinea linea = lineasPorId.get(idDetalleSalida);
+                    if (linea == null) {
+                        continue;
+                    }
+
+                    DetalleArticulo articuloVirtual = virtualesPorDetalleSalida.get(idDetalleSalida);
+                    if (articuloVirtual == null) {
+                        articuloVirtual = new DetalleArticulo(
+                                "",
+                                valorTexto(rs.getObject("lote")),
+                                valorTexto(rs.getObject("caducidad")),
+                                valorTexto(rs.getObject("presentacion")),
+                                valorTexto(rs.getObject("factor")),
+                                "segmentado",
+                                0,
+                                null,
+                                idDetalleSalida,
+                                false
+                        );
+                        linea.articulos.add(articuloVirtual);
+                        virtualesPorDetalleSalida.put(idDetalleSalida, articuloVirtual);
+                    }
+
+                    articuloVirtual.detallesSegmentados.add(new DetalleArticuloSegmentado(
+                            valorTexto(rs.getObject("ubicacion")),
+                            valorTexto(rs.getObject("lote")),
+                            valorTexto(rs.getObject("caducidad")),
+                            valorTexto(rs.getObject("presentacion")),
+                            valorTexto(rs.getObject("factor")),
+                            valorTexto(rs.getObject("estado"))
+                    ));
+                }
+            }
+        }
     }
 
     private void cargarDetallesArticuloPorArticulo(Connection conn,
@@ -1849,16 +1967,25 @@ public class DetalleFacturaController {
                                     && articulo.esDetalleEntrada()
                                     && articulo.tieneDetalleArticuloPendienteOVendido();
 
-                            boolean puedeEditarArticulo = articulo.idArticulo > 0
-                                    && !bloqueadoPorDetalleArticulo
-                                    && !articulo.esPendiente()
-                                    && !articulo.esVendido()
-                                    && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
-                            boolean puedeEliminarArticulo = articulo.idArticulo > 0
-                                    && !bloqueadoPorDetalleArticulo
-                                    && !articulo.esPendiente()
-                                    && !articulo.esVendido()
-                                    && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
+                            boolean esArticuloSalida = articulo.esDetalleSalida();
+                            boolean puedeEditarArticulo;
+                            boolean puedeEliminarArticulo;
+                            if (esArticuloSalida) {
+                                boolean permitidoEnSalida = !articulo.esEliminado() && !articulo.esSegmentado();
+                                puedeEditarArticulo = articulo.idArticulo > 0 && permitidoEnSalida;
+                                puedeEliminarArticulo = articulo.idArticulo > 0 && permitidoEnSalida;
+                            } else {
+                                puedeEditarArticulo = articulo.idArticulo > 0
+                                        && !bloqueadoPorDetalleArticulo
+                                        && !articulo.esPendiente()
+                                        && !articulo.esVendido()
+                                        && (articulo.esDisponible() || articulo.esSegmentado());
+                                puedeEliminarArticulo = articulo.idArticulo > 0
+                                        && !bloqueadoPorDetalleArticulo
+                                        && !articulo.esPendiente()
+                                        && !articulo.esVendido()
+                                        && (articulo.esDisponible() || articulo.esSegmentado());
+                            }
                             if (puedeEditarArticulo || puedeEliminarArticulo) {
                                 // Botón Editar con icono
                                 if (puedeEditarArticulo) {
@@ -2307,7 +2434,12 @@ public class DetalleFacturaController {
         if (articulo == null || articulo.idArticulo <= 0) {
             return;
         }
-        if (articulo.esPendiente() || articulo.esVendido()) {
+        if (articulo.esDetalleSalida()) {
+            if (articulo.esEliminado() || articulo.esSegmentado()) {
+                mostrarAdvertencia("Acción no permitida", "En salidas no se puede editar un artículo eliminado o segmentado.");
+                return;
+            }
+        } else if (articulo.esPendiente() || articulo.esVendido()) {
             mostrarAdvertencia("Acción no permitida", "No se puede editar un artículo con estado pendiente o vendido.");
             return;
         }
@@ -2682,7 +2814,12 @@ public class DetalleFacturaController {
         if (articulo == null || articulo.idArticulo <= 0) {
             return;
         }
-        if (articulo.esPendiente() || articulo.esVendido()) {
+        if (articulo.esDetalleSalida()) {
+            if (articulo.esEliminado() || articulo.esSegmentado()) {
+                mostrarAdvertencia("Acción no permitida", "En salidas no se puede eliminar un artículo eliminado o segmentado.");
+                return;
+            }
+        } else if (articulo.esPendiente() || articulo.esVendido()) {
             mostrarAdvertencia("Acción no permitida", "No se puede eliminar un artículo con estado pendiente o vendido.");
             return;
         }
@@ -4204,6 +4341,13 @@ public class DetalleFacturaController {
                 return false;
             }
             return "ajustado".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esEliminado() {
+            if (estado == null) {
+                return false;
+            }
+            return "eliminado".equalsIgnoreCase(estado.trim());
         }
 
         private boolean esSegmentado() {
