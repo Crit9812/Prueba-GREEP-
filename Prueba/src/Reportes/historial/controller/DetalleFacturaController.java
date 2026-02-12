@@ -1653,6 +1653,7 @@ public class DetalleFacturaController {
         Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
         Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
 
+        String colDetalleId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id", "id_detalle");
         String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
         String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida", "id_detalle_salida",
                 "detalleSalida", "detalle_salida", "detalle_salida_id");
