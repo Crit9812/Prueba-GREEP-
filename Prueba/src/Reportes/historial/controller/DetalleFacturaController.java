@@ -1672,6 +1672,7 @@ public class DetalleFacturaController {
         List<Integer> detallesSalidaIds = new ArrayList<>(lineasPorId.keySet());
         String sql = String.format("""
                 SELECT %s AS idDetalle,
+                       da.`%s` AS idDetalleSalida,
                        da.`%s` AS idArticulo,
                        %s AS lote,
                        %s AS caducidad,
@@ -1685,6 +1686,7 @@ public class DetalleFacturaController {
                 ORDER BY da.`%s`
                 """,
                 colDetalleId != null ? "da.`" + colDetalleId + "`" : "NULL",
+                colDetalleArticuloSalida,
                 colDetalleArticuloArticulo,
                 columnaSeguro("da", colDetalleArticuloLote),
                 columnaSeguro("da", colDetalleArticuloCaducidad),
@@ -1698,6 +1700,7 @@ public class DetalleFacturaController {
                 colDetalleArticuloArticulo
         );
 
+        Map<Integer, DetalleArticulo> articulosSegmentadosPorDetalleSalida = new HashMap<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
             for (Integer idDetalleSalida : detallesSalidaIds) {
@@ -1705,11 +1708,31 @@ public class DetalleFacturaController {
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    Integer idDetalleSalida = parseInteger(rs.getObject("idDetalleSalida"));
                     Integer idArticulo = parseInteger(rs.getObject("idArticulo"));
-                    if (idArticulo == null) {
-                        continue;
+                    DetalleArticulo articulo = idArticulo != null ? articulosPorId.get(idArticulo) : null;
+                    if (articulo == null && idDetalleSalida != null) {
+                        DetalleLinea linea = lineasPorId.get(idDetalleSalida);
+                        if (linea != null) {
+                            articulo = articulosSegmentadosPorDetalleSalida.get(idDetalleSalida);
+                            if (articulo == null) {
+                                articulo = new DetalleArticulo(
+                                        valorTexto(rs.getObject("ubicacion")),
+                                        valorTexto(rs.getObject("lote")),
+                                        valorTexto(rs.getObject("caducidad")),
+                                        valorTexto(rs.getObject("presentacion")),
+                                        valorTexto(rs.getObject("factor")),
+                                        valorTexto(rs.getObject("estado")),
+                                        0,
+                                        null,
+                                        idDetalleSalida,
+                                        false
+                                );
+                                linea.articulos.add(articulo);
+                                articulosSegmentadosPorDetalleSalida.put(idDetalleSalida, articulo);
+                            }
+                        }
                     }
-                    DetalleArticulo articulo = articulosPorId.get(idArticulo);
                     if (articulo == null) {
                         continue;
                     }
@@ -1835,11 +1858,13 @@ public class DetalleFacturaController {
                                     && articulo.esDetalleEntrada()
                                     && articulo.tieneDetalleArticuloPendienteOVendido();
 
-                            boolean puedeEditarArticulo = !bloqueadoPorDetalleArticulo
+                            boolean puedeEditarArticulo = articulo.idArticulo > 0
+                                    && !bloqueadoPorDetalleArticulo
                                     && !articulo.esPendiente()
                                     && !articulo.esVendido()
                                     && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
-                            boolean puedeEliminarArticulo = !bloqueadoPorDetalleArticulo
+                            boolean puedeEliminarArticulo = articulo.idArticulo > 0
+                                    && !bloqueadoPorDetalleArticulo
                                     && !articulo.esPendiente()
                                     && !articulo.esVendido()
                                     && (articulo.esDetalleSalida() || articulo.esDisponible() || articulo.esSegmentado());
@@ -3864,11 +3889,14 @@ public class DetalleFacturaController {
             return;
         }
 
-        String sqlUpdate = "UPDATE entradas SET `" + colEntradaEstado + "` = ? WHERE `" + colEntradaId + "` = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
-            ps.setString(1, "disponible");
-            ps.setInt(2, entradaId);
-            ps.executeUpdate();
+        String estadoActualEntrada = obtenerEstadoEntrada(conn, entradaId);
+        if (estadoActualEntrada != null && "finalizado".equalsIgnoreCase(estadoActualEntrada.trim())) {
+            String sqlUpdate = "UPDATE entradas SET `" + colEntradaEstado + "` = ? WHERE `" + colEntradaId + "` = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+                ps.setString(1, "disponible");
+                ps.setInt(2, entradaId);
+                ps.executeUpdate();
+            }
         }
     }
 
