@@ -1429,7 +1429,7 @@ public class DetalleFacturaController {
         if (colArticuloId != null && colDetalleArticuloIdArticulo != null && colDetalleArticuloEstado != null) {
             exprDetalleArticuloBloqueado = "EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`"
                     + colDetalleArticuloIdArticulo + "` = a.`" + colArticuloId + "` AND LOWER(da.`"
-                    + colDetalleArticuloEstado + "`) IN ('pendiente','vendido'))";
+                    + colDetalleArticuloEstado + "`) IN ('pendiente','vendido','eliminado'))";
         }
 
         String sql = String.format("""
@@ -1565,7 +1565,7 @@ public class DetalleFacturaController {
         if (colArticuloId != null && colDetalleArticuloIdArticulo != null && colDetalleArticuloEstado != null) {
             exprDetalleArticuloBloqueado = "EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`"
                     + colDetalleArticuloIdArticulo + "` = a.`" + colArticuloId + "` AND LOWER(da.`"
-                    + colDetalleArticuloEstado + "`) IN ('pendiente','vendido'))";
+                    + colDetalleArticuloEstado + "`) IN ('pendiente','vendido','eliminado'))";
         }
 
         String sql = String.format("""
@@ -2004,8 +2004,7 @@ public class DetalleFacturaController {
                             HBox botonesContainer = new HBox(8);
                             botonesContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-                            boolean bloqueadoPorDetalleArticulo = articulo.esSegmentado()
-                                    && articulo.esDetalleEntrada()
+                            boolean bloqueadoPorDetalleArticulo = articulo.esDetalleEntrada()
                                     && articulo.tieneDetalleArticuloPendienteOVendido();
 
                             boolean esArticuloSalida = articulo.esDetalleSalida();
@@ -2652,9 +2651,9 @@ public class DetalleFacturaController {
             mostrarAdvertencia("Acción no permitida", "No se puede editar un artículo con estado pendiente, vendido o eliminado.");
             return;
         }
-        if (articulo.esSegmentado() && articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
+        if (articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
             mostrarAdvertencia("Acción no permitida",
-                    "No se puede editar un artículo segmentado cuando tiene detalles en estado pendiente o vendido.");
+                    "No se puede editar un artículo cuando tiene detalles en estado pendiente, vendido o eliminado.");
             return;
         }
         boolean edicionSegmentado = articulo.esSegmentado();
@@ -3032,9 +3031,9 @@ public class DetalleFacturaController {
             mostrarAdvertencia("Acción no permitida", "No se puede eliminar un artículo con estado pendiente, vendido o eliminado.");
             return;
         }
-        if (articulo.esSegmentado() && articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
+        if (articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
             mostrarAdvertencia("Acción no permitida",
-                    "No se puede eliminar un artículo segmentado cuando tiene detalles en estado pendiente o vendido.");
+                    "No se puede eliminar un artículo cuando tiene detalles en estado pendiente, vendido o eliminado.");
             return;
         }
         boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
