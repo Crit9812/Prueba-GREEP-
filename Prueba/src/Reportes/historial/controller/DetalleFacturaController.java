@@ -1901,9 +1901,8 @@ public class DetalleFacturaController {
 
                             // Primera línea: Ubicación y Lote
                             HBox linea1 = new HBox(15);
-                            Label lblUbicacion = crearEtiquetaDetalleElegante("Ubicación:", valorTexto(articulo.ubicacion));
                             Label lblLote = crearEtiquetaDetalleElegante("Lote:", valorTexto(articulo.lote));
-                            linea1.getChildren().addAll(lblUbicacion, lblLote);
+                            linea1.getChildren().addAll(lblLote);
 
                             // Segunda línea: Caducidad y Presentación
                             HBox linea2 = new HBox(15);
@@ -1939,10 +1938,6 @@ public class DetalleFacturaController {
                                     itemSeg.getChildren().addAll(
                                             crearEtiquetaDetalleElegante("Detalle #" + idxSeg++, ""),
                                             crearEtiquetaDetalleElegante("Ubicación:", valorTexto(detSeg.ubicacion)),
-                                            crearEtiquetaDetalleElegante("Lote:", valorTexto(detSeg.lote)),
-                                            crearEtiquetaDetalleElegante("Caducidad:", valorTexto(detSeg.caducidad)),
-                                            crearEtiquetaDetalleElegante("Presentación:", valorTexto(detSeg.presentacion)),
-                                            crearEtiquetaDetalleElegante("Factor:", valorTexto(detSeg.factor)),
                                             crearEtiquetaDetalleElegante("Estado:", valorTexto(detSeg.estado))
                                     );
                                     contenedorDetallesSegmentados.getChildren().add(itemSeg);
