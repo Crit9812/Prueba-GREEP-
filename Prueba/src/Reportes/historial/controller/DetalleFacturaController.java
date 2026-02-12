@@ -1783,7 +1783,7 @@ public class DetalleFacturaController {
                     }
 
                     articuloVirtual.detallesSegmentados.add(new DetalleArticuloSegmentado(
-                            parseInteger(rs.getObject("idDetalle")),
+                            valorTexto(rs.getObject("idDetalle")),
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
@@ -1886,7 +1886,7 @@ public class DetalleFacturaController {
                     }
 
                     articulo.detallesSegmentados.add(new DetalleArticuloSegmentado(
-                            parseInteger(rs.getObject("idDetalle")),
+                            valorTexto(rs.getObject("idDetalle")),
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
@@ -2112,7 +2112,7 @@ public class DetalleFacturaController {
                                     HBox botonesSeg = new HBox(6);
                                     botonesSeg.setAlignment(Pos.CENTER_RIGHT);
 
-                                    if (articulo.esDetalleSalida() && detSeg.idDetalle != null && detSeg.idDetalle > 0
+                                    if (articulo.esDetalleSalida() && detSeg.idDetalle != null && !detSeg.idDetalle.isBlank()
                                             && !detSeg.esEliminado() && !detSeg.esSegmentado()) {
                                         Button btnEditarSeg = crearBotonIcono("/img/editar.png", "Editar");
                                         btnEditarSeg.setOnAction(event -> editarDetalleArticuloSegmentadoSalida(detSeg));
@@ -2470,7 +2470,7 @@ public class DetalleFacturaController {
     }
 
     private void editarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle) {
-        if (detalle == null || detalle.idDetalle == null || detalle.idDetalle <= 0) {
+        if (detalle == null || detalle.idDetalle == null || detalle.idDetalle.isBlank()) {
             return;
         }
         if (detalle.esEliminado() || detalle.esSegmentado()) {
@@ -2551,7 +2551,7 @@ public class DetalleFacturaController {
                 String sql = "UPDATE detalleArticulo SET `" + colDetalleUbicacion + "` = ? WHERE `" + colDetalleId + "` = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, idUbicacion);
-                    ps.setInt(2, detalle.idDetalle);
+                    ps.setString(2, detalle.idDetalle);
                     ps.executeUpdate();
                 }
                 notificarActualizacion();
@@ -2563,7 +2563,7 @@ public class DetalleFacturaController {
     }
 
     private void eliminarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle) {
-        if (detalle == null || detalle.idDetalle == null || detalle.idDetalle <= 0) {
+        if (detalle == null || detalle.idDetalle == null || detalle.idDetalle.isBlank()) {
             return;
         }
         if (detalle.esEliminado() || detalle.esSegmentado()) {
@@ -2592,7 +2592,7 @@ public class DetalleFacturaController {
                 String sql = "UPDATE detalleArticulo SET `" + colDetalleEstado + "` = ? WHERE `" + colDetalleId + "` = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, "eliminado");
-                    ps.setInt(2, detalle.idDetalle);
+                    ps.setString(2, detalle.idDetalle);
                     ps.executeUpdate();
                 }
                 notificarActualizacion();
@@ -4602,7 +4602,7 @@ public class DetalleFacturaController {
     }
 
     private static class DetalleArticuloSegmentado {
-        private final Integer idDetalle;
+        private final String idDetalle;
         private final String ubicacion;
         private final String lote;
         private final String caducidad;
@@ -4610,7 +4610,7 @@ public class DetalleFacturaController {
         private final String factor;
         private final String estado;
 
-        private DetalleArticuloSegmentado(Integer idDetalle, String ubicacion, String lote, String caducidad,
+        private DetalleArticuloSegmentado(String idDetalle, String ubicacion, String lote, String caducidad,
                                           String presentacion, String factor, String estado) {
             this.idDetalle = idDetalle;
             this.ubicacion = ubicacion;
