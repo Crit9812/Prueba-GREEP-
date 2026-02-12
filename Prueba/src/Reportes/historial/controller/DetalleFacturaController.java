@@ -2017,10 +2017,12 @@ public class DetalleFacturaController {
                                 puedeEliminarArticulo = articulo.idArticulo > 0 && permitidoEnSalida;
                             } else {
                                 puedeEditarArticulo = articulo.idArticulo > 0
+                                        && !bloqueadoPorDetalleArticulo
                                         && !articulo.esPendiente()
                                         && !articulo.esVendido()
                                         && !articulo.esEliminado();
                                 puedeEliminarArticulo = articulo.idArticulo > 0
+                                        && !bloqueadoPorDetalleArticulo
                                         && !articulo.esPendiente()
                                         && !articulo.esVendido()
                                         && !articulo.esEliminado();
@@ -2650,6 +2652,11 @@ public class DetalleFacturaController {
             mostrarAdvertencia("Acción no permitida", "No se puede editar un artículo con estado pendiente, vendido o eliminado.");
             return;
         }
+        if (articulo.esSegmentado() && articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
+            mostrarAdvertencia("Acción no permitida",
+                    "No se puede editar un artículo segmentado cuando tiene detalles en estado pendiente o vendido.");
+            return;
+        }
         boolean edicionSegmentado = articulo.esSegmentado();
 
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -3023,6 +3030,11 @@ public class DetalleFacturaController {
             }
         } else if (articulo.esPendiente() || articulo.esVendido() || articulo.esEliminado()) {
             mostrarAdvertencia("Acción no permitida", "No se puede eliminar un artículo con estado pendiente, vendido o eliminado.");
+            return;
+        }
+        if (articulo.esSegmentado() && articulo.esDetalleEntrada() && articulo.tieneDetalleArticuloPendienteOVendido()) {
+            mostrarAdvertencia("Acción no permitida",
+                    "No se puede eliminar un artículo segmentado cuando tiene detalles en estado pendiente o vendido.");
             return;
         }
         boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
