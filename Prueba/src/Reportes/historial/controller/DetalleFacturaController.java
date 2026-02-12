@@ -2819,8 +2819,6 @@ public class DetalleFacturaController {
         boolean esAjustado() { return "ajustado".equalsIgnoreCase(estado); }
         boolean esEliminado() { return "eliminado".equalsIgnoreCase(estado); }
         boolean esSegmentado() { return "segmentado".equalsIgnoreCase(estado); }
-        boolean esPendiente() { return "pendiente".equalsIgnoreCase(estado); }
-        boolean esVendido() { return "vendido".equalsIgnoreCase(estado); }
         boolean esDetalleEntrada() { return detalleEntradaId != null; }
         boolean esDetalleSalida() { return detalleSalidaId != null; }
         boolean tieneDetalleArticuloPendienteOVendido() { return tieneDetalleArticuloPendienteOVendido; }
