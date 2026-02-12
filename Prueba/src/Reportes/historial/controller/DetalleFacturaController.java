@@ -1690,7 +1690,8 @@ public class DetalleFacturaController {
 
         List<Integer> detalleSalidaIds = new ArrayList<>(lineasPorId.keySet());
         String sql = String.format("""
-                SELECT da.`%s` AS idDetalleSalida,
+                SELECT %s AS idDetalle,
+                       da.`%s` AS idDetalleSalida,
                        %s AS idArticulo,
                        %s AS lote,
                        %s AS caducidad,
@@ -1709,6 +1710,7 @@ public class DetalleFacturaController {
                 WHERE da.`%s` IN (%s)
                 ORDER BY da.`%s`
                 """,
+                colDetalleId != null ? "da.`" + colDetalleId + "`" : "NULL",
                 colDetalleArticuloSalida,
                 colDetalleArticuloArticulo != null ? "da.`" + colDetalleArticuloArticulo + "`" : "NULL",
                 columnaSeguro("da", colDetalleArticuloLote),
@@ -1780,6 +1782,7 @@ public class DetalleFacturaController {
                     }
 
                     articuloVirtual.detallesSegmentados.add(new DetalleArticuloSegmentado(
+                            parseInteger(rs.getObject("idDetalle")),
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
@@ -1802,6 +1805,7 @@ public class DetalleFacturaController {
         Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
         Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
 
+        String colDetalleId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id", "id_detalle");
         String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
         String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida", "id_detalle_salida",
                 "detalleSalida", "detalle_salida", "detalle_salida_id");
@@ -1828,7 +1832,8 @@ public class DetalleFacturaController {
 
         List<Integer> articulosIds = new ArrayList<>(articulosPorId.keySet());
         String sql = String.format("""
-                SELECT da.`%s` AS idArticulo,
+                SELECT %s AS idDetalle,
+                       da.`%s` AS idArticulo,
                        %s AS lote,
                        %s AS caducidad,
                        %s AS presentacion,
@@ -1841,6 +1846,7 @@ public class DetalleFacturaController {
                 WHERE da.`%s` IN (%s)
                 ORDER BY da.`%s`
                 """,
+                colDetalleId != null ? "da.`" + colDetalleId + "`" : "NULL",
                 colDetalleArticuloArticulo,
                 columnaSeguro("da", colDetalleArticuloLote),
                 columnaSeguro("da", colDetalleArticuloCaducidad),
@@ -1879,6 +1885,7 @@ public class DetalleFacturaController {
                     }
 
                     articulo.detallesSegmentados.add(new DetalleArticuloSegmentado(
+                            parseInteger(rs.getObject("idDetalle")),
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
@@ -2093,10 +2100,30 @@ public class DetalleFacturaController {
 
                                 int idxSeg = 1;
                                 for (DetalleArticuloSegmentado detSeg : articulo.detallesSegmentados) {
-                                    VBox itemSeg = new VBox(2);
+                                    VBox itemSeg = new VBox(6);
                                     itemSeg.setStyle("-fx-background-color: #eef3f7; -fx-padding: 8; -fx-background-radius: 6;");
+
+                                    HBox encabezadoSeg = new HBox(8);
+                                    encabezadoSeg.setAlignment(Pos.CENTER_LEFT);
+                                    Label lblDetalleSeg = crearEtiquetaTituloSegmentado("Detalle #" + idxSeg++);
+                                    Region spacerSeg = new Region();
+                                    HBox.setHgrow(spacerSeg, Priority.ALWAYS);
+                                    HBox botonesSeg = new HBox(6);
+                                    botonesSeg.setAlignment(Pos.CENTER_RIGHT);
+
+                                    if (articulo.esDetalleSalida() && detSeg.idDetalle != null && detSeg.idDetalle > 0
+                                            && !detSeg.esEliminado() && !detSeg.esSegmentado()) {
+                                        Button btnEditarSeg = crearBotonIcono("/img/editar.png", "Editar");
+                                        btnEditarSeg.setOnAction(event -> editarDetalleArticuloSegmentadoSalida(detSeg));
+                                        Button btnEliminarSeg = crearBotonIcono("/img/eliminar.png", "Eliminar");
+                                        btnEliminarSeg.setOnAction(event -> eliminarDetalleArticuloSegmentadoSalida(detSeg));
+                                        botonesSeg.getChildren().addAll(btnEditarSeg, btnEliminarSeg);
+                                    }
+
+                                    encabezadoSeg.getChildren().addAll(lblDetalleSeg, spacerSeg, botonesSeg);
+
                                     itemSeg.getChildren().addAll(
-                                            crearEtiquetaTituloSegmentado("Detalle #" + idxSeg++),
+                                            encabezadoSeg,
                                             crearEtiquetaDetalleElegante("Ubicación:", valorTexto(detSeg.ubicacion)),
                                             crearEtiquetaDetalleElegante("Estado:", valorTexto(detSeg.estado))
                                     );
@@ -2425,6 +2452,154 @@ public class DetalleFacturaController {
             }
         }
         return null;
+    }
+
+    private Button crearBotonIcono(String recursoIcono, String textoFallback) {
+        Button boton = new Button();
+        try {
+            ImageView icono = new ImageView(new Image(getClass().getResourceAsStream(recursoIcono)));
+            icono.setFitWidth(14);
+            icono.setFitHeight(14);
+            boton.setGraphic(icono);
+        } catch (Exception e) {
+            boton.setText(textoFallback);
+        }
+        boton.setStyle("-fx-background-color: #333; -fx-cursor: hand; -fx-padding: 4 8; -fx-background-radius: 4;");
+        return boton;
+    }
+
+    private void editarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle) {
+        if (detalle == null || detalle.idDetalle == null || detalle.idDetalle <= 0) {
+            return;
+        }
+        if (detalle.esEliminado() || detalle.esSegmentado()) {
+            mostrarAdvertencia("Acción no permitida", "No se puede editar un detalle segmentado eliminado o segmentado.");
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Editar detalle segmentado");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        ComboBox<String> cbUbicacion = new ComboBox<>();
+        cbUbicacion.setEditable(false);
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn != null) {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT nombre FROM ubicaciones WHERE estado = 'activo' ORDER BY nombre")) {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            cbUbicacion.getItems().add(valorTexto(rs.getObject(1)));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (!valorTexto(detalle.ubicacion).isBlank()) {
+            cbUbicacion.setValue(valorTexto(detalle.ubicacion));
+        }
+
+        VBox contenido = new VBox(8,
+                new Label("Ubicación:"),
+                cbUbicacion
+        );
+        dialog.getDialogPane().setContent(contenido);
+
+        dialog.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != ButtonType.OK) {
+                return;
+            }
+            String ubicacion = cbUbicacion.getValue();
+            if (ubicacion == null || ubicacion.isBlank()) {
+                mostrarAdvertencia("Campo requerido", "Selecciona una ubicación.");
+                return;
+            }
+            try (Connection conn = new Conexion().conectar()) {
+                if (conn == null) {
+                    return;
+                }
+                Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+                Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
+
+                String colDetalleId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id", "id_detalle");
+                String colDetalleUbicacion = resolverColumna(columnasDetalleArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
+                String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
+                String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
+                if (colDetalleId == null || colDetalleUbicacion == null || colUbicacionId == null || colUbicacionNombre == null) {
+                    return;
+                }
+
+                Integer idUbicacion = null;
+                String sqlUbicacion = "SELECT `" + colUbicacionId + "` AS idUbi FROM ubicaciones WHERE `" + colUbicacionNombre + "` = ? LIMIT 1";
+                try (PreparedStatement ps = conn.prepareStatement(sqlUbicacion)) {
+                    ps.setString(1, ubicacion);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            idUbicacion = parseInteger(rs.getObject("idUbi"));
+                        }
+                    }
+                }
+                if (idUbicacion == null) {
+                    mostrarAdvertencia("Ubicación inválida", "No se encontró la ubicación seleccionada.");
+                    return;
+                }
+
+                String sql = "UPDATE detalleArticulo SET `" + colDetalleUbicacion + "` = ? WHERE `" + colDetalleId + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, idUbicacion);
+                    ps.setInt(2, detalle.idDetalle);
+                    ps.executeUpdate();
+                }
+                notificarActualizacion();
+                cargarDetalles();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void eliminarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle) {
+        if (detalle == null || detalle.idDetalle == null || detalle.idDetalle <= 0) {
+            return;
+        }
+        if (detalle.esEliminado() || detalle.esSegmentado()) {
+            mostrarAdvertencia("Acción no permitida", "No se puede eliminar un detalle segmentado eliminado o segmentado.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Eliminar detalle segmentado");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Deseas eliminar el detalle segmentado seleccionado?");
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != ButtonType.OK) {
+                return;
+            }
+            try (Connection conn = new Conexion().conectar()) {
+                if (conn == null) {
+                    return;
+                }
+                Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+                String colDetalleId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id", "id_detalle");
+                String colDetalleEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
+                if (colDetalleId == null || colDetalleEstado == null) {
+                    return;
+                }
+                String sql = "UPDATE detalleArticulo SET `" + colDetalleEstado + "` = ? WHERE `" + colDetalleId + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "eliminado");
+                    ps.setInt(2, detalle.idDetalle);
+                    ps.executeUpdate();
+                }
+                notificarActualizacion();
+                cargarDetalles();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private Label crearEtiquetaTituloSegmentado(String titulo) {
@@ -4426,6 +4601,7 @@ public class DetalleFacturaController {
     }
 
     private static class DetalleArticuloSegmentado {
+        private final Integer idDetalle;
         private final String ubicacion;
         private final String lote;
         private final String caducidad;
@@ -4433,14 +4609,23 @@ public class DetalleFacturaController {
         private final String factor;
         private final String estado;
 
-        private DetalleArticuloSegmentado(String ubicacion, String lote, String caducidad,
+        private DetalleArticuloSegmentado(Integer idDetalle, String ubicacion, String lote, String caducidad,
                                           String presentacion, String factor, String estado) {
+            this.idDetalle = idDetalle;
             this.ubicacion = ubicacion;
             this.lote = lote;
             this.caducidad = caducidad;
             this.presentacion = presentacion;
             this.factor = factor;
             this.estado = estado;
+        }
+
+        private boolean esEliminado() {
+            return estado != null && "eliminado".equalsIgnoreCase(estado.trim());
+        }
+
+        private boolean esSegmentado() {
+            return estado != null && "segmentado".equalsIgnoreCase(estado.trim());
         }
     }
 }
