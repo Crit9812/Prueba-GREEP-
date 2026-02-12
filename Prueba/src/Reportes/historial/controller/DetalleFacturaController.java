@@ -1472,6 +1472,7 @@ public class DetalleFacturaController {
                 ordenEstado
         );
 
+        Map<Integer, DetalleArticulo> articulosPorId = new HashMap<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, claveMovimiento);
             try (ResultSet rs = ps.executeQuery()) {
@@ -1481,7 +1482,7 @@ public class DetalleFacturaController {
                     if (linea == null) {
                         continue;
                     }
-                    linea.articulos.add(new DetalleArticulo(
+                    DetalleArticulo detalleArticulo = new DetalleArticulo(
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
@@ -1492,9 +1493,15 @@ public class DetalleFacturaController {
                             rs.getObject("detalleEntrada"),
                             rs.getObject("detalleSalida"),
                             rs.getBoolean("tieneDetalleArticuloBloqueado")
-                    ));
+                    );
+                    linea.articulos.add(detalleArticulo);
+                    articulosPorId.put(detalleArticulo.idArticulo, detalleArticulo);
                 }
             }
+        }
+
+        if (!articulosPorId.isEmpty()) {
+            cargarDetallesArticuloPorArticulo(conn, articulosPorId, false);
         }
     }
 
@@ -1630,21 +1637,20 @@ public class DetalleFacturaController {
         }
 
         if (!articulosPorId.isEmpty()) {
-            cargarDetallesArticuloSalida(conn, lineasPorId, articulosPorId);
+            cargarDetallesArticuloPorArticulo(conn, articulosPorId, true);
         }
     }
 
-    private void cargarDetallesArticuloSalida(Connection conn,
-                                              Map<Integer, DetalleLinea> lineasPorId,
-                                              Map<Integer, DetalleArticulo> articulosPorId) throws SQLException {
-        if (conn == null || lineasPorId == null || lineasPorId.isEmpty() || articulosPorId == null || articulosPorId.isEmpty()) {
+    private void cargarDetallesArticuloPorArticulo(Connection conn,
+                                                   Map<Integer, DetalleArticulo> articulosPorId,
+                                                   boolean filtrarPorDetalleSalida) throws SQLException {
+        if (conn == null || articulosPorId == null || articulosPorId.isEmpty()) {
             return;
         }
 
         Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
         Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
 
-        String colDetalleId = resolverColumna(columnasDetalleArticulo, "idDetalle", "id", "id_detalle");
         String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
         String colDetalleArticuloSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida", "id_detalle_salida",
                 "detalleSalida", "detalle_salida", "detalle_salida_id");
@@ -1658,7 +1664,7 @@ public class DetalleFacturaController {
         String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
         String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
 
-        if (colDetalleArticuloArticulo == null || colDetalleArticuloSalida == null) {
+        if (colDetalleArticuloArticulo == null) {
             return;
         }
 
@@ -1669,24 +1675,21 @@ public class DetalleFacturaController {
                 ? "u.`" + colUbicacionNombre + "`"
                 : "NULL";
 
-        List<Integer> detallesSalidaIds = new ArrayList<>(lineasPorId.keySet());
+        List<Integer> articulosIds = new ArrayList<>(articulosPorId.keySet());
         String sql = String.format("""
-                SELECT %s AS idDetalle,
-                       da.`%s` AS idDetalleSalida,
-                       da.`%s` AS idArticulo,
+                SELECT da.`%s` AS idArticulo,
                        %s AS lote,
                        %s AS caducidad,
                        %s AS presentacion,
                        %s AS factor,
                        %s AS estado,
-                       %s AS ubicacion
+                       %s AS ubicacion,
+                       %s AS idDetalleSalida
                 FROM detalleArticulo da
                 %s
                 WHERE da.`%s` IN (%s)
                 ORDER BY da.`%s`
                 """,
-                colDetalleId != null ? "da.`" + colDetalleId + "`" : "NULL",
-                colDetalleArticuloSalida,
                 colDetalleArticuloArticulo,
                 columnaSeguro("da", colDetalleArticuloLote),
                 columnaSeguro("da", colDetalleArticuloCaducidad),
@@ -1694,48 +1697,36 @@ public class DetalleFacturaController {
                 columnaSeguro("da", colDetalleArticuloFactor),
                 columnaSeguro("da", colDetalleArticuloEstado),
                 ubicacionExpr,
+                colDetalleArticuloSalida != null ? "da.`" + colDetalleArticuloSalida + "`" : "NULL",
                 joinUbicacion,
-                colDetalleArticuloSalida,
-                placeholders(detallesSalidaIds.size()),
+                colDetalleArticuloArticulo,
+                placeholders(articulosIds.size()),
                 colDetalleArticuloArticulo
         );
 
-        Map<Integer, DetalleArticulo> articulosSegmentadosPorDetalleSalida = new HashMap<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
-            for (Integer idDetalleSalida : detallesSalidaIds) {
-                ps.setInt(index++, idDetalleSalida);
+            for (Integer idArticulo : articulosIds) {
+                ps.setInt(index++, idArticulo);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Integer idDetalleSalida = parseInteger(rs.getObject("idDetalleSalida"));
                     Integer idArticulo = parseInteger(rs.getObject("idArticulo"));
-                    DetalleArticulo articulo = idArticulo != null ? articulosPorId.get(idArticulo) : null;
-                    if (articulo == null && idDetalleSalida != null) {
-                        DetalleLinea linea = lineasPorId.get(idDetalleSalida);
-                        if (linea != null) {
-                            articulo = articulosSegmentadosPorDetalleSalida.get(idDetalleSalida);
-                            if (articulo == null) {
-                                articulo = new DetalleArticulo(
-                                        valorTexto(rs.getObject("ubicacion")),
-                                        valorTexto(rs.getObject("lote")),
-                                        valorTexto(rs.getObject("caducidad")),
-                                        valorTexto(rs.getObject("presentacion")),
-                                        valorTexto(rs.getObject("factor")),
-                                        valorTexto(rs.getObject("estado")),
-                                        0,
-                                        null,
-                                        idDetalleSalida,
-                                        false
-                                );
-                                linea.articulos.add(articulo);
-                                articulosSegmentadosPorDetalleSalida.put(idDetalleSalida, articulo);
-                            }
-                        }
+                    if (idArticulo == null) {
+                        continue;
                     }
+                    DetalleArticulo articulo = articulosPorId.get(idArticulo);
                     if (articulo == null) {
                         continue;
                     }
+
+                    if (filtrarPorDetalleSalida && articulo.detalleSalidaId != null) {
+                        Integer idDetalleSalida = parseInteger(rs.getObject("idDetalleSalida"));
+                        if (idDetalleSalida == null || !articulo.detalleSalidaId.equals(idDetalleSalida)) {
+                            continue;
+                        }
+                    }
+
                     articulo.detallesSegmentados.add(new DetalleArticuloSegmentado(
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
@@ -1932,7 +1923,7 @@ public class DetalleFacturaController {
 
                             infoBox.getChildren().addAll(linea1, linea2, linea3, linea4);
 
-                            if (articulo.tieneDetallesSegmentados()) {
+                            if (articulo.esSegmentado() && articulo.tieneDetallesSegmentados()) {
                                 CheckBox chkDesplegar = new CheckBox("Mostrar detalles segmentados");
                                 chkDesplegar.getStyleClass().add("check-detalles-segmentados");
 
