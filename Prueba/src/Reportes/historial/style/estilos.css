@@ -154,6 +154,23 @@
     -fx-text-fill: #999696;
 }
 
+.check-detalles-segmentados {
+    -fx-font-size: 12px;
+    -fx-text-fill: #333;
+    -fx-cursor: hand;
+}
+
+.check-detalles-segmentados .box {
+    -fx-border-color: #333;
+    -fx-border-width: 2px;
+    -fx-background-color: white;
+    -fx-padding: 4;
+}
+
+.check-detalles-segmentados:selected .box {
+    -fx-background-color: #333;
+    -fx-border-color: #333;
+}
 
 
 
