@@ -2351,7 +2351,7 @@ public class DetalleFacturaController {
     private void editarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle) {
         // ENTRADAS/REPORTES: no permitir editar/eliminar con estado vendido, eliminado o pendiente
         if (detalle != null && (detalle.esVendido() || detalle.esPendiente() || detalle.esEliminado())) {
-            mostrarAlerta("Acción no permitida", "No se puede modificar un detalleArticulo con estado vendido, eliminado o pendiente.");
+            mostrarAdvertencia("Acción no permitida", "No se puede modificar un detalleArticulo con estado vendido, eliminado o pendiente.");
             return;
         }
 
@@ -2441,7 +2441,7 @@ public class DetalleFacturaController {
     private void eliminarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle) {
         // ENTRADAS/REPORTES: no permitir eliminar con estado vendido, eliminado o pendiente
         if (detalle != null && (detalle.esVendido() || detalle.esPendiente() || detalle.esEliminado())) {
-            mostrarAlerta("Acción no permitida", "No se puede eliminar un detalleArticulo con estado vendido, eliminado o pendiente.");
+            mostrarAdvertencia("Acción no permitida", "No se puede eliminar un detalleArticulo con estado vendido, eliminado o pendiente.");
             return;
         }
 
