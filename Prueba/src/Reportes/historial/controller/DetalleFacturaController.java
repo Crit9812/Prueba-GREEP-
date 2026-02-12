@@ -1650,6 +1650,7 @@ public class DetalleFacturaController {
         }
 
         Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
+        Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
         Map<String, String> columnasUbicacion = obtenerColumnas(conn, "ubicaciones");
 
         String colDetalleArticuloArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo", "id_articulo", "articulo_id");
@@ -1662,12 +1663,23 @@ public class DetalleFacturaController {
         String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado", "Estado");
         String colDetalleArticuloUbicacion = resolverColumna(columnasDetalleArticulo, "ubicacion", "idUbicacion", "id_ubicacion");
 
+        String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+        String colArticuloLote = resolverColumna(columnasArticulo, "lote");
+        String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+        String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
+        String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
+        String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+
         String colUbicacionId = resolverColumna(columnasUbicacion, "id", "idUbicacion", "ubicacion_id");
         String colUbicacionNombre = resolverColumna(columnasUbicacion, "nombre", "Nombre", "ubicacion");
 
         if (colDetalleArticuloSalida == null) {
             return;
         }
+
+        String joinArticulo = (colArticuloId != null && colDetalleArticuloArticulo != null)
+                ? "LEFT JOIN articulo a ON da.`" + colDetalleArticuloArticulo + "` = a.`" + colArticuloId + "`"
+                : "";
 
         String joinUbicacion = (colDetalleArticuloUbicacion != null && colUbicacionId != null && colUbicacionNombre != null)
                 ? "LEFT JOIN ubicaciones u ON da.`" + colDetalleArticuloUbicacion + "` = u.`" + colUbicacionId + "`"
@@ -1685,8 +1697,14 @@ public class DetalleFacturaController {
                        %s AS presentacion,
                        %s AS factor,
                        %s AS estado,
-                       %s AS ubicacion
+                       %s AS ubicacion,
+                       %s AS articuloLote,
+                       %s AS articuloCaducidad,
+                       %s AS articuloPresentacion,
+                       %s AS articuloFactor,
+                       %s AS articuloEstado
                 FROM detalleArticulo da
+                %s
                 %s
                 WHERE da.`%s` IN (%s)
                 ORDER BY da.`%s`
@@ -1699,6 +1717,12 @@ public class DetalleFacturaController {
                 columnaSeguro("da", colDetalleArticuloFactor),
                 columnaSeguro("da", colDetalleArticuloEstado),
                 ubicacionExpr,
+                columnaSeguro("a", colArticuloLote),
+                columnaSeguro("a", colArticuloCaducidad),
+                columnaSeguro("a", colArticuloPresentacion),
+                columnaSeguro("a", colArticuloFactor),
+                columnaSeguro("a", colArticuloEstado),
+                joinArticulo,
                 joinUbicacion,
                 colDetalleArticuloSalida,
                 placeholders(detalleSalidaIds.size()),
@@ -1730,13 +1754,22 @@ public class DetalleFacturaController {
 
                     DetalleArticulo articuloVirtual = virtualesPorDetalleSalida.get(idDetalleSalida);
                     if (articuloVirtual == null) {
+                        String loteArticulo = valorTexto(rs.getObject("articuloLote"));
+                        String caducidadArticulo = valorTexto(rs.getObject("articuloCaducidad"));
+                        String presentacionArticulo = valorTexto(rs.getObject("articuloPresentacion"));
+                        String factorArticulo = valorTexto(rs.getObject("articuloFactor"));
+                        String estadoArticulo = valorTexto(rs.getObject("articuloEstado"));
+                        if (estadoArticulo.isBlank()) {
+                            estadoArticulo = "segmentado";
+                        }
+
                         articuloVirtual = new DetalleArticulo(
                                 "",
-                                valorTexto(rs.getObject("lote")),
-                                valorTexto(rs.getObject("caducidad")),
-                                valorTexto(rs.getObject("presentacion")),
-                                valorTexto(rs.getObject("factor")),
-                                "segmentado",
+                                loteArticulo,
+                                caducidadArticulo,
+                                presentacionArticulo,
+                                factorArticulo,
+                                estadoArticulo,
                                 0,
                                 null,
                                 idDetalleSalida,
