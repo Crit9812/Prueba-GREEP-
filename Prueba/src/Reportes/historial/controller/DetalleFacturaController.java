@@ -1412,7 +1412,7 @@ public class DetalleFacturaController {
         int[] idx = {1};
         boolean esEntrada = "Entrada".equalsIgnoreCase(linea.tipo);
         for (DetalleArticulo art : linea.articulos) {
-            HBox cardArt = crearCardArticulo(art, idx[0]++, esEntrada);
+            HBox cardArt = crearCardArticulo(art, idx[0]++, esEntrada, linea);
             if (cardArt != null) listaArticulos.getChildren().add(cardArt);
         }
         return listaArticulos;
@@ -1424,7 +1424,7 @@ public class DetalleFacturaController {
      * @param index     Número de orden
      * @param esEntrada true si la línea pertenece a una entrada (movimiento Entrada o parte de Ajuste)
      */
-    private HBox crearCardArticulo(DetalleArticulo art, int index, boolean esEntrada) {
+    private HBox crearCardArticulo(DetalleArticulo art, int index, boolean esEntrada, DetalleLinea linea) {
         if (art == null) return null;
 
         HBox card = new HBox(12);
