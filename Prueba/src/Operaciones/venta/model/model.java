@@ -286,7 +286,7 @@ public class model {
             psDetalle.setString(index++, item.getClaveProducto());
             psDetalle.setString(index++, item.getLote());
             psDetalle.setInt(index++, ubicacionId);
-            psDetalle.setString(index++, "activo");
+            psDetalle.setString(index++, "disponible");
             psDetalle.setString(index++, "segmentado");
             if (caducidad != null) {
                 psDetalle.setDate(index, caducidad);
@@ -371,7 +371,7 @@ public class model {
             ps.setInt(index++, detalleEntradaId);
             ps.setInt(index++, ubicacionId);
             ps.setString(index++, item.getLote());
-            ps.setString(index++, "activo");
+            ps.setString(index++, "disponible");
             ps.setString(index++, "segmentado");
             if (caducidad != null) {
                 ps.setDate(index++, caducidad);

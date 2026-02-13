@@ -1095,7 +1095,7 @@ public class GenericDAO<T> {
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 int index = 1;
-                ps.setString(index++, "activo");
+                ps.setString(index++, "disponible");
                 if (idProducto != null) {
                     ps.setString(index++, idProducto);
                 }
