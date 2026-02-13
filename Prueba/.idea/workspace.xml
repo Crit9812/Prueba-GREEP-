@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en historial por factura">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en iventario en la parte de segmentacion">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -217,15 +217,7 @@
       <workItem from="1770834936465" duration="4682000" />
       <workItem from="1770904541174" duration="18985000" />
       <workItem from="1770992026265" duration="4822000" />
-      <workItem from="1771009340448" duration="7478000" />
-    </task>
-    <task id="LOCAL-00015" summary="Agregada parte de compra completa y cambio al cerrar formulario">
-      <option name="closed" value="true" />
-      <created>1767381825938</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1767381825938</updated>
+      <workItem from="1771009340448" duration="8390000" />
     </task>
     <task id="LOCAL-00016" summary="Agregado de tabla en claves y cambioes en compras y ventas">
       <option name="closed" value="true" />
@@ -611,7 +603,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770998668022</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="cambios en iventario en la parte de segmentacion">
+      <option name="closed" value="true" />
+      <created>1771019231358</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1771019231359</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -664,7 +664,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Correccion en el formulario de compra, dos botones agregados" />
     <MESSAGE value="Correccion de combobox de ubicacion" />
     <MESSAGE value="Agrego cambios de jess, no recuerdo que era" />
     <MESSAGE value="Se agrego API de codigo postal" />
@@ -689,7 +688,8 @@
     <MESSAGE value="Cambios en inventario" />
     <MESSAGE value="cambios que no recuerdo" />
     <MESSAGE value="cambios en historial por factura" />
-    <option name="LAST_COMMIT_MESSAGE" value="cambios en historial por factura" />
+    <MESSAGE value="cambios en iventario en la parte de segmentacion" />
+    <option name="LAST_COMMIT_MESSAGE" value="cambios en iventario en la parte de segmentacion" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
