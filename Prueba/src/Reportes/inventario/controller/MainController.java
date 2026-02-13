@@ -1990,7 +1990,7 @@ public class MainController {
                 u.nombre AS ubicacion,
                 p.descripcion AS descripcion,
                 COALESCE(de.precioUnitario, 0) AS precioTotal,
-                COALESCE(de.precioTotal, 0) AS precioTotalIva,
+                COALESCE(de.precioIVA, 0) AS precioTotalIva,
                 p.inventarioMin AS inventarioMinimo
             FROM articulo a
             INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
@@ -2014,7 +2014,7 @@ public class MainController {
                 u.nombre AS ubicacion,
                 p.descripcion AS descripcion,
                 (COALESCE(de.precioUnitario, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotal,
-                (COALESCE(de.precioTotal, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotalIva,
+                (COALESCE(de.precioIVA, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotalIva,
                 p.inventarioMin AS inventarioMinimo
             FROM detalleArticulo da
             INNER JOIN articulo a ON da.idArticulo = a.idArticulo
@@ -2053,7 +2053,7 @@ public class MainController {
                     a.factor AS factor,
                     p.descripcion AS descripcion,
                     COALESCE(de.precioUnitario, 0) AS precioTotal,
-                    COALESCE(de.precioTotal, 0) AS precioTotalIva,
+                    COALESCE(de.precioIVA, 0) AS precioTotalIva,
                     p.inventarioMin AS inventarioMinimo
                 FROM articulo a
                 INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
@@ -2073,7 +2073,7 @@ public class MainController {
                     '1' AS factor,
                     p.descripcion AS descripcion,
                     (COALESCE(de.precioUnitario, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotal,
-                    (COALESCE(de.precioTotal, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotalIva,
+                    (COALESCE(de.precioIVA, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotalIva,
                     p.inventarioMin AS inventarioMinimo
                 FROM detalleArticulo da
                 INNER JOIN articulo a ON da.idArticulo = a.idArticulo
