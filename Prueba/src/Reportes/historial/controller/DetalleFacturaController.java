@@ -1251,12 +1251,15 @@ public class DetalleFacturaController {
 
                     virt.detallesSegmentados.add(new DetalleArticuloSegmentado(
                             valorTexto(rs.getObject("idDetalle")),
+                            parseInteger(rs.getObject("idArticulo")),
+                            parseInteger(rs.getObject("idDetalleSalida")),
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
                             valorTexto(rs.getObject("presentacion")),
                             valorTexto(rs.getObject("factor")),
-                            valorTexto(rs.getObject("estado"))));
+                            valorTexto(rs.getObject("estado")),
+                            linea.precioUnitario));
                 }
             }
         }
@@ -1322,12 +1325,15 @@ public class DetalleFacturaController {
 
                     art.detallesSegmentados.add(new DetalleArticuloSegmentado(
                             valorTexto(rs.getObject("idDetalle")),
+                            idArt,
+                            parseInteger(rs.getObject("idDetalleSalida")),
                             valorTexto(rs.getObject("ubicacion")),
                             valorTexto(rs.getObject("lote")),
                             valorTexto(rs.getObject("caducidad")),
                             valorTexto(rs.getObject("presentacion")),
                             valorTexto(rs.getObject("factor")),
-                            valorTexto(rs.getObject("estado"))));
+                            valorTexto(rs.getObject("estado")),
+                            ""));
                 }
             }
         }
@@ -1490,12 +1496,13 @@ public class DetalleFacturaController {
                 boolean bloqueadoEntrada = esEntrada && (ds.esVendido() || ds.esPendiente() || ds.esEliminado());
                 if (ds.idDetalle != null && !ds.idDetalle.isBlank() && !ds.esSegmentado() && !bloqueadoEntrada) {
                     btnSeg.getChildren().addAll(
-                            crearBotonIcono("/img/editar.png", "Editar", ev -> editarDetalleArticuloSegmentadoSalida(ds, esEntrada)),
+                            crearBotonIcono("/img/editar.png", "Editar", ev -> editarDetalleArticuloSegmentadoSalida(ds, esEntrada, linea)),
                             crearBotonIcono("/img/eliminar.png", "Eliminar", ev -> eliminarDetalleArticuloSegmentadoSalida(ds, esEntrada)));
                 }
                 enc.getChildren().addAll(lblDet, spacer, btnSeg);
 
                 item.getChildren().addAll(enc,
+                        crearEtiquetaDetalleElegante("Precio unitario:", valorTexto(ds.precioUnitario)),
                         crearEtiquetaDetalleElegante("Ubicación:", valorTexto(ds.ubicacion)),
                         crearEtiquetaDetalleElegante("Estado:", valorTexto(ds.estado)));
                 cont.getChildren().add(item);
@@ -2414,7 +2421,8 @@ public class DetalleFacturaController {
         }
     }
 
-    private void editarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle, boolean esEntrada) {
+    private void editarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle, boolean esEntrada,
+                                                       DetalleLinea linea) {
         // Si es entrada, no permitir editar si está vendido, pendiente o eliminado
         if (esEntrada) {
             if (detalle != null && (detalle.esVendido() || detalle.esPendiente() || detalle.esEliminado())) {
@@ -2439,6 +2447,17 @@ public class DetalleFacturaController {
 
         ComboBox<String> cbUbi = new ComboBox<>();
         cbUbi.setEditable(false);
+        TextField txtLote = new TextField(valorTexto(detalle.lote));
+        DatePicker dpCad = new DatePicker();
+        configurarDatePickerEditable(dpCad);
+        LocalDate cadActual = parsearFechaCaducidadTexto(detalle.caducidad);
+        if (cadActual != null) {
+            dpCad.setValue(cadActual);
+            dpCad.getEditor().setText(cadActual.format(DATE_FORMAT_SLASH));
+        } else {
+            dpCad.getEditor().setText(valorTexto(detalle.caducidad));
+        }
+        TextField txtPrecio = new TextField(valorTexto(detalle.precioUnitario));
 
         try (Connection conn = new Conexion().conectar()) {
             if (conn != null) {
@@ -2456,7 +2475,11 @@ public class DetalleFacturaController {
             cbUbi.setValue(valorTexto(detalle.ubicacion));
         }
 
-        dlg.getDialogPane().setContent(new VBox(8, new Label("Ubicación:"), cbUbi));
+        dlg.getDialogPane().setContent(new VBox(8,
+                new Label("Lote:"), txtLote,
+                new Label("Caducidad:"), dpCad,
+                new Label("Precio unitario:"), txtPrecio,
+                new Label("Ubicación:"), cbUbi));
 
         dlg.showAndWait().ifPresent(r -> {
             if (r != ButtonType.OK) return;
@@ -2469,10 +2492,17 @@ public class DetalleFacturaController {
 
             try (Connection conn = new Conexion().conectar()) {
                 if (conn == null) return;
+                conn.setAutoCommit(false);
 
                 Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
                 String colId = resolverColumna(colsDetArt, "idDetalle", "id", "id_detalle");
                 String colUbi = resolverColumna(colsDetArt, "ubicacion", "idUbicacion", "id_ubicacion");
+                String colLote = resolverColumna(colsDetArt, "lote");
+                String colCad = resolverColumna(colsDetArt, "caducidad");
+                String colPUnitDetArt = resolverColumna(colsDetArt, "precioUnitario", "precioSalida", "precio_entrada", "precio");
+                String colPIvaDetArt = resolverColumna(colsDetArt, "precioIVA", "precioIva", "precio_iva");
+                String colPTotalDetArt = resolverColumna(colsDetArt, "precioTotal", "precio_total");
+                String colPBrutoDetArt = resolverColumna(colsDetArt, "precioBrutoTotal", "precioBruto", "precio_bruto");
 
                 if (colId == null || colUbi == null) {
                     mostrarAdvertencia("Error", "No se encontraron las columnas necesarias.");
@@ -2492,11 +2522,36 @@ public class DetalleFacturaController {
                     return;
                 }
 
-                try (PreparedStatement ps = conn.prepareStatement("UPDATE detalleArticulo SET `" + colUbi + "` = ? WHERE `" + colId + "` = ?")) {
-                    ps.setInt(1, idUbi);
-                    ps.setString(2, detalle.idDetalle);
-                    ps.executeUpdate();
+                LocalDate fechaCad = parsearFechaCaducidadEditable(dpCad);
+                if (fechaCad == null && !valorTexto(dpCad.getEditor().getText()).isBlank()) {
+                    mostrarAdvertencia("Caducidad inválida", "Ingresa una fecha válida.");
+                    conn.rollback();
+                    return;
                 }
+
+                BigDecimal nuevoPrecio = parseDecimal(txtPrecio.getText());
+                if (nuevoPrecio == null || nuevoPrecio.compareTo(BigDecimal.ZERO) < 0) {
+                    mostrarAdvertencia("Precio inválido", "Ingresa un precio unitario válido.");
+                    conn.rollback();
+                    return;
+                }
+                nuevoPrecio = nuevoPrecio.setScale(2, RoundingMode.HALF_UP);
+
+                BigDecimal tasaIva = obtenerTasaIva(linea != null ? linea.precioUnitario : null, linea != null ? linea.precioIva : null);
+                BigDecimal precioIvaUnit = nuevoPrecio.multiply(BigDecimal.ONE.add(tasaIva)).setScale(2, RoundingMode.HALF_UP);
+
+                Integer idDetalleSalida = detalle.detalleSalidaId != null ? detalle.detalleSalidaId : (linea != null ? linea.idDetalle : null);
+
+                actualizarDetalleArticuloSegmentado(conn, colId, colUbi, colLote, colCad, colPUnitDetArt,
+                        colPIvaDetArt, colPBrutoDetArt, colPTotalDetArt, detalle.idDetalle, idDetalleSalida,
+                        idUbi, valorTexto(txtLote.getText()), fechaCad != null ? java.sql.Date.valueOf(fechaCad) : null,
+                        nuevoPrecio, precioIvaUnit);
+
+                if (!esEntrada && idDetalleSalida != null && idDetalleSalida > 0) {
+                    actualizarPreciosDetalleSalidaYOrigen(conn, idDetalleSalida, nuevoPrecio, precioIvaUnit, linea);
+                }
+
+                conn.commit();
 
                 notificarActualizacion();
                 cargarDetalles();
@@ -2505,6 +2560,224 @@ public class DetalleFacturaController {
                 mostrarAdvertencia("Error", "No se pudo actualizar el detalle: " + e.getMessage());
             }
         });
+    }
+
+    private void actualizarDetalleArticuloSegmentado(Connection conn, String colId, String colUbi, String colLote,
+                                                     String colCad, String colPUnit, String colPIva,
+                                                     String colPBruto, String colPTotal, String idDetalle,
+                                                     Integer idDetalleSalida, Integer idUbi, String lote,
+                                                     java.sql.Date caducidad, BigDecimal precioUnit, BigDecimal precioIvaUnit) throws SQLException {
+        if (colId == null) return;
+
+        String where = " WHERE `" + colId + "` = ?";
+        List<Object> whereVals = new ArrayList<>();
+        whereVals.add(idDetalle);
+
+        if (idDetalleSalida != null && idDetalleSalida > 0) {
+            String colDetSal = resolverColumna(obtenerColumnasCached(conn, "detalleArticulo"),
+                    "idDetalleSalida", "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+            if (colDetSal != null) {
+                where = " WHERE `" + colDetSal + "` = ?";
+                whereVals.clear();
+                whereVals.add(idDetalleSalida);
+            }
+        }
+
+        StringBuilder sql = new StringBuilder("UPDATE detalleArticulo SET ");
+        List<Object> vals = new ArrayList<>();
+        agregarCampo(sql, vals, colUbi, idUbi);
+        agregarCampo(sql, vals, colLote, lote);
+        agregarCampo(sql, vals, colCad, caducidad);
+        agregarCampo(sql, vals, colPUnit, precioUnit);
+        agregarCampo(sql, vals, colPIva, precioIvaUnit);
+
+        BigDecimal cantidad = BigDecimal.ONE;
+        agregarCampo(sql, vals, colPBruto, precioUnit.multiply(cantidad).setScale(2, RoundingMode.HALF_UP));
+        agregarCampo(sql, vals, colPTotal, precioIvaUnit.multiply(cantidad).setScale(2, RoundingMode.HALF_UP));
+        if (vals.isEmpty()) return;
+
+        sql.append(where);
+        vals.addAll(whereVals);
+
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < vals.size(); i++) ps.setObject(i + 1, vals.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    private void actualizarPreciosDetalleSalidaYOrigen(Connection conn, int idDetalleSalida,
+                                                       BigDecimal nuevoPUnit, BigDecimal nuevoPIvaUnit,
+                                                       DetalleLinea linea) throws SQLException {
+        Map<String, String> colsDetSal = obtenerColumnasCached(conn, "detalle_Salida");
+        String colIdDetSal = resolverColumna(colsDetSal, "idDetalleSalida", "id", "id_detalle_salida");
+        String colCantDetSal = resolverColumna(colsDetSal, "cantidad", "cantidadSalida", "cantidad_salida");
+        String colPUnitDetSal = resolverColumna(colsDetSal, "precioUnitarioSalida", "precioUnitario", "precioSalida", "precio_salida");
+        String colPIvaDetSal = resolverColumna(colsDetSal, "precioIVASalida", "precioIVA", "precioIva", "precio_iva");
+        String colPBrutoDetSal = resolverColumna(colsDetSal, "precioBrutoTotalSalida", "precioBrutoTotal", "precio_bruto");
+        String colPTotalDetSal = resolverColumna(colsDetSal, "precioTotalSalida", "precioTotal", "precio_total");
+
+        if (colIdDetSal != null) {
+            BigDecimal cantidad = BigDecimal.ZERO;
+            if (colCantDetSal != null) {
+                String sqlCant = "SELECT `" + colCantDetSal + "` FROM detalle_Salida WHERE `" + colIdDetSal + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlCant)) {
+                    ps.setInt(1, idDetalleSalida);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) cantidad = parseDecimal(rs.getObject(1));
+                    }
+                }
+            }
+            if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) cantidad = BigDecimal.ONE;
+
+            StringBuilder upDetSal = new StringBuilder("UPDATE detalle_Salida SET ");
+            List<Object> vals = new ArrayList<>();
+            agregarCampo(upDetSal, vals, colPUnitDetSal, nuevoPUnit);
+            agregarCampo(upDetSal, vals, colPIvaDetSal, nuevoPIvaUnit);
+            agregarCampo(upDetSal, vals, colPBrutoDetSal, nuevoPUnit.multiply(cantidad).setScale(2, RoundingMode.HALF_UP));
+            agregarCampo(upDetSal, vals, colPTotalDetSal, nuevoPIvaUnit.multiply(cantidad).setScale(2, RoundingMode.HALF_UP));
+            if (!vals.isEmpty()) {
+                upDetSal.append(" WHERE `").append(colIdDetSal).append("` = ?");
+                vals.add(idDetalleSalida);
+                try (PreparedStatement ps = conn.prepareStatement(upDetSal.toString())) {
+                    for (int i = 0; i < vals.size(); i++) ps.setObject(i + 1, vals.get(i));
+                    ps.executeUpdate();
+                }
+            }
+        }
+
+        actualizarDetalleEntradaDesdeDetalleSalida(conn, idDetalleSalida, nuevoPUnit, nuevoPIvaUnit);
+        if (linea != null) {
+            BigDecimal cantLinea = parseDecimal(linea.cantidad);
+            if (cantLinea == null || cantLinea.compareTo(BigDecimal.ZERO) <= 0) cantLinea = BigDecimal.ONE;
+            actualizarTotalesSalidaPorPrecio(conn, linea, nuevoPUnit, nuevoPIvaUnit, cantLinea);
+        }
+    }
+
+    private void actualizarDetalleEntradaDesdeDetalleSalida(Connection conn, int idDetalleSalida,
+                                                            BigDecimal nuevoPUnit, BigDecimal nuevoPIvaUnit) throws SQLException {
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+
+        String colDetArtSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
+        String colDetArtArt = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
+        if (colDetArtSal == null || colDetArtArt == null || colArtId == null || colArtDetEnt == null || colDetEntId == null) return;
+
+        Set<Integer> detallesEntrada = new HashSet<>();
+        Set<Integer> entradasPadre = new HashSet<>();
+        String sql = "SELECT DISTINCT a.`" + colArtDetEnt + "` AS detEnt FROM detalleArticulo da " +
+                "JOIN articulo a ON a.`" + colArtId + "` = da.`" + colDetArtArt + "` WHERE da.`" + colDetArtSal + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idDetalleSalida);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Integer id = parseInteger(rs.getObject("detEnt"));
+                    if (id != null && id > 0) detallesEntrada.add(id);
+                }
+            }
+        }
+
+        if (detallesEntrada.isEmpty()) return;
+
+        String colCantEnt = resolverColumna(colsDetEnt, "cantidad", "cantidadEntrada");
+        String colClaveEnt = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colPUnitEnt = resolverColumna(colsDetEnt, "precioUnitario", "precioEntrada", "precio_entrada");
+        String colPIvaEnt = resolverColumna(colsDetEnt, "precioIVA", "precioIva", "precio_iva");
+        String colPBrutoEnt = resolverColumna(colsDetEnt, "precioBrutoTotal", "precioBruto", "precio_bruto");
+        String colPTotalEnt = resolverColumna(colsDetEnt, "precioTotal", "precio_total");
+
+        for (Integer idDetEnt : detallesEntrada) {
+            BigDecimal cant = BigDecimal.ONE;
+            if (colCantEnt != null) {
+                String sqlCant = "SELECT `" + colCantEnt + "` FROM detalle_Entrada WHERE `" + colDetEntId + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlCant)) {
+                    ps.setInt(1, idDetEnt);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) cant = parseDecimal(rs.getObject(1));
+                    }
+                }
+            }
+            if (cant == null || cant.compareTo(BigDecimal.ZERO) <= 0) cant = BigDecimal.ONE;
+
+            StringBuilder upDetEnt = new StringBuilder("UPDATE detalle_Entrada SET ");
+            List<Object> vals = new ArrayList<>();
+            agregarCampo(upDetEnt, vals, colPUnitEnt, nuevoPUnit);
+            agregarCampo(upDetEnt, vals, colPIvaEnt, nuevoPIvaUnit);
+            agregarCampo(upDetEnt, vals, colPBrutoEnt, nuevoPUnit.multiply(cant).setScale(2, RoundingMode.HALF_UP));
+            agregarCampo(upDetEnt, vals, colPTotalEnt, nuevoPIvaUnit.multiply(cant).setScale(2, RoundingMode.HALF_UP));
+
+            if (!vals.isEmpty()) {
+                upDetEnt.append(" WHERE `").append(colDetEntId).append("` = ?");
+                vals.add(idDetEnt);
+                try (PreparedStatement ps = conn.prepareStatement(upDetEnt.toString())) {
+                    for (int i = 0; i < vals.size(); i++) ps.setObject(i + 1, vals.get(i));
+                    ps.executeUpdate();
+                }
+            }
+
+            if (colClaveEnt != null) {
+                String sqlClave = "SELECT `" + colClaveEnt + "` FROM detalle_Entrada WHERE `" + colDetEntId + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlClave)) {
+                    ps.setInt(1, idDetEnt);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            Integer entradaId = parseInteger(rs.getObject(1));
+                            if (entradaId != null && entradaId > 0) entradasPadre.add(entradaId);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (Integer entradaId : entradasPadre) {
+            recalcularTotalesEntrada(conn, entradaId);
+        }
+    }
+
+    private void recalcularTotalesEntrada(Connection conn, int entradaId) throws SQLException {
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colDetClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colDetBruto = resolverColumna(colsDetEnt, "precioBrutoTotal", "precioBruto", "precio_bruto");
+        String colDetTotal = resolverColumna(colsDetEnt, "precioTotal", "precio_total");
+        if (colDetClave == null || colDetBruto == null || colDetTotal == null) return;
+
+        BigDecimal neto = BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        String sqlSuma = "SELECT COALESCE(SUM(`" + colDetBruto + "`),0) AS neto, COALESCE(SUM(`" + colDetTotal + "`),0) AS total " +
+                "FROM detalle_Entrada WHERE `" + colDetClave + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlSuma)) {
+            ps.setInt(1, entradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    neto = parseDecimal(rs.getObject("neto"));
+                    total = parseDecimal(rs.getObject("total"));
+                }
+            }
+        }
+        if (neto == null) neto = BigDecimal.ZERO;
+        if (total == null) total = BigDecimal.ZERO;
+
+        Map<String, String> colsEnt = obtenerColumnasCached(conn, "entradas");
+        String colId = resolverColumna(colsEnt, "idEntrada", "id", "id_entrada");
+        String colNeto = resolverColumna(colsEnt, "precioNetoEntrada", "precioNeto", "precio_neto");
+        String colTotal = resolverColumna(colsEnt, "precioTotalEntrada", "precioTotal", "precio_total");
+        if (colId == null) return;
+
+        StringBuilder up = new StringBuilder("UPDATE entradas SET ");
+        List<Object> vals = new ArrayList<>();
+        agregarCampo(up, vals, colNeto, neto.setScale(2, RoundingMode.HALF_UP));
+        agregarCampo(up, vals, colTotal, total.setScale(2, RoundingMode.HALF_UP));
+        if (vals.isEmpty()) return;
+        up.append(" WHERE `").append(colId).append("` = ?");
+        vals.add(entradaId);
+
+        try (PreparedStatement ps = conn.prepareStatement(up.toString())) {
+            for (int i = 0; i < vals.size(); i++) ps.setObject(i + 1, vals.get(i));
+            ps.executeUpdate();
+        }
     }
 
     private void eliminarDetalleArticuloSegmentadoSalida(DetalleArticuloSegmentado detalle, boolean esEntrada) {
@@ -3038,16 +3311,21 @@ public class DetalleFacturaController {
     }
 
     private static class DetalleArticuloSegmentado {
-        final String idDetalle, ubicacion, lote, caducidad, presentacion, factor, estado;
+        final String idDetalle, ubicacion, lote, caducidad, presentacion, factor, estado, precioUnitario;
+        final Integer idArticulo, detalleSalidaId;
 
-        DetalleArticuloSegmentado(String id, String u, String l, String cad, String p, String f, String e) {
+        DetalleArticuloSegmentado(String id, Integer idArt, Integer detSal, String u, String l, String cad,
+                                  String p, String f, String e, String precioUnit) {
             idDetalle = id;
+            idArticulo = idArt;
+            detalleSalidaId = detSal;
             ubicacion = u;
             lote = l;
             caducidad = cad;
             presentacion = p;
             factor = f;
             estado = e;
+            precioUnitario = precioUnit;
         }
 
         boolean esEliminado() { return "eliminado".equalsIgnoreCase(estado); }
