@@ -232,7 +232,17 @@ public class modelNuevoTraspasoSalida {
                 LIMIT 1
             """.formatted(filtroArticulo, incluirDetalle ? """
                     UNION ALL
-                    SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal,
+                    SELECT de.precioUnitario / NULLIF((
+                               SELECT COUNT(*)
+                               FROM detalleArticulo daConteo
+                               WHERE daConteo.idArticulo = a.idArticulo
+                           ), 0) AS precioUnitario,
+                           de.precioIVA / NULLIF((
+                               SELECT COUNT(*)
+                               FROM detalleArticulo daConteo
+                               WHERE daConteo.idArticulo = a.idArticulo
+                           ), 0) AS precioIVA,
+                           de.precioBrutoTotal, de.precioTotal,
                            de.idDetalleEntrada AS idDetalleEntrada,
                            a.caducidad AS caducidadOrden
                     FROM detalle_Entrada de
@@ -307,7 +317,17 @@ public class modelNuevoTraspasoSalida {
                 LIMIT 1
             """.formatted(filtroArticulo, incluirDetalle ? """
                     UNION ALL
-                    SELECT de.precioUnitario, de.precioIVA, de.precioBrutoTotal, de.precioTotal,
+                    SELECT de.precioUnitario / NULLIF((
+                               SELECT COUNT(*)
+                               FROM detalleArticulo daConteo
+                               WHERE daConteo.idArticulo = a.idArticulo
+                           ), 0) AS precioUnitario,
+                           de.precioIVA / NULLIF((
+                               SELECT COUNT(*)
+                               FROM detalleArticulo daConteo
+                               WHERE daConteo.idArticulo = a.idArticulo
+                           ), 0) AS precioIVA,
+                           de.precioBrutoTotal, de.precioTotal,
                            de.idDetalleEntrada AS idDetalleEntrada
                     FROM detalle_Entrada de
                     JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada
