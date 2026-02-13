@@ -259,10 +259,6 @@ public class model {
             }
         }
 
-        if (!esPresentacionDetalle(item.getPresentacion(), item.getFactor())) {
-            return null;
-        }
-
         String sqlDetalle = "SELECT a.idDetalleEntrada AS detalleEntrada " +
                 "FROM detalleArticulo da " +
                 "JOIN articulo a ON a.idArticulo = da.idArticulo " +
@@ -272,6 +268,8 @@ public class model {
                 "AND da.idUbicacion = ? " +
                 "AND LOWER(da.estado) = ? " +
                 "AND LOWER(a.Estado) = ? " +
+                "AND LOWER(a.presentacion) = ? " +
+                "AND a.factor = ? " +
                 "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) ";
 
         if (caducidad != null) {
@@ -288,6 +286,8 @@ public class model {
             psDetalle.setInt(index++, ubicacionId);
             psDetalle.setString(index++, "disponible");
             psDetalle.setString(index++, "segmentado");
+            psDetalle.setString(index++, "pz");
+            psDetalle.setInt(index++, 1);
             if (caducidad != null) {
                 psDetalle.setDate(index, caducidad);
             }
@@ -344,7 +344,7 @@ public class model {
             }
         }
 
-        if (!esPresentacionDetalle(item.getPresentacion(), item.getFactor()) || registros.size() >= cantidad) {
+        if (registros.size() >= cantidad) {
             return registros;
         }
 
@@ -357,7 +357,9 @@ public class model {
                 "AND da.idUbicacion = ? " +
                 "AND a.lote = ? " +
                 "AND LOWER(da.estado) = ? " +
-                "AND LOWER(a.Estado) = ? ";
+                "AND LOWER(a.Estado) = ? " +
+                "AND LOWER(a.presentacion) = ? " +
+                "AND a.factor = ? ";
 
         if (caducidad != null) {
             sqlDetalles += "AND a.caducidad = ? ";
@@ -373,6 +375,8 @@ public class model {
             ps.setString(index++, item.getLote());
             ps.setString(index++, "disponible");
             ps.setString(index++, "segmentado");
+            ps.setString(index++, "pz");
+            ps.setInt(index++, 1);
             if (caducidad != null) {
                 ps.setDate(index++, caducidad);
             }
@@ -441,14 +445,6 @@ public class model {
         }
 
         return true;
-    }
-
-    private boolean esPresentacionDetalle(String presentacion, int factor) {
-        if (presentacion == null) {
-            return false;
-        }
-        String normalizada = presentacion.trim().toLowerCase();
-        return ("pz".equals(normalizada) || "pieza".equals(normalizada)) && factor == 1;
     }
 
     private enum TipoRegistro {
