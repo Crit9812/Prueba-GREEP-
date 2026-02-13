@@ -7,6 +7,7 @@ import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
 import Reportes.inventario.model.ItemInventario;
+import Reportes.inventario.util.EdicionArticulo;
 import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -14,24 +15,23 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
+import javafx.stage.Modality;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -89,6 +89,9 @@ public class MainController {
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
     private OverlayCarga overlayCarga;
+    private boolean editandoSegmentado = false;
+    private String idSegmentadoActual = "";
+    private Integer idArticuloNormalActual = null;
 
 
     @FXML
@@ -218,121 +221,786 @@ public class MainController {
         if (item == null || item.getIdArticulo() == null || item.getIdArticulo().isBlank()) {
             return;
         }
-        Integer idArticulo = parseInteger(item.getIdArticulo());
+
+        String idTexto = item.getIdArticulo().trim();
+
+        // Determinar si es segmentado
+        editandoSegmentado = idTexto.toUpperCase().startsWith("S-");
+
+        if (editandoSegmentado) {
+            // Es artículo segmentado
+            idSegmentadoActual = idTexto;
+            idArticuloNormalActual = null;
+
+            // Extraer el número después de "S-"
+            String numeroStr = idTexto.substring(2);
+            try {
+                Integer.parseInt(numeroStr);
+                abrirDialogoEdicion(item, idTexto, true);
+            } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+                mostrarAdvertencia("ID inválido",
+                        "El ID del artículo segmentado no es válido: " + idTexto);
+                return;
+            }
+        } else {
+            // Es artículo normal
+            editandoSegmentado = false;
+            idSegmentadoActual = null;
+
+            try {
+                idArticuloNormalActual = Integer.parseInt(idTexto);
+                if (idArticuloNormalActual <= 0) {
+                    mostrarAdvertencia("ID inválido", "El ID del artículo debe ser mayor a 0.");
+                    return;
+                }
+                abrirDialogoEdicion(item, idTexto, false);
+            } catch (NumberFormatException e) {
+                mostrarAdvertencia("ID inválido",
+                        "El ID del artículo no es un número válido: " + idTexto);
+                return;
+            }
+        }
+    }
+
+    private void abrirDialogoEdicion(ItemInventario item, String idTexto, boolean esSegmentado) {
+        // Obtener ubicaciones activas
+        List<String> ubicacionesActivas = obtenerUbicacionesActivas();
+
+        // Presentaciones disponibles
+        List<String> presentacionesCompra = Arrays.asList(
+                "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
+        );
+
+        // Variables finales para usar en los callbacks
+        final String idSegmentadoFinal = esSegmentado ? idSegmentadoActual : null;
+        final Integer idNormalFinal = !esSegmentado ? idArticuloNormalActual : null;
+
+        EdicionArticulo.mostrarDialogoEdicion(
+                root.getScene().getWindow(),
+                esSegmentado ? "Editar artículo segmentado" : "Editar artículo",
+                idTexto,
+                esSegmentado,
+                valorTexto(item.getUbicacion()),
+                valorTexto(item.getLote()),
+                valorTexto(item.getCaducidad()),
+                valorTexto(item.getPresentacion()),
+                valorTexto(item.getFactor()),
+                ubicacionesActivas,
+                presentacionesCompra,
+                // Callback para Eliminar
+                (confirmado) -> {
+                    // Cerrar el diálogo de edición PRIMERO
+                    // Luego ejecutar la eliminación
+                    if (esSegmentado) {
+                        eliminarArticuloSegmentado(idSegmentadoFinal);
+                    } else {
+                        eliminarArticuloNormal(idNormalFinal);
+                    }
+                },
+                // Callback para Segmentar
+                (confirmado) -> {
+                    // Luego iniciar segmentación
+                    if (!esSegmentado && idNormalFinal != null) {
+                        iniciarSegmentacionInventario(item, idNormalFinal, null);
+                    }
+                },
+                // Callbacks para éxito/error
+                new EdicionArticulo.Callbacks() {
+                    @Override
+                    public void onExito() {
+                        // Refrescar la vista de inventario
+                        cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+                    }
+
+                    @Override
+                    public void onError(String mensaje) {
+                        mostrarAdvertencia("Error", mensaje);
+                    }
+                }
+        );
+    }
+
+    private void actualizarArticuloNormal(Integer idArticulo, String ubicacionTexto, String lote,
+                                          String caducidad, String presentacion, String factor) {
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                mostrarAdvertencia("Error", "No hay conexión a la base de datos.");
+                return;
+            }
+
+            Integer ubicacionId = null;
+            if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
+                    ps.setString(1, ubicacionTexto.trim());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            ubicacionId = rs.getInt(1);
+                        }
+                    }
+                }
+                if (ubicacionId == null) {
+                    mostrarAdvertencia("Ubicación inválida",
+                            "No se encontró la ubicación ingresada: " + ubicacionTexto);
+                    return;
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE articulo SET ubicacion = ?, lote = ?, caducidad = ?, " +
+                            "presentacion = ?, factor = ? WHERE idArticulo = ?")) {
+
+                if (ubicacionId == null) {
+                    ps.setNull(1, java.sql.Types.INTEGER);
+                } else {
+                    ps.setInt(1, ubicacionId);
+                }
+                ps.setString(2, lote != null ? lote : "");
+                ps.setString(3, caducidad != null ? caducidad : "");
+                ps.setString(4, presentacion != null ? presentacion : "");
+                ps.setString(5, factor != null ? factor : "");
+                ps.setInt(6, idArticulo);
+
+                int filasActualizadas = ps.executeUpdate();
+                if (filasActualizadas > 0) {
+                    // Éxito
+                    cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+                } else {
+                    mostrarAdvertencia("Error", "No se encontró el artículo con ID: " + idArticulo);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            mostrarAdvertencia("Error de base de datos",
+                    "No se pudo actualizar el artículo: " + e.getMessage());
+        }
+    }
+
+    private void actualizarArticuloSegmentado(String idDetalle, String ubicacionTexto) {
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                mostrarAdvertencia("Error", "No hay conexión a la base de datos.");
+                return;
+            }
+
+            // Validar formato del ID
+            if (!idDetalle.toUpperCase().startsWith("S-")) {
+                mostrarAdvertencia("ID inválido",
+                        "El ID del artículo segmentado debe comenzar con 'S-': " + idDetalle);
+                return;
+            }
+
+            Integer ubicacionId = null;
+            if (ubicacionTexto != null && !ubicacionTexto.isBlank()) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
+                    ps.setString(1, ubicacionTexto.trim());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            ubicacionId = rs.getInt(1);
+                        }
+                    }
+                }
+                if (ubicacionId == null) {
+                    mostrarAdvertencia("Ubicación inválida",
+                            "No se encontró la ubicación ingresada: " + ubicacionTexto);
+                    return;
+                }
+            } else {
+                mostrarAdvertencia("Campo requerido", "La ubicación es requerida.");
+                return;
+            }
+
+            // Actualizar en detalleArticulo
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE detalleArticulo SET idUbicacion = ? WHERE idDetalle = ?")) {
+
+                ps.setInt(1, ubicacionId);
+                ps.setString(2, idDetalle);
+
+                int filasActualizadas = ps.executeUpdate();
+                if (filasActualizadas > 0) {
+                    // Éxito
+                    cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+                } else {
+                    mostrarAdvertencia("Error",
+                            "No se encontró el artículo segmentado con ID: " + idDetalle);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            mostrarAdvertencia("Error de base de datos",
+                    "No se pudo actualizar el artículo segmentado: " + e.getMessage());
+        }
+    }
+
+    private void eliminarArticuloNormal(Integer idArticulo) {
         if (idArticulo == null || idArticulo <= 0) {
+            mostrarAdvertencia("ID inválido", "El ID del artículo no es válido.");
             return;
         }
-        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog = new javafx.scene.control.Dialog<>();
-        dialog.setTitle("Editar artículo");
-        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Eliminar artículo");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Estás seguro de que deseas eliminar el artículo con ID: " +
+                idArticulo + "?\n\nEsta acción marcará el artículo como 'eliminado' y ajustará los montos de entrada.");
+
+        // Configurar botones personalizados
+        javafx.scene.control.ButtonType btnCancelar = new javafx.scene.control.ButtonType("Cancelar",
+                ButtonBar.ButtonData.CANCEL_CLOSE);
+        javafx.scene.control.ButtonType btnEliminar = new javafx.scene.control.ButtonType("Eliminar",
+                ButtonBar.ButtonData.OK_DONE);
+        confirmacion.getButtonTypes().setAll(btnCancelar, btnEliminar);
+
+        // Estilizar botones
+        Button btnEliminarUI = (Button) confirmacion.getDialogPane().lookupButton(btnEliminar);
+        if (btnEliminarUI != null) {
+            btnEliminarUI.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+        }
+
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != btnEliminar) {
+                return;
+            }
+
+            if (overlayCarga != null) {
+                overlayCarga.mostrar();
+            }
+
+            javafx.concurrent.Task<Boolean> task = new javafx.concurrent.Task<>() {
+                @Override
+                protected Boolean call() throws Exception {
+                    try (Connection conn = new Conexion().conectar()) {
+                        if (conn == null) {
+                            throw new SQLException("Sin conexión a la base de datos");
+                        }
+                        conn.setAutoCommit(false);
+
+                        try {
+                            // 1. Obtener estructura de columnas
+                            Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
+                            Map<String, String> columnasDetalle = obtenerColumnas(conn, "detalle_Entrada");
+                            Map<String, String> columnasEntrada = obtenerColumnas(conn, "entradas");
+
+                            // 2. Resolver nombres de columnas
+                            String colArticuloId = resolverColumna(columnasArticulo, "idArticulo", "id", "id_articulo");
+                            String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
+                            String colArticuloDetalleEntrada = resolverColumna(columnasArticulo,
+                                    "idDetalleEntrada", "id_detalle_entrada", "detalleEntrada",
+                                    "detalle_entrada", "detalle_entrada_id");
+
+                            String colDetalleId = resolverColumna(columnasDetalle, "idDetalleEntrada",
+                                    "id", "id_detalle_entrada");
+                            String colDetalleClaveEntrada = resolverColumna(columnasDetalle, "claveEntrada",
+                                    "idEntrada", "id_entrada", "entrada_id");
+                            String colDetalleCantidad = resolverColumna(columnasDetalle, "cantidad", "cantidadEntrada");
+                            String colDetallePrecioUnitario = resolverColumna(columnasDetalle, "precioUnitario",
+                                    "precioEntrada", "precio_entrada");
+                            String colDetallePrecioIva = resolverColumna(columnasDetalle, "precioIVA",
+                                    "precioIva", "precio_iva");
+                            String colDetallePrecioBruto = resolverColumna(columnasDetalle, "precioBrutoTotal",
+                                    "precioBruto", "precio_bruto");
+                            String colDetallePrecioTotal = resolverColumna(columnasDetalle, "precioTotal",
+                                    "precio_total");
+
+                            String colEntradaId = resolverColumna(columnasEntrada, "idEntrada", "id", "id_entrada");
+                            String colEntradaPrecioNeto = resolverColumna(columnasEntrada, "precioNetoEntrada",
+                                    "precioNeto", "precio_neto");
+                            String colEntradaPrecioTotal = resolverColumna(columnasEntrada, "precioTotalEntrada",
+                                    "precioTotal", "precio_total");
+
+                            // Validar columnas esenciales
+                            if (colArticuloId == null || colArticuloEstado == null ||
+                                    colArticuloDetalleEntrada == null || colDetalleId == null ||
+                                    colDetalleClaveEntrada == null || colDetalleCantidad == null ||
+                                    colDetallePrecioUnitario == null || colDetallePrecioIva == null) {
+                                conn.rollback();
+                                return false;
+                            }
+
+                            // 3. Obtener idDetalleEntrada del artículo
+                            Integer detalleEntradaId = null;
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "SELECT `" + colArticuloDetalleEntrada + "` AS detalleEntrada " +
+                                            "FROM articulo WHERE `" + colArticuloId + "` = ?")) {
+                                ps.setInt(1, idArticulo);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) {
+                                        detalleEntradaId = rs.getInt("detalleEntrada");
+                                    }
+                                }
+                            }
+
+                            if (detalleEntradaId == null || detalleEntradaId <= 0) {
+                                conn.rollback();
+                                return false;
+                            }
+
+                            // 4. Marcar artículo como eliminado
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "UPDATE articulo SET `" + colArticuloEstado + "` = ? " +
+                                            "WHERE `" + colArticuloId + "` = ?")) {
+                                ps.setString(1, "eliminado");
+                                ps.setInt(2, idArticulo);
+                                int filasActualizadas = ps.executeUpdate();
+
+                                if (filasActualizadas == 0) {
+                                    conn.rollback();
+                                    return false;
+                                }
+                            }
+
+                            // 5. Obtener datos del detalle_Entrada para ajustar
+                            Integer entradaId = null;
+                            BigDecimal cantidad = null;
+                            BigDecimal precioUnitario = null;
+                            BigDecimal precioIva = null;
+
+                            String sqlDetalle = String.format("""
+                            SELECT `%s` AS claveEntrada,
+                                   `%s` AS cantidad,
+                                   `%s` AS precioUnitario,
+                                   `%s` AS precioIva
+                            FROM detalle_Entrada
+                            WHERE `%s` = ?
+                            """,
+                                    colDetalleClaveEntrada,
+                                    colDetalleCantidad,
+                                    colDetallePrecioUnitario,
+                                    colDetallePrecioIva,
+                                    colDetalleId
+                            );
+
+                            try (PreparedStatement ps = conn.prepareStatement(sqlDetalle)) {
+                                ps.setInt(1, detalleEntradaId);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) {
+                                        entradaId = rs.getInt("claveEntrada");
+                                        cantidad = parseDecimal(rs.getObject("cantidad"));
+                                        precioUnitario = parseDecimal(rs.getObject("precioUnitario"));
+                                        precioIva = parseDecimal(rs.getObject("precioIva"));
+                                    }
+                                }
+                            }
+
+                            if (cantidad == null || precioUnitario == null || precioIva == null) {
+                                conn.rollback();
+                                return false;
+                            }
+
+                            // 6. Actualizar detalle_Entrada (reducir cantidad)
+                            BigDecimal nuevaCantidad = cantidad.subtract(BigDecimal.ONE);
+                            if (nuevaCantidad.compareTo(BigDecimal.ZERO) < 0) {
+                                nuevaCantidad = BigDecimal.ZERO;
+                            }
+
+                            BigDecimal nuevoBruto = precioUnitario.multiply(nuevaCantidad)
+                                    .setScale(2, java.math.RoundingMode.HALF_UP);
+                            BigDecimal nuevoTotal = precioIva.multiply(nuevaCantidad)
+                                    .setScale(2, java.math.RoundingMode.HALF_UP);
+
+                            StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Entrada SET ");
+                            List<Object> valoresDetalle = new ArrayList<>();
+                            agregarCampoActualizacion(updateDetalle, valoresDetalle,
+                                    colDetalleCantidad, nuevaCantidad.intValue());
+
+                            if (colDetallePrecioBruto != null) {
+                                agregarCampoActualizacion(updateDetalle, valoresDetalle,
+                                        colDetallePrecioBruto, nuevoBruto);
+                            }
+
+                            if (colDetallePrecioTotal != null) {
+                                agregarCampoActualizacion(updateDetalle, valoresDetalle,
+                                        colDetallePrecioTotal, nuevoTotal);
+                            }
+
+                            updateDetalle.append(" WHERE `").append(colDetalleId).append("` = ?");
+                            valoresDetalle.add(detalleEntradaId);
+
+                            try (PreparedStatement ps = conn.prepareStatement(updateDetalle.toString())) {
+                                for (int i = 0; i < valoresDetalle.size(); i++) {
+                                    ps.setObject(i + 1, valoresDetalle.get(i));
+                                }
+                                ps.executeUpdate();
+                            }
+
+                            // 7. Actualizar entrada si es necesario
+                            if (entradaId != null && entradaId > 0 && colEntradaId != null) {
+                                BigDecimal precioNetoActual = null;
+                                BigDecimal precioTotalActual = null;
+
+                                String sqlEntrada = String.format("""
+                                SELECT %s AS precioNeto,
+                                       %s AS precioTotal
+                                FROM entradas
+                                WHERE `%s` = ?
+                                """,
+                                        colEntradaPrecioNeto != null ? "`" + colEntradaPrecioNeto + "`" : "NULL",
+                                        colEntradaPrecioTotal != null ? "`" + colEntradaPrecioTotal + "`" : "NULL",
+                                        colEntradaId
+                                );
+
+                                try (PreparedStatement ps = conn.prepareStatement(sqlEntrada)) {
+                                    ps.setInt(1, entradaId);
+                                    try (ResultSet rs = ps.executeQuery()) {
+                                        if (rs.next()) {
+                                            precioNetoActual = parseDecimal(rs.getObject("precioNeto"));
+                                            precioTotalActual = parseDecimal(rs.getObject("precioTotal"));
+                                        }
+                                    }
+                                }
+
+                                StringBuilder updateEntrada = new StringBuilder("UPDATE entradas SET ");
+                                List<Object> valoresEntrada = new ArrayList<>();
+
+                                if (colEntradaPrecioNeto != null && precioNetoActual != null) {
+                                    BigDecimal nuevoNeto = precioNetoActual.subtract(precioUnitario);
+                                    if (nuevoNeto.compareTo(BigDecimal.ZERO) < 0) {
+                                        nuevoNeto = BigDecimal.ZERO;
+                                    }
+                                    agregarCampoActualizacion(updateEntrada, valoresEntrada,
+                                            colEntradaPrecioNeto, nuevoNeto.setScale(2, java.math.RoundingMode.HALF_UP));
+                                }
+
+                                if (colEntradaPrecioTotal != null && precioTotalActual != null) {
+                                    BigDecimal nuevoTotalEntrada = precioTotalActual.subtract(precioIva);
+                                    if (nuevoTotalEntrada.compareTo(BigDecimal.ZERO) < 0) {
+                                        nuevoTotalEntrada = BigDecimal.ZERO;
+                                    }
+                                    agregarCampoActualizacion(updateEntrada, valoresEntrada,
+                                            colEntradaPrecioTotal,
+                                            nuevoTotalEntrada.setScale(2, java.math.RoundingMode.HALF_UP));
+                                }
+
+                                if (!valoresEntrada.isEmpty()) {
+                                    updateEntrada.append(" WHERE `").append(colEntradaId).append("` = ?");
+                                    valoresEntrada.add(entradaId);
+
+                                    try (PreparedStatement ps = conn.prepareStatement(updateEntrada.toString())) {
+                                        for (int i = 0; i < valoresEntrada.size(); i++) {
+                                            ps.setObject(i + 1, valoresEntrada.get(i));
+                                        }
+                                        ps.executeUpdate();
+                                    }
+                                }
+                            }
+
+                            // 8. Si el artículo estaba segmentado, eliminar sus piezas segmentadas
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "UPDATE detalleArticulo SET estado = 'eliminado' " +
+                                            "WHERE idArticulo = ? AND estado = 'activo'")) {
+                                ps.setString(1, String.valueOf(idArticulo));
+                                ps.executeUpdate();
+                            }
+
+                            conn.commit();
+                            return true;
+
+                        } catch (SQLException e) {
+                            conn.rollback();
+                            throw e;
+                        }
+                    }
+                }
+            };
+
+            task.setOnSucceeded(event -> {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+
+                if (task.getValue()) {
+                    Alert exito = new Alert(Alert.AlertType.INFORMATION);
+                    exito.setTitle("Eliminación exitosa");
+                    exito.setHeaderText(null);
+                    exito.setContentText("El artículo ha sido eliminado correctamente.");
+                    exito.showAndWait();
+
+                    // Refrescar la vista
+                    cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+                } else {
+                    mostrarAdvertencia("Error", "No se pudo eliminar el artículo.");
+                }
+            });
+
+            task.setOnFailed(event -> {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+
+                Throwable ex = task.getException();
+                String mensaje = "Ocurrió un error al eliminar el artículo.";
+                if (ex != null && ex.getMessage() != null) {
+                    mensaje += "\n\nDetalle: " + ex.getMessage();
+                }
+
+                mostrarAdvertencia("Error", mensaje);
+            });
+
+            Thread hilo = new Thread(task);
+            hilo.setDaemon(true);
+            hilo.start();
+        });
+    }
+
+    private void eliminarArticuloSegmentado(String idDetalle) {
+        if (idDetalle == null || idDetalle.isBlank()) {
+            mostrarAdvertencia("ID inválido", "El ID del artículo segmentado no es válido.");
+            return;
+        }
+
+        // Validar formato S-XXX
+        if (!idDetalle.toUpperCase().startsWith("S-")) {
+            mostrarAdvertencia("Formato incorrecto",
+                    "El ID del artículo segmentado debe comenzar con 'S-'. ID recibido: " + idDetalle);
+            return;
+        }
+
+        // Extraer el número para validación
+        String numeroStr = idDetalle.substring(2);
+        try {
+            Integer.parseInt(numeroStr);
+        } catch (NumberFormatException e) {
+            mostrarAdvertencia("Formato incorrecto",
+                    "El ID del artículo segmentado debe tener formato S-NUMERO. ID recibido: " + idDetalle);
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Eliminar pieza segmentada");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Estás seguro de que deseas eliminar la pieza segmentada?\n\n" +
+                "ID: " + idDetalle + "\n" +
+                "Esta acción marcará la pieza como 'eliminada'.\n" +
+                "Nota: Esto no afecta al artículo padre ni a otras piezas segmentadas.");
+
+        // Configurar botones personalizados
+        javafx.scene.control.ButtonType btnCancelar = new javafx.scene.control.ButtonType("Cancelar",
+                ButtonBar.ButtonData.CANCEL_CLOSE);
+        javafx.scene.control.ButtonType btnEliminar = new javafx.scene.control.ButtonType("Eliminar",
+                ButtonBar.ButtonData.OK_DONE);
+        confirmacion.getButtonTypes().setAll(btnCancelar, btnEliminar);
+
+        // Estilizar botones
+        Button btnEliminarUI = (Button) confirmacion.getDialogPane().lookupButton(btnEliminar);
+        if (btnEliminarUI != null) {
+            btnEliminarUI.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+        }
+
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta != btnEliminar) {
+                return;
+            }
+
+            if (overlayCarga != null) {
+                overlayCarga.mostrar();
+            }
+
+            javafx.concurrent.Task<Map<String, Object>> task = new javafx.concurrent.Task<>() {
+                @Override
+                protected Map<String, Object> call() throws Exception {
+                    Map<String, Object> resultado = new HashMap<>();
+
+                    try (Connection conn = new Conexion().conectar()) {
+                        if (conn == null) {
+                            throw new SQLException("Sin conexión a la base de datos");
+                        }
+                        conn.setAutoCommit(false);
+
+                        try {
+                            // 1. Obtener información de la pieza segmentada
+                            String productoInfo = null;
+                            String ubicacionInfo = null;
+                            Integer idArticuloPadre = null;
+
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "SELECT da.idArticulo, p.nombre AS producto, u.nombre AS ubicacion " +
+                                            "FROM detalleArticulo da " +
+                                            "INNER JOIN articulo a ON da.idArticulo = a.idArticulo " +
+                                            "INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada " +
+                                            "INNER JOIN productos p ON de.claveProducto = p.id " +
+                                            "LEFT JOIN ubicaciones u ON da.idUbicacion = u.id " +
+                                            "WHERE da.idDetalle = ? AND da.estado = 'activo'")) {
+                                ps.setString(1, idDetalle);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) {
+                                        idArticuloPadre = rs.getInt("idArticulo");
+                                        productoInfo = rs.getString("producto");
+                                        ubicacionInfo = rs.getString("ubicacion");
+                                    } else {
+                                        conn.rollback();
+                                        resultado.put("error", "No se encontró la pieza segmentada con ID: " + idDetalle);
+                                        return resultado;
+                                    }
+                                }
+                            }
+
+                            // 2. Verificar si el artículo padre sigue disponible
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "SELECT Estado FROM articulo WHERE idArticulo = ?")) {
+                                ps.setInt(1, idArticuloPadre);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) {
+                                        String estadoPadre = rs.getString("Estado");
+                                        if (!"segmentado".equalsIgnoreCase(estadoPadre)) {
+                                            conn.rollback();
+                                            resultado.put("error",
+                                                    "El artículo padre no está en estado 'segmentado'. Estado actual: " + estadoPadre);
+                                            return resultado;
+                                        }
+                                    } else {
+                                        conn.rollback();
+                                        resultado.put("error", "No se encontró el artículo padre.");
+                                        return resultado;
+                                    }
+                                }
+                            }
+
+                            // 3. Marcar la pieza segmentada como eliminada
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "UPDATE detalleArticulo SET estado = 'eliminado' " +
+                                            "WHERE idDetalle = ? AND estado = 'activo'")) {
+                                ps.setString(1, idDetalle);
+                                int filasActualizadas = ps.executeUpdate();
+
+                                if (filasActualizadas == 0) {
+                                    conn.rollback();
+                                    resultado.put("error", "No se pudo eliminar la pieza segmentada.");
+                                    return resultado;
+                                }
+                            }
+
+                            // 4. Verificar si quedan piezas activas del artículo padre
+                            int piezasActivasRestantes = 0;
+                            try (PreparedStatement ps = conn.prepareStatement(
+                                    "SELECT COUNT(*) AS total FROM detalleArticulo " +
+                                            "WHERE idArticulo = ? AND estado = 'activo'")) {
+                                ps.setString(1, String.valueOf(idArticuloPadre));
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    if (rs.next()) {
+                                        piezasActivasRestantes = rs.getInt("total");
+                                    }
+                                }
+                            }
+
+                            // 5. Si no quedan piezas activas, marcar artículo padre como "eliminado"
+                            if (piezasActivasRestantes == 0) {
+                                try (PreparedStatement ps = conn.prepareStatement(
+                                        "UPDATE articulo SET Estado = 'eliminado' " +
+                                                "WHERE idArticulo = ?")) {
+                                    ps.setInt(1, idArticuloPadre);
+                                    ps.executeUpdate();
+
+                                    resultado.put("articuloPadreEliminado", true);
+                                }
+                            } else {
+                                resultado.put("articuloPadreEliminado", false);
+                            }
+
+                            conn.commit();
+
+                            // Guardar información para el mensaje de éxito
+                            resultado.put("exito", true);
+                            resultado.put("idDetalle", idDetalle);
+                            resultado.put("producto", productoInfo);
+                            resultado.put("ubicacion", ubicacionInfo);
+                            resultado.put("piezasRestantes", piezasActivasRestantes);
+                            resultado.put("idArticuloPadre", idArticuloPadre);
+
+                        } catch (SQLException e) {
+                            conn.rollback();
+                            throw e;
+                        }
+                    }
+
+                    return resultado;
+                }
+            };
+
+            task.setOnSucceeded(event -> {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+
+                Map<String, Object> resultado = task.getValue();
+
+                if (resultado.containsKey("exito")) {
+                    // Construir mensaje de éxito
+                    StringBuilder mensaje = new StringBuilder();
+                    mensaje.append("Pieza segmentada eliminada correctamente.\n\n");
+                    mensaje.append("ID: ").append(resultado.get("idDetalle")).append("\n");
+
+                    if (resultado.get("producto") != null) {
+                        mensaje.append("Producto: ").append(resultado.get("producto")).append("\n");
+                    }
+
+                    if (resultado.get("ubicacion") != null) {
+                        mensaje.append("Ubicación: ").append(resultado.get("ubicacion")).append("\n");
+                    }
+
+                    mensaje.append("\nPiezas restantes del artículo padre: ")
+                            .append(resultado.get("piezasRestantes"));
+
+                    if (Boolean.TRUE.equals(resultado.get("articuloPadreEliminado"))) {
+                        mensaje.append("\n\n⚠️ El artículo padre también fue marcado como 'eliminado' ");
+                        mensaje.append("porque ya no tiene piezas activas.");
+                    }
+
+                    Alert exito = new Alert(Alert.AlertType.INFORMATION);
+                    exito.setTitle("Eliminación exitosa");
+                    exito.setHeaderText(null);
+                    exito.setContentText(mensaje.toString());
+                    exito.showAndWait();
+
+                    // Refrescar la vista
+                    cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+
+                } else if (resultado.containsKey("error")) {
+                    mostrarAdvertencia("Error", resultado.get("error").toString());
+                }
+            });
+
+            task.setOnFailed(event -> {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+
+                Throwable ex = task.getException();
+                String mensaje = "Ocurrió un error al eliminar la pieza segmentada.";
+                if (ex != null && ex.getMessage() != null) {
+                    mensaje += "\n\nDetalle: " + ex.getMessage();
+                }
+
+                mostrarAdvertencia("Error", mensaje);
+            });
+
+            Thread hilo = new Thread(task);
+            hilo.setDaemon(true);
+            hilo.start();
+        });
+    }
+
+    private void manejarEliminacionDesdeDialogo(boolean esSegmentado, String idSegmentado, Integer idNormal) {
+        if (esSegmentado) {
+            eliminarArticuloSegmentado(idSegmentado);
+        } else {
+            eliminarArticuloNormal(idNormal);
+        }
+    }
+
+    private String valorTexto(String texto) {
+        return texto == null ? "" : texto;
+    }
+
+    private void configurarDialogoModal(Dialog<ButtonType> dialog) {
+        if (dialog == null) {
+            return;
+        }
+        dialog.initModality(Modality.APPLICATION_MODAL);
         if (root != null && root.getScene() != null) {
             dialog.initOwner(root.getScene().getWindow());
         }
-
-        dialog.getDialogPane().getButtonTypes().addAll(
-                javafx.scene.control.ButtonType.CANCEL,
-                javafx.scene.control.ButtonType.OK
-        );
-
-        dialog.getDialogPane().getStylesheets().add(
-                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
-        );
-
-        // Estilos
-        Button btnOk = (Button) dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.OK);
-        Button btnCancel = (Button) dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CANCEL);
-
-        if (btnOk != null) btnOk.getStyleClass().add("boton-formulario");
-        if (btnCancel != null) btnCancel.getStyleClass().add("boton-formulario");
-
-        // ✅ FORZAR: Cancelar a la izquierda y Aceptar a la derecha (sin getButtonBar)
-        if (btnCancel != null) ButtonBar.setButtonData(btnCancel, ButtonBar.ButtonData.CANCEL_CLOSE);
-        if (btnOk != null) ButtonBar.setButtonData(btnOk, ButtonBar.ButtonData.OK_DONE);
-
-        ButtonBar bar = (ButtonBar) dialog.getDialogPane().lookup(".button-bar");
-        if (bar != null) {
-            bar.setButtonOrder(ButtonBar.BUTTON_ORDER_NONE); // respeta el orden agregado: CANCEL, OK
-        }
-
-        List<String> ubicacionesActivas = obtenerUbicacionesActivas();
-        javafx.scene.control.ComboBox<String> cbUbicacion = new javafx.scene.control.ComboBox<>();
-        cbUbicacion.setItems(FXCollections.observableArrayList(ubicacionesActivas));
-        cbUbicacion.setPromptText("Selecciona ubicación");
-        cbUbicacion.getStyleClass().add("textfield");
-        String ubicacionActual = item.getUbicacion();
-        if (ubicacionActual != null
-                && !ubicacionActual.isBlank()
-                && !"Sin ubicación".equalsIgnoreCase(ubicacionActual)
-                && ubicacionesActivas.stream().anyMatch(ubicacionActual::equalsIgnoreCase)) {
-            cbUbicacion.setValue(ubicacionActual);
-        }
-        javafx.scene.control.TextField txtLote = new javafx.scene.control.TextField(item.getLote());
-        txtLote.getStyleClass().add("textfield");
-        javafx.scene.control.DatePicker dpCaducidad = new javafx.scene.control.DatePicker();
-        dpCaducidad.getStyleClass().add("textfield");
-        if (item.getCaducidad() != null && !item.getCaducidad().isBlank()) {
-            try {
-                dpCaducidad.setValue(java.time.LocalDate.parse(item.getCaducidad().trim()));
-            } catch (java.time.format.DateTimeParseException ignored) {
-                dpCaducidad.setValue(null);
-            }
-        }
-        javafx.scene.control.ComboBox<String> cbPresentacion = new javafx.scene.control.ComboBox<>();
-        cbPresentacion.setItems(FXCollections.observableArrayList(PRESENTACIONES_COMPRA));
-        cbPresentacion.setPromptText("Selecciona presentación");
-        cbPresentacion.getStyleClass().add("textfield");
-        String presentacionActual = item.getPresentacion();
-        if (presentacionActual != null
-                && !presentacionActual.isBlank()
-                && PRESENTACIONES_COMPRA.stream().anyMatch(presentacionActual::equalsIgnoreCase)) {
-            cbPresentacion.setValue(presentacionActual);
-        }
-        javafx.scene.control.TextField txtFactor = new javafx.scene.control.TextField(item.getFactor());
-        txtFactor.getStyleClass().add("textfield");
-
-        javafx.scene.layout.GridPane formulario = new javafx.scene.layout.GridPane();
-        formulario.setHgap(10);
-        formulario.setVgap(8);
-        formulario.add(new Label("Ubicación:"), 0, 0);
-        formulario.add(cbUbicacion, 1, 0);
-        formulario.add(new Label("Lote:"), 0, 1);
-        formulario.add(txtLote, 1, 1);
-        formulario.add(new Label("Caducidad:"), 0, 2);
-        formulario.add(dpCaducidad, 1, 2);
-        formulario.add(new Label("Presentación:"), 0, 3);
-        formulario.add(cbPresentacion, 1, 3);
-        formulario.add(new Label("Factor:"), 0, 4);
-        formulario.add(txtFactor, 1, 4);
-
-        javafx.scene.control.Button btnSegmentar = new javafx.scene.control.Button("Segmentar");
-        btnSegmentar.getStyleClass().add("boton-formulario");
-        btnSegmentar.setOnAction(event -> iniciarSegmentacionInventario(item, idArticulo, dialog));
-        javafx.scene.control.Button btnEliminar = new javafx.scene.control.Button("Eliminar");
-        btnEliminar.getStyleClass().add("boton-formulario");
-        btnEliminar.setOnAction(event -> {
-            eliminarArticuloInventario(idArticulo);
-            dialog.setResult(javafx.scene.control.ButtonType.CANCEL);
-            dialog.close();
-        });
-
-        javafx.scene.layout.HBox accionesSecundarias = new javafx.scene.layout.HBox(12, btnEliminar, btnSegmentar);
-        accionesSecundarias.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-        actualizarVisibilidadSegmentar(btnSegmentar, cbPresentacion.getValue());
-        cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) ->
-                actualizarVisibilidadSegmentar(btnSegmentar, newVal));
-
-        VBox contenido = new VBox(10, formulario, accionesSecundarias);
-        dialog.getDialogPane().setContent(contenido);
-
-        dialog.showAndWait().ifPresent(respuesta -> {
-            if (respuesta != javafx.scene.control.ButtonType.OK) {
-                return;
-            }
-            String caducidadTexto = dpCaducidad.getValue() != null ? dpCaducidad.getValue().toString() : "";
-            String presentacionSeleccionada = cbPresentacion.getValue();
-            actualizarArticuloInventario(idArticulo, cbUbicacion.getValue(), txtLote.getText(),
-                    caducidadTexto, presentacionSeleccionada != null ? presentacionSeleccionada : "", txtFactor.getText());
-        });
     }
 
     private void iniciarSegmentacionInventario(ItemInventario item, int idArticulo,
@@ -373,77 +1041,48 @@ public class MainController {
 
     private void abrirFormularioSegmentacionInventario(ItemInventario item, int idArticulo, int factor,
                                                        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
-        javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialog =
-                new javafx.scene.control.Dialog<>();
-        dialog.setTitle("Segmentar artículo");
-        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-        if (dialogPadre != null) {
-            dialog.initOwner(dialogPadre.getDialogPane().getScene().getWindow());
-        }
+        // Usar la clase utilitaria Segmentacion CORRECTAMENTE
+        Reportes.inventario.util.Segmentacion.mostrarDialogoSegmentacion(
+                root.getScene().getWindow(),
+                "Segmentar artículo",
+                obtenerDescripcionArticuloInventario(item, factor),
+                factor,
+                idArticulo, // <- Este parámetro es necesario ahora
+                obtenerUbicacionesActivas(),
+                new Reportes.inventario.util.Segmentacion.Callbacks() {
+                    @Override
+                    public void onExito(String mensaje) {
+                        // Cerrar diálogo padre si existe
+                        if (dialogPadre != null) {
+                            dialogPadre.close();
+                        }
 
-        javafx.scene.control.ButtonType btnCancelar = new javafx.scene.control.ButtonType("Cancelar",
-                ButtonBar.ButtonData.CANCEL_CLOSE);
-        javafx.scene.control.ButtonType btnAceptar = new javafx.scene.control.ButtonType("Aceptar",
-                ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(btnCancelar, btnAceptar);
+                        // Mostrar mensaje de éxito
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Segmentación completada");
+                        alert.setHeaderText(null);
+                        alert.setContentText(mensaje);
+                        alert.showAndWait();
 
-        dialog.getDialogPane().getStylesheets().add(
-                getClass().getResource("/Reportes/inventario/style/estilos.css").toExternalForm()
+                        // Refrescar la vista
+                        cargarInventarioDisponible(chkInventarioDetallado.isSelected());
+
+                        // Cerrar diálogo padre si aún está abierto
+                        if (dialogPadre != null) {
+                            dialogPadre.close();
+                        }
+                    }
+
+                    @Override
+                    public void onError(String mensaje) {
+                        mostrarAdvertencia("Error", mensaje);
+                    }
+                }
         );
-        configurarOrdenBotones(dialog.getDialogPane(), btnCancelar, btnAceptar);
-
-        VBox contenido = new VBox(12);
-        Label lblDescripcion = new Label(obtenerDescripcionArticuloInventario(item, factor));
-        lblDescripcion.setWrapText(true);
-        lblDescripcion.setStyle("-fx-font-weight: bold; -fx-text-fill: #2c3e50;");
-
-        Label lblUbicaciones = new Label("Ubicaciones para segmentar:");
-        lblUbicaciones.setStyle("-fx-font-weight: bold;");
-
-        VBox contenedorUbicaciones = new VBox(10);
-        List<UbicacionFila> filas = new ArrayList<>();
-        agregarFilaUbicacion(contenedorUbicaciones, filas, true);
-
-        ScrollPane scroll = new ScrollPane(contenedorUbicaciones);
-        scroll.setFitToWidth(true);
-        scroll.setPrefViewportHeight(320);
-
-        contenido.getChildren().addAll(lblDescripcion, lblUbicaciones, scroll);
-        dialog.getDialogPane().setContent(contenido);
-        dialog.getDialogPane().setPrefWidth(520);
-        dialog.getDialogPane().setPrefHeight(520);
-
-        AtomicReference<List<UbicacionCantidad>> seleccionadasRef = new AtomicReference<>(List.of());
-        Button btnOk = (Button) dialog.getDialogPane().lookupButton(btnAceptar);
-        if (btnOk != null) {
-            btnOk.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
-                List<UbicacionCantidad> seleccionadas = obtenerUbicacionesSeleccionadas(filas);
-                if (seleccionadas.isEmpty()) {
-                    mostrarAdvertencia("Validación", "Debe capturar al menos una ubicación con cantidad.");
-                    event.consume();
-                    return;
-                }
-                int suma = seleccionadas.stream().mapToInt(ubicacion -> ubicacion.cantidad).sum();
-                if (suma != factor) {
-                    mostrarAdvertencia("Validación",
-                            "La suma de las ubicaciones debe ser " + factor + " y actualmente es " + suma + ".");
-                    event.consume();
-                    return;
-                }
-                seleccionadasRef.set(seleccionadas);
-            });
-        }
-
-        dialog.showAndWait().ifPresent(respuesta -> {
-            if (respuesta != btnAceptar) {
-                return;
-            }
-            ejecutarSegmentacionInventario(item, idArticulo, factor, seleccionadasRef.get(), dialogPadre);
-        });
     }
 
     private void ejecutarSegmentacionInventario(ItemInventario item, int idArticulo, int factor,
-                                                List<UbicacionCantidad> ubicaciones,
+                                                List<Reportes.inventario.util.Segmentacion.UbicacionCantidad> ubicaciones,
                                                 javafx.scene.control.Dialog<javafx.scene.control.ButtonType> dialogPadre) {
         if (item == null || ubicaciones == null || ubicaciones.isEmpty()) {
             return;
@@ -471,16 +1110,18 @@ public class MainController {
                         ps.executeUpdate();
                     }
 
+                    // Obtener IDs de ubicaciones
+                    Map<String, Integer> ubicacionIds = new HashMap<>();
                     try (PreparedStatement psUbicacion = conn.prepareStatement(
                             "SELECT id FROM ubicaciones WHERE nombre = ? AND estado = 'activo'")) {
-                        for (UbicacionCantidad ubicacion : ubicaciones) {
-                            psUbicacion.setString(1, ubicacion.nombre);
+                        for (Reportes.inventario.util.Segmentacion.UbicacionCantidad ubicacion : ubicaciones) {
+                            psUbicacion.setString(1, ubicacion.getNombre());
                             try (ResultSet rs = psUbicacion.executeQuery()) {
                                 if (!rs.next()) {
                                     conn.rollback();
-                                    throw new SQLException("Ubicación inválida: " + ubicacion.nombre);
+                                    throw new SQLException("Ubicación inválida: " + ubicacion.getNombre());
                                 }
-                                ubicacion.id = rs.getInt(1);
+                                ubicacionIds.put(ubicacion.getNombre(), rs.getInt(1));
                             }
                         }
                     }
@@ -488,11 +1129,12 @@ public class MainController {
                     int consecutivoDetalle = obtenerSiguienteConsecutivoDetalle(conn);
                     try (PreparedStatement ps = conn.prepareStatement(
                             "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'activo')")) {
-                        for (UbicacionCantidad ubicacion : ubicaciones) {
-                            for (int i = 0; i < ubicacion.cantidad; i++) {
+                        for (Reportes.inventario.util.Segmentacion.UbicacionCantidad ubicacion : ubicaciones) {
+                            Integer ubicacionId = ubicacionIds.get(ubicacion.getNombre());
+                            for (int i = 0; i < ubicacion.getCantidad(); i++) {
                                 ps.setString(1, "S-" + consecutivoDetalle++);
                                 ps.setString(2, String.valueOf(idArticulo));
-                                ps.setInt(3, ubicacion.id);
+                                ps.setInt(3, ubicacionId);
                                 ps.addBatch();
                             }
                         }
@@ -500,9 +1142,8 @@ public class MainController {
                     }
 
                     conn.commit();
+                    return construirMensajeSegmentacion(item, factor, ubicaciones);
                 }
-
-                return construirMensajeSegmentacion(item, factor, ubicaciones);
             }
         };
 
@@ -516,9 +1157,6 @@ public class MainController {
             alert.setContentText(task.getValue());
             alert.showAndWait();
             cargarInventarioDisponible(chkInventarioDetallado.isSelected());
-            if (dialogPadre != null) {
-                dialogPadre.close();
-            }
         });
 
         task.setOnFailed(event -> {
@@ -1599,15 +2237,16 @@ public class MainController {
         }
     }
 
-    private String construirMensajeSegmentacion(ItemInventario item, int factor, List<UbicacionCantidad> ubicaciones) {
+    private String construirMensajeSegmentacion(ItemInventario item, int factor,
+                                                List<Reportes.inventario.util.Segmentacion.UbicacionCantidad> ubicaciones) {
         String producto = item.getProducto() == null ? "" : item.getProducto();
         String presentacion = item.getPresentacion() == null ? "" : item.getPresentacion();
         StringBuilder detalle = new StringBuilder();
-        for (UbicacionCantidad ubicacion : ubicaciones) {
+        for (Reportes.inventario.util.Segmentacion.UbicacionCantidad ubicacion : ubicaciones) {
             if (detalle.length() > 0) {
                 detalle.append(", ");
             }
-            detalle.append(ubicacion.nombre).append(" (").append(ubicacion.cantidad).append(" piezas)");
+            detalle.append(ubicacion.getNombre()).append(" (").append(ubicacion.getCantidad()).append(" piezas)");
         }
         return "El artículo " + producto + " con presentación " + presentacion + " y factor " + factor +
                 " se segmentó en: " + detalle + ".";

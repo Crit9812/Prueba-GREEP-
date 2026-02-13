@@ -49,7 +49,6 @@ public class MainController {
     @FXML private VBox navbar;
     @FXML private Pane overlayPane;
     @FXML private VBox contenedor;
-
     @FXML private Label lblQuitar;
     @FXML private Label lblOrdenar;
     @FXML private Label lblExportar;
@@ -57,15 +56,12 @@ public class MainController {
     @FXML private ComboBox<ProductoOpcion> buscarProducto;
     @FXML private DatePicker fechaInicio;
     @FXML private DatePicker fechaFin;
-
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
     @FXML private HBox contenedorFiltros;
-
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
-
     @FXML private VBox contenedorTabla;
     @FXML private TableView<HistorialArticuloItem> contenidoTabla;
     @FXML private TableColumn<HistorialArticuloItem, String> colFecha;
@@ -80,13 +76,11 @@ public class MainController {
     @FXML private TableColumn<HistorialArticuloItem, String> colCliente;
     @FXML private TableColumn<HistorialArticuloItem, String> colFacturaSalida;
     @FXML private TableColumn<HistorialArticuloItem, String> colUsuario;
-
     @FXML private Label lblClave;
     @FXML private Label lblDescripcion;
     @FXML private Label lblPresentacion;
     @FXML private Label lblFactor;
     @FXML private Label lblExistencias;
-
     @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<ProductoOpcion> productosCache = FXCollections.observableArrayList();

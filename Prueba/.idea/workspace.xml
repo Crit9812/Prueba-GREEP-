@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios que no recuerdo">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en historial por factura">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +37,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/fix-method-duplication-in-detallefacturacontroller" />
+        <entry key="$PROJECT_DIR$/.." value="codex/update-article-deletion-behavior-in-reports" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -216,15 +215,8 @@
       <workItem from="1770819896835" duration="1576000" />
       <workItem from="1770823933180" duration="2695000" />
       <workItem from="1770834936465" duration="4682000" />
-      <workItem from="1770904541174" duration="18531000" />
-    </task>
-    <task id="LOCAL-00013" summary="Modificaciones de diseño en compras">
-      <option name="closed" value="true" />
-      <created>1767033059342</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1767033059342</updated>
+      <workItem from="1770904541174" duration="18985000" />
+      <workItem from="1770992026265" duration="4240000" />
     </task>
     <task id="LOCAL-00014" summary="Agregada parte de compra completa">
       <option name="closed" value="true" />
@@ -610,7 +602,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770934236875</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="cambios en historial por factura">
+      <option name="closed" value="true" />
+      <created>1770941911371</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1770941911371</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -663,7 +663,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Modificaciones de consultas agregadas" />
     <MESSAGE value="Correccion en el formulario de compra, dos botones agregados" />
     <MESSAGE value="Correccion de combobox de ubicacion" />
     <MESSAGE value="Agrego cambios de jess, no recuerdo que era" />
@@ -688,7 +687,8 @@
     <MESSAGE value="cambos en operaciones" />
     <MESSAGE value="Cambios en inventario" />
     <MESSAGE value="cambios que no recuerdo" />
-    <option name="LAST_COMMIT_MESSAGE" value="cambios que no recuerdo" />
+    <MESSAGE value="cambios en historial por factura" />
+    <option name="LAST_COMMIT_MESSAGE" value="cambios en historial por factura" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

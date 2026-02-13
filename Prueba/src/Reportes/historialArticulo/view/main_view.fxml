@@ -193,27 +193,21 @@
 
 
                     </VBox>
-
-
-
-
-
-
                         <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
                         <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
                             <columns>
-                                <TableColumn fx:id="colFecha" text="Fecha" />
-                                <TableColumn fx:id="colHora" text="Hora" prefWidth="200" />
-                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="200"  />
-                                <TableColumn fx:id="colAntes" text="Antes" prefWidth="140" />
-                                <TableColumn fx:id="colDespues" text="Despues" prefWidth="140" />
-                                <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="170" />
-                                <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="170" />
+                                <TableColumn fx:id="colFecha" text="Fecha" prefWidth="100"/>
+                                <TableColumn fx:id="colHora" text="Hora" prefWidth="100" />
+                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="150"  />
+                                <TableColumn fx:id="colAntes" text="Antes" prefWidth="70" />
+                                <TableColumn fx:id="colDespues" text="Despues" prefWidth="70" />
+                                <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="70" />
+                                <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="70" />
                                 <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="140" />
-                                <TableColumn fx:id="colFacturaEntrada" text="Factura de entrada" prefWidth="170" />
+                                <TableColumn fx:id="colFacturaEntrada" text="Factura de entrada" prefWidth="150" />
                                 <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
                                 <TableColumn fx:id="colFacturaSalida" text="Factura de salida" prefWidth="140" />
                                 <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="140" />

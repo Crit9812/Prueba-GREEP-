@@ -36,12 +36,6 @@
                            style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #333333;"
                            HBox.hgrow="ALWAYS"/>
 
-                    <!-- Botón Agregar Artículo - AGREGAR ESTO
-                    <Button fx:id="btnAgregarArticulo"
-                            text="Agregar artículo"
-                            onAction="#abrirFormularioCompraDesdeBoton"
-                            styleClass="boton-agregar-articulo"/> -->
-
                     <Region fx:id="expansor"/>
 
                     <Button fx:id="btnAgregarArticulo" styleClass="botones" onMouseClicked="#abrirFormularioCompraDesdeBoton">
@@ -61,26 +55,42 @@
                 </HBox>
 
                 <GridPane hgap="12" vgap="6">
+                    <!-- FILA 0: Marca -->
                     <Label text="Marca:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
                     <Label fx:id="lblMarca" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
+                    <!-- FILA 1: Material -->
                     <Label text="Material:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
                     <Label fx:id="lblMaterial" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
+                    <!-- FILA 2: Unidad de medida -->
                     <Label text="Unidad de medida:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
                     <Label fx:id="lblUnidad" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
 
-                    <Label text="Clasificación:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                    <Label fx:id="lblClasificacion" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <!-- FILA 3: Presentación -->
+                    <Label text="Presentación:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblPresentacion" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
 
-                    <Label text="Descripción:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-                    <Label fx:id="lblDescripcion" GridPane.rowIndex="4" GridPane.columnIndex="1" wrapText="true"/>
+                    <!-- FILA 4: Factor -->
+                    <Label text="Factor:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblFactor" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+
+                    <!-- FILA 5: Clasificación -->
+                    <Label text="Clasificación:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblClasificacion" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+                    <!-- FILA 6: Descripción -->
+                    <Label text="Descripción:" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblDescripcion"
+                           GridPane.rowIndex="6"
+                           GridPane.columnIndex="1"
+                           wrapText="true"/>
                 </GridPane>
             </VBox>
         </top>
         <center>
             <ScrollPane fx:id="scrollPane"
-                        fitToWidth="false"
+                        fitToWidth="true"
                         hbarPolicy="AS_NEEDED"
                         vbarPolicy="AS_NEEDED"
                         style="-fx-background-color: white; -fx-border-color: transparent;">

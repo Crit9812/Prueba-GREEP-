@@ -303,3 +303,8 @@
     -fx-border-color: #888888;
     -fx-border-width: 1px;
 }
+
+.contenidoTable .table-cell {
+    -fx-alignment: CENTER;
+}
+

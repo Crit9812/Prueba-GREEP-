@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class MainController {
 
@@ -147,7 +148,70 @@ public class MainController {
             configurarColumnas();
             configurarFiltros();
             configurarFiltroFechas();
+            agregarListenersRedimension();
             cargarUtilidades();
+            Platform.runLater(() -> {
+                Platform.runLater(() -> {
+                    actualizarPoliticaRedimensionamiento();
+                });
+            });
+        });
+    }
+
+    private void actualizarPoliticaRedimensionamiento() {
+        List<TableColumn<UtilidadItem, ?>> columnasVisibles = contenidoTabla.getColumns().stream()
+                .filter(TableColumn::isVisible)
+                .collect(Collectors.toList());
+
+        Platform.runLater(() -> {
+            double anchoDisponible = contenidoTabla.getWidth();
+            if (anchoDisponible <= 0) {
+                anchoDisponible = Math.max(100, contenedorTabla.getWidth());
+            }
+
+            double minWidthTotal = columnasVisibles.stream()
+                    .mapToDouble(TableColumn::getMinWidth)
+                    .sum();
+
+            // Margen del 5% para evitar problemas de redondeo
+            boolean columnasCaben = minWidthTotal <= (anchoDisponible * 1.05);
+
+            if (columnasCaben) {
+                contenidoTabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+                // Resetear prefWidth para distribución equitativa
+                for (TableColumn<UtilidadItem, ?> col : columnasVisibles) {
+                    col.setPrefWidth(-1);
+                }
+            } else {
+                contenidoTabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+                // Si excede en más del 20%, ajustar proporcionalmente
+                if (minWidthTotal > anchoDisponible * 1.2) {
+                    double factor = (anchoDisponible * 0.9) / minWidthTotal;
+                    for (TableColumn<UtilidadItem, ?> col : columnasVisibles) {
+                        col.setPrefWidth(col.getMinWidth() * factor);
+                    }
+                }
+            }
+
+            contenidoTabla.requestLayout();
+        });
+    }
+
+    private void agregarListenersRedimension() {
+        // Listener del contenedor de la tabla (doble runLater, igual que Inventario)
+        contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal.doubleValue() > 0) {
+                Platform.runLater(() -> {
+                    Platform.runLater(this::actualizarPoliticaRedimensionamiento);
+                });
+            }
+        });
+
+        // Listener de la tabla misma
+        contenidoTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal.doubleValue() > 0 && newVal.doubleValue() != oldVal.doubleValue()) {
+                Platform.runLater(this::actualizarPoliticaRedimensionamiento);
+            }
         });
     }
 
@@ -189,6 +253,22 @@ public class MainController {
         for (TableColumn<UtilidadItem, ?> columna : columnas) {
             columna.setStyle("-fx-alignment: CENTER;");
         }
+
+        colClaveProducto.setMinWidth(80);
+        colNombreProducto.setMinWidth(150);
+        colCategoria.setMinWidth(100);
+        colDescripcionProducto.setMinWidth(200);
+        colPresentacion.setMinWidth(80);
+        colFactor.setMinWidth(60);
+        colCantidad.setMinWidth(60);
+        colTotalCompra.setMinWidth(90);
+        colProveedor.setMinWidth(120);
+        colFacturaCompra.setMinWidth(100);
+        colTotalVenta.setMinWidth(90);
+        colCliente.setMinWidth(120);
+        colFacturaVenta.setMinWidth(100);
+        colPorcentajeUtilidad.setMinWidth(90);
+        colUtilidadPesos.setMinWidth(90);
 
         contenidoTabla.setItems(utilidades);
     }

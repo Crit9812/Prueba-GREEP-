@@ -198,9 +198,6 @@
     -fx-border-radius: 6;
     -fx-border-width: 1;
     -fx-padding: 12;
-    -fx-max-width: 750px;
-    -fx-min-width: 750px;
-    -fx-pref-width: 750px;
     -fx-alignment: center-left;
 }
 
@@ -236,18 +233,54 @@
     -fx-background-color: #666666;
 }
 
-.boton-form{
+/* Clase base */
+.boton-form {
     -fx-background-color: #333;
     -fx-text-fill: white;
     -fx-cursor: hand;
     -fx-border-radius: 5;
     -fx-font-weight: bold;
-    -fx-pref-width: 200;
-    -fx-pref-height: 35;
     -fx-background-radius: 5;
+
+    -fx-pref-height: 35;
+}
+
+.boton-form {
+    -fx-pref-width: 200;
+}
+
+.boton-form.detallado {
+    -fx-pref-width: 110;
 }
 
 .boton-form:hover {
     -fx-background-color: #444;
 }
+
+.botonCancelar{
+     -fx-background-color: #e74c3c;
+     -fx-text-fill: white;
+     -fx-cursor: hand;
+     -fx-border-radius: 5;
+     -fx-font-weight: bold;
+     -fx-pref-width: 110;
+     -fx-pref-height: 35;
+     -fx-background-radius: 5;
+ }
+
+ .botonAgregarUbi{
+     -fx-background-color: #333;
+     -fx-text-fill: white;
+     -fx-cursor: hand;
+     -fx-border-radius: 5;
+     -fx-font-weight: bold;
+     -fx-max-width: 25;
+     -fx-max-height: 25;
+     -fx-background-radius: 5;
+ }
+
+ .botonAgregarUbi:hover {
+     -fx-background-color: #444;
+ }
+
 
