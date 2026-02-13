@@ -99,7 +99,7 @@ public class modelNuevoTraspasoSalida {
                     ps.setDate(index++, null);
                 }
                 ps.setString(index++, ubicacionNombre != null ? ubicacionNombre : "");
-                ps.setString(index++, "activo");
+                ps.setString(index++, "disponible");
                 if (colEstado != null) {
                     ps.setString(index, "segmentado");
                 }
@@ -179,7 +179,7 @@ public class modelNuevoTraspasoSalida {
                     ps.setDate(index++, null);
                     ps.setDate(index++, null);
                 }
-                ps.setString(index++, "activo");
+                ps.setString(index++, "disponible");
                 if (colEstado != null) {
                     ps.setString(index, "segmentado");
                 }
@@ -266,7 +266,7 @@ public class modelNuevoTraspasoSalida {
                 if (incluirDetalle) {
                     ps.setString(index++, idProducto);
                     ps.setString(index++, lote);
-                    ps.setString(index++, "activo");
+                    ps.setString(index++, "disponible");
                     if (colEstado != null) {
                         ps.setString(index++, "segmentado");
                     }
@@ -351,7 +351,7 @@ public class modelNuevoTraspasoSalida {
                 if (incluirDetalle) {
                     ps.setString(index++, idProducto);
                     ps.setString(index++, lote != null ? lote : "");
-                    ps.setString(index++, "activo");
+                    ps.setString(index++, "disponible");
                     if (colEstado != null) {
                         ps.setString(index, "segmentado");
                     }
@@ -411,7 +411,7 @@ public class modelNuevoTraspasoSalida {
                     ps.setString(index++, "disponible");
                 }
                 ps.setString(index++, idProducto);
-                ps.setString(index++, "activo");
+                ps.setString(index++, "disponible");
                 if (colEstado != null) {
                     ps.setString(index, "segmentado");
                 }
@@ -551,7 +551,7 @@ public class modelNuevoTraspasoSalida {
             WHERE de.claveProducto = ?
               AND a.lote = ?
               AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-              AND LOWER(da.estado) = 'activo'
+              AND LOWER(da.estado) = 'disponible'
               AND LOWER(a.Estado) = 'segmentado'
               AND u.nombre = ?
         """;
@@ -608,7 +608,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE a.lote = ? AND de.claveProducto = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
             ) caducidades
             ORDER BY
@@ -706,7 +706,7 @@ public class modelNuevoTraspasoSalida {
                 WHERE de.claveProducto = ?
                   AND a.lote = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 LIMIT 1
             """;
@@ -760,7 +760,7 @@ public class modelNuevoTraspasoSalida {
                 WHERE de.claveProducto = ?
                   AND a.lote = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 LIMIT 1
             """;
@@ -808,7 +808,7 @@ public class modelNuevoTraspasoSalida {
                         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                         WHERE de.claveProducto = ?
                           AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                          AND LOWER(da.estado) = 'activo'
+                          AND LOWER(da.estado) = 'disponible'
                           AND LOWER(a.Estado) = 'segmentado'
                     """;
                     try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
@@ -862,7 +862,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN ubicaciones u ON u.id = da.idUbicacion
                 WHERE de.claveProducto = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 GROUP BY a.lote, a.caducidad, u.nombre
             """ : "");
@@ -1093,7 +1093,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 LIMIT 1
             """;
@@ -1146,7 +1146,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 LIMIT 1
             """;
@@ -1199,7 +1199,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 LIMIT 1
             """;
@@ -1265,7 +1265,7 @@ public class modelNuevoTraspasoSalida {
                 }
                 if (incluirDetalle) {
                     ps.setString(index++, idProducto);
-                    ps.setString(index++, "activo");
+                    ps.setString(index++, "disponible");
                     if (colEstado != null) {
                         ps.setString(index, "segmentado");
                     }
@@ -1323,7 +1323,7 @@ public class modelNuevoTraspasoSalida {
                         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                         WHERE de.claveProducto = ?
                           AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                          AND LOWER(da.estado) = 'activo'
+                          AND LOWER(da.estado) = 'disponible'
                           AND LOWER(a.Estado) = 'segmentado'
                     """;
                     try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
@@ -1390,7 +1390,7 @@ public class modelNuevoTraspasoSalida {
             JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
             WHERE de.claveProducto = ?
               AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-              AND LOWER(da.estado) = 'activo'
+              AND LOWER(da.estado) = 'disponible'
               AND LOWER(a.Estado) = 'segmentado'
             GROUP BY a.lote, a.caducidad
         """ : "");
@@ -1480,7 +1480,7 @@ public class modelNuevoTraspasoSalida {
             JOIN ubicaciones u ON u.id = da.idUbicacion
             WHERE de.claveProducto = ?
               AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-              AND LOWER(da.estado) = 'activo'
+              AND LOWER(da.estado) = 'disponible'
               AND LOWER(a.Estado) = 'segmentado'
             GROUP BY u.nombre
         """ : "");
@@ -1563,7 +1563,7 @@ public class modelNuevoTraspasoSalida {
                 WHERE de.claveProducto = ?
                   AND a.lote = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
-                  AND LOWER(da.estado) = 'activo'
+                  AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
                 LIMIT 1
             """;
