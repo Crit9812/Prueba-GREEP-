@@ -1430,9 +1430,17 @@ public class DetalleFacturaController {
 
         boolean puedeEditar, puedeEliminar;
         if (esEntrada) {
-            // Entrada: solo permitir si NO está pendiente, eliminado, vendido ni segmentado
-            puedeEditar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
-            puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
+            boolean bloqueadoPorDetalle = art.tieneDetalleArticuloPendienteOVendido();
+            if (art.esSegmentado()) {
+                // En entradas para segmentados los botones viven en el artículo principal
+                // y se bloquean sólo con estados vendido/pendiente en sus detalles sincronizados.
+                puedeEditar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !bloqueadoPorDetalle;
+                puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !bloqueadoPorDetalle;
+            } else {
+                // Entrada: solo permitir si NO está pendiente, eliminado, vendido ni segmentado
+                puedeEditar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
+                puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
+            }
         } else {
             // Salida: permitir si NO está eliminado ni segmentado (el resto de estados se pueden editar/eliminar)
             puedeEditar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
@@ -1802,13 +1810,13 @@ public class DetalleFacturaController {
         if (articulo == null || articulo.idArticulo <= 0) return;
 
         if (esEntrada) {
-            // Entrada: no permitir si está pendiente, eliminado, vendido o segmentado
-            if (articulo.esPendiente() || articulo.esEliminado() || articulo.esVendido() || articulo.esSegmentado()) {
+            // Entrada: no permitir si está pendiente, eliminado o vendido.
+            if (articulo.esPendiente() || articulo.esEliminado() || articulo.esVendido()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "No se puede editar un artículo con estado pendiente, eliminado, vendido o segmentado en una entrada.");
+                        "No se puede editar un artículo con estado pendiente, eliminado o vendido en una entrada.");
                 return;
             }
-            if (articulo.tieneDetalleArticuloPendienteOVendido()) {
+            if (!articulo.esSegmentado() && articulo.tieneDetalleArticuloPendienteOVendido()) {
                 mostrarAdvertencia("Acción no permitida",
                         "No se puede editar un artículo con detalles en estado pendiente, vendido o eliminado.");
                 return;
@@ -2064,13 +2072,13 @@ public class DetalleFacturaController {
         if (articulo == null || articulo.idArticulo <= 0) return;
 
         if (esEntrada) {
-            // Entrada: no permitir si está pendiente, eliminado, vendido o segmentado
-            if (articulo.esPendiente() || articulo.esEliminado() || articulo.esVendido() || articulo.esSegmentado()) {
+            // Entrada: no permitir si está pendiente, eliminado o vendido.
+            if (articulo.esPendiente() || articulo.esEliminado() || articulo.esVendido()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "No se puede eliminar un artículo con estado pendiente, eliminado, vendido o segmentado en una entrada.");
+                        "No se puede eliminar un artículo con estado pendiente, eliminado o vendido en una entrada.");
                 return;
             }
-            if (articulo.tieneDetalleArticuloPendienteOVendido()) {
+            if (!articulo.esSegmentado() && articulo.tieneDetalleArticuloPendienteOVendido()) {
                 mostrarAdvertencia("Acción no permitida",
                         "No se puede eliminar un artículo con detalles en estado pendiente, vendido o eliminado.");
                 return;
@@ -2110,25 +2118,32 @@ public class DetalleFacturaController {
                     }
 
                     Integer ajusteId = ajustarTotalesSalida(conn, articulo, esAjuste);
+                    reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
                     actualizarEstadoDetalleSalidaSiVacio(conn, articulo.detalleSalidaId, !esAjuste);
 
                     if (esAjuste) {
                         actualizarEstadoAjusteSiVacio(conn, ajusteId);
                     }
                 } else {
-                    // Es una entrada
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
-                        ps.setString(1, "eliminado");
-                        ps.setInt(2, articulo.idArticulo);
-                        ps.executeUpdate();
-                    }
+                    if (articulo.esSegmentado()) {
+                        // En entradas segmentadas, eliminar en el artículo principal marca como eliminado
+                        // a sus detalleArticulo sincronizados.
+                        marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "eliminado", false);
+                    } else {
+                        // Es una entrada no segmentada.
+                        try (PreparedStatement ps = conn.prepareStatement(
+                                "UPDATE articulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
+                            ps.setString(1, "eliminado");
+                            ps.setInt(2, articulo.idArticulo);
+                            ps.executeUpdate();
+                        }
 
-                    Integer ajusteId = ajustarTotalesEntrada(conn, articulo, esAjuste);
-                    actualizarEstadoDetalleEntradaSiVacio(conn, articulo.detalleEntradaId, !esAjuste);
+                        Integer ajusteId = ajustarTotalesEntrada(conn, articulo, esAjuste);
+                        actualizarEstadoDetalleEntradaSiVacio(conn, articulo.detalleEntradaId, !esAjuste);
 
-                    if (esAjuste) {
-                        actualizarEstadoAjusteSiVacio(conn, ajusteId);
+                        if (esAjuste) {
+                            actualizarEstadoAjusteSiVacio(conn, ajusteId);
+                        }
                     }
                 }
 
@@ -2276,8 +2291,18 @@ public class DetalleFacturaController {
 
         if (colArtDetSal == null) return;
 
-        String sqlCount = "SELECT COUNT(*) FROM articulo WHERE `" + colArtDetSal + "` = ?";
-        if (ejecutarConteo(conn, sqlCount, detSalId) > 0) return;
+        String sqlCountArt = "SELECT COUNT(*) FROM articulo WHERE `" + colArtDetSal + "` = ?";
+        int articulosActivos = ejecutarConteo(conn, sqlCountArt, detSalId);
+
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colDetArtSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        String sqlCountDetArt = (colDetArtSal == null)
+                ? null
+                : "SELECT COUNT(*) FROM detalleArticulo WHERE `" + colDetArtSal + "` = ?";
+        int detallesActivos = (sqlCountDetArt == null) ? 0 : ejecutarConteo(conn, sqlCountDetArt, detSalId);
+
+        if (articulosActivos > 0 || detallesActivos > 0) return;
 
         try (PreparedStatement ps = conn.prepareStatement("UPDATE detalle_Salida SET `" + colDetEstado + "` = ? WHERE `" + colDetId + "` = ?")) {
             ps.setString(1, "desactivado");
@@ -2305,6 +2330,10 @@ public class DetalleFacturaController {
             String colSalEstado = resolverColumna(colsSal, "Estado", "estado");
 
             if (colSalId != null && colSalEstado != null) {
+                int pendientesSalida = contarDetallesSalidaConContenido(conn, salidaId, colDetId, colClave, colArtDetSal, colDetArtSal);
+                if (pendientesSalida > 0) {
+                    return;
+                }
                 String sqlUpdSal = "UPDATE salidas SET `" + colSalEstado + "` = ? WHERE `" + colSalId + "` = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sqlUpdSal)) {
                     ps.setString(1, "cancelado");
@@ -2510,10 +2539,28 @@ public class DetalleFacturaController {
                     return;
                 }
 
-                try (PreparedStatement ps = conn.prepareStatement("UPDATE detalleArticulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
-                    ps.setString(1, "eliminado");
+                String colDetSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
+                        "detalleSalida", "detalle_salida", "detalle_salida_id");
+
+                Integer detalleSalidaId = obtenerDetalleSalidaDesdeDetalleArticulo(conn, detalle.idDetalle, colId, colDetSal);
+                Integer articuloId = obtenerArticuloDesdeDetalleArticulo(conn, detalle.idDetalle, colId,
+                        resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id"));
+
+                String sql = esEntrada || colDetSal == null
+                        ? "UPDATE detalleArticulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?"
+                        : "UPDATE detalleArticulo SET `" + colEstado + "` = ?, `" + colDetSal + "` = NULL WHERE `" + colId + "` = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, esEntrada ? "eliminado" : "disponible");
                     ps.setString(2, detalle.idDetalle);
                     ps.executeUpdate();
+                }
+
+                if (!esEntrada && articuloId != null && articuloId > 0) {
+                    reactivarOrigenDesdeArticulo(conn, articuloId);
+                }
+
+                if (!esEntrada && detalleSalidaId != null) {
+                    actualizarEstadoDetalleSalidaSiVacio(conn, detalleSalidaId, true);
                 }
 
                 notificarActualizacion();
@@ -2523,6 +2570,119 @@ public class DetalleFacturaController {
                 mostrarAdvertencia("Error", "No se pudo eliminar el detalle: " + e.getMessage());
             }
         });
+    }
+
+    private void marcarDetallesSincronizadosDeArticulo(Connection conn, int idArticulo, String estado,
+                                                       boolean limpiarDetalleSalida) throws SQLException {
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colIdArt = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colEstado = resolverColumna(colsDetArt, "estado", "Estado");
+        String colDetSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colIdArt == null || colEstado == null) return;
+
+        String sql = "UPDATE detalleArticulo SET `" + colEstado + "` = ?"
+                + ((limpiarDetalleSalida && colDetSal != null) ? ", `" + colDetSal + "` = NULL" : "")
+                + " WHERE `" + colIdArt + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, estado);
+            ps.setInt(2, idArticulo);
+            ps.executeUpdate();
+        }
+    }
+
+    private Integer obtenerDetalleSalidaDesdeDetalleArticulo(Connection conn, String idDetalle,
+                                                             String colId, String colDetSal) throws SQLException {
+        if (idDetalle == null || idDetalle.isBlank() || colId == null || colDetSal == null) return null;
+        String sql = "SELECT `" + colDetSal + "` FROM detalleArticulo WHERE `" + colId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idDetalle);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return parseInteger(rs.getObject(1));
+            }
+        }
+        return null;
+    }
+
+    private Integer obtenerArticuloDesdeDetalleArticulo(Connection conn, String idDetalle,
+                                                        String colId, String colIdArticulo) throws SQLException {
+        if (idDetalle == null || idDetalle.isBlank() || colId == null || colIdArticulo == null) return null;
+        String sql = "SELECT `" + colIdArticulo + "` FROM detalleArticulo WHERE `" + colId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idDetalle);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return parseInteger(rs.getObject(1));
+            }
+        }
+        return null;
+    }
+
+    private void reactivarOrigenDesdeArticulo(Connection conn, int idArticulo) throws SQLException {
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        if (colArtId == null || colDetEnt == null) return;
+
+        Integer detalleEntradaId = null;
+        try (PreparedStatement ps = conn.prepareStatement("SELECT `" + colDetEnt + "` FROM articulo WHERE `" + colArtId + "` = ?")) {
+            ps.setInt(1, idArticulo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) detalleEntradaId = parseInteger(rs.getObject(1));
+            }
+        }
+        if (detalleEntradaId == null || detalleEntradaId <= 0) return;
+
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetEntEstado = resolverColumna(colsDetEnt, "estado", "Estado");
+        String colClaveEnt = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        if (colDetEntId == null || colDetEntEstado == null) return;
+
+        Integer entradaId = null;
+        String sqlDet = "UPDATE detalle_Entrada SET `" + colDetEntEstado + "` = 'activo' WHERE `" + colDetEntId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlDet)) {
+            ps.setInt(1, detalleEntradaId);
+            ps.executeUpdate();
+        }
+        if (colClaveEnt != null) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT `" + colClaveEnt + "` FROM detalle_Entrada WHERE `" + colDetEntId + "` = ?")) {
+                ps.setInt(1, detalleEntradaId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) entradaId = parseInteger(rs.getObject(1));
+                }
+            }
+        }
+
+        if (entradaId != null && entradaId > 0) {
+            Map<String, String> colsEnt = obtenerColumnasCached(conn, "entradas");
+            String colEntId = resolverColumna(colsEnt, "idEntrada", "id", "id_entrada");
+            String colEntEstado = resolverColumna(colsEnt, "Estado", "estado");
+            if (colEntId != null && colEntEstado != null) {
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE entradas SET `" + colEntEstado + "` = 'disponible' WHERE `" + colEntId + "` = ?")) {
+                    ps.setInt(1, entradaId);
+                    ps.executeUpdate();
+                }
+            }
+        }
+    }
+
+    private int contarDetallesSalidaConContenido(Connection conn, Integer salidaId,
+                                                 String colDetId, String colClave,
+                                                 String colArtDetSal, String colDetArtSal) throws SQLException {
+        if (salidaId == null || colDetId == null || colClave == null || colArtDetSal == null) return 0;
+
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM detalle_Salida ds WHERE ds.`")
+                .append(colClave).append("` = ? AND (")
+                .append("EXISTS (SELECT 1 FROM articulo a WHERE a.`").append(colArtDetSal).append("` = ds.`").append(colDetId).append("`)");
+
+        if (colDetArtSal != null) {
+            sql.append(" OR EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`").append(colDetArtSal)
+                    .append("` = ds.`").append(colDetId).append("`)");
+        }
+        sql.append(")");
+
+        return ejecutarConteo(conn, sql.toString(), salidaId);
     }
 
     // === UTILIDADES ===
