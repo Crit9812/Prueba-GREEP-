@@ -37,7 +37,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/update-article-deletion-behavior-in-reports" />
+        <entry key="$PROJECT_DIR$/.." value="codex/update-item-status-to-available-in-inventory" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -216,15 +216,8 @@
       <workItem from="1770823933180" duration="2695000" />
       <workItem from="1770834936465" duration="4682000" />
       <workItem from="1770904541174" duration="18985000" />
-      <workItem from="1770992026265" duration="4240000" />
-    </task>
-    <task id="LOCAL-00014" summary="Agregada parte de compra completa">
-      <option name="closed" value="true" />
-      <created>1767381648107</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1767381648107</updated>
+      <workItem from="1770992026265" duration="4822000" />
+      <workItem from="1771009340448" duration="7478000" />
     </task>
     <task id="LOCAL-00015" summary="Agregada parte de compra completa y cambio al cerrar formulario">
       <option name="closed" value="true" />
@@ -610,7 +603,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770941911371</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="cambios en historial por factura">
+      <option name="closed" value="true" />
+      <created>1770998668022</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1770998668022</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
