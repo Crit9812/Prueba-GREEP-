@@ -73,6 +73,8 @@ public class MainController {
     @FXML private TableColumn<ItemInventario, String> colCaducidad;
     @FXML private TableColumn<ItemInventario, String> colUbicacion;
     @FXML private TableColumn<ItemInventario, String> colDescripcion;
+    @FXML private TableColumn<ItemInventario, String> colPrecioTotal;
+    @FXML private TableColumn<ItemInventario, String> colPrecioTotalIva;
     @FXML private TableColumn<ItemInventario, String> colInventarioMinimo;
 
     @FXML private encabezadoController paneNavbarController;
@@ -1496,6 +1498,8 @@ public class MainController {
         colCaducidad.setCellValueFactory(new PropertyValueFactory<>("caducidad"));
         colUbicacion.setCellValueFactory(new PropertyValueFactory<>("ubicacion"));
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
+        colPrecioTotal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
+        colPrecioTotalIva.setCellValueFactory(new PropertyValueFactory<>("precioTotalIva"));
         colInventarioMinimo.setCellValueFactory(new PropertyValueFactory<>("inventarioMinimo"));
 
         TableColumn<ItemInventario, ?>[] columnas = new TableColumn[] {
@@ -1513,6 +1517,8 @@ public class MainController {
                 colCaducidad,
                 colUbicacion,
                 colDescripcion,
+                colPrecioTotal,
+                colPrecioTotalIva,
                 colInventarioMinimo
         };
         for (TableColumn<ItemInventario, ?> col : columnas) {
@@ -1615,6 +1621,8 @@ public class MainController {
             columnas.add(colUbicacion);
         }
         columnas.add(colDescripcion);
+        columnas.add(colPrecioTotal);
+        columnas.add(colPrecioTotalIva);
         columnas.add(colInventarioMinimo);
         return columnas;
     }
@@ -1660,6 +1668,8 @@ public class MainController {
         opciones.add("Unidad");
         opciones.add("Presentación");
         opciones.add("Factor");
+        opciones.add("Precio total");
+        opciones.add("Precio total (IVA)");
         if (detallado) {
             opciones.add("Lote");
             opciones.add("Caducidad");
@@ -1831,6 +1841,10 @@ public class MainController {
                 return item.getUbicacion();
             case "Factor":
                 return item.getFactor();
+            case "Precio total":
+                return item.getPrecioTotal();
+            case "Precio total (IVA)":
+                return item.getPrecioTotalIva();
             default:
                 return "";
         }
@@ -1888,6 +1902,14 @@ public class MainController {
         alerta.setContentText(mensaje);
         alerta.showAndWait();
     }
+
+    private String formatearMoneda(BigDecimal valor) {
+        if (valor == null) {
+            return "0.00";
+        }
+        return valor.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
+
 
     @FXML
     private void mostrarOrdenPopup(MouseEvent event) {
@@ -1967,6 +1989,8 @@ public class MainController {
                 a.caducidad AS caducidad,
                 u.nombre AS ubicacion,
                 p.descripcion AS descripcion,
+                COALESCE(de.precioUnitario, 0) AS precioTotal,
+                COALESCE(de.precioTotal, 0) AS precioTotalIva,
                 p.inventarioMin AS inventarioMinimo
             FROM articulo a
             INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
@@ -1989,6 +2013,8 @@ public class MainController {
                 a.caducidad AS caducidad,
                 u.nombre AS ubicacion,
                 p.descripcion AS descripcion,
+                (COALESCE(de.precioUnitario, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotal,
+                (COALESCE(de.precioTotal, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotalIva,
                 p.inventarioMin AS inventarioMinimo
             FROM detalleArticulo da
             INNER JOIN articulo a ON da.idArticulo = a.idArticulo
@@ -2011,6 +2037,8 @@ public class MainController {
                 presentacion,
                 factor,
                 descripcion,
+                SUM(precioTotal) AS precioTotal,
+                SUM(precioTotalIva) AS precioTotalIva,
                 inventarioMinimo
             FROM (
                 SELECT
@@ -2024,6 +2052,8 @@ public class MainController {
                     a.presentacion AS presentacion,
                     a.factor AS factor,
                     p.descripcion AS descripcion,
+                    COALESCE(de.precioUnitario, 0) AS precioTotal,
+                    COALESCE(de.precioTotal, 0) AS precioTotalIva,
                     p.inventarioMin AS inventarioMinimo
                 FROM articulo a
                 INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
@@ -2042,6 +2072,8 @@ public class MainController {
                     'pz' AS presentacion,
                     '1' AS factor,
                     p.descripcion AS descripcion,
+                    (COALESCE(de.precioUnitario, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotal,
+                    (COALESCE(de.precioTotal, 0) / NULLIF(COALESCE(a.factor, 0), 0)) AS precioTotalIva,
                     p.inventarioMin AS inventarioMinimo
                 FROM detalleArticulo da
                 INNER JOIN articulo a ON da.idArticulo = a.idArticulo
@@ -2089,6 +2121,8 @@ public class MainController {
                         detallado ? rs.getString("caducidad") : "",
                         detallado ? rs.getString("ubicacion") : "",
                         rs.getString("descripcion"),
+                        formatearMoneda(rs.getBigDecimal("precioTotal")),
+                        formatearMoneda(rs.getBigDecimal("precioTotalIva")),
                         rs.getString("inventarioMinimo")
                 ));
             }

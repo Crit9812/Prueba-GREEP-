@@ -18,12 +18,14 @@ public class ItemInventario {
     private final StringProperty caducidad = new SimpleStringProperty();
     private final StringProperty ubicacion = new SimpleStringProperty();
     private final StringProperty descripcion = new SimpleStringProperty();
+    private final StringProperty precioTotal = new SimpleStringProperty();
+    private final StringProperty precioTotalIva = new SimpleStringProperty();
     private final StringProperty inventarioMinimo = new SimpleStringProperty();
 
     public ItemInventario(String idArticulo, String claveProducto, String cantidad, String producto, String marca, String categoria,
                           String material, String unidadMedida, String presentacion, String factor,
                           String lote, String caducidad, String ubicacion,
-                          String descripcion, String inventarioMinimo) {
+                          String descripcion, String precioTotal, String precioTotalIva, String inventarioMinimo) {
         this.idArticulo.set(idArticulo);
         this.claveProducto.set(claveProducto);
         this.cantidad.set(cantidad);
@@ -38,6 +40,8 @@ public class ItemInventario {
         this.caducidad.set(caducidad);
         this.ubicacion.set(ubicacion);
         this.descripcion.set(descripcion);
+        this.precioTotal.set(precioTotal);
+        this.precioTotalIva.set(precioTotalIva);
         this.inventarioMinimo.set(inventarioMinimo);
     }
 
@@ -207,6 +211,30 @@ public class ItemInventario {
 
     public void setDescripcion(String descripcion) {
         this.descripcion.set(descripcion);
+    }
+
+    public String getPrecioTotal() {
+        return precioTotal.get();
+    }
+
+    public StringProperty precioTotalProperty() {
+        return precioTotal;
+    }
+
+    public void setPrecioTotal(String precioTotal) {
+        this.precioTotal.set(precioTotal);
+    }
+
+    public String getPrecioTotalIva() {
+        return precioTotalIva.get();
+    }
+
+    public StringProperty precioTotalIvaProperty() {
+        return precioTotalIva;
+    }
+
+    public void setPrecioTotalIva(String precioTotalIva) {
+        this.precioTotalIva.set(precioTotalIva);
     }
 
     public String getInventarioMinimo() {

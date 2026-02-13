@@ -176,6 +176,8 @@
                                         <TableColumn fx:id="colCaducidad" text="Caducidad" minWidth="140" />
                                         <TableColumn fx:id="colUbicacion" text="Ubicación" minWidth="140" />
                                         <TableColumn fx:id="colDescripcion" text="Descripción" minWidth="180" />
+                                        <TableColumn fx:id="colPrecioTotal" text="Precio total" minWidth="140" />
+                                        <TableColumn fx:id="colPrecioTotalIva" text="Precio total (IVA)" minWidth="160" />
                                         <TableColumn fx:id="colInventarioMinimo" text="Inventario mínimo" minWidth="180" />
                                     </columns>
                                 </TableView>
