@@ -124,6 +124,10 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             return;
         }
 
+        if (!validarCantidadPorUbicacion(clave, lote, caducidad, presentacion, factor, ubicacionesSeleccionadas)) {
+            return;
+        }
+
         // En traspaso salida, el precio de salida debe ser igual al de entrada
         BigDecimal precioEntradaDec = parseDecimal(precioEntrada);
         BigDecimal precioSalidaDec = parseDecimal(precioSalida);
@@ -181,6 +185,42 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         } else {
             limpiarFormularioParaNuevo();
         }
+    }
+
+
+    private boolean validarCantidadPorUbicacion(String clave, String lote, java.time.LocalDate caducidad,
+                                                String presentacion, int factor,
+                                                List<UbicacionCompra> ubicacionesSeleccionadas) {
+        for (UbicacionCompra ubicacion : ubicacionesSeleccionadas) {
+            if (ubicacion == null || ubicacion.getUbicacion() == null || ubicacion.getUbicacion().isBlank()) {
+                mostrarAlerta("Advertencia", "Debe seleccionar una ubicación válida.");
+                return false;
+            }
+
+            int cantidadSolicitada = Math.max(0, ubicacion.getCantidad());
+            if (cantidadSolicitada == 0) {
+                continue;
+            }
+
+            int disponibleUbicacion = modelo.obtenerCantidadDisponibleDetalle(
+                    clave,
+                    lote,
+                    caducidad,
+                    presentacion,
+                    factor,
+                    ubicacion.getUbicacion().trim()
+            );
+
+            if (cantidadSolicitada > disponibleUbicacion) {
+                mostrarAlerta(
+                        "Advertencia",
+                        "La cantidad solicitada para la ubicación '" + ubicacion.getUbicacion()
+                                + "' excede la disponibilidad actual (" + disponibleUbicacion + ")."
+                );
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
