@@ -1442,9 +1442,9 @@ public class DetalleFacturaController {
                 puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
             }
         } else {
-            // Salida: permitir si NO está eliminado (incluye artículos segmentados)
-            puedeEditar = art.idArticulo > 0 && !art.esEliminado();
-            puedeEliminar = art.idArticulo > 0 && !art.esEliminado();
+            // Salida: mostrar botones SOLO para artículos segmentados
+            puedeEditar = art.idArticulo > 0 && !art.esEliminado() && art.esSegmentado();
+            puedeEliminar = art.idArticulo > 0 && !art.esEliminado() && art.esSegmentado();
         }
 
         if (puedeEditar) {
@@ -1822,10 +1822,10 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado
-            if (articulo.esEliminado()) {
+            // Salida: permitir edición SOLO para artículos segmentados no eliminados
+            if (articulo.esEliminado() || !articulo.esSegmentado()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede editar un artículo eliminado.");
+                        "En salidas esta edición aplica solo a artículos segmentados no eliminados.");
                 return;
             }
         }
@@ -1853,6 +1853,7 @@ public class DetalleFacturaController {
         contenido.setPadding(new Insets(0, 20, 0, 20));
         contenido.setStyle("-fx-background-color: white;");
 
+        boolean permitirEdicionSegmentadoSalida = !esEntrada && articulo.esSegmentado();
         TextField txtPrecioUnitarioSalida = null;
 
         TextField txtLote = new TextField(valorTexto(articulo.lote));
@@ -1930,7 +1931,7 @@ public class DetalleFacturaController {
 
         fila3.getChildren().addAll(vboxUbi, spacer);
 
-        if (!esEntrada) {
+        if (permitirEdicionSegmentadoSalida) {
             txtPrecioUnitarioSalida = new TextField();
             txtPrecioUnitarioSalida.setPrefWidth(180);
             txtPrecioUnitarioSalida.setPromptText("0.00");
@@ -1949,7 +1950,7 @@ public class DetalleFacturaController {
             contenido.getChildren().addAll(fila1, fila2, fila3);
         }
 
-        if (!esEntrada && txtPrecioUnitarioSalida != null) {
+        if (permitirEdicionSegmentadoSalida && txtPrecioUnitarioSalida != null) {
             HBox filaPrecio = new HBox(15);
             filaPrecio.setAlignment(Pos.CENTER_LEFT);
             VBox vboxPrecio = new VBox(5);
@@ -1990,7 +1991,7 @@ public class DetalleFacturaController {
         btnAceptar.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 8 20; -fx-background-radius: 4;");
         btnAceptar.setPrefWidth(120);
         btnAceptar.setOnAction(e -> {
-            if (!esEntrada && txtPrecioUnitarioSalidaFinal != null) {
+            if (permitirEdicionSegmentadoSalida && txtPrecioUnitarioSalidaFinal != null) {
                 BigDecimal precioValidacion = parseDecimal(txtPrecioUnitarioSalidaFinal.getText());
                 if (precioValidacion == null || precioValidacion.compareTo(BigDecimal.ZERO) < 0) {
                     mostrarAdvertencia("Precio inválido", "Ingresa un precio unitario válido.");
@@ -2089,7 +2090,7 @@ public class DetalleFacturaController {
                     ps.executeUpdate();
                 }
 
-                if (!esEntrada && txtPrecioUnitarioSalidaFinal != null && articulo.detalleSalidaId != null) {
+                if (permitirEdicionSegmentadoSalida && txtPrecioUnitarioSalidaFinal != null && articulo.detalleSalidaId != null) {
                     BigDecimal nuevoPrecioUnitario = parseDecimal(txtPrecioUnitarioSalidaFinal.getText());
                     if (nuevoPrecioUnitario != null) {
                         actualizarPrecioDetalleSalida(conn, articulo.detalleSalidaId, nuevoPrecioUnitario);
@@ -2126,10 +2127,10 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado
-            if (articulo.esEliminado()) {
+            // Salida: permitir eliminación SOLO para artículos segmentados no eliminados
+            if (articulo.esEliminado() || !articulo.esSegmentado()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede eliminar un artículo eliminado.");
+                        "En salidas esta eliminación aplica solo a artículos segmentados no eliminados.");
                 return;
             }
         }
