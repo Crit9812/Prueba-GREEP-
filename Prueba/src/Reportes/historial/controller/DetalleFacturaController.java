@@ -1442,9 +1442,9 @@ public class DetalleFacturaController {
                 puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
             }
         } else {
-            // Salida: permitir si NO está eliminado ni segmentado (el resto de estados se pueden editar/eliminar)
-            puedeEditar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
-            puedeEliminar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
+            // Salida: permitir si NO está eliminado (incluye artículos segmentados)
+            puedeEditar = art.idArticulo > 0 && !art.esEliminado();
+            puedeEliminar = art.idArticulo > 0 && !art.esEliminado();
         }
 
         if (puedeEditar) {
@@ -1822,10 +1822,10 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado o segmentado
-            if (articulo.esEliminado() || articulo.esSegmentado()) {
+            // Salida: no permitir si está eliminado
+            if (articulo.esEliminado()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede editar un artículo eliminado o segmentado.");
+                        "En salidas no se puede editar un artículo eliminado.");
                 return;
             }
         }
@@ -1852,6 +1852,8 @@ public class DetalleFacturaController {
         VBox contenido = new VBox(15);
         contenido.setPadding(new Insets(0, 20, 0, 20));
         contenido.setStyle("-fx-background-color: white;");
+
+        TextField txtPrecioUnitarioSalida = null;
 
         TextField txtLote = new TextField(valorTexto(articulo.lote));
         txtLote.setPrefWidth(180);
@@ -1928,10 +1930,33 @@ public class DetalleFacturaController {
 
         fila3.getChildren().addAll(vboxUbi, spacer);
 
+        if (!esEntrada) {
+            txtPrecioUnitarioSalida = new TextField();
+            txtPrecioUnitarioSalida.setPrefWidth(180);
+            txtPrecioUnitarioSalida.setPromptText("0.00");
+
+            if (articulo.detalleSalidaId != null) {
+                BigDecimal precioActualSalida = obtenerPrecioUnitarioDetalleSalida(articulo.detalleSalidaId);
+                if (precioActualSalida != null) {
+                    txtPrecioUnitarioSalida.setText(precioActualSalida.setScale(2, RoundingMode.HALF_UP).toPlainString());
+                }
+            }
+        }
+
         if (esSegmentado) {
             contenido.getChildren().add(fila1);
         } else {
             contenido.getChildren().addAll(fila1, fila2, fila3);
+        }
+
+        if (!esEntrada && txtPrecioUnitarioSalida != null) {
+            HBox filaPrecio = new HBox(15);
+            filaPrecio.setAlignment(Pos.CENTER_LEFT);
+            VBox vboxPrecio = new VBox(5);
+            vboxPrecio.getChildren().addAll(new Label("Precio unitario:"), txtPrecioUnitarioSalida);
+            HBox.setHgrow(vboxPrecio, Priority.ALWAYS);
+            filaPrecio.getChildren().add(vboxPrecio);
+            contenido.getChildren().add(filaPrecio);
         }
 
         HBox contBotones = new HBox(15);
@@ -1959,10 +1984,20 @@ public class DetalleFacturaController {
             btnCancelOrig.setManaged(false);
         }
 
+        final TextField txtPrecioUnitarioSalidaFinal = txtPrecioUnitarioSalida;
+
         Button btnAceptar = new Button("Aceptar");
         btnAceptar.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 8 20; -fx-background-radius: 4;");
         btnAceptar.setPrefWidth(120);
         btnAceptar.setOnAction(e -> {
+            if (!esEntrada && txtPrecioUnitarioSalidaFinal != null) {
+                BigDecimal precioValidacion = parseDecimal(txtPrecioUnitarioSalidaFinal.getText());
+                if (precioValidacion == null || precioValidacion.compareTo(BigDecimal.ZERO) < 0) {
+                    mostrarAdvertencia("Precio inválido", "Ingresa un precio unitario válido.");
+                    return;
+                }
+            }
+
             if (!esSegmentado) {
                 if (cbUbi.getValue() == null || cbUbi.getValue().isEmpty()) {
                     mostrarAdvertencia("Campo requerido", "La ubicación es requerida.");
@@ -2054,6 +2089,13 @@ public class DetalleFacturaController {
                     ps.executeUpdate();
                 }
 
+                if (!esEntrada && txtPrecioUnitarioSalidaFinal != null && articulo.detalleSalidaId != null) {
+                    BigDecimal nuevoPrecioUnitario = parseDecimal(txtPrecioUnitarioSalidaFinal.getText());
+                    if (nuevoPrecioUnitario != null) {
+                        actualizarPrecioDetalleSalida(conn, articulo.detalleSalidaId, nuevoPrecioUnitario);
+                    }
+                }
+
                 notificarActualizacion();
                 cargarDetalles();
             } catch (SQLException e) {
@@ -2084,10 +2126,10 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado o segmentado
-            if (articulo.esEliminado() || articulo.esSegmentado()) {
+            // Salida: no permitir si está eliminado
+            if (articulo.esEliminado()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede eliminar un artículo eliminado o segmentado.");
+                        "En salidas no se puede eliminar un artículo eliminado.");
                 return;
             }
         }
@@ -2117,7 +2159,15 @@ public class DetalleFacturaController {
                         ps.executeUpdate();
                     }
 
-                    Integer ajusteId = ajustarTotalesSalida(conn, articulo, esAjuste);
+                    int cantidadARevertir = articulo.esSegmentado()
+                            ? contarDetallesSegmentadosActivosPorArticulo(conn, articulo.idArticulo)
+                            : 1;
+                    Integer ajusteId = ajustarTotalesSalida(conn, articulo, esAjuste, cantidadARevertir);
+
+                    if (articulo.esSegmentado()) {
+                        marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "disponible", true);
+                    }
+
                     reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
                     actualizarEstadoDetalleSalidaSiVacio(conn, articulo.detalleSalidaId, !esAjuste);
 
@@ -2157,6 +2207,11 @@ public class DetalleFacturaController {
     }
 
     private Integer ajustarTotalesSalida(Connection conn, DetalleArticulo art, boolean esAjuste) throws SQLException {
+        return ajustarTotalesSalida(conn, art, esAjuste, 1);
+    }
+
+    private Integer ajustarTotalesSalida(Connection conn, DetalleArticulo art, boolean esAjuste,
+                                         int cantidadARevertir) throws SQLException {
         if (art == null || art.detalleSalidaId == null) return null;
 
         Map<String, String> colsDet = obtenerColumnasCached(conn, "detalle_Salida");
@@ -2190,7 +2245,8 @@ public class DetalleFacturaController {
 
         if (cant == null || pUnit == null || pIva == null) return null;
 
-        BigDecimal nuevaCant = cant.subtract(BigDecimal.ONE).max(BigDecimal.ZERO);
+        int cantidadDescuento = Math.max(1, cantidadARevertir);
+        BigDecimal nuevaCant = cant.subtract(BigDecimal.valueOf(cantidadDescuento)).max(BigDecimal.ZERO);
         BigDecimal nuevoBruto = pUnit.multiply(nuevaCant).setScale(2, RoundingMode.HALF_UP);
         BigDecimal nuevoTotal = pIva.multiply(nuevaCant).setScale(2, RoundingMode.HALF_UP);
 
@@ -2210,10 +2266,132 @@ public class DetalleFacturaController {
         if (claveId == null || claveId <= 0) return null;
 
         if (esAjuste) {
-            actualizarTotalesAjuste(conn, claveId, pUnit.negate(), pIva.negate());
+            BigDecimal descuentoNeto = pUnit.multiply(BigDecimal.valueOf(cantidadDescuento)).negate();
+            BigDecimal descuentoTotal = pIva.multiply(BigDecimal.valueOf(cantidadDescuento)).negate();
+            actualizarTotalesAjuste(conn, claveId, descuentoNeto, descuentoTotal);
         }
 
         return claveId;
+    }
+
+    private int contarDetallesSegmentadosActivosPorArticulo(Connection conn, int idArticulo) throws SQLException {
+        if (conn == null || idArticulo <= 0) {
+            return 1;
+        }
+
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colIdArt = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colEstado = resolverColumna(colsDetArt, "estado", "Estado");
+
+        if (colIdArt == null || colEstado == null) {
+            return 1;
+        }
+
+        String sql = "SELECT COUNT(*) FROM detalleArticulo WHERE `" + colIdArt + "` = ? AND LOWER(`" + colEstado + "`) <> 'eliminado'";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idArticulo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Math.max(1, rs.getInt(1));
+                }
+            }
+        }
+        return 1;
+    }
+
+    private BigDecimal obtenerPrecioUnitarioDetalleSalida(Integer detalleSalidaId) {
+        if (detalleSalidaId == null || detalleSalidaId <= 0) return null;
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) return null;
+
+            Map<String, String> colsDet = obtenerColumnasCached(conn, "detalle_Salida");
+            String colId = resolverColumna(colsDet, "idDetalleSalida", "id", "id_detalle_salida");
+            String colPUnit = resolverColumna(colsDet, "precioUnitarioSalida", "precioUnitario", "precioSalida", "precio_salida");
+            if (colId == null || colPUnit == null) return null;
+
+            String sql = "SELECT `" + colPUnit + "` FROM detalle_Salida WHERE `" + colId + "` = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, detalleSalidaId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return parseDecimal(rs.getObject(1));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void actualizarPrecioDetalleSalida(Connection conn, Integer detalleSalidaId,
+                                               BigDecimal nuevoPrecioUnitario) throws SQLException {
+        if (conn == null || detalleSalidaId == null || detalleSalidaId <= 0 || nuevoPrecioUnitario == null) return;
+
+        Map<String, String> colsDet = obtenerColumnasCached(conn, "detalle_Salida");
+        String colDetId = resolverColumna(colsDet, "idDetalleSalida", "id", "id_detalle_salida");
+        String colCant = resolverColumna(colsDet, "cantidad", "cantidadSalida", "cantidad_salida");
+        String colPUnit = resolverColumna(colsDet, "precioUnitarioSalida", "precioUnitario", "precioSalida", "precio_salida");
+        String colPIva = resolverColumna(colsDet, "precioIVASalida", "precioIVA", "precioIva", "precio_iva");
+        String colPBruto = resolverColumna(colsDet, "precioBrutoTotalSalida", "precioBrutoTotal", "precio_bruto");
+        String colPTotal = resolverColumna(colsDet, "precioTotalSalida", "precioTotal", "precio_total");
+
+        if (colDetId == null || colCant == null || colPUnit == null) return;
+
+        BigDecimal cantidad = BigDecimal.ONE;
+        BigDecimal precioIvaActual = null;
+        BigDecimal precioUnitarioActual = null;
+
+        String sqlSel = "SELECT `" + colCant + "` AS cant, `" + colPUnit + "` AS pUnit"
+                + (colPIva != null ? ", `" + colPIva + "` AS pIva" : "")
+                + " FROM detalle_Salida WHERE `" + colDetId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlSel)) {
+            ps.setInt(1, detalleSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal c = parseDecimal(rs.getObject("cant"));
+                    if (c != null && c.compareTo(BigDecimal.ZERO) > 0) {
+                        cantidad = c;
+                    }
+                    precioUnitarioActual = parseDecimal(rs.getObject("pUnit"));
+                    if (colPIva != null) {
+                        precioIvaActual = parseDecimal(rs.getObject("pIva"));
+                    }
+                }
+            }
+        }
+
+        BigDecimal tasa = IVA_DEFAULT;
+        if (precioUnitarioActual != null && precioIvaActual != null && precioUnitarioActual.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal tasaCalculada = precioIvaActual
+                    .divide(precioUnitarioActual, 4, RoundingMode.HALF_UP)
+                    .subtract(BigDecimal.ONE);
+            if (tasaCalculada.compareTo(BigDecimal.ZERO) >= 0) {
+                tasa = tasaCalculada;
+            }
+        }
+
+        BigDecimal precioIvaNuevo = nuevoPrecioUnitario.multiply(BigDecimal.ONE.add(tasa)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal precioBrutoNuevo = nuevoPrecioUnitario.multiply(cantidad).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal precioTotalNuevo = precioIvaNuevo.multiply(cantidad).setScale(2, RoundingMode.HALF_UP);
+
+        StringBuilder sqlUp = new StringBuilder("UPDATE detalle_Salida SET ");
+        List<Object> valores = new ArrayList<>();
+        agregarCampo(sqlUp, valores, colPUnit, nuevoPrecioUnitario.setScale(2, RoundingMode.HALF_UP));
+        agregarCampo(sqlUp, valores, colPIva, precioIvaNuevo);
+        agregarCampo(sqlUp, valores, colPBruto, precioBrutoNuevo);
+        agregarCampo(sqlUp, valores, colPTotal, precioTotalNuevo);
+        if (valores.isEmpty()) return;
+        sqlUp.append(" WHERE `").append(colDetId).append("` = ?");
+        valores.add(detalleSalidaId);
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlUp.toString())) {
+            for (int i = 0; i < valores.size(); i++) {
+                ps.setObject(i + 1, valores.get(i));
+            }
+            ps.executeUpdate();
+        }
     }
 
     private Integer ajustarTotalesEntrada(Connection conn, DetalleArticulo art, boolean esAjuste) throws SQLException {
