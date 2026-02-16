@@ -2110,7 +2110,7 @@ public class DetalleFacturaController {
 
                 if (!esEntrada && esSalidaVenta && articulo.esSegmentado()) {
                     Set<Integer> detallesSalidaAfectados = obtenerDetallesSalidaDesdeArticulo(conn, articulo.idArticulo);
-                    marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "disponible", true);
+                    marcarDetallesSalidaSegmentadosComoDisponibles(conn, articulo.idArticulo, detallesSalidaAfectados);
                     reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
                     for (Integer detalleSalidaId : detallesSalidaAfectados) {
                         if (detalleSalidaId != null && detalleSalidaId > 0) {
@@ -2636,6 +2636,31 @@ public class DetalleFacturaController {
             }
         }
         return detalleSalidaIds;
+    }
+
+    private void marcarDetallesSalidaSegmentadosComoDisponibles(Connection conn, int idArticulo,
+                                                                 Set<Integer> detallesSalidaIds) throws SQLException {
+        if (idArticulo <= 0 || detallesSalidaIds == null || detallesSalidaIds.isEmpty()) return;
+
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colIdArt = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colEstado = resolverColumna(colsDetArt, "estado", "Estado");
+        String colDetSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colIdArt == null || colEstado == null || colDetSal == null) return;
+
+        String sql = "UPDATE detalleArticulo SET `" + colEstado + "` = ?, `" + colDetSal + "` = NULL"
+                + " WHERE `" + colIdArt + "` = ? AND `" + colDetSal + "` IN (" + placeholders(detallesSalidaIds.size()) + ")";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 1;
+            ps.setString(i++, "disponible");
+            ps.setInt(i++, idArticulo);
+            for (Integer detalleSalidaId : detallesSalidaIds) {
+                ps.setObject(i++, detalleSalidaId);
+            }
+            ps.executeUpdate();
+        }
     }
 
     private Integer obtenerArticuloDesdeDetalleArticulo(Connection conn, String idDetalle,
