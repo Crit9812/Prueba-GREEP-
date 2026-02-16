@@ -1405,8 +1405,9 @@ public class DetalleFacturaController {
 
         int[] idx = {1};
         boolean esEntrada = "Entrada".equalsIgnoreCase(linea.tipo);
+        boolean esSalidaVenta = !esEntrada && linea.esVenta();
         for (DetalleArticulo art : linea.articulos) {
-            HBox cardArt = crearCardArticulo(art, idx[0]++, esEntrada);
+            HBox cardArt = crearCardArticulo(art, idx[0]++, esEntrada, esSalidaVenta);
             if (cardArt != null) listaArticulos.getChildren().add(cardArt);
         }
         return listaArticulos;
@@ -1418,7 +1419,7 @@ public class DetalleFacturaController {
      * @param index     Número de orden
      * @param esEntrada true si la línea pertenece a una entrada (movimiento Entrada o parte de Ajuste)
      */
-    private HBox crearCardArticulo(DetalleArticulo art, int index, boolean esEntrada) {
+    private HBox crearCardArticulo(DetalleArticulo art, int index, boolean esEntrada, boolean esSalidaVenta) {
         if (art == null) return null;
 
         HBox card = new HBox(12);
@@ -1442,16 +1443,17 @@ public class DetalleFacturaController {
                 puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
             }
         } else {
-            // Salida: permitir si NO está eliminado ni segmentado (el resto de estados se pueden editar/eliminar)
-            puedeEditar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
-            puedeEliminar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
+            // Salida: en venta se permite también artículo segmentado; en otros tipos se mantiene el bloqueo.
+            boolean bloqueadoPorSegmentado = art.esSegmentado() && !esSalidaVenta;
+            puedeEditar = art.idArticulo > 0 && !art.esEliminado() && !bloqueadoPorSegmentado;
+            puedeEliminar = art.idArticulo > 0 && !art.esEliminado() && !bloqueadoPorSegmentado;
         }
 
         if (puedeEditar) {
-            botones.getChildren().add(crearBotonIcono("/img/editar.png", "Editar", e -> editarArticulo(art, esEntrada)));
+            botones.getChildren().add(crearBotonIcono("/img/editar.png", "Editar", e -> editarArticulo(art, esEntrada, esSalidaVenta)));
         }
         if (puedeEliminar) {
-            botones.getChildren().add(crearBotonIcono("/img/eliminar.png", "Eliminar", e -> eliminarArticulo(art, esEntrada)));
+            botones.getChildren().add(crearBotonIcono("/img/eliminar.png", "Eliminar", e -> eliminarArticulo(art, esEntrada, esSalidaVenta)));
         }
 
         Label numero = new Label(index + ".");
@@ -1806,7 +1808,7 @@ public class DetalleFacturaController {
      * @param articulo   Artículo a editar
      * @param esEntrada  true si se está editando desde una entrada (movimiento Entrada o parte de Ajuste)
      */
-    private void editarArticulo(DetalleArticulo articulo, boolean esEntrada) {
+    private void editarArticulo(DetalleArticulo articulo, boolean esEntrada, boolean esSalidaVenta) {
         if (articulo == null || articulo.idArticulo <= 0) return;
 
         if (esEntrada) {
@@ -1822,10 +1824,10 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado o segmentado
-            if (articulo.esEliminado() || articulo.esSegmentado()) {
+            // Salida: en venta se permite editar artículo segmentado, en otros tipos se mantiene el bloqueo.
+            if (articulo.esEliminado() || (articulo.esSegmentado() && !esSalidaVenta)) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede editar un artículo eliminado o segmentado.");
+                        "En salidas no se puede editar un artículo eliminado o segmentado (excepto en venta).");
                 return;
             }
         }
@@ -2068,7 +2070,7 @@ public class DetalleFacturaController {
      * @param articulo   Artículo a eliminar
      * @param esEntrada  true si se está eliminando desde una entrada
      */
-    private void eliminarArticulo(DetalleArticulo articulo, boolean esEntrada) {
+    private void eliminarArticulo(DetalleArticulo articulo, boolean esEntrada, boolean esSalidaVenta) {
         if (articulo == null || articulo.idArticulo <= 0) return;
 
         if (esEntrada) {
@@ -2084,10 +2086,10 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado o segmentado
-            if (articulo.esEliminado() || articulo.esSegmentado()) {
+            // Salida: en venta se permite eliminar artículo segmentado, en otros tipos se mantiene el bloqueo.
+            if (articulo.esEliminado() || (articulo.esSegmentado() && !esSalidaVenta)) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede eliminar un artículo eliminado o segmentado.");
+                        "En salidas no se puede eliminar un artículo eliminado o segmentado (excepto en venta).");
                 return;
             }
         }
@@ -2106,7 +2108,16 @@ public class DetalleFacturaController {
 
                 if (colId == null || colEstado == null) return;
 
-                if (!esEntrada && articulo.detalleSalidaId != null) {
+                if (!esEntrada && esSalidaVenta && articulo.esSegmentado()) {
+                    Set<Integer> detallesSalidaAfectados = obtenerDetallesSalidaDesdeArticulo(conn, articulo.idArticulo);
+                    marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "disponible", true);
+                    reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
+                    for (Integer detalleSalidaId : detallesSalidaAfectados) {
+                        if (detalleSalidaId != null && detalleSalidaId > 0) {
+                            actualizarEstadoDetalleSalidaSiVacio(conn, detalleSalidaId, true);
+                        }
+                    }
+                } else if (!esEntrada && articulo.detalleSalidaId != null) {
                     // Es una salida (o el artículo tiene detalleSalidaId)
                     if (colDetSal == null) return;
 
@@ -2602,6 +2613,29 @@ public class DetalleFacturaController {
             }
         }
         return null;
+    }
+
+    private Set<Integer> obtenerDetallesSalidaDesdeArticulo(Connection conn, int idArticulo) throws SQLException {
+        Set<Integer> detalleSalidaIds = new HashSet<>();
+        if (idArticulo <= 0) return detalleSalidaIds;
+
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colIdArt = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colDetSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        if (colIdArt == null || colDetSal == null) return detalleSalidaIds;
+
+        String sql = "SELECT DISTINCT `" + colDetSal + "` FROM detalleArticulo WHERE `" + colIdArt + "` = ? AND `" + colDetSal + "` IS NOT NULL";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idArticulo);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Integer idDetalleSalida = parseInteger(rs.getObject(1));
+                    if (idDetalleSalida != null && idDetalleSalida > 0) detalleSalidaIds.add(idDetalleSalida);
+                }
+            }
+        }
+        return detalleSalidaIds;
     }
 
     private Integer obtenerArticuloDesdeDetalleArticulo(Connection conn, String idDetalle,
