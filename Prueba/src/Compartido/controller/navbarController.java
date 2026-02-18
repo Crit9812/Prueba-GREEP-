@@ -29,6 +29,11 @@ public class navbarController {
 
     private Pane overlayPane;
 
+    // Método de compatibilidad para versiones que inyectan un controlador principal
+    public void setControladorPrincipal(Object controladorPrincipal) {
+        // Intencionalmente vacío: el navbar actual navega mediante ControllerInterfaz.
+    }
+
     public void setOverlayPane(Pane overlayPane) {
         this.overlayPane = overlayPane;
 
