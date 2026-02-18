@@ -1,7 +1,5 @@
 package Consultas.producto.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
@@ -10,6 +8,8 @@ import Consultas.producto.model.producto;
 import Consultas.producto.model.model;
 import Formularios.controller.controllerNuevoProducto;
 import conexion.conexionFTP;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -29,15 +29,12 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
     @FXML private Region expansor;
     @FXML private TextField buscador;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<producto> contenidoTabla;
     @FXML private TableColumn<producto, Void> colSelect;
@@ -51,10 +48,9 @@ public class MainController {
     @FXML private TableColumn<producto, String> colDescripcion;
     @FXML private TableColumn<producto, String> colInventarioMin;
     @FXML private TableColumn<producto, String> colImagen;
-
     @FXML private ImageView previewImage;
-    @FXML private encabezadoController paneNavbarController;
-
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model productoModel;
 
     // Mapas concurrentes para alta velocidad y cache
@@ -65,20 +61,6 @@ public class MainController {
     @FXML
     public void initialize() {
         productoModel = new model();
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-            VBox navbarLoaded = loader.load();
-            navbarController navbarCtrl = loader.getController();
-            navbarCtrl.setOverlayPane(overlayPane);
-            navbar.getChildren().setAll(navbarLoaded);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-        paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-        navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-        navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
 
         HBox.setHgrow(expansor, Priority.ALWAYS);
         expansor.setMinWidth(10);
@@ -87,14 +69,12 @@ public class MainController {
         buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
 
         contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.75));
+        contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.87));
         contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
         previewImage.fitWidthProperty().bind(root.widthProperty().multiply(0.07));
         previewImage.fitHeightProperty().bind(root.heightProperty().multiply(0.15));
         previewImage.setPreserveRatio(false);
-
-        paneNavbarController.setTitulo("Productos", "#ffffff");
 
         // Configuración columnas
         colIdProducto.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getIdProducto())));
@@ -407,9 +387,18 @@ public class MainController {
         }
     }
 
-
-
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("productos");
     }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
+    }
+
 }

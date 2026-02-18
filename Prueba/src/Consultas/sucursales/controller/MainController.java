@@ -1,7 +1,5 @@
 package Consultas.sucursales.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
@@ -24,14 +22,13 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import java.io.IOException;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private Region expansor;
     @FXML private TextField buscador;
     @FXML private VBox contenedorTabla;
@@ -50,45 +47,24 @@ public class MainController {
     @FXML private TableColumn<sucursal, String> colEstado;
     @FXML private TableColumn<sucursal, String> colLocalidad;
     @FXML private TableColumn<sucursal, String> colPais;
-    @FXML private encabezadoController paneNavbarController;
-
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private  model sucursalModel;
 
     @FXML
     public void initialize() {
         sucursalModel = new model();
         Platform.runLater(() -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-                navbar.getChildren().setAll(navbarLoaded);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
 
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
-            buscador.maxHeightProperty().bind(navbar.heightProperty().multiply(0.5));
+            buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
 
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-
-
-            paneNavbarController.setTitulo("Sucursales", "#ffffff");
 
             // CONFIGURACIÓN DE COLUMNAS (cell value factories)
             colId.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cd.getValue().getId())));
@@ -302,4 +278,13 @@ public class MainController {
         exportarPlantilla.exportarPlantilla("sucursales");
     }
 
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
+    }
 }

@@ -3,12 +3,8 @@ package Operaciones.compra.controller;
 import Compartido.exportar.ReporteEntradaExporter;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
-
 import Operaciones.compra.model.compra;
 import Operaciones.compra.model.model;
-
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
@@ -26,7 +22,6 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -35,15 +30,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
     @FXML private Label labelUsuario;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private HBox rootHBox;
     @FXML private Label lblEliminar;
     @FXML private ComboBox<String> buscador;
@@ -58,7 +52,6 @@ public class MainController {
     @FXML private TextField factura;
     @FXML private TextField totalCompra;
     @FXML private CheckBox miCheckBox;
-
     @FXML private TableColumn<compra, Boolean> colSelect;
     @FXML private TableColumn<compra, String> colClaveProduct;
     @FXML private TableColumn<compra, String> colProducto;
@@ -72,8 +65,8 @@ public class MainController {
     @FXML private TableColumn<compra, String> colPrecioBruto;
     @FXML private TableColumn<compra, String> colPrecioTotaal;
 
-    @FXML private encabezadoController paneNavbarController;
-
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final model model = new model();
 
     private final ObservableList<String> proveedoresCache = FXCollections.observableArrayList();
@@ -86,7 +79,6 @@ public class MainController {
 
     private OverlayCarga overlayCarga;
 
-    // Un solo pool para todo (menos overhead que crear Threads sueltos)
     private final ExecutorService bg = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
             r -> {
@@ -102,10 +94,8 @@ public class MainController {
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            cargarNavbar();
             bindLayout();
-            paneNavbarController.setTitulo("Compra", "#ffffff");
-            overlayCarga = new OverlayCarga(root, overlayPane);
+            overlayCarga = new OverlayCarga(root, new Pane());
         });
 
         configurarAutocompleteProveedores();
@@ -142,31 +132,7 @@ public class MainController {
         refrescarProveedores();
     }
 
-    // =========================
-    // Navbar / Layout
-    // =========================
-    private void cargarNavbar() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-            VBox navbarLoaded = loader.load();
-            navbarController navbarCtrl = loader.getController();
-            navbarCtrl.setOverlayPane(overlayPane);
-            navbar.getChildren().setAll(navbarLoaded);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void bindLayout() {
-        SplitPane.setResizableWithParent(navbar, false);
-        SplitPane.setResizableWithParent(contenedor, true);
-
-        paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-        paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-        navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-        navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
         contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
         HBox.setHgrow(expansor, Priority.ALWAYS);
@@ -590,5 +556,14 @@ public class MainController {
                 );
             }
         });
+    }
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 }

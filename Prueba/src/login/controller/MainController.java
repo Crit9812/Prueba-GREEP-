@@ -148,20 +148,18 @@ public class MainController {
                 Integer idUsuario = modelo.obtenerIdUsuario(username);
                 Compartido.sesion.SesionUsuario.setIdUsuario(idUsuario);
 
-                Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
+                String rol = modelo.obtenerRolUsuario(username);
+                Compartido.sesion.SesionUsuario.setRolUsuario(rol);
+                String rolUsuario = Compartido.sesion.SesionUsuario.getRolUsuario();
+                System.out.println("Rol desde la sesión: " + rolUsuario);
 
-                ControllerInterfaz.cambiarVista(
-                        "/Operaciones/view/main_view.fxml",
-                        "/Operaciones/style/estilos.css",
-                        controlador
-                );
-                /*VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
+                VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
 
                 ControllerInterfaz.cambiarVista(
                         "/VentanaPrincipal/view/main_view.fxml",
                         "/VentanaPrincipal/style/estilos.css",
                         controlador
-                );*/
+                );
 
             } else {
                 alertaController.mostrarAlerta(

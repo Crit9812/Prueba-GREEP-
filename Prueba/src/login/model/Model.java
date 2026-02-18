@@ -83,4 +83,21 @@ public class Model {
         return null;
     }
 
+    public String obtenerRolUsuario(String username) {
+        setConexion(conexion = c.conectar());
+        String sql = "SELECT rolUsuario FROM usuarios WHERE userName = ? AND estado = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, "activo");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("rolUsuario");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // o un valor por defecto
+    }
+
 }

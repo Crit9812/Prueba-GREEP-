@@ -1,7 +1,5 @@
 package Consultas.clasificacion.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.helper.RefrescoHelper;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
@@ -19,16 +17,15 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     // ================== CONTENEDORES ==================
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
     @FXML private VBox contenedorTabla;
-    @FXML private Pane overlayPane;
 
     // ================== TABLAS ==================
     @FXML private TableView<marcas> contenidoTablaMarcas;
@@ -52,7 +49,8 @@ public class MainController {
     @FXML private TableColumn<unidades_Medida, String> colNombreUM;
 
     // ================== OTROS ==================
-    @FXML private encabezadoController paneNavbarController;
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final model model = new model();
 
     // Servicios para carga asíncrona
@@ -67,23 +65,13 @@ public class MainController {
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            cargarNavbar();
             configurarLayout();
             configurarTablas();
             configurarDobleClick();
             configurarEnter();
 
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
-
-            paneNavbarController.setTitulo("Clasificación", "#ffffff");
 
             RefrescoHelper.setVistaActual("clasificacion");
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
@@ -217,20 +205,6 @@ public class MainController {
     }
 
     // ================== CONFIGURAR LAYOUT ==================
-    private void cargarNavbar() {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/Compartido/view/navbar.fxml")
-            );
-            VBox navbarLoaded = loader.load();
-            navbarController navbarCtrl = loader.getController();
-            navbarCtrl.setOverlayPane(overlayPane);
-            navbar.getChildren().setAll(navbarLoaded);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void configurarLayout() {
         contenidoTablaMarcas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
         contenidoTablaEtiquetas.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.86));
@@ -602,6 +576,16 @@ public class MainController {
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();
         }
+    }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 
 }

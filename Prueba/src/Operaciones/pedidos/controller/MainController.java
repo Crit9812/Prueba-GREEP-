@@ -1,7 +1,5 @@
 package Operaciones.pedidos.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.OverlayCarga;
 import Formularios.controller.controllerNuevoPedido;
@@ -23,14 +21,13 @@ import javafx.stage.Stage;
 import javafx.stage.Modality;
 import javafx.util.Callback;
 import java.io.IOException;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista{
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<itemPedido> contenidoTabla;
     @FXML private Label lblEliminar;
@@ -45,39 +42,17 @@ public class MainController {
     @FXML private TableColumn<itemPedido, String> colPresentacion;
     @FXML private TableColumn<itemPedido, String> colFactor;
     @FXML private CheckBox miCheckBoxSeleccionarTodo;
-    @FXML private encabezadoController paneNavbarController;
 
     private final ObservableList<itemPedido> itemsPedido = FXCollections.observableArrayList();
     private Stage formularioStage;
     private itemPedido itemSeleccionadoParaEditar;
     private OverlayCarga overlayCarga;
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(
-                        getClass().getResource("/Compartido/view/navbar.fxml")
-                );
-                VBox navbarLoaded = loader.load();
-
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-
-                navbar.getChildren().setAll(navbarLoaded);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            // ===== LAYOUT =====
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -85,8 +60,7 @@ public class MainController {
             lblAgregar.setMinWidth(Region.USE_PREF_SIZE);
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-            paneNavbarController.setTitulo("Pedidos", "#ffffff");
-            overlayCarga = new OverlayCarga(root, overlayPane);
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             // ===== CONFIGURACIONES =====
             configurarColumnasTabla();
@@ -332,6 +306,16 @@ public class MainController {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 
 }

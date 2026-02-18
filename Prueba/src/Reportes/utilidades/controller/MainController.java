@@ -1,7 +1,5 @@
 package Reportes.utilidades.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -46,30 +44,25 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedor;
-
     @FXML private Label lblQuitar;
     @FXML private Label lblOrdenar;
     @FXML private Label lblExportar;
     @FXML private Region expansorBusqueda;
     @FXML private DatePicker fechaInicio;
     @FXML private DatePicker fechaFin;
-
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
     @FXML private HBox contenedorFiltros;
-
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
-
     @FXML private VBox contenedorTabla;
     @FXML private TableView<UtilidadItem> contenidoTabla;
     @FXML private TableColumn<UtilidadItem, String> colClaveProducto;
@@ -88,8 +81,8 @@ public class MainController {
     @FXML private TableColumn<UtilidadItem, String> colPorcentajeUtilidad;
     @FXML private TableColumn<UtilidadItem, String> colUtilidadPesos;
 
-    @FXML private encabezadoController paneNavbarController;
-
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final ObservableList<UtilidadItem> utilidades = FXCollections.observableArrayList();
     private final ObservableList<UtilidadItem> utilidadesOriginal = FXCollections.observableArrayList();
     private final List<Filtro> filtrosActivos = new ArrayList<>();
@@ -101,26 +94,6 @@ public class MainController {
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
-
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-                navbar.getChildren().setAll(navbarLoaded);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
@@ -131,9 +104,9 @@ public class MainController {
             expansorBusqueda.setMinWidth(10);
 
             fechaInicio.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
-            fechaInicio.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            fechaInicio.prefHeightProperty().bind(root.heightProperty().multiply(0.04));
             fechaFin.prefWidthProperty().bind(root.widthProperty().multiply(0.12));
-            fechaFin.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            fechaFin.prefHeightProperty().bind(root.heightProperty().multiply(0.04));
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -144,7 +117,6 @@ public class MainController {
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.78));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
-            paneNavbarController.setTitulo("Utilidades", "#ffffff");
             configurarColumnas();
             configurarFiltros();
             configurarFiltroFechas();
@@ -865,5 +837,15 @@ public class MainController {
             this.cliente = cliente;
             this.fechaSalida = fechaSalida;
         }
+    }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 }

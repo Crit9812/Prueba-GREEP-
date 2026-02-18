@@ -3,20 +3,17 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.*?>
-
 <?import javafx.geometry.Insets?>
+
 <StackPane xmlns:fx="http://javafx.com/fxml"
            xmlns="http://javafx.com/javafx"
-           fx:id="root">
+           fx:id="root"
+           fx:controller="Operaciones.registrarUsuario.controller.MainController"
+           stylesheets="@/Operaciones/registrarUsuario/style/estilos.css">
 
     <BorderPane fx:id="mainLayout">
-        <top>
-            <fx:include fx:id="paneNavbar" source="/Compartido/view/encabezado.fxml" />
-        </top>
-
         <center>
             <SplitPane dividerPositions="0.03">
-                <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
                 <VBox fx:id="contenedor" styleClass="contenedor">
                     <VBox styleClass="opciones">
                         <HBox alignment="CENTER_RIGHT" >
@@ -74,5 +71,4 @@
             </SplitPane>
         </center>
     </BorderPane>
-    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
 </StackPane>

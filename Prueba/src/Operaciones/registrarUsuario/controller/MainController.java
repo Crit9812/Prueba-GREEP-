@@ -2,8 +2,6 @@ package Operaciones.registrarUsuario.controller;
 
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.OverlayCarga;
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Operaciones.registrarUsuario.model.usuario;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
@@ -19,19 +17,16 @@ import Operaciones.registrarUsuario.model.model;
 import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
 import java.io.IOException;
 import java.util.ArrayList;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
-
     @FXML private TableColumn<usuario, Void> colSelect;
     @FXML private TableColumn<usuario, String> colClaveUsuario;
     @FXML private TableColumn<usuario, String> colNombre;
@@ -40,38 +35,18 @@ public class MainController {
     @FXML private TableColumn<usuario, String> colNombreUsuario;
     @FXML private TableColumn<usuario, String> colRol;
     @FXML private TableView<usuario> contenidoTabla;
-
-    @FXML private encabezadoController paneNavbarController;
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
-
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-                navbar.getChildren().setAll(navbarLoaded);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.95));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
-            paneNavbarController.setTitulo("Registrar Usuario", "#ffffff");
-            overlayCarga = new OverlayCarga(root, overlayPane);
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             colClaveUsuario.setCellValueFactory(cellData ->
                     new javafx.beans.property.SimpleStringProperty(cellData.getValue().getIdUsuario()));
@@ -170,7 +145,6 @@ public class MainController {
         Platform.runLater(() -> {
             contenidoTabla.getSelectionModel().clearSelection();
             contenidoTabla.setItems(FXCollections.observableArrayList());
-            System.out.println("✓ UI de usuarios limpiada");
         });
 
         // 2. Recargar datos de forma asíncrona
@@ -353,4 +327,15 @@ public class MainController {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
+    }
+
 }

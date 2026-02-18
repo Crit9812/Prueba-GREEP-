@@ -1,7 +1,5 @@
 package Reportes.inventario.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -22,7 +20,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -35,20 +32,17 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista{
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
-
     @FXML private Label lblQuitar;
     @FXML private Label lblOrdenar;
     @FXML private Label lblExportar;
     @FXML private Region expansorDetalles;
-
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
@@ -56,7 +50,6 @@ public class MainController {
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
     @FXML private HBox contenedorFiltros;
-
     @FXML private VBox contenedorTabla;
     @FXML private TableView<ItemInventario> contenidoTabla;
     @FXML private TableColumn<ItemInventario, String> colId;
@@ -77,8 +70,8 @@ public class MainController {
     @FXML private TableColumn<ItemInventario, String> colPrecioTotalIva;
     @FXML private TableColumn<ItemInventario, String> colInventarioMinimo;
 
-    @FXML private encabezadoController paneNavbarController;
-
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final ObservableList<ItemInventario> itemsInventario = FXCollections.observableArrayList();
     private final ObservableList<ItemInventario> itemsInventarioOriginal = FXCollections.observableArrayList();
     private final Map<TableColumn<ItemInventario, ?>, Boolean> visibilidadResumen = new HashMap<>();
@@ -100,35 +93,6 @@ public class MainController {
     public void initialize() {
         Platform.runLater(() -> {
 
-            try {
-                // Cargar el navbar desde el fx:include
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
-
-                // Obtener el controller del navbar
-                navbarController navbarCtrl = loader.getController();
-
-                // Pasar el overlayPane al navbarController
-                navbarCtrl.setOverlayPane(overlayPane);
-
-                // Reemplazar el contenido del fx:include con el cargado
-                navbar.getChildren().setAll(navbarLoaded);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            //Navbar superior (header)
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            // Navbar lateral (menú)
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
             // Center - contenedor general
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
@@ -147,10 +111,7 @@ public class MainController {
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
-            paneNavbarController.setTitulo("Inventario", "#ffffff");
-            if (root != null && overlayPane != null) {
-                overlayCarga = new OverlayCarga(root, overlayPane);
-            }
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
                 if (newVal.doubleValue() > 0) {
@@ -2317,5 +2278,15 @@ public class MainController {
             this.nombre = nombre;
             this.cantidad = cantidad;
         }
+    }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 }

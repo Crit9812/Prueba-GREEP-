@@ -2,24 +2,50 @@
 
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml"
            xmlns="http://javafx.com/javafx"
-           fx:id="root">
+           fx:controller="Configuracion.controller.MainController"
+           fx:id="root"
+           stylesheets="@/Configuracion/style/estilos.css">
 
-    <BorderPane fx:id="mainLayout">
-        <top>
-            <fx:include fx:id="paneNavbar" source="/Compartido/view/encabezado.fxml" />
-        </top>
+    <VBox fx:id="contenedor" spacing="20" alignment="TOP_CENTER" styleClass="contenedor-config">
+        <padding>
+            <Insets top="30" right="30" bottom="30" left="30" />
+        </padding>
 
-        <center>
-            <SplitPane dividerPositions="0.03">
-                <fx:include fx:id="navbar" source="/Compartido/view/navbar.fxml"/>
-                <VBox fx:id="contenedor" styleClass="contenedor">
-                </VBox>
-            </SplitPane>
-        </center>
-    </BorderPane>
-    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
+        <!-- Título de la sección -->
+        <Label text="Configuración del Sistema"
+               styleClass="titulo-config"
+               style="-fx-font-size: 24px; -fx-font-weight: bold;" />
+
+        <!-- Aquí puedes agregar el contenido específico de Configuración -->
+        <VBox spacing="15" styleClass="panel-config" VBox.vgrow="ALWAYS">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20" />
+            </padding>
+
+            <!-- Ejemplo de opciones de configuración -->
+            <Label text="Opciones generales" styleClass="subtitulo-config" />
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Opción 1:" minWidth="120" />
+                <Button text="Configurar" />
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Opción 2:" minWidth="120" />
+                <Button text="Ver reportes"  />
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Opción 3:" minWidth="120" />
+                <Button text="Consultar"  />
+            </HBox>
+
+            <Region VBox.vgrow="ALWAYS" />
+        </VBox>
+
+    </VBox>
 </StackPane>
-

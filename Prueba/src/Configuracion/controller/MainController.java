@@ -1,62 +1,41 @@
 package Configuracion.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.control.SplitPane;
-import javafx.scene.layout.*;
-import javafx.application.Platform;
-import java.io.IOException;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
-    @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
-    @FXML private encabezadoController paneNavbarController;
+    @FXML private VBox contenedor; // Este es el contenedor específico de Configuración
+
+    private StackPane contentArea; // El contentArea de la ventana principal
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     @FXML
     public void initialize() {
-        Platform.runLater(() -> {
-            try {
-                // Cargar el navbar desde el fx:include
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
+        System.out.println("Configuración: Controlador inicializado");
 
-                // Obtener el controller del navbar
-                navbarController navbarCtrl = loader.getController();
+        // Aquí puedes agregar lógica específica de Configuración
+        // Por ejemplo, bindear tamaños si es necesario
+        if (contenedor != null && root != null) {
+            contenedor.prefHeightProperty().bind(root.heightProperty());
+            contenedor.prefWidthProperty().bind(root.widthProperty());
+        }
+        SplitPane.setResizableWithParent(contenedor, true);
+    }
 
-                // Pasar el overlayPane al navbarController
-                navbarCtrl.setOverlayPane(overlayPane);
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
 
-                // Reemplazar el contenido del fx:include con el cargado
-                navbar.getChildren().setAll(navbarLoaded);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            //Navbar superior (header)
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            // Navbar lateral (menú)
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
-            // Center - contenedor general
-            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-            contenedor.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            paneNavbarController.setTitulo("Configuración", "#f0f0f0");
-
-        });
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 
 }

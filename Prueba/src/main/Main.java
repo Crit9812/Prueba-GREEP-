@@ -31,9 +31,6 @@ public class Main extends Application {
         controllerInterfaz.ControllerInterfaz.setStage(stage);
         stage.show();
 
-
-
-
     }
 
     public static void main(String[] args) {

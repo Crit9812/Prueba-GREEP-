@@ -1,6 +1,5 @@
 package Compartido.controller;
 
-import controllerInterfaz.ControllerInterfaz;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Bounds;
@@ -165,27 +164,4 @@ public class labelController {
         label.setLayoutY(botonY + botonAlto / 2 - label.prefHeight(-1) / 2);
     }
 
-    @FXML
-    public void ventanaOperaciones() {
-        Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
-        ControllerInterfaz.cambiarVista("/Operaciones/view/main_view.fxml", "/Operaciones/style/estilos.css",controlador);
-    }
-
-    @FXML
-    public void ventanaReportes() {
-        Reportes.controller.MainController controlador = new Reportes.controller.MainController();
-        ControllerInterfaz.cambiarVista("/Reportes/view/main_view.fxml", "/Reportes/style/estilos.css", controlador);
-    }
-
-    @FXML
-    public void ventanaConsultas() {
-        Consultas.controller.MainController controlador = new Consultas.controller.MainController();
-        ControllerInterfaz.cambiarVista("/Consultas/view/main_view.fxml", "/Consultas/style/estilos.css",controlador);
-    }
-
-    @FXML
-    public void ventanaConfiguracion() {
-        Configuracion.controller.MainController controlador = new Configuracion.controller.MainController();
-        ControllerInterfaz.cambiarVista("/Configuracion/view/main_view.fxml", "/Configuracion/style/estilos.css", controlador);
-    }
 }

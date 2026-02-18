@@ -1448,9 +1448,18 @@ public class DetalleFacturaController {
                 puedeEliminar = art.idArticulo > 0 && !art.esPendiente() && !art.esEliminado() && !art.esVendido() && !art.esSegmentado();
             }
         } else {
-            // Salida: permitir si NO está eliminado ni segmentado (el resto de estados se pueden editar/eliminar)
-            puedeEditar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
-            puedeEliminar = art.idArticulo > 0 && !art.esEliminado() && !art.esSegmentado();
+            // SALIDA: NUNCA mostrar botones para artículos segmentados
+            // En salidas, los artículos segmentados solo deben ser informativos
+            if (art.esSegmentado()) {
+                // No permitir edición/eliminación de artículos segmentados en salidas
+                puedeEditar = true;
+                puedeEliminar = true;
+            } else {
+                // Para artículos NO segmentados en salidas:
+                // permitir si NO está eliminado (el resto de estados se pueden editar/eliminar)
+                puedeEditar = art.idArticulo > 0 && !art.esEliminado();
+                puedeEliminar = art.idArticulo > 0 && !art.esEliminado();
+            }
         }
 
         if (puedeEditar) {
@@ -1829,10 +1838,11 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado o segmentado
-            if (articulo.esEliminado() || articulo.esSegmentado()) {
+            // SALIDA: Permitir edición incluso para artículos segmentados
+            // Solo validar que no esté eliminado (los segmentados pueden editarse)
+            if (articulo.esEliminado()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede editar un artículo eliminado o segmentado.");
+                        "No se puede editar un artículo eliminado.");
                 return;
             }
         }
@@ -2091,14 +2101,17 @@ public class DetalleFacturaController {
                 return;
             }
         } else {
-            // Salida: no permitir si está eliminado o segmentado
-            if (articulo.esEliminado() || articulo.esSegmentado()) {
+            // SALIDA: Permitir eliminación para artículos segmentados
+            // Solo validar que no esté eliminado
+            if (articulo.esEliminado()) {
                 mostrarAdvertencia("Acción no permitida",
-                        "En salidas no se puede eliminar un artículo eliminado o segmentado.");
+                        "No se puede eliminar un artículo eliminado.");
                 return;
             }
+            // Para artículos segmentados en salidas, permitimos la eliminación
         }
 
+        // El resto del método continúa igual...
         boolean esAjuste = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
 
         confirmarCancelacion("artículo", () -> {
@@ -2113,10 +2126,12 @@ public class DetalleFacturaController {
 
                 if (colId == null || colEstado == null) return;
 
-                if (!esEntrada && articulo.detalleSalidaId != null) {
-                    // Es una salida (o el artículo tiene detalleSalidaId)
+                // Para SALIDA, incluyendo artículos segmentados
+                if (articulo.detalleSalidaId != null) {
+                    // Es una salida (el artículo tiene detalleSalidaId)
                     if (colDetSal == null) return;
 
+                    // Actualizar el estado del artículo a "disponible" y quitar la referencia a la salida
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE articulo SET `" + colEstado + "` = ?, `" + colDetSal + "` = NULL WHERE `" + colId + "` = ?")) {
                         ps.setString(1, "disponible");
@@ -2124,14 +2139,24 @@ public class DetalleFacturaController {
                         ps.executeUpdate();
                     }
 
+                    // Ajustar totales de la salida
                     Integer ajusteId = ajustarTotalesSalida(conn, articulo, esAjuste);
-                    reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
+
+                    // Si el artículo es segmentado, también debemos marcar sus detalles como disponibles
+                    if (articulo.esSegmentado() && !articulo.detallesSegmentados.isEmpty()) {
+                        marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "disponible", true);
+                    } else {
+                        // Reactivar el origen (detalle_Entrada asociado)
+                        reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
+                    }
+
                     actualizarEstadoDetalleSalidaSiVacio(conn, articulo.detalleSalidaId, !esAjuste);
 
                     if (esAjuste) {
                         actualizarEstadoAjusteSiVacio(conn, ajusteId);
                     }
                 } else {
+                    // Es una entrada (no tiene detalleSalidaId)
                     if (articulo.esSegmentado()) {
                         // En entradas segmentadas, eliminar en el artículo principal marca como eliminado
                         // a sus detalleArticulo sincronizados.
@@ -2852,11 +2877,13 @@ public class DetalleFacturaController {
         String colEstado = resolverColumna(colsDetArt, "estado", "Estado");
         String colDetSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
                 "detalleSalida", "detalle_salida", "detalle_salida_id");
+
         if (colIdArt == null || colEstado == null) return;
 
         String sql = "UPDATE detalleArticulo SET `" + colEstado + "` = ?"
                 + ((limpiarDetalleSalida && colDetSal != null) ? ", `" + colDetSal + "` = NULL" : "")
                 + " WHERE `" + colIdArt + "` = ?";
+
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, estado);
             ps.setInt(2, idArticulo);

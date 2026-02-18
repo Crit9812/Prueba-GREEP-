@@ -1,7 +1,5 @@
 package Reportes.historial.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -36,13 +34,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedor;
 
     @FXML private Label lblQuitar;
@@ -74,8 +71,8 @@ public class MainController {
     @FXML private TableColumn<HistorialFactura, String> colNota;
     @FXML private TableColumn<HistorialFactura, String> colEstado;
 
-    @FXML private encabezadoController paneNavbarController;
-
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final ObservableList<HistorialFactura> itemsHistorial = FXCollections.observableArrayList();
     private final ObservableList<HistorialFactura> itemsHistorialOriginal = FXCollections.observableArrayList();
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -89,25 +86,6 @@ public class MainController {
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
-
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-                navbar.getChildren().setAll(navbarLoaded);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
@@ -118,7 +96,7 @@ public class MainController {
             expansorBusqueda.setMinWidth(10);
 
             buscarFactura.prefWidthProperty().bind(root.widthProperty().multiply(0.18));
-            buscarFactura.prefHeightProperty().bind(navbar.heightProperty().multiply(0.04));
+            buscarFactura.prefHeightProperty().bind(root.heightProperty().multiply(0.04));
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -129,11 +107,7 @@ public class MainController {
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.78));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
-            paneNavbarController.setTitulo("Historial por factura", "#ffffff");
-
-            if (root != null && overlayPane != null) {
-                overlayCargaGlobal = new OverlayCarga(root, overlayPane);
-            }
+            overlayCargaGlobal = new OverlayCarga(root, new Pane());
 
             configurarColumnas();
             configurarFiltros();
@@ -705,5 +679,15 @@ public class MainController {
             this.campo = campo;
             this.valor = valor;
         }
+    }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 }

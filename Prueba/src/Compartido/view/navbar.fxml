@@ -7,6 +7,9 @@
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:id="navbar"
+      prefWidth="55"
+      minWidth="55"
+      maxWidth="55"
       styleClass="navbar"
       fx:controller="Compartido.controller.navbarController"
       stylesheets="@/Compartido/style/estilos.css">
@@ -75,5 +78,3 @@
                managed="false" visible="false" />
     </HBox>
 </VBox>
-
-

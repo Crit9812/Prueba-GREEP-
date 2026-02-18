@@ -6,6 +6,63 @@
   <component name="ChangeListManager">
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en iventario en la parte de segmentacion">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/controller/labelController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/labelController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/controller/navbarController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/navbarController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/sesion/SesionUsuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/sesion/SesionUsuario.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Compartido/view/navbar.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/view/navbar.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Configuracion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Configuracion/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Configuracion/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Configuracion/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Configuracion/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Configuracion/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clasificacion/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clasificacion/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/claves/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/claves/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/clientes/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/clientes/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/producto/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/producto/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/proveedores/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/proveedores/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/sucursales/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/sucursales/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Consultas/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Consultas/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoUsuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoUsuario.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/ajusteInventario/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/compra/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/compra/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/pedidos/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/pedidos/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/pedidos/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/pedidos/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/registrarUsuario/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoEntrada/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/traspasoSalida/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/venta/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/venta/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Operaciones/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Operaciones/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/DetalleFacturaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/style/estilos.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/utilidades/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/utilidades/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/utilidades/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/utilidades/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Reportes/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/view/main_view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/login/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/login/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/login/model/Model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/login/model/Model.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/Main.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +94,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/update-item-status-to-available-in-inventory" />
+        <entry key="$PROJECT_DIR$/.." value="codex/restrict-functions-by-user-role" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />

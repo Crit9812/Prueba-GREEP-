@@ -43,7 +43,7 @@ public class controllerNuevoUsuario {
         btnGuardar.setText("Registrar");
 
         miComboBox.setItems(FXCollections.observableArrayList(
-                "Administrador", "Vendedor", "Cajero", "Soporte", "Invitado"
+                "Administrador", "Auxiliar", "Supervisor", "Usuario"
         ));
         miComboBox.getSelectionModel().selectFirst();
 

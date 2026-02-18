@@ -1,7 +1,5 @@
 package Consultas.proveedores.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
@@ -13,8 +11,10 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -27,13 +27,10 @@ import Compartido.helper.RefrescoHelper;
 
 import java.io.IOException;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TextField buscador;
     @FXML private Region expansor;
@@ -56,10 +53,8 @@ public class MainController {
     @FXML private TableColumn<proveedores, String> colDomicilio;
     @FXML private TableColumn<proveedores, String> colNumeroExt;
     @FXML private TableColumn<proveedores, String> colNumeroInt;
-
-    @FXML private encabezadoController paneNavbarController;
-
-    // EXACTAMENTE IGUAL que productos: instancia única
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model proveedorModel;
 
     @FXML
@@ -67,36 +62,15 @@ public class MainController {
         proveedorModel = new model();
         Platform.runLater(() -> {
 
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-                VBox navbarLoaded = loader.load();
-                navbarController navbarCtrl = loader.getController();
-                navbarCtrl.setOverlayPane(overlayPane);
-                navbar.getChildren().setAll(navbarLoaded);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            SplitPane.setResizableWithParent(navbar, false);
-            SplitPane.setResizableWithParent(contenedor, true);
-
-            paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-            paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-            navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-            navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
 
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
-            buscador.maxHeightProperty().bind(navbar.heightProperty().multiply(0.5));
+            buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.05));
 
-            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
-            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
+            contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
+            contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.87));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
-
-            paneNavbarController.setTitulo("Proveedores", "#ffffff");
 
             configurarColumnas();
 
@@ -110,7 +84,7 @@ public class MainController {
                 col.setStyle("-fx-alignment: CENTER;");
             }
 
-            // Botón eliminar - EXACTA misma estructura que productos
+            // Botón eliminar
             colSelect.setCellFactory(col -> new TableCell<proveedores, Void>() {
                 private final Button btn;
                 {
@@ -213,9 +187,6 @@ public class MainController {
         });
         cargarProveedoresEnTabla();
 
-        System.out.println("========================================");
-        System.out.println("ACTUALIZACIÓN DE PROVEEDORES COMPLETADA");
-        System.out.println("========================================");
     }
 
     private void cargarProveedoresEnTabla() {
@@ -236,7 +207,6 @@ public class MainController {
         new Thread(task).start();
     }
 
-    // MÉTODO EXACTAMENTE IGUAL que buscarProductos() en productos
     private void buscarProveedores(String texto) {
         if (texto == null || texto.trim().isEmpty()) {
             cargarProveedoresEnTabla();
@@ -356,4 +326,15 @@ public class MainController {
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("proveedores");
     }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
+    }
+
 }

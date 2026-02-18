@@ -1,4 +1,4 @@
-.root {
+#root {
     -fx-background-color: #f0f0f0;
     -fx-font-family: "Segoe UI", sans-serif;
 }
@@ -30,4 +30,9 @@
 .grid-button:hover {
     -fx-background-color: rgba(255, 255, 255, 0.3);
     -fx-cursor: hand;
+}
+
+.grid-button {
+    -fx-min-width: 0;
+    -fx-min-height: 0;
 }

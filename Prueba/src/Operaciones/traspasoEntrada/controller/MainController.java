@@ -1,7 +1,5 @@
 package Operaciones.traspasoEntrada.controller;
 
-import Compartido.controller.encabezadoController;
-import Compartido.controller.navbarController;
 import Compartido.exportar.ReporteTraspasoExporter;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
@@ -10,7 +8,6 @@ import Formularios.controller.ControllerUbicacionTraspaso;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoEntrada.model.model;
 import Operaciones.traspasoEntrada.model.traspasoEntrada;
-
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -33,7 +30,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
+import VentanaPrincipal.controller.ControladorVista;
+import VentanaPrincipal.controller.EnumVistas;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -41,7 +39,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class MainController {
+public class MainController implements ControladorVista {
 
     // =========================
     // FXML
@@ -50,25 +48,21 @@ public class MainController {
     @FXML private ComboBox<String> miComboBox;
     @FXML private CheckBox miCheckBox;
     @FXML private StackPane root;
-    @FXML private BorderPane paneNavbar;
-    @FXML private VBox navbar;
     @FXML private VBox contenedor;
-    @FXML private Pane overlayPane;
     @FXML private VBox contenedorTabla;
     @FXML private TableView<traspasoEntrada> contenidoTabla;
     @FXML private HBox contenedorBtnConfirmar;
     @FXML private HBox rootHBox;
     @FXML private Label lblOrdenar;
     @FXML private Region expansor;
-
     @FXML private TableColumn<traspasoEntrada, Boolean> colSelect;
     @FXML private TableColumn<traspasoEntrada, String> colClaveEntrada;
     @FXML private TableColumn<traspasoEntrada, String> colFecha;
     @FXML private TableColumn<traspasoEntrada, String> colHora;
     @FXML private TableColumn<traspasoEntrada, String> colTotal;
     @FXML private TableColumn<traspasoEntrada, String> colNombreSucural;
-
-    @FXML private encabezadoController paneNavbarController;
+    private StackPane contentArea;
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     // =========================
     // Estado / datos
@@ -147,11 +141,9 @@ public class MainController {
 
         Platform.runLater(new Runnable() {
             @Override public void run() {
-                cargarNavbar();
                 bindLayout();
-                paneNavbarController.setTitulo("Traspaso de Entrada", "#ffffff");
 
-                overlayCarga = new OverlayCarga(root, overlayPane);
+                overlayCarga = new OverlayCarga(root, new Pane());
 
                 configurarTabla();
                 cargarTablaAsincrona();
@@ -164,28 +156,7 @@ public class MainController {
         });
     }
 
-    private void cargarNavbar() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/navbar.fxml"));
-            VBox navbarLoaded = loader.load();
-            navbarController navbarCtrl = loader.getController();
-            navbarCtrl.setOverlayPane(overlayPane);
-            navbar.getChildren().setAll(navbarLoaded);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void bindLayout() {
-        SplitPane.setResizableWithParent(navbar, false);
-        SplitPane.setResizableWithParent(contenedor, true);
-
-        paneNavbar.prefHeightProperty().bind(root.heightProperty().multiply(0.1));
-        paneNavbar.prefWidthProperty().bind(root.widthProperty().multiply(0.9));
-
-        navbar.prefWidthProperty().bind(root.widthProperty().multiply(0.15));
-        navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
-
         contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
         HBox.setHgrow(expansor, Priority.ALWAYS);
@@ -998,5 +969,15 @@ public class MainController {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+    @Override
+    public void setContentArea(StackPane contentArea) {
+        this.contentArea = contentArea;
+    }
+
+    @Override
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 }
