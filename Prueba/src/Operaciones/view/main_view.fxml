@@ -87,7 +87,7 @@
                 </graphic>
             </Button>
 
-            <Button styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="1"
+            <Button fx:id="btnAjusteInventario" styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="1"
                     text="Ajuste inventario" onAction="#ventanaAjusteInventario"
                     maxWidth="Infinity" maxHeight="Infinity">
                 <graphic>

@@ -1,5 +1,6 @@
 package Reportes.controller;
 
+import Compartido.sesion.PermisosRol;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
@@ -18,6 +19,7 @@ public class MainController implements ControladorVista {
     @FXML private StackPane root;
     @FXML private GridPane buttonGrid;
     @FXML private VBox contenedor;
+    @FXML private Button btnUtilidades;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -54,6 +56,34 @@ public class MainController implements ControladorVista {
                     iv.fitWidthProperty().bind(btn.widthProperty().multiply(0.4));
                     iv.fitHeightProperty().bind(btn.heightProperty().multiply(0.43));
                 }
+            }
+        }
+
+        if (PermisosRol.esUsuario()) {
+            ocultarUtilidades();
+        }
+    }
+
+    private void ocultarUtilidades() {
+        if (btnUtilidades == null) {
+            return;
+        }
+
+        btnUtilidades.setVisible(false);
+        btnUtilidades.setManaged(false);
+
+        Integer colIndex = GridPane.getColumnIndex(btnUtilidades);
+        int colUtilidades = colIndex == null ? 0 : colIndex;
+
+        for (Node node : buttonGrid.getChildren()) {
+            if (!(node instanceof Button) || node == btnUtilidades || !node.isManaged()) {
+                continue;
+            }
+
+            Integer col = GridPane.getColumnIndex(node);
+            int columna = col == null ? 0 : col;
+            if (columna > colUtilidades) {
+                GridPane.setColumnIndex(node, columna - 1);
             }
         }
     }

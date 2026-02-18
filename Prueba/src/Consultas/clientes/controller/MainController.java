@@ -19,6 +19,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
+import Compartido.sesion.PermisosRol;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import VentanaPrincipal.controller.ControladorVista;
@@ -55,6 +56,7 @@ public class MainController implements ControladorVista {
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model clienteModel;
+    private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
 
     @FXML
     public void initialize() {
@@ -106,7 +108,11 @@ public class MainController implements ControladorVista {
                     img.setFitHeight(18);
                     btn.setGraphic(img);
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-                    btn.setOnAction(e -> {
+                    if (soloLectura) {
+                        btn.setVisible(false);
+                        btn.setManaged(false);
+                    } else {
+                        btn.setOnAction(e -> {
                         cliente seleccionado = getTableView().getItems().get(getIndex());
                         int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
                         if (salidasNoCanceladas > 0) {
@@ -136,6 +142,7 @@ public class MainController implements ControladorVista {
                             }
                         });
                     });
+                    }
                 }
 
                 @Override
@@ -154,6 +161,7 @@ public class MainController implements ControladorVista {
                 TableRow<cliente> row = new TableRow<>();
                 row.setOnMouseClicked(event -> {
                     if (event.getClickCount() == 2 && !row.isEmpty()) {
+                        if (soloLectura) return;
                         abrirFormulario(row.getItem());
                     }
                 });
@@ -163,6 +171,7 @@ public class MainController implements ControladorVista {
             // ENTER sobre un registro → editar - EXACTO igual
             contenidoTabla.setOnKeyPressed(event -> {
                 if (event.getCode().toString().equals("ENTER")) {
+                    if (soloLectura) return;
                     cliente c = contenidoTabla.getSelectionModel().getSelectedItem();
                     if (c != null) abrirFormulario(c);
                 }
@@ -233,6 +242,9 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void formularioNuevoCliente() {
+        if (soloLectura) {
+            return;
+        }
         abrirFormulario(null);
     }
 
@@ -306,6 +318,9 @@ public class MainController implements ControladorVista {
     }
 
     public void importarDatos() {
+        if (soloLectura) {
+            return;
+        }
         importador.importarExcel("clientes", "id");
         // Recargar como en productos
         cargarClientesEnTabla();

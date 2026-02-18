@@ -1,5 +1,6 @@
 package Operaciones.controller;
 
+import Compartido.sesion.PermisosRol;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
@@ -18,6 +19,7 @@ public class MainController implements ControladorVista {
     @FXML private StackPane root;
     @FXML private GridPane buttonGrid;
     @FXML private VBox contenedor;
+    @FXML private Button btnAjusteInventario;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -52,6 +54,39 @@ public class MainController implements ControladorVista {
                     iv.fitWidthProperty().bind(btn.widthProperty().multiply(0.4));
                     iv.fitHeightProperty().bind(btn.heightProperty().multiply(0.43));
                 }
+            }
+        }
+
+        if (PermisosRol.esAuxiliar()) {
+            ocultarAjusteInventario();
+        }
+    }
+
+    private void ocultarAjusteInventario() {
+        if (btnAjusteInventario == null) {
+            return;
+        }
+
+        btnAjusteInventario.setVisible(false);
+        btnAjusteInventario.setManaged(false);
+
+        Integer rowIndex = GridPane.getRowIndex(btnAjusteInventario);
+        Integer colIndex = GridPane.getColumnIndex(btnAjusteInventario);
+        int filaAjuste = rowIndex == null ? 0 : rowIndex;
+        int colAjuste = colIndex == null ? 0 : colIndex;
+
+        for (Node node : buttonGrid.getChildren()) {
+            if (!(node instanceof Button) || node == btnAjusteInventario || !node.isManaged()) {
+                continue;
+            }
+
+            Integer row = GridPane.getRowIndex(node);
+            Integer col = GridPane.getColumnIndex(node);
+            int fila = row == null ? 0 : row;
+            int columna = col == null ? 0 : col;
+
+            if (fila == filaAjuste && columna > colAjuste) {
+                GridPane.setColumnIndex(node, columna - 1);
             }
         }
     }

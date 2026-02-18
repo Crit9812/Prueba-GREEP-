@@ -3,6 +3,7 @@ package Consultas.claves.controller;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
 import Formularios.controller.controllerSincronizacionClaves;
@@ -41,6 +42,7 @@ public class MainController implements ControladorVista {
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model modeloClaves;
+    private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
 
     @FXML
     public void initialize() {
@@ -79,7 +81,12 @@ public class MainController implements ControladorVista {
                     img.setPreserveRatio(true);
                     btn.setGraphic(img);
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-                    btn.setOnAction(e -> eliminarClave(getTableView().getItems().get(getIndex())));
+                    if (soloLectura) {
+                        btn.setVisible(false);
+                        btn.setManaged(false);
+                    } else {
+                        btn.setOnAction(e -> eliminarClave(getTableView().getItems().get(getIndex())));
+                    }
                 }
 
                 @Override
@@ -99,6 +106,7 @@ public class MainController implements ControladorVista {
                 TableRow<String[]> row = new TableRow<>();
                 row.setOnMouseClicked(event -> {
                     if (!row.isEmpty() && event.getButton()== MouseButton.PRIMARY && event.getClickCount() == 2) {
+                        if (soloLectura) return;
                         String[] fila = row.getItem();
                         abrirFormulario(fila, true);
                     }
@@ -109,6 +117,7 @@ public class MainController implements ControladorVista {
             // ENTER sobre un registro → editar
             contenidoTabla.setOnKeyPressed(event -> {
                 if (event.getCode() == KeyCode.ENTER) {
+                    if (soloLectura) return;
                     String[] filaSeleccionada = contenidoTabla.getSelectionModel().getSelectedItem();
                     if (filaSeleccionada != null) {
                         abrirFormulario(filaSeleccionada, true);
@@ -211,6 +220,9 @@ public class MainController implements ControladorVista {
     }
 
     private void eliminarClave(String[] fila) {
+        if (soloLectura) {
+            return;
+        }
         String idAlterno = fila[0];
         int enEntradas = modeloClaves.contarEntradasPorClave(idAlterno);
         int enSalidas = modeloClaves.contarSalidasPorClave(idAlterno);
@@ -255,6 +267,9 @@ public class MainController implements ControladorVista {
     }
 
     @FXML public void formularioNuevaSincronizacionClaves() {
+        if (soloLectura) {
+            return;
+        }
         abrirFormulario(null, false);
     }
 
@@ -282,6 +297,9 @@ public class MainController implements ControladorVista {
     }
 
     @FXML private void importarDatos() {
+        if (soloLectura) {
+            return;
+        }
         importador.importarClavesExcel();
         cargarTabla();
     }
