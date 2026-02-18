@@ -1,5 +1,6 @@
 package Reportes.inventario.controller;
 
+import Compartido.sesion.PermisosRol;
 import javafx.scene.Node;
 import javafx.scene.control.Separator;
 import Reportes.inventario.util.EdicionArticulo;
@@ -69,6 +70,7 @@ public class DetalleInventarioController {
     private Stage stage;
     private Runnable onRefresh;
     private OverlayCarga overlayCarga;
+    private final boolean soloLecturaReportes = !PermisosRol.esAdministrador();
     private static final List<String> PRESENTACIONES_COMPRA = List.of(
             "paquete", "pz", "caja", "bolsa", "pieza", "rollo", "litro", "kilogramo", "metro", "unidad"
     );
@@ -81,6 +83,12 @@ public class DetalleInventarioController {
         }
         HBox.setHgrow(expansor, Priority.ALWAYS);
         expansor.setMinWidth(10);
+
+        if (soloLecturaReportes && btnAgregarArticulo != null) {
+            btnAgregarArticulo.setVisible(false);
+            btnAgregarArticulo.setManaged(false);
+        }
+
         actualizarDatosProducto();
     }
 
@@ -186,6 +194,9 @@ public class DetalleInventarioController {
 
     @FXML
     private void abrirFormularioCompraDesdeBoton() {
+        if (soloLecturaReportes) {
+            return;
+        }
         abrirFormularioCompra(null);
     }
 
@@ -395,18 +406,20 @@ public class DetalleInventarioController {
                     contenedorBotones.setAlignment(Pos.CENTER_RIGHT);
 
                     // TODOS los artículos pueden editarse (tanto segmentados como no segmentados)
-                    Button btnEditar = new Button("Editar");
-                    configurarBotonIcono(btnEditar, "/img/editar.png", "Editar");
-                    btnEditar.getStyleClass().add("boton-detalle");
-                    btnEditar.setOnAction(event -> editarArticulo(articulo));
-                    contenedorBotones.getChildren().add(btnEditar);
+                    if (!soloLecturaReportes) {
+                        Button btnEditar = new Button("Editar");
+                        configurarBotonIcono(btnEditar, "/img/editar.png", "Editar");
+                        btnEditar.getStyleClass().add("boton-detalle");
+                        btnEditar.setOnAction(event -> editarArticulo(articulo));
+                        contenedorBotones.getChildren().add(btnEditar);
 
-                    // Todos los artículos pueden eliminarse
-                    Button btnEliminar = new Button("Eliminar");
-                    configurarBotonIcono(btnEliminar, "/img/eliminar.png", "Eliminar");
-                    btnEliminar.getStyleClass().add("boton-detalle");
-                    btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
-                    contenedorBotones.getChildren().add(btnEliminar);
+                        // Todos los artículos pueden eliminarse
+                        Button btnEliminar = new Button("Eliminar");
+                        configurarBotonIcono(btnEliminar, "/img/eliminar.png", "Eliminar");
+                        btnEliminar.getStyleClass().add("boton-detalle");
+                        btnEliminar.setOnAction(event -> eliminarArticulo(articulo));
+                        contenedorBotones.getChildren().add(btnEliminar);
+                    }
 
                     // Configurar layout de la fila
                     Region spacerFila = new Region();
@@ -501,6 +514,9 @@ public class DetalleInventarioController {
     }
 
     private void editarArticulo(ArticuloDetalle articulo) {
+        if (soloLecturaReportes) {
+            return;
+        }
         // Determinar si es segmentado
         boolean esSegmentado = articulo.isEsSegmentado();
         String idTexto = esSegmentado ? articulo.getIdDetalle() : String.valueOf(articulo.getIdArticulo());
@@ -551,6 +567,9 @@ public class DetalleInventarioController {
     }
 
     private void eliminarArticulo(ArticuloDetalle articulo) {
+        if (soloLecturaReportes) {
+            return;
+        }
         if (articulo == null) {
             return;
         }

@@ -384,6 +384,9 @@ public class MainController implements ControladorVista {
 
     @FXML
     private void importarDatos() {
+        if (soloLectura) {
+            return;
+        }
         importador.importarProductosExcel();
         mapEtiquetas = new ConcurrentHashMap<>();
         mapMarcas = new ConcurrentHashMap<>();

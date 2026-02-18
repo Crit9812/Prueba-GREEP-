@@ -88,7 +88,7 @@ public class MainController implements ControladorVista{
     private boolean editandoSegmentado = false;
     private String idSegmentadoActual = "";
     private Integer idArticuloNormalActual = null;
-    private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
+    private final boolean soloLectura = !PermisosRol.esAdministrador();
 
 
     @FXML
