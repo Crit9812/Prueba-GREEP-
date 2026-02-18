@@ -1,5 +1,6 @@
 package Compartido.controller;
 
+import Compartido.sesion.PermisosRol;
 import controllerInterfaz.ControllerInterfaz;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -49,6 +50,8 @@ public class navbarController {
             navbar.setPadding(new Insets(7, 1, 0, 0));
             navbar.setAlignment(Pos.TOP_CENTER);
 
+            aplicarRestriccionesPorRol();
+
             // Botones del menú + labels
             for (Node nodo : navbar.getChildren()) {
                 if (nodo instanceof HBox hbox) {
@@ -93,6 +96,24 @@ public class navbarController {
             }
 
         });
+    }
+
+
+    private void aplicarRestriccionesPorRol() {
+        if (!PermisosRol.debeOcultarOperacionesYConfiguracion()) {
+            return;
+        }
+
+        ocultarContenedorBoton(botonOperaciones);
+        ocultarContenedorBoton(botonConfiguracion);
+    }
+
+    private void ocultarContenedorBoton(Button boton) {
+        if (boton == null || boton.getParent() == null) {
+            return;
+        }
+        boton.getParent().setVisible(false);
+        boton.getParent().setManaged(false);
     }
 
     @FXML
@@ -173,6 +194,9 @@ public class navbarController {
 
     @FXML
     public void ventanaOperaciones() {
+        if (PermisosRol.debeOcultarOperacionesYConfiguracion()) {
+            return;
+        }
         Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
         ControllerInterfaz.cambiarVista("/Operaciones/view/main_view.fxml", "/Operaciones/style/estilos.css",controlador);
     }
@@ -185,12 +209,21 @@ public class navbarController {
 
     @FXML
     public void ventanaConsultas() {
+        if (PermisosRol.esUsuarioFinal()) {
+            Consultas.claves.controller.MainController controlador = new Consultas.claves.controller.MainController();
+            ControllerInterfaz.cambiarVista("/Consultas/claves/view/main_view.fxml", "/Consultas/claves/style/estilos.css", controlador);
+            return;
+        }
+
         Consultas.controller.MainController controlador = new Consultas.controller.MainController();
         ControllerInterfaz.cambiarVista("/Consultas/view/main_view.fxml", "/Consultas/style/estilos.css",controlador);
     }
 
     @FXML
     public void ventanaConfiguracion() {
+        if (PermisosRol.debeOcultarOperacionesYConfiguracion()) {
+            return;
+        }
         // Aquí creamos la instancia del controlador manualmente
         Configuracion.controller.MainController controlador = new Configuracion.controller.MainController();
         ControllerInterfaz.cambiarVista("/Configuracion/view/main_view.fxml", "/Configuracion/style/estilos.css", controlador);

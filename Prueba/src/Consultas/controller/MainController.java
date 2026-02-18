@@ -2,6 +2,7 @@ package Consultas.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRol;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.SplitPane;
@@ -27,6 +28,11 @@ public class MainController {
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
+
+            if (PermisosRol.esUsuarioFinal()) {
+                ventanaClave();
+                return;
+            }
 
            try {
                 // Cargar el navbar desde el fx:include

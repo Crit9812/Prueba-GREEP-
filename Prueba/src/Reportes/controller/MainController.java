@@ -2,6 +2,7 @@ package Reportes.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRol;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -23,6 +24,7 @@ public class MainController {
     @FXML private VBox contenedor;
     @FXML private Pane overlayPane;
     @FXML private encabezadoController paneNavbarController;
+    @FXML private Button btnUtilidades;
 
     @FXML
     public void initialize() {
@@ -108,8 +110,17 @@ public class MainController {
                 }
             }
 
+            aplicarRestriccionesPorRol();
             paneNavbarController.setTitulo("Reportes", "#f0f0f0");
         });
+    }
+
+    private void aplicarRestriccionesPorRol() {
+        if (!PermisosRol.esUsuarioFinal() || btnUtilidades == null) {
+            return;
+        }
+        btnUtilidades.setVisible(false);
+        btnUtilidades.setManaged(false);
     }
 
     @FXML
@@ -126,6 +137,9 @@ public class MainController {
 
     @FXML
     public void ventanaUtilidades() {
+        if (PermisosRol.esUsuarioFinal()) {
+            return;
+        }
         Reportes.utilidades.controller.MainController controlador = new Reportes.utilidades.controller.MainController();
         ControllerInterfaz.cambiarVista("/Reportes/utilidades/view/main_view.fxml", "/Reportes/utilidades/style/estilos.css", controlador);
     }

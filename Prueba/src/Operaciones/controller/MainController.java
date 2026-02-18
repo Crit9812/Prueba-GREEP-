@@ -2,6 +2,7 @@ package Operaciones.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRol;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
@@ -28,6 +29,8 @@ public class MainController {
     @FXML private Pane overlayPane;
     @FXML private encabezadoController paneNavbarController;
     @FXML private SplitPane splitpane;
+    @FXML private Button btnAjusteInventario;
+    @FXML private Button btnRegistrarUsuario;
 
     @FXML
     public void initialize() {
@@ -100,13 +103,29 @@ public class MainController {
                 }
             }
 
+            aplicarRestriccionesPorRol();
             paneNavbarController.setTitulo("Operaciones", "#f0f0f0");
 
         });
     }
 
+    private void aplicarRestriccionesPorRol() {
+        if (!PermisosRol.esAuxiliar() || btnAjusteInventario == null) {
+            return;
+        }
+
+        btnAjusteInventario.setVisible(false);
+        btnAjusteInventario.setManaged(false);
+        if (btnRegistrarUsuario != null) {
+            GridPane.setColumnIndex(btnRegistrarUsuario, 1);
+        }
+    }
+
     @FXML
     public void ventanaAjusteInventario() {
+        if (PermisosRol.esAuxiliar()) {
+            return;
+        }
         Operaciones.ajusteInventario.controller.MainController controlador = new Operaciones.ajusteInventario.controller.MainController();
         ControllerInterfaz.cambiarVista("/Operaciones/ajusteInventario/view/main_view.fxml", "/Operaciones/ajusteInventario/style/estilos.css", controlador);
     }

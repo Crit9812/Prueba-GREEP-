@@ -83,4 +83,32 @@ public class Model {
         return null;
     }
 
+
+    public String obtenerRolUsuario(String username) {
+
+        setConexion(conexion = c.conectar());
+
+        String[] posiblesColumnas = {"rolUsuarios", "rolUsuario"};
+
+        for (String columna : posiblesColumnas) {
+            String sql = "SELECT " + columna + " FROM usuarios WHERE userName = ? AND estado = ?";
+
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, username);
+                ps.setString(2, "activo");
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString(columna);
+                    }
+                }
+
+            } catch (SQLException e) {
+                // Intenta con la siguiente columna disponible
+            }
+        }
+
+        return null;
+    }
+
 }

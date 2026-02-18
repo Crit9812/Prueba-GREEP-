@@ -4,6 +4,7 @@ public class SesionUsuario {
 
     private static String nombreUsuario;
     private static Integer idUsuario;
+    private static String rolUsuario;
 
     public static void setNombreUsuario(String nombre){
         nombreUsuario = nombre;
@@ -21,8 +22,17 @@ public class SesionUsuario {
         return idUsuario;
     }
 
+    public static void setRolUsuario(String rol){
+        rolUsuario = rol;
+    }
+
+    public static String getRolUsuario(){
+        return rolUsuario;
+    }
+
     public static void cerrarSesion(){
         nombreUsuario = null;
         idUsuario = null;
+        rolUsuario = null;
     }
 }
