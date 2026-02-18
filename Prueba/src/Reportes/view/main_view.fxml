@@ -60,7 +60,7 @@
                             </graphic>
                         </Button>
 
-                        <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3" text="Utilidades" onAction="#ventanaUtilidades">
+                        <Button fx:id="botonUtilidades" styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3" text="Utilidades" onAction="#ventanaUtilidades">
                             <graphic>
                                 <ImageView fx:id="userIcon3" fitWidth="100" fitHeight="100">
                                     <image>

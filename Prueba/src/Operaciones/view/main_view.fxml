@@ -79,7 +79,7 @@
                             </graphic>
                         </Button>
 
-                        <Button styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="1" text="Ajuste inventario" onAction="#ventanaAjusteInventario">
+                        <Button fx:id="botonAjusteInventario" styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="1" text="Ajuste inventario" onAction="#ventanaAjusteInventario">
                             <graphic>
                                 <ImageView fx:id="userIcon5" fitWidth="100" fitHeight="100">
                                     <image>

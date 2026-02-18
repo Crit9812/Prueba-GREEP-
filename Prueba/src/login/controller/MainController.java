@@ -148,6 +148,10 @@ public class MainController {
                 Integer idUsuario = modelo.obtenerIdUsuario(username);
                 Compartido.sesion.SesionUsuario.setIdUsuario(idUsuario);
 
+                // Obtener y guardar rol
+                String rolUsuario = modelo.obtenerRolUsuario(username);
+                Compartido.sesion.SesionUsuario.setRolUsuario(rolUsuario);
+
                 Operaciones.controller.MainController controlador = new Operaciones.controller.MainController();
 
                 ControllerInterfaz.cambiarVista(

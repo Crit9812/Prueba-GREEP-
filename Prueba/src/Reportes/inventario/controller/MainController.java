@@ -2,6 +2,7 @@ package Reportes.inventario.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRolHelper;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -146,6 +147,8 @@ public class MainController {
             // Tabla
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
 
             paneNavbarController.setTitulo("Inventario", "#ffffff");
             if (root != null && overlayPane != null) {

@@ -2,6 +2,7 @@ package Reportes.historial.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRolHelper;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -128,6 +129,8 @@ public class MainController {
 
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.78));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
 
             paneNavbarController.setTitulo("Historial por factura", "#ffffff");
 

@@ -1,5 +1,6 @@
 package Compartido.controller;
 
+import Compartido.sesion.SesionUsuario;
 import controllerInterfaz.ControllerInterfaz;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -11,9 +12,6 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.control.Button;
 
 public class navbarController {
 
@@ -92,7 +90,32 @@ public class navbarController {
                 }
             }
 
+            aplicarRestriccionesPorRol();
+
         });
+    }
+
+    private void aplicarRestriccionesPorRol() {
+        if (SesionUsuario.requiereRestriccionSupervisor()) {
+            ocultarModuloNavbar(botonOperaciones, labelOperaciones);
+            ocultarModuloNavbar(botonConfiguracion, labelConfiguracion);
+        }
+    }
+
+    private void ocultarModuloNavbar(Button boton, Label label) {
+        if (boton != null) {
+            boton.setVisible(false);
+            boton.setManaged(false);
+        }
+        if (label != null) {
+            label.setVisible(false);
+            label.setManaged(false);
+        }
+
+        if (boton != null && boton.getParent() instanceof HBox contenedorModulo) {
+            contenedorModulo.setVisible(false);
+            contenedorModulo.setManaged(false);
+        }
     }
 
     @FXML
@@ -185,6 +208,12 @@ public class navbarController {
 
     @FXML
     public void ventanaConsultas() {
+        if (SesionUsuario.esUsuario()) {
+            Consultas.claves.controller.MainController controlador = new Consultas.claves.controller.MainController();
+            ControllerInterfaz.cambiarVista("/Consultas/claves/view/main_view.fxml", "/Consultas/claves/style/estilos.css", controlador);
+            return;
+        }
+
         Consultas.controller.MainController controlador = new Consultas.controller.MainController();
         ControllerInterfaz.cambiarVista("/Consultas/view/main_view.fxml", "/Consultas/style/estilos.css",controlador);
     }

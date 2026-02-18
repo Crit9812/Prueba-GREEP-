@@ -2,6 +2,7 @@ package Consultas.clientes.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRolHelper;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
 import Consultas.clientes.model.cliente;
@@ -91,6 +92,8 @@ public class MainController {
 
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
             buscador.maxHeightProperty().bind(navbar.heightProperty().multiply(0.5));
+
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
 
             paneNavbarController.setTitulo("Clientes", "#ffffff");
 

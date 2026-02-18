@@ -2,6 +2,8 @@ package Consultas.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.SesionUsuario;
+import Compartido.sesion.PermisosRolHelper;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.SplitPane;
@@ -27,6 +29,11 @@ public class MainController {
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
+
+            if (SesionUsuario.esUsuario()) {
+                ventanaClave();
+                return;
+            }
 
            try {
                 // Cargar el navbar desde el fx:include
@@ -89,6 +96,8 @@ public class MainController {
                     }
                 }
             }
+
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
 
             paneNavbarController.setTitulo("Consultas", "#f0f0f0");
 

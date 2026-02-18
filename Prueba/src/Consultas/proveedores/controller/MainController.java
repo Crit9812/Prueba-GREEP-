@@ -2,6 +2,7 @@ package Consultas.proveedores.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRolHelper;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.importar.importador;
@@ -95,6 +96,8 @@ public class MainController {
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
 
             paneNavbarController.setTitulo("Proveedores", "#ffffff");
 

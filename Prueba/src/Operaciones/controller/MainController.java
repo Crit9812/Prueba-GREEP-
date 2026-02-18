@@ -2,6 +2,7 @@ package Operaciones.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.SesionUsuario;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
@@ -22,6 +23,7 @@ public class MainController {
 
     @FXML private StackPane root;
     @FXML private GridPane buttonGrid;
+    @FXML private Button botonAjusteInventario;
     @FXML private BorderPane paneNavbar;
     @FXML private VBox navbar;
     @FXML private VBox contenedor;
@@ -100,9 +102,44 @@ public class MainController {
                 }
             }
 
+            aplicarRestriccionesPorRol();
+
             paneNavbarController.setTitulo("Operaciones", "#f0f0f0");
 
         });
+    }
+
+    private void aplicarRestriccionesPorRol() {
+        if (SesionUsuario.esAuxiliar()) {
+            ocultarBotonAjusteInventario();
+        }
+    }
+
+    private void ocultarBotonAjusteInventario() {
+        if (botonAjusteInventario == null) {
+            return;
+        }
+
+        botonAjusteInventario.setVisible(false);
+        botonAjusteInventario.setManaged(false);
+
+        GridPane.setRowIndex(botonAjusteInventario, null);
+        GridPane.setColumnIndex(botonAjusteInventario, null);
+
+        for (Node node : buttonGrid.getChildren()) {
+            if (!(node instanceof Button boton) || boton == botonAjusteInventario) {
+                continue;
+            }
+
+            Integer fila = GridPane.getRowIndex(boton);
+            Integer columna = GridPane.getColumnIndex(boton);
+            int filaActual = fila == null ? 0 : fila;
+            int columnaActual = columna == null ? 0 : columna;
+
+            if (filaActual == 1 && columnaActual > 1) {
+                GridPane.setColumnIndex(boton, columnaActual - 1);
+            }
+        }
     }
 
     @FXML

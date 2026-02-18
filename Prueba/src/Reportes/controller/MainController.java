@@ -2,6 +2,8 @@ package Reportes.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.SesionUsuario;
+import Compartido.sesion.PermisosRolHelper;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -18,6 +20,7 @@ public class MainController {
 
     @FXML private StackPane root;
     @FXML private GridPane buttonGrid;
+    @FXML private Button botonUtilidades;
     @FXML private BorderPane paneNavbar;
     @FXML private VBox navbar;
     @FXML private VBox contenedor;
@@ -108,8 +111,42 @@ public class MainController {
                 }
             }
 
+            aplicarRestriccionesPorRol();
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
+
             paneNavbarController.setTitulo("Reportes", "#f0f0f0");
         });
+    }
+
+    private void aplicarRestriccionesPorRol() {
+        if (SesionUsuario.esUsuario()) {
+            ocultarBotonUtilidades();
+        }
+    }
+
+    private void ocultarBotonUtilidades() {
+        if (botonUtilidades == null) {
+            return;
+        }
+
+        botonUtilidades.setVisible(false);
+        botonUtilidades.setManaged(false);
+        GridPane.setRowIndex(botonUtilidades, null);
+        GridPane.setColumnIndex(botonUtilidades, null);
+
+        for (Node node : buttonGrid.getChildren()) {
+            if (!(node instanceof Button boton) || boton == botonUtilidades) {
+                continue;
+            }
+            Integer fila = GridPane.getRowIndex(boton);
+            Integer columna = GridPane.getColumnIndex(boton);
+            int filaActual = fila == null ? 0 : fila;
+            int columnaActual = columna == null ? 0 : columna;
+
+            if (filaActual == 0 && columnaActual > 3) {
+                GridPane.setColumnIndex(boton, columnaActual - 1);
+            }
+        }
     }
 
     @FXML

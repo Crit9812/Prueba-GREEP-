@@ -2,6 +2,7 @@ package Consultas.producto.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRolHelper;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.importar.importador;
@@ -94,7 +95,9 @@ public class MainController {
         previewImage.fitHeightProperty().bind(root.heightProperty().multiply(0.15));
         previewImage.setPreserveRatio(false);
 
-        paneNavbarController.setTitulo("Productos", "#ffffff");
+        PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
+
+            paneNavbarController.setTitulo("Productos", "#ffffff");
 
         // Configuración columnas
         colIdProducto.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getIdProducto())));

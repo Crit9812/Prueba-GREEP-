@@ -2,6 +2,7 @@ package Consultas.clasificacion.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Compartido.sesion.PermisosRolHelper;
 import Compartido.helper.RefrescoHelper;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
@@ -82,6 +83,8 @@ public class MainController {
             navbar.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
+
+            PermisosRolHelper.aplicarSoloLecturaEnModulo(root);
 
             paneNavbarController.setTitulo("Clasificación", "#ffffff");
 

@@ -60,6 +60,29 @@ public class Model {
         alerta.showAndWait();
     }
 
+    public String obtenerRolUsuario(String username) {
+
+        setConexion(conexion = c.conectar());
+
+        String sql = "SELECT rolUsuarios FROM usuarios WHERE userName = ? AND estado = ?";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, "activo");
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("rolUsuarios");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public Integer obtenerIdUsuario(String username) {
 
         setConexion(conexion = c.conectar());
