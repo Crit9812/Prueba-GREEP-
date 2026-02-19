@@ -7,6 +7,9 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.DayOfWeek;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +46,10 @@ public class NotificacionService {
     }
 
     public void generarNotificacionesIniciales() {
+        if (!esViernesEnMexico()) {
+            return;
+        }
+
         try (Connection conn = new Conexion().conectar()) {
             if (conn == null) {
                 return;
@@ -115,6 +122,12 @@ public class NotificacionService {
             System.err.println("Error al marcar notificación como leída: " + e.getMessage());
             return false;
         }
+    }
+
+    private boolean esViernesEnMexico() {
+        ZoneId zonaMexico = ZoneId.of("America/Mexico_City");
+        DayOfWeek diaActual = ZonedDateTime.now(zonaMexico).getDayOfWeek();
+        return diaActual == DayOfWeek.FRIDAY;
     }
 
     private void generarNotificacionesCaducidad(Connection conn) throws SQLException {
