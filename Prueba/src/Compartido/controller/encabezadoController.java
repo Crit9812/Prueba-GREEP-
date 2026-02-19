@@ -1,13 +1,15 @@
 package Compartido.controller;
 
 import Compartido.helper.RefrescoHelper;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.image.ImageView;
+import Compartido.model.NotificacionService;
 import javafx.application.Platform;
+import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -20,6 +22,8 @@ public class encabezadoController {
     @FXML private ImageView iconoNavbar3;
     @FXML private Label labelUsuario;
     @FXML private Label labelTitulo;
+
+    private final NotificacionService notificacionService = new NotificacionService();
 
     @FXML
     public void initialize(){
@@ -43,6 +47,7 @@ public class encabezadoController {
             labelTitulo.prefWidthProperty().bind(panel.widthProperty().multiply(0.15));
             labelTitulo.prefHeightProperty().bind(panel.heightProperty().multiply(0.5));
 
+            actualizarIconoNotificaciones();
         });
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
@@ -66,8 +71,8 @@ public class encabezadoController {
     @FXML
     private void actualizar() {
         RefrescoHelper.refrescar();
+        actualizarIconoNotificaciones();
     }
-
 
     @FXML
     private void abrirNotificaciones() {
@@ -80,9 +85,15 @@ public class encabezadoController {
             stage.setTitle("Notificaciones");
             stage.setScene(scene);
             stage.showAndWait();
+            actualizarIconoNotificaciones();
         } catch (Exception e) {
             Alert alert = new Alert(Alert.AlertType.ERROR, "No se pudo abrir la ventana de notificaciones: " + e.getMessage());
             alert.showAndWait();
         }
+    }
+
+    private void actualizarIconoNotificaciones() {
+        String icono = notificacionService.hayNotificacionesActivas() ? "/img/n.png" : "/img/sobreC.png";
+        iconoNavbar3.setImage(new Image(getClass().getResourceAsStream(icono)));
     }
 }

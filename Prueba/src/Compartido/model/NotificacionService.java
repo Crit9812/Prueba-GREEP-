@@ -82,6 +82,24 @@ public class NotificacionService {
         return notificaciones;
     }
 
+
+    public boolean hayNotificacionesActivas() {
+        String sql = "SELECT 1 FROM Notificaciones WHERE LOWER(estado) = 'activo' LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return false;
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al consultar notificaciones activas: " + e.getMessage());
+            return false;
+        }
+    }
+
     public boolean marcarComoLeida(String idNotificacion) {
         String sql = "UPDATE Notificaciones SET estado = 'leido' WHERE id = ?";
 

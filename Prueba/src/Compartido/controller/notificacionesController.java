@@ -4,7 +4,6 @@ import Compartido.model.NotificacionService;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -18,9 +17,6 @@ public class notificacionesController {
 
     @FXML
     private Label labelMensaje;
-
-    @FXML
-    private Button btnAbrir;
 
     private final NotificacionService notificacionService = new NotificacionService();
 
@@ -70,11 +66,6 @@ public class notificacionesController {
     private void cargarNotificaciones() {
         listaNotificaciones.setItems(FXCollections.observableArrayList(notificacionService.obtenerNotificaciones()));
         labelMensaje.setText(listaNotificaciones.getItems().isEmpty() ? "No hay notificaciones registradas." : "");
-    }
-
-    @FXML
-    private void abrirNotificacion() {
-        abrirNotificacionSeleccionada();
     }
 
     private void abrirNotificacionSeleccionada() {
