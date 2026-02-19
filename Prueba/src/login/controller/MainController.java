@@ -21,6 +21,8 @@ import javafx.scene.control.ButtonType;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.util.concurrent.CompletableFuture;
+
 public class MainController {
 
     @FXML private StackPane root;
@@ -169,7 +171,7 @@ public class MainController {
                         controlador
                 );
 
-                mostrarAvisoNotificacionesSiExisten();
+                mostrarAvisoNotificacionesSiExistenDespuesDeCargar();
 
             } else {
                 alertaController.mostrarAlerta(
@@ -181,12 +183,23 @@ public class MainController {
     }
 
 
-    private void mostrarAvisoNotificacionesSiExisten() {
-        NotificacionService notificacionService = new NotificacionService();
-        if (!notificacionService.hayNotificacionesActivas()) {
-            return;
-        }
+    private void mostrarAvisoNotificacionesSiExistenDespuesDeCargar() {
+        CompletableFuture
+                .supplyAsync(() -> new NotificacionService().hayNotificacionesActivas())
+                .thenAccept(hayActivas -> {
+                    if (!hayActivas) {
+                        return;
+                    }
 
+                    Platform.runLater(() -> {
+                        PauseTransition espera = new PauseTransition(Duration.millis(700));
+                        espera.setOnFinished(evento -> mostrarDialogoNotificaciones());
+                        espera.play();
+                    });
+                });
+    }
+
+    private void mostrarDialogoNotificaciones() {
         ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
         ButtonType btnVer = new ButtonType("Ver", ButtonBar.ButtonData.YES);
 
