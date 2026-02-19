@@ -4,6 +4,7 @@ import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
+import Compartido.sesion.BusquedaGlobalProductoContext;
 import Compartido.sesion.PermisosRol;
 import Reportes.inventario.model.ItemInventario;
 import Reportes.inventario.util.EdicionArticulo;
@@ -136,6 +137,8 @@ public class MainController implements ControladorVista{
             configurarInventarioDetallado();
             configurarFiltros();
             cargarInventarioDisponible(false);
+
+            aplicarBusquedaGlobalPendiente();
             configurarDobleClick();
         });
     }
@@ -1785,6 +1788,46 @@ public class MainController implements ControladorVista{
         }
         itemsInventario.setAll(filtrados);
         aplicarOrdenamiento();
+    }
+
+    private void aplicarBusquedaGlobalPendiente() {
+        BusquedaGlobalProductoContext.BusquedaPendiente busqueda =
+                BusquedaGlobalProductoContext.consumirBusquedaPendiente();
+
+        if (busqueda == null) {
+            return;
+        }
+
+        String idProducto = busqueda.getIdProducto();
+        String nombreProducto = busqueda.getNombreProducto();
+
+        if (idProducto != null && !idProducto.isBlank()) {
+            aplicarFiltroExterno("ID producto", idProducto);
+            return;
+        }
+
+        if (nombreProducto != null && !nombreProducto.isBlank()) {
+            aplicarFiltroExterno("Producto", nombreProducto);
+        }
+    }
+
+    private void aplicarFiltroExterno(String campo, String valor) {
+        if (campo == null || valor == null || valor.isBlank()) {
+            return;
+        }
+
+        filtrosActivos.clear();
+        contenedorFiltros.getChildren().clear();
+
+        Filtro filtro = new Filtro(campo, valor);
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+
+        comboFiltro.setValue(campo);
+        actualizarValoresFiltro(campo);
+        comboValor.setValue(valor);
+
+        aplicarFiltros();
     }
 
     private String obtenerValorCampo(ItemInventario item, String campo) {
