@@ -61,7 +61,7 @@
                 </graphic>
             </Button>
 
-            <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3"
+            <Button fx:id="btnUtilidades" styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3"
                     text="Utilidades" onAction="#ventanaUtilidades"
                     maxWidth="Infinity" maxHeight="Infinity">
                 <graphic>

@@ -2,6 +2,7 @@ package Consultas.producto.controller;
 
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
 import Consultas.producto.model.producto;
@@ -57,6 +58,7 @@ public class MainController implements ControladorVista {
     private Map<String, String> mapEtiquetas = new ConcurrentHashMap<>();
     private Map<String, String> mapMarcas = new ConcurrentHashMap<>();
     private final Map<String, Image> cacheImagenes = new ConcurrentHashMap<>();
+    private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
 
     @FXML
     public void initialize() {
@@ -99,7 +101,12 @@ public class MainController implements ControladorVista {
                 img.setPreserveRatio(true);
                 btn.setGraphic(img);
                 btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-                btn.setOnAction(e -> eliminarProducto(getTableView().getItems().get(getIndex())));
+                if (soloLectura) {
+                    btn.setVisible(false);
+                    btn.setManaged(false);
+                } else {
+                    btn.setOnAction(e -> eliminarProducto(getTableView().getItems().get(getIndex())));
+                }
             }
 
             @Override
@@ -115,6 +122,7 @@ public class MainController implements ControladorVista {
             TableRow<producto> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    if (soloLectura) return;
                     editarProducto(row.getItem());
                 }
             });
@@ -123,6 +131,7 @@ public class MainController implements ControladorVista {
 
         contenidoTabla.setOnKeyPressed(event -> {
             if (event.getCode().toString().equals("ENTER")) {
+                if (soloLectura) return;
                 producto seleccionado = contenidoTabla.getSelectionModel().getSelectedItem();
                 if (seleccionado != null) {
                     editarProducto(seleccionado);
@@ -330,6 +339,9 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void formularioNuevoProducto() {
+        if (soloLectura) {
+            return;
+        }
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Formularios/view/nuevoProducto.fxml"));
             Parent root = loader.load();
@@ -372,6 +384,9 @@ public class MainController implements ControladorVista {
 
     @FXML
     private void importarDatos() {
+        if (soloLectura) {
+            return;
+        }
         importador.importarProductosExcel();
         mapEtiquetas = new ConcurrentHashMap<>();
         mapMarcas = new ConcurrentHashMap<>();

@@ -4,6 +4,7 @@ import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
+import Compartido.sesion.PermisosRol;
 import Reportes.inventario.model.ItemInventario;
 import Reportes.inventario.util.EdicionArticulo;
 import conexion.Conexion;
@@ -87,6 +88,7 @@ public class MainController implements ControladorVista{
     private boolean editandoSegmentado = false;
     private String idSegmentadoActual = "";
     private Integer idArticuloNormalActual = null;
+    private final boolean soloLectura = !PermisosRol.esAdministrador();
 
 
     @FXML
@@ -130,6 +132,10 @@ public class MainController implements ControladorVista{
                 }
             });
 
+            if (soloLectura && chkInventarioDetallado != null) {
+                chkInventarioDetallado.setSelected(false);
+            }
+
             configurarColumnasTabla();
             configurarInventarioDetallado();
             configurarFiltros();
@@ -147,6 +153,11 @@ public class MainController implements ControladorVista{
             javafx.scene.control.TableRow<ItemInventario> row = new javafx.scene.control.TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    if (soloLectura) {
+                        abrirDetalleInventario(row.getItem());
+                        return;
+                    }
+
                     if (chkInventarioDetallado != null && chkInventarioDetallado.isSelected()) {
                         abrirEdicionArticulo(row.getItem());
                     } else {
@@ -181,6 +192,10 @@ public class MainController implements ControladorVista{
     }
 
     private void abrirEdicionArticulo(ItemInventario item) {
+        if (soloLectura) {
+            return;
+        }
+
         if (item == null || item.getIdArticulo() == null || item.getIdArticulo().isBlank()) {
             return;
         }

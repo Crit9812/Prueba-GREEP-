@@ -3,6 +3,7 @@ package Consultas.sucursales.controller;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
 import Consultas.sucursales.model.model;
@@ -49,6 +50,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<sucursal, String> colPais;
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
     private  model sucursalModel;
 
     @FXML
@@ -100,7 +102,11 @@ public class MainController implements ControladorVista {
                     img.setPreserveRatio(true);
                     btn.setGraphic(img);
                     btn.setStyle("-fx-background-color: #333; -fx-cursor: hand;");
-                    btn.setOnAction(e -> {
+                    if (soloLectura) {
+                        btn.setVisible(false);
+                        btn.setManaged(false);
+                    } else {
+                        btn.setOnAction(e -> {
                         sucursal seleccionado = getTableView().getItems().get(getIndex());
                         int enEntradas = sucursalModel.contarEntradasPorSucursal(seleccionado.getId());
                         int enSalidas = sucursalModel.contarSalidasPorSucursal(seleccionado.getId());
@@ -137,6 +143,7 @@ public class MainController implements ControladorVista {
                             }
                         });
                     });
+                    }
                 }
 
                 @Override
@@ -152,6 +159,7 @@ public class MainController implements ControladorVista {
                 TableRow<sucursal> row = new TableRow<>();
                 row.setOnMouseClicked(evt -> {
                     if (evt.getClickCount() == 2 && !row.isEmpty()) {
+                        if (soloLectura) return;
                         abrirFormulario(row.getItem());
                     }
                 });
@@ -161,6 +169,7 @@ public class MainController implements ControladorVista {
             // ENTER sobre un registro → abrir edición
             contenidoTabla.setOnKeyPressed(evt -> {
                 if (evt.getCode().toString().equals("ENTER")) {
+                    if (soloLectura) return;
                     sucursal sel = contenidoTabla.getSelectionModel().getSelectedItem();
                     if (sel != null) abrirFormulario(sel);
                 }
@@ -210,7 +219,7 @@ public class MainController implements ControladorVista {
         }
     }
 
-    @FXML public void formularioNuevaSucursal() { abrirFormulario(null); }
+    @FXML public void formularioNuevaSucursal() { if (soloLectura) { return; } abrirFormulario(null); }
 
     private void abrirFormulario(sucursal sucursalEditar) {
         try {
@@ -270,6 +279,9 @@ public class MainController implements ControladorVista {
     }
 
     public void importarDatos() {
+        if (soloLectura) {
+            return;
+        }
         importador.importarExcel("sucursales", "id");
         cargarSucursalesEnTabla();
     }

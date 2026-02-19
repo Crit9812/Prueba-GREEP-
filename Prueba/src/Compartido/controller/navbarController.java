@@ -1,5 +1,7 @@
 package Compartido.controller;
 
+import Compartido.sesion.PermisosRol;
+import VentanaPrincipal.controller.EnumVistas;
 import VentanaPrincipal.controller.MainController;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -39,11 +41,16 @@ public class navbarController {
 
     public void setControladorPrincipal(MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+
+        if (PermisosRol.esSupervisorOUsuario() && this.controladorPrincipal != null) {
+            Platform.runLater(() -> this.controladorPrincipal.cambiarVista("REPORTES"));
+        }
     }
 
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
+            aplicarPermisosPorRol();
             navbar.setSpacing(10);
             navbar.setPadding(new Insets(7, 1, 0, 0));
             navbar.setAlignment(Pos.TOP_CENTER);
@@ -83,6 +90,24 @@ public class navbarController {
                 }
             }
         });
+    }
+
+    private void aplicarPermisosPorRol() {
+        if (PermisosRol.esSupervisorOUsuario()) {
+            ocultarElementoNavbar(botonOperaciones, labelOperaciones);
+            ocultarElementoNavbar(botonConfiguracion, labelConfiguracion);
+        }
+    }
+
+    private void ocultarElementoNavbar(Button boton, Label label) {
+        if (boton != null) {
+            boton.setVisible(false);
+            boton.setManaged(false);
+        }
+        if (label != null) {
+            label.setVisible(false);
+            label.setManaged(false);
+        }
     }
 
     @FXML
@@ -144,6 +169,10 @@ public class navbarController {
     @FXML
     public void ventanaConsultas() {
         if (controladorPrincipal != null) {
+            if (PermisosRol.esUsuario()) {
+                controladorPrincipal.cargarVista(EnumVistas.CLAVES);
+                return;
+            }
             controladorPrincipal.cambiarVista("CONSULTAS");
         }
     }

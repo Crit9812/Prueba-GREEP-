@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import Compartido.helper.OverlayCarga;
+import Compartido.sesion.PermisosRol;
 import Reportes.historial.model.HistorialFactura;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -53,6 +54,7 @@ public class DetalleFacturaController {
     private Runnable onRefresh;
     private OverlayCarga overlayCarga, overlayCargaGlobal;
     private volatile boolean procesandoCancelacion = false;
+    private final boolean soloLecturaReportes = !PermisosRol.esAdministrador();
 
     @FXML
     public void initialize() {
@@ -76,6 +78,7 @@ public class DetalleFacturaController {
     }
 
     @FXML private void cancelarMovimiento() {
+        if (soloLecturaReportes) return;
         if (historial == null) return;
         String mov = historial.getMovimiento();
         if ("Salida".equalsIgnoreCase(mov)) cancelarSalida();
@@ -83,6 +86,7 @@ public class DetalleFacturaController {
     }
 
     @FXML private void cancelarSalida() {
+        if (soloLecturaReportes) return;
         if (!esMovimientoValido("Salida")) return;
         Integer salidaId = parseInteger(historial.getClaveMovimiento());
         if (salidaId == null || salidaId <= 0) return;
@@ -219,6 +223,7 @@ public class DetalleFacturaController {
 
 
     @FXML private void cancelarEntrada() {
+        if (soloLecturaReportes) return;
         if (!esMovimientoValido("Entrada")) return;
         Integer entradaId = parseInteger(historial.getClaveMovimiento());
         if (entradaId == null || entradaId <= 0) return;
@@ -311,6 +316,7 @@ public class DetalleFacturaController {
     }
 
     @FXML private void cancelarAjuste() {
+        if (soloLecturaReportes) return;
         if (!esMovimientoValido("Ajuste")) return;
         String ajusteId = historial.getClaveMovimiento();
         if (ajusteId == null || ajusteId.isBlank()) return;
@@ -1462,10 +1468,10 @@ public class DetalleFacturaController {
             }
         }
 
-        if (puedeEditar) {
+        if (puedeEditar && !soloLecturaReportes) {
             botones.getChildren().add(crearBotonIcono("/img/editar.png", "Editar", e -> editarArticulo(art, esEntrada)));
         }
-        if (puedeEliminar) {
+        if (puedeEliminar && !soloLecturaReportes) {
             botones.getChildren().add(crearBotonIcono("/img/eliminar.png", "Eliminar", e -> eliminarArticulo(art, esEntrada)));
         }
 
@@ -1503,7 +1509,7 @@ public class DetalleFacturaController {
                 btnSeg.setAlignment(Pos.CENTER_RIGHT);
 
                 boolean bloqueadoEntrada = esEntrada && (ds.esVendido() || ds.esPendiente() || ds.esEliminado());
-                if (ds.idDetalle != null && !ds.idDetalle.isBlank() && !ds.esSegmentado() && !bloqueadoEntrada) {
+                if (!soloLecturaReportes && ds.idDetalle != null && !ds.idDetalle.isBlank() && !ds.esSegmentado() && !bloqueadoEntrada) {
                     btnSeg.getChildren().addAll(
                             crearBotonIcono("/img/editar.png", "Editar", ev -> editarDetalleArticuloSegmentadoSalida(ds, esEntrada, linea)),
                             crearBotonIcono("/img/eliminar.png", "Eliminar", ev -> eliminarDetalleArticuloSegmentadoSalida(ds, esEntrada)));
@@ -1535,7 +1541,7 @@ public class DetalleFacturaController {
         botones.setStyle("-fx-padding: 10 0 0 0;");
 
         boolean puedeEditarEntrada = "Entrada".equalsIgnoreCase(linea.tipo) && linea.tieneArticulosSinPendienteOVendido();
-        if (puedeEditarEntrada) {
+        if (puedeEditarEntrada && !soloLecturaReportes) {
             Button btn = new Button("Editar precio unitario");
             btn.setOnAction(e -> editarPrecioEntrada(linea));
             btn.getStyleClass().add("boton-formulario");
@@ -1544,7 +1550,7 @@ public class DetalleFacturaController {
 
         boolean puedeEditarSalida = "Salida".equalsIgnoreCase(linea.tipo) && linea.esVenta() &&
                 tieneArticulosODetallesEnDetalleSalida(linea.idDetalle);
-        if (puedeEditarSalida) {
+        if (puedeEditarSalida && !soloLecturaReportes) {
             Button btn = new Button("Editar precio salida");
             btn.setOnAction(e -> editarPrecioSalida(linea));
             btn.getStyleClass().add("boton-formulario");
@@ -3026,6 +3032,18 @@ public class DetalleFacturaController {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        }
+
+        if (soloLecturaReportes) {
+            btnCancelar.setVisible(false);
+            btnCancelar.setManaged(false);
+            btnCancelar.setDisable(true);
+            if (btnCancelarEntrada != null) {
+                btnCancelarEntrada.setVisible(false);
+                btnCancelarEntrada.setManaged(false);
+                btnCancelarEntrada.setDisable(true);
+            }
+            return;
         }
 
         btnCancelar.setText(textoBoton);

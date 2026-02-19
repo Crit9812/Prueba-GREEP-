@@ -1,6 +1,7 @@
 package Consultas.clasificacion.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.sesion.PermisosRol;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -51,6 +52,7 @@ public class MainController implements ControladorVista {
     // ================== OTROS ==================
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
     private final model model = new model();
 
     // Servicios para carga asíncrona
@@ -267,6 +269,7 @@ public class MainController implements ControladorVista {
         tabla.setOnKeyPressed(event -> {
             // Verificar si se presionó ENTER
             if (event.getCode().toString().equals("ENTER")) {
+                    if (soloLectura) return;
                 T seleccionado = tabla.getSelectionModel().getSelectedItem();
                 if (seleccionado != null) {
                     accion.accept(seleccionado);
@@ -453,7 +456,11 @@ public class MainController implements ControladorVista {
             private final Button btn = crearBoton();
 
             {
-                btn.setOnAction(e -> {
+                if (soloLectura) {
+                    btn.setVisible(false);
+                    btn.setManaged(false);
+                } else {
+                    btn.setOnAction(e -> {
                     T item = getTableView().getItems().get(getIndex());
                     int vinculados = contar.apply(item);
                     String nombre = obtenerNombre.apply(item);
@@ -472,7 +479,8 @@ public class MainController implements ControladorVista {
                     new Thread(() -> {
                         eliminar.accept(item);
                     }).start();
-                });
+                    });
+                }
             }
 
             @Override
@@ -518,18 +526,30 @@ public class MainController implements ControladorVista {
 
     // ================== AGREGAR ==================
     @FXML private void agregarMarca() {
+        if (soloLectura) {
+            return;
+        }
         agregar("Agregar marca", model::insertarMarca, model::existeMarca, contenidoTablaMarcas);
     }
 
     @FXML private void agregarEtiqueta() {
+        if (soloLectura) {
+            return;
+        }
         agregar("Agregar etiqueta", model::insertarEtiqueta, model::existeEtiqueta, contenidoTablaEtiquetas);
     }
 
     @FXML private void agregarUbicacion() {
+        if (soloLectura) {
+            return;
+        }
         agregar("Agregar ubicación", model::insertarUbicacion, model::existeUbicacion, contenidoTablaUbicaciones);
     }
 
     @FXML private void agregarUM() {
+        if (soloLectura) {
+            return;
+        }
         agregar("Agregar unidad de medida", model::insertarUM, model::existeUM, contenidoTablaUM);
     }
 
