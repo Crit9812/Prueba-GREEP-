@@ -149,18 +149,16 @@ public class MainController implements ControladorVista{
             javafx.scene.control.TableRow<ItemInventario> row = new javafx.scene.control.TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    if (soloLectura) {
-                        abrirDetalleInventario(row.getItem());
+                    boolean inventarioDetalladoActivo = chkInventarioDetallado != null && chkInventarioDetallado.isSelected();
+
+                    if (inventarioDetalladoActivo) {
+                        if (PermisosRol.esAdministrador()) {
+                            abrirEdicionArticulo(row.getItem());
+                        }
                         return;
                     }
 
-                    if (chkInventarioDetallado != null
-                            && chkInventarioDetallado.isSelected()
-                            && PermisosRol.esAdministrador()) {
-                        abrirEdicionArticulo(row.getItem());
-                    } else {
-                        abrirDetalleInventario(row.getItem());
-                    }
+                    abrirDetalleInventario(row.getItem());
                 }
             });
             return row;
