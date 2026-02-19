@@ -1,10 +1,13 @@
 package Compartido.controller;
 
+import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.RefrescoHelper;
 import Compartido.model.NotificacionService;
+import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -12,6 +15,14 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+
+import conexion.Conexion;
 
 public class encabezadoController {
 
@@ -24,6 +35,8 @@ public class encabezadoController {
     @FXML private Label labelTitulo;
 
     private final NotificacionService notificacionService = new NotificacionService();
+    private final ContextMenu menuSugerencias = new ContextMenu();
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     @FXML
     public void initialize(){
@@ -48,11 +61,118 @@ public class encabezadoController {
         actualizarIconoNotificacionesEnParalelo();
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
+        configurarBusquedaGlobal();
+
+        Platform.runLater(() -> {
+            if (panel != null) {
+                panel.requestFocus();
+            }
+        });
+    }
+
+    private void configurarBusquedaGlobal() {
+        if (searchBar == null) {
+            return;
+        }
+
+        searchBar.textProperty().addListener((obs, oldValue, newValue) -> mostrarSugerencias(newValue));
+
+        searchBar.focusedProperty().addListener((obs, oldValue, focused) -> {
+            if (!focused || searchBar.getText() == null || searchBar.getText().trim().isBlank()) {
+                menuSugerencias.hide();
+            }
+        });
+
+        menuSugerencias.setAutoHide(true);
+    }
+
+    private void mostrarSugerencias(String textoBusqueda) {
+        String texto = textoBusqueda == null ? "" : textoBusqueda.trim();
+        if (texto.isBlank()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        List<ProductoBusqueda> resultados = buscarProductos(texto);
+        if (resultados.isEmpty()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        List<CustomMenuItem> items = new ArrayList<>();
+        for (ProductoBusqueda producto : resultados) {
+            Label label = new Label(producto.id + " - " + producto.nombre);
+            label.setWrapText(false);
+
+            CustomMenuItem item = new CustomMenuItem(label, true);
+            item.setOnAction(event -> seleccionarProducto(producto));
+            items.add(item);
+        }
+
+        menuSugerencias.getItems().setAll(items);
+
+        if (!menuSugerencias.isShowing()) {
+            menuSugerencias.show(searchBar, Side.BOTTOM, 0, 0);
+        }
+    }
+
+    private List<ProductoBusqueda> buscarProductos(String texto) {
+        List<ProductoBusqueda> productos = new ArrayList<>();
+
+        String sql = """
+                SELECT p.id, p.nombre
+                FROM productos p
+                WHERE p.id LIKE ? OR p.nombre LIKE ?
+                ORDER BY
+                    CASE WHEN p.id = ? THEN 0 ELSE 1 END,
+                    CASE WHEN p.nombre = ? THEN 0 ELSE 1 END,
+                    p.nombre ASC
+                LIMIT 8
+                """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            String patron = "%" + texto + "%";
+            ps.setString(1, patron);
+            ps.setString(2, patron);
+            ps.setString(3, texto);
+            ps.setString(4, texto);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    productos.add(new ProductoBusqueda(rs.getString("id"), rs.getString("nombre")));
+                }
+            }
+        } catch (Exception e) {
+            menuSugerencias.hide();
+        }
+
+        return productos;
+    }
+
+    private void seleccionarProducto(ProductoBusqueda producto) {
+        if (producto == null) {
+            return;
+        }
+
+        searchBar.setText(producto.nombre);
+        menuSugerencias.hide();
+
+        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre);
+
+        if (controladorPrincipal != null) {
+            controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
+        }
     }
 
     public void setTitulo(String titulo, String colorHex) {
         labelTitulo.setText(titulo);
         labelTitulo.setStyle("-fx-background-color: " + colorHex + ";");
+    }
+
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 
     @FXML
@@ -99,5 +219,15 @@ public class encabezadoController {
 
         hiloRevisionNotificaciones.setDaemon(true);
         hiloRevisionNotificaciones.start();
+    }
+
+    private static class ProductoBusqueda {
+        private final String id;
+        private final String nombre;
+
+        private ProductoBusqueda(String id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
     }
 }

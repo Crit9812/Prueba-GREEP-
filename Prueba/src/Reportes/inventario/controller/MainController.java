@@ -1,6 +1,7 @@
 package Reportes.inventario.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
@@ -137,7 +138,49 @@ public class MainController implements ControladorVista{
             configurarFiltros();
             cargarInventarioDisponible(false);
             configurarDobleClick();
+            aplicarBusquedaPendienteDeEncabezado();
         });
+    }
+
+    private void aplicarBusquedaPendienteDeEncabezado() {
+        BusquedaProductoHelper.SolicitudBusqueda solicitud = BusquedaProductoHelper.consumirSolicitud();
+        if (solicitud == null) {
+            return;
+        }
+
+        String idProducto = solicitud.getIdProducto();
+        String nombreProducto = solicitud.getNombreProducto();
+
+        if (idProducto == null || idProducto.isBlank()) {
+            return;
+        }
+
+        filtrosActivos.clear();
+        contenedorFiltros.getChildren().clear();
+
+        comboFiltro.setValue("ID producto");
+        actualizarValoresFiltro("ID producto");
+
+        if (comboValor.getItems().contains(idProducto)) {
+            comboValor.setValue(idProducto);
+            Filtro filtro = new Filtro("ID producto", idProducto);
+            filtrosActivos.add(filtro);
+            contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+            aplicarFiltros();
+            return;
+        }
+
+        if (nombreProducto != null && !nombreProducto.isBlank()) {
+            comboFiltro.setValue("Producto");
+            actualizarValoresFiltro("Producto");
+            if (comboValor.getItems().contains(nombreProducto)) {
+                comboValor.setValue(nombreProducto);
+                Filtro filtro = new Filtro("Producto", nombreProducto);
+                filtrosActivos.add(filtro);
+                contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+                aplicarFiltros();
+            }
+        }
     }
 
     private void configurarDobleClick() {
