@@ -12,6 +12,14 @@ import login.model.Model;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.Button;
 import Compartido.controller.alertaController;
+import Compartido.model.NotificacionService;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 public class MainController {
 
@@ -161,12 +169,53 @@ public class MainController {
                         controlador
                 );
 
+                mostrarAvisoNotificacionesSiExisten();
+
             } else {
                 alertaController.mostrarAlerta(
                         "Error",
                         "Usuario o contraseña incorrectos"
                 );
             }
+        }
+    }
+
+
+    private void mostrarAvisoNotificacionesSiExisten() {
+        NotificacionService notificacionService = new NotificacionService();
+        if (!notificacionService.hayNotificacionesActivas()) {
+            return;
+        }
+
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType btnVer = new ButtonType("Ver", ButtonBar.ButtonData.YES);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Notificaciones");
+        alert.setHeaderText("Existen notificaciones sin leer");
+        alert.setContentText("¿Deseas verlas ahora?");
+        alert.getButtonTypes().setAll(btnCerrar, btnVer);
+
+        alert.showAndWait().ifPresent(buttonType -> {
+            if (buttonType == btnVer) {
+                abrirVentanaNotificaciones();
+            }
+        });
+    }
+
+    private void abrirVentanaNotificaciones() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/notificaciones.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Notificaciones");
+            stage.setScene(scene);
+            stage.showAndWait();
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "No se pudo abrir la ventana de notificaciones: " + e.getMessage());
+            alert.showAndWait();
         }
     }
 
