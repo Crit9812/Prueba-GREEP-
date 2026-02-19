@@ -10,7 +10,7 @@
             styleClass="navbar_top"
             stylesheets="@/Compartido/style/estilos.css">
     <left>
-        <TextField fx:id="searchBar" promptText="Encuentra lo que quieres" styleClass="busqueda"/>
+        <TextField fx:id="searchBar" promptText="Encuentra lo que quieres" styleClass="busqueda" focusTraversable="false"/>
     </left>
     <right>
         <HBox styleClass="contenedor-navbar-top">
@@ -45,6 +45,5 @@
         </HBox>
     </right>
 </BorderPane>
-
 
 

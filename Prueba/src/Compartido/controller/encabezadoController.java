@@ -1,6 +1,10 @@
 package Compartido.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.sesion.BusquedaInventarioState;
+import Consultas.producto.model.model;
+import Consultas.producto.model.producto;
+import VentanaPrincipal.controller.EnumVistas;
 import Compartido.model.NotificacionService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -24,6 +28,9 @@ public class encabezadoController {
     @FXML private Label labelTitulo;
 
     private final NotificacionService notificacionService = new NotificacionService();
+    private final model productoModel = new model();
+    private final ContextMenu sugerenciasMenu = new ContextMenu();
+    private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     @FXML
     public void initialize(){
@@ -48,6 +55,13 @@ public class encabezadoController {
         actualizarIconoNotificacionesEnParalelo();
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
+
+        panel.requestFocus();
+        configurarBusquedaProductos();
+    }
+
+    public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
+        this.controladorPrincipal = controladorPrincipal;
     }
 
     public void setTitulo(String titulo, String colorHex) {
@@ -99,5 +113,69 @@ public class encabezadoController {
 
         hiloRevisionNotificaciones.setDaemon(true);
         hiloRevisionNotificaciones.start();
+    }
+
+    private void configurarBusquedaProductos() {
+        searchBar.textProperty().addListener((obs, oldValue, newValue) -> {
+            String texto = newValue == null ? "" : newValue.trim();
+            if (texto.isEmpty()) {
+                sugerenciasMenu.hide();
+                return;
+            }
+
+            javafx.collections.ObservableList<producto> productos = productoModel.busquedaMultipleProductos(texto);
+            if (productos.isEmpty()) {
+                sugerenciasMenu.hide();
+                return;
+            }
+
+            sugerenciasMenu.getItems().clear();
+            int limite = Math.min(productos.size(), 8);
+            for (int i = 0; i < limite; i++) {
+                producto item = productos.get(i);
+                MenuItem menuItem = crearItemSugerencia(item);
+                sugerenciasMenu.getItems().add(menuItem);
+            }
+
+            if (!sugerenciasMenu.isShowing()) {
+                sugerenciasMenu.show(searchBar, javafx.geometry.Side.BOTTOM, 0, 0);
+            }
+        });
+
+        searchBar.focusedProperty().addListener((obs, antes, enfocado) -> {
+            if (!enfocado) {
+                sugerenciasMenu.hide();
+            }
+        });
+    }
+
+    private MenuItem crearItemSugerencia(producto producto) {
+        Label titulo = new Label(producto.getIdProducto() + " · " + producto.getNombreProducto());
+        String descripcion = producto.getDescripcion() == null ? "" : producto.getDescripcion().trim();
+        if (descripcion.length() > 70) {
+            descripcion = descripcion.substring(0, 70) + "...";
+        }
+        Label subtitulo = new Label(descripcion);
+        VBox contenido = new VBox(titulo, subtitulo);
+        contenido.setSpacing(2);
+
+        CustomMenuItem item = new CustomMenuItem(contenido, true);
+        item.setOnAction(event -> seleccionarProducto(producto));
+        return item;
+    }
+
+    private void seleccionarProducto(producto producto) {
+        String nombreProducto = producto.getNombreProducto() == null ? "" : producto.getNombreProducto().trim();
+        if (nombreProducto.isEmpty()) {
+            return;
+        }
+
+        searchBar.setText(nombreProducto);
+        sugerenciasMenu.hide();
+
+        BusquedaInventarioState.setProductoPendiente(nombreProducto);
+        if (controladorPrincipal != null) {
+            controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
+        }
     }
 }

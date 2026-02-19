@@ -5,6 +5,7 @@ import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
+import Compartido.sesion.BusquedaInventarioState;
 import Reportes.inventario.model.ItemInventario;
 import Reportes.inventario.util.EdicionArticulo;
 import conexion.Conexion;
@@ -136,8 +137,38 @@ public class MainController implements ControladorVista{
             configurarInventarioDetallado();
             configurarFiltros();
             cargarInventarioDisponible(false);
+            aplicarBusquedaPendienteDesdeEncabezado();
             configurarDobleClick();
         });
+    }
+
+    private void aplicarBusquedaPendienteDesdeEncabezado() {
+        String producto = BusquedaInventarioState.consumirProductoPendiente();
+        if (producto == null || producto.isBlank()) {
+            return;
+        }
+
+        String productoNormalizado = producto.trim();
+        comboFiltro.setValue("Producto");
+        actualizarValoresFiltro("Producto");
+
+        String valorExacto = comboValor.getItems().stream()
+                .filter(valor -> valor != null && valor.equalsIgnoreCase(productoNormalizado))
+                .findFirst()
+                .orElse(productoNormalizado);
+
+        comboValor.setValue(valorExacto);
+
+        filtrosActivos.removeIf(filtro -> "Producto".equals(filtro.campo));
+        contenedorFiltros.getChildren().removeIf(node ->
+                node instanceof HBox && ((HBox) node).getChildren().stream()
+                        .anyMatch(child -> child instanceof Label &&
+                                ((Label) child).getText().startsWith("Producto:")));
+
+        Filtro filtro = new Filtro("Producto", valorExacto);
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+        aplicarFiltros();
     }
 
     private void configurarDobleClick() {
