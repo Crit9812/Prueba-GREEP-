@@ -136,6 +136,7 @@ public class MainController implements ControladorVista{
             configurarColumnasTabla();
             configurarInventarioDetallado();
             configurarFiltros();
+            comboValor.setEditable(true);
             cargarInventarioDisponible(false);
             configurarDobleClick();
             aplicarBusquedaPendienteDeEncabezado();
@@ -164,6 +165,9 @@ public class MainController implements ControladorVista{
 
         if (comboValor.getItems().contains(idProducto)) {
             comboValor.setValue(idProducto);
+            if (comboValor.getEditor() != null) {
+                comboValor.getEditor().setText(idProducto);
+            }
             Filtro filtro = new Filtro("ID producto", idProducto);
             filtrosActivos.add(filtro);
             contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
@@ -176,6 +180,9 @@ public class MainController implements ControladorVista{
             actualizarValoresFiltro("Producto");
             if (comboValor.getItems().contains(nombreProducto)) {
                 comboValor.setValue(nombreProducto);
+                if (comboValor.getEditor() != null) {
+                    comboValor.getEditor().setText(nombreProducto);
+                }
                 Filtro filtro = new Filtro("Producto", nombreProducto);
                 filtrosActivos.add(filtro);
                 contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
@@ -185,26 +192,26 @@ public class MainController implements ControladorVista{
         }
 
         if (terminoBusqueda != null && !terminoBusqueda.isBlank()) {
-            aplicarFiltroPorCoincidencia(terminoBusqueda);
+            aplicarFiltroPorTextoEnBarraInventario(terminoBusqueda);
         }
     }
 
-    private void aplicarFiltroPorCoincidencia(String terminoBusqueda) {
-        String termino = terminoBusqueda.trim().toLowerCase();
+    private void aplicarFiltroPorTextoEnBarraInventario(String textoBusqueda) {
+        String termino = textoBusqueda == null ? "" : textoBusqueda.trim();
         if (termino.isBlank()) {
             return;
         }
 
         comboFiltro.setValue("Producto");
-        Filtro filtro = new Filtro("Producto", terminoBusqueda.trim());
-        filtrosActivos.add(filtro);
-        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+        if (comboValor.getEditor() != null) {
+            comboValor.getEditor().setText(termino);
+        }
 
+        String terminoNormalizado = termino.toLowerCase();
         List<ItemInventario> filtrados = new ArrayList<>();
         for (ItemInventario item : itemsInventarioOriginal) {
             String nombre = item.getProducto() == null ? "" : item.getProducto().toLowerCase();
-            String id = item.getClaveProducto() == null ? "" : item.getClaveProducto().toLowerCase();
-            if (nombre.contains(termino) || id.contains(termino)) {
+            if (nombre.contains(terminoNormalizado)) {
                 filtrados.add(item);
             }
         }

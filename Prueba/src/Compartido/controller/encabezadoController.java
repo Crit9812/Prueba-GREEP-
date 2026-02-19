@@ -97,14 +97,8 @@ public class encabezadoController {
             return;
         }
 
-        List<ProductoBusqueda> resultados = buscarProductos(texto);
-        if (!resultados.isEmpty()) {
-            seleccionarProducto(resultados.get(0), texto);
-            return;
-        }
-
-        BusquedaProductoHelper.guardarSolicitud(texto, texto, texto);
         menuSugerencias.hide();
+        BusquedaProductoHelper.guardarSolicitud("", "", texto);
         if (controladorPrincipal != null) {
             controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
         }
@@ -130,7 +124,7 @@ public class encabezadoController {
             label.setMaxWidth(620);
 
             CustomMenuItem item = new CustomMenuItem(label, true);
-            item.setOnAction(event -> seleccionarProducto(producto, texto));
+            item.setOnAction(event -> seleccionarProducto(producto));
             items.add(item);
         }
 
@@ -207,7 +201,7 @@ public class encabezadoController {
         return productos;
     }
 
-    private void seleccionarProducto(ProductoBusqueda producto, String terminoBusqueda) {
+    private void seleccionarProducto(ProductoBusqueda producto) {
         if (producto == null) {
             return;
         }
@@ -215,7 +209,7 @@ public class encabezadoController {
         searchBar.setText(producto.nombre);
         menuSugerencias.hide();
 
-        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre, terminoBusqueda);
+        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre, producto.nombre);
 
         if (controladorPrincipal != null) {
             controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
