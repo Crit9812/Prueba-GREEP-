@@ -66,24 +66,38 @@ public class OverlayCarga {
         if (overlayCarga == null) {
             return;
         }
-        Platform.runLater(() -> {
+
+        Runnable mostrarOverlay = () -> {
             overlayCarga.setManaged(true);
             overlayCarga.setVisible(true);
             overlayCarga.setMouseTransparent(false);
             asegurarOverlaySiempreAlFrente();
             overlayPane.toFront();
             overlayCarga.toFront();
-        });
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            mostrarOverlay.run();
+        } else {
+            Platform.runLater(mostrarOverlay);
+        }
     }
 
     public void ocultar() {
         if (overlayCarga == null) {
             return;
         }
-        Platform.runLater(() -> {
+
+        Runnable ocultarOverlay = () -> {
             overlayCarga.setVisible(false);
             overlayCarga.setManaged(false);
             overlayCarga.setMouseTransparent(true);
-        });
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            ocultarOverlay.run();
+        } else {
+            Platform.runLater(ocultarOverlay);
+        }
     }
 }

@@ -22,7 +22,6 @@ public class ControllerInterfaz {
         primaryStage = stage;
     }
 
-
     public static void cambiarVistaConOverlayTemporal(String rutaFXML, String rutaStyle, Object controlador, int milisegundosOverlay) {
         try {
             FXMLLoader loader = new FXMLLoader(ControllerInterfaz.class.getResource(rutaFXML));
@@ -36,20 +35,22 @@ public class ControllerInterfaz {
             root.applyCss();
             root.layout();
 
+            OverlayTemporal overlayTemporal = mostrarOverlayCargaTemporal(scene);
+
             primaryStage.getIcons().add(new Image(ControllerInterfaz.class.getResourceAsStream("/img/logo-GREEP.png")));
             primaryStage.setTitle("Gestor de inventario GREEP");
             primaryStage.setScene(scene);
             primaryStage.show();
 
-            mostrarOverlayCargaTemporal(scene, milisegundosOverlay);
+            ocultarOverlayCargaTemporal(scene, overlayTemporal, milisegundosOverlay);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static void mostrarOverlayCargaTemporal(Scene scene, int milisegundosOverlay) {
+    private static OverlayTemporal mostrarOverlayCargaTemporal(Scene scene) {
         if (!(scene.getRoot() instanceof StackPane stackRoot)) {
-            return;
+            return null;
         }
 
         Pane overlayPane = new Pane();
@@ -58,12 +59,30 @@ public class ControllerInterfaz {
         OverlayCarga overlayCarga = new OverlayCarga(stackRoot, overlayPane);
         overlayCarga.mostrar();
 
+        return new OverlayTemporal(overlayPane, overlayCarga);
+    }
+
+    private static void ocultarOverlayCargaTemporal(Scene scene, OverlayTemporal overlayTemporal, int milisegundosOverlay) {
+        if (!(scene.getRoot() instanceof StackPane stackRoot) || overlayTemporal == null) {
+            return;
+        }
+
         PauseTransition pausa = new PauseTransition(Duration.millis(milisegundosOverlay));
         pausa.setOnFinished(event -> {
-            overlayCarga.ocultar();
-            stackRoot.getChildren().remove(overlayPane);
+            overlayTemporal.overlayCarga.ocultar();
+            stackRoot.getChildren().remove(overlayTemporal.overlayPane);
         });
         pausa.play();
+    }
+
+    private static class OverlayTemporal {
+        private final Pane overlayPane;
+        private final OverlayCarga overlayCarga;
+
+        private OverlayTemporal(Pane overlayPane, OverlayCarga overlayCarga) {
+            this.overlayPane = overlayPane;
+            this.overlayCarga = overlayCarga;
+        }
     }
 
     public static void cambiarVista(String rutaFXML, String rutaStyle, Object controlador) {
@@ -88,6 +107,4 @@ public class ControllerInterfaz {
             e.printStackTrace();
         }
     }
-
-
 }
