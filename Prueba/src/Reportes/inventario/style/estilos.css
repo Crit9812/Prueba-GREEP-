@@ -284,3 +284,19 @@
  }
 
 
+
+
+.barraBusqueda {
+    -fx-background-color: #fff;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: #333;
+    -fx-border-width: 1px;
+    -fx-prompt-text-fill: gray;
+    -fx-background-image: url("/img/search.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: 5 50%;
+    -fx-background-size: 16 16;
+    -fx-padding: 0 0 0 30px;
+}

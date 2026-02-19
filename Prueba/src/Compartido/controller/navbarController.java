@@ -1,5 +1,6 @@
 package Compartido.controller;
 
+import Compartido.helper.NavegacionHelper;
 import Compartido.sesion.PermisosRol;
 import VentanaPrincipal.controller.EnumVistas;
 import VentanaPrincipal.controller.MainController;
@@ -41,6 +42,7 @@ public class navbarController {
 
     public void setControladorPrincipal(MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+        NavegacionHelper.setControladorPrincipal(controladorPrincipal);
 
         if (PermisosRol.esSupervisorOUsuario() && this.controladorPrincipal != null) {
             Platform.runLater(() -> this.controladorPrincipal.cambiarVista("REPORTES"));

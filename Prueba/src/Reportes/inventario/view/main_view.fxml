@@ -70,6 +70,12 @@
                                     <Insets left="10"/>
                                 </HBox.margin>
                             </Label>
+                            <Region fx:id="expansorBusqueda"/>
+                            <TextField fx:id="buscarInventario" promptText="Buscar producto en inventario" styleClass="barraBusqueda">
+                                <HBox.margin>
+                                    <Insets right="18"/>
+                                </HBox.margin>
+                            </TextField>
                             <Region fx:id="expansorDetalles"/>
                             <Label fx:id="lblInventarioDetallado" text="Inventario detallado" styleClass="labels">
                                 <HBox.margin>

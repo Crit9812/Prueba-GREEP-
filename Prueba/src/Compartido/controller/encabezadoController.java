@@ -1,17 +1,23 @@
 package Compartido.controller;
 
+import Compartido.helper.BusquedaInventarioHelper;
+import Compartido.helper.NavegacionHelper;
 import Compartido.helper.RefrescoHelper;
 import Compartido.model.NotificacionService;
+import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
+import java.util.List;
 
 public class encabezadoController {
 
@@ -24,6 +30,7 @@ public class encabezadoController {
     @FXML private Label labelTitulo;
 
     private final NotificacionService notificacionService = new NotificacionService();
+    private final ContextMenu menuSugerencias = new ContextMenu();
 
     @FXML
     public void initialize(){
@@ -48,11 +55,73 @@ public class encabezadoController {
         actualizarIconoNotificacionesEnParalelo();
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
+
+        configurarBuscadorInventarioEncabezado();
     }
 
     public void setTitulo(String titulo, String colorHex) {
         labelTitulo.setText(titulo);
         labelTitulo.setStyle("-fx-background-color: " + colorHex + ";");
+    }
+
+    private void configurarBuscadorInventarioEncabezado() {
+        BusquedaInventarioHelper.recargarProductosDisponibles();
+
+        searchBar.textProperty().addListener((obs, oldVal, newVal) ->
+                mostrarSugerencias(newVal)
+        );
+
+        searchBar.focusedProperty().addListener((obs, oldVal, enfocado) -> {
+            if (enfocado) {
+                mostrarSugerencias(searchBar.getText());
+            } else {
+                menuSugerencias.hide();
+            }
+        });
+
+        searchBar.setOnAction(event -> abrirInventarioConBusqueda(searchBar.getText()));
+    }
+
+    private void mostrarSugerencias(String texto) {
+        List<BusquedaInventarioHelper.SugerenciaProducto> sugerencias =
+                BusquedaInventarioHelper.filtrarSugerencias(texto, 8);
+
+        menuSugerencias.getItems().clear();
+        for (BusquedaInventarioHelper.SugerenciaProducto sugerencia : sugerencias) {
+            String descripcion = sugerencia.descripcionCorta();
+            String textoItem = sugerencia.id() + " · " + sugerencia.nombre() +
+                    " (" + sugerencia.articulosDisponibles() + " en stock)" +
+                    (descripcion.isBlank() ? "" : "\n" + descripcion);
+
+            MenuItem item = new MenuItem(textoItem);
+            item.setOnAction(event -> {
+                String criterio = sugerencia.id() + " " + sugerencia.nombre();
+                searchBar.setText(criterio);
+                abrirInventarioConBusqueda(criterio);
+            });
+            menuSugerencias.getItems().add(item);
+        }
+
+        if (!menuSugerencias.getItems().isEmpty() && searchBar.isFocused()) {
+            menuSugerencias.show(searchBar, Side.BOTTOM, 0, 0);
+        } else {
+            menuSugerencias.hide();
+        }
+    }
+
+    private void abrirInventarioConBusqueda(String textoBusqueda) {
+        String texto = textoBusqueda == null ? "" : textoBusqueda.trim();
+        if (texto.isBlank()) {
+            return;
+        }
+
+        BusquedaInventarioHelper.setBusquedaPendienteInventario(texto);
+
+        if (NavegacionHelper.getControladorPrincipal() != null) {
+            NavegacionHelper.getControladorPrincipal().cargarVista(EnumVistas.INVENTARIO);
+        }
+
+        menuSugerencias.hide();
     }
 
     @FXML

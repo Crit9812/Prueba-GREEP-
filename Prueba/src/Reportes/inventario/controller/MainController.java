@@ -1,6 +1,7 @@
 package Reportes.inventario.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.BusquedaInventarioHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
@@ -15,6 +16,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -44,9 +46,11 @@ public class MainController implements ControladorVista{
     @FXML private Label lblOrdenar;
     @FXML private Label lblExportar;
     @FXML private Region expansorDetalles;
+    @FXML private Region expansorBusqueda;
     @FXML private Region expansor;
     @FXML private Label lblVista;
     @FXML private Label lblDescargar;
+    @FXML private TextField buscarInventario;
     @FXML private javafx.scene.control.CheckBox chkInventarioDetallado;
     @FXML private ComboBox<String> comboFiltro;
     @FXML private ComboBox<String> comboValor;
@@ -89,6 +93,8 @@ public class MainController implements ControladorVista{
     private String idSegmentadoActual = "";
     private Integer idArticuloNormalActual = null;
     private final boolean soloLectura = !PermisosRol.esAdministrador();
+    private final ContextMenu menuSugerenciasBusqueda = new ContextMenu();
+    private String filtroBusquedaInventario = "";
 
 
     @FXML
@@ -104,6 +110,8 @@ public class MainController implements ControladorVista{
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
             lblOrdenar.setMinWidth(Region.USE_PREF_SIZE);
             lblExportar.setMinWidth(Region.USE_PREF_SIZE);
+            HBox.setHgrow(expansorBusqueda, Priority.ALWAYS);
+            expansorBusqueda.setMinWidth(10);
             HBox.setHgrow(expansorDetalles, Priority.ALWAYS);
             expansorDetalles.setMinWidth(10);
             lblVista.setMinWidth(Region.USE_PREF_SIZE);
@@ -135,6 +143,7 @@ public class MainController implements ControladorVista{
             configurarColumnasTabla();
             configurarInventarioDetallado();
             configurarFiltros();
+            configurarBusquedaInventario();
             cargarInventarioDisponible(false);
             configurarDobleClick();
         });
@@ -1615,6 +1624,72 @@ public class MainController implements ControladorVista{
                 });
     }
 
+    private void configurarBusquedaInventario() {
+        buscarInventario.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == null) {
+                filtroBusquedaInventario = "";
+            } else {
+                filtroBusquedaInventario = newVal.trim();
+            }
+            mostrarSugerenciasBusquedaInventario(filtroBusquedaInventario);
+            aplicarFiltros();
+        });
+
+        buscarInventario.focusedProperty().addListener((obs, oldVal, enfocado) -> {
+            if (enfocado) {
+                mostrarSugerenciasBusquedaInventario(buscarInventario.getText());
+            } else {
+                menuSugerenciasBusqueda.hide();
+            }
+        });
+
+        String busquedaPendiente = BusquedaInventarioHelper.consumirBusquedaPendienteInventario();
+        if (busquedaPendiente != null && !busquedaPendiente.isBlank()) {
+            buscarInventario.setText(busquedaPendiente);
+        }
+    }
+
+    private void mostrarSugerenciasBusquedaInventario(String textoBusqueda) {
+        List<BusquedaInventarioHelper.SugerenciaProducto> sugerencias =
+                BusquedaInventarioHelper.filtrarSugerencias(textoBusqueda, 8);
+
+        menuSugerenciasBusqueda.getItems().clear();
+        for (BusquedaInventarioHelper.SugerenciaProducto sugerencia : sugerencias) {
+            String descripcion = sugerencia.descripcionCorta();
+            String textoItem = sugerencia.id() + " · " + sugerencia.nombre() +
+                    " (" + sugerencia.articulosDisponibles() + " en stock)" +
+                    (descripcion.isBlank() ? "" : "\n" + descripcion);
+            MenuItem item = new MenuItem(textoItem);
+            item.setOnAction(event -> {
+                String criterio = sugerencia.id() + " " + sugerencia.nombre();
+                buscarInventario.setText(criterio);
+                filtroBusquedaInventario = criterio;
+                aplicarFiltros();
+                menuSugerenciasBusqueda.hide();
+            });
+            menuSugerenciasBusqueda.getItems().add(item);
+        }
+
+        if (!menuSugerenciasBusqueda.getItems().isEmpty() && buscarInventario.isFocused()) {
+            menuSugerenciasBusqueda.show(buscarInventario, Side.BOTTOM, 0, 0);
+        } else {
+            menuSugerenciasBusqueda.hide();
+        }
+    }
+
+    private boolean coincideBusquedaInventario(ItemInventario item) {
+        if (filtroBusquedaInventario == null || filtroBusquedaInventario.isBlank()) {
+            return true;
+        }
+
+        String criterio = filtroBusquedaInventario.trim().toLowerCase(Locale.ROOT);
+        String idProducto = item.getClaveProducto() == null ? "" : item.getClaveProducto().toLowerCase(Locale.ROOT);
+        String producto = item.getProducto() == null ? "" : item.getProducto().toLowerCase(Locale.ROOT);
+        String idArticulo = item.getIdArticulo() == null ? "" : item.getIdArticulo().toLowerCase(Locale.ROOT);
+
+        return idProducto.contains(criterio) || producto.contains(criterio) || idArticulo.contains(criterio);
+    }
+
     private void configurarFiltros() {
         actualizarOpcionesFiltro(chkInventarioDetallado.isSelected());
         comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -1779,7 +1854,7 @@ public class MainController implements ControladorVista{
                     break;
                 }
             }
-            if (coincide) {
+            if (coincide && coincideBusquedaInventario(item)) {
                 filtrados.add(item);
             }
         }
@@ -2101,6 +2176,13 @@ public class MainController implements ControladorVista{
 
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+
+        BusquedaInventarioHelper.recargarProductosDisponibles();
+        String busquedaPendiente = BusquedaInventarioHelper.consumirBusquedaPendienteInventario();
+        if (busquedaPendiente != null && !busquedaPendiente.isBlank() && buscarInventario != null) {
+            buscarInventario.setText(busquedaPendiente);
+            filtroBusquedaInventario = busquedaPendiente.trim();
         }
         restaurandoFiltros = true;
 
