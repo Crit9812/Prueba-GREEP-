@@ -134,6 +134,7 @@ public class MainController implements ControladorVista{
 
             if (soloLectura && chkInventarioDetallado != null) {
                 chkInventarioDetallado.setSelected(false);
+                chkInventarioDetallado.setDisable(true);
             }
 
             configurarColumnasTabla();
@@ -158,7 +159,9 @@ public class MainController implements ControladorVista{
                         return;
                     }
 
-                    if (chkInventarioDetallado != null && chkInventarioDetallado.isSelected()) {
+                    if (chkInventarioDetallado != null
+                            && chkInventarioDetallado.isSelected()
+                            && PermisosRol.esAdministrador()) {
                         abrirEdicionArticulo(row.getItem());
                     } else {
                         abrirDetalleInventario(row.getItem());
