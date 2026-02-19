@@ -1,6 +1,7 @@
 package login.controller;
 
 import controllerInterfaz.ControllerInterfaz;
+import Compartido.helper.OverlayCarga;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -44,6 +45,8 @@ public class MainController {
     private volatile boolean interfazListaParaAviso = false;
     private volatile boolean avisoNotificacionesMostrado = false;
 
+    private OverlayCarga overlayCargaLogin;
+
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
@@ -71,6 +74,10 @@ public class MainController {
 
             logoImage.fitHeightProperty().bind(contenedor.heightProperty().multiply(0.65));
             logoImage.fitWidthProperty().bind(contenedor.widthProperty().multiply(0.28));
+
+            Pane overlayPaneLogin = new Pane();
+            root.getChildren().add(overlayPaneLogin);
+            overlayCargaLogin = new OverlayCarga(root, overlayPaneLogin);
 
             animarInicio();
             usernameField.setOnAction(event -> iniciarSesion());
@@ -166,7 +173,7 @@ public class MainController {
                 String rolUsuario = Compartido.sesion.SesionUsuario.getRolUsuario();
                 System.out.println("Rol desde la sesión: " + rolUsuario);
 
-                iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario);
+                iniciarTransicionConCargaContinua(rolUsuario, 1200, 2500);
 
             } else {
                 alertaController.mostrarAlerta(
@@ -177,7 +184,18 @@ public class MainController {
         }
     }
 
-    private void iniciarCargaInterfazYNotificacionesSimultaneas(String rolUsuario) {
+    private void iniciarTransicionConCargaContinua(String rolUsuario, int milisegundosAntesDeCerrarLogin, int milisegundosDespuesDeAbrirPrincipal) {
+        if (overlayCargaLogin != null) {
+            overlayCargaLogin.mostrar();
+        }
+
+        PauseTransition esperaAntesCambio = new PauseTransition(Duration.millis(milisegundosAntesDeCerrarLogin));
+        esperaAntesCambio.setOnFinished(event -> iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario, milisegundosDespuesDeAbrirPrincipal));
+        esperaAntesCambio.play();
+    }
+
+    private void iniciarCargaInterfazYNotificacionesSimultaneas(String rolUsuario, int milisegundosOverlayPrincipal) {
+
         hayNotificacionesActivasPendientes = false;
         interfazListaParaAviso = false;
         avisoNotificacionesMostrado = false;
@@ -185,7 +203,10 @@ public class MainController {
         Thread hiloCargaInterfaz = new Thread(() -> Platform.runLater(() -> {
             VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
             String[] vista = obtenerVistaPrincipalPorRol(rolUsuario);
-            ControllerInterfaz.cambiarVistaConOverlayTemporal(vista[0], vista[1], controlador, 1300);
+            if (overlayCargaLogin != null) {
+                overlayCargaLogin.ocultar();
+            }
+            ControllerInterfaz.cambiarVistaConOverlayTemporal(vista[0], vista[1], controlador, milisegundosOverlayPrincipal);
 
             PauseTransition esperaRender = new PauseTransition(Duration.millis(450));
             esperaRender.setOnFinished(evento -> {
