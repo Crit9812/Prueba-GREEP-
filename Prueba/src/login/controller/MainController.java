@@ -12,6 +12,15 @@ import login.model.Model;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.Button;
 import Compartido.controller.alertaController;
+import Compartido.model.NotificacionService;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
 
 public class MainController {
 
@@ -153,13 +162,7 @@ public class MainController {
                 String rolUsuario = Compartido.sesion.SesionUsuario.getRolUsuario();
                 System.out.println("Rol desde la sesión: " + rolUsuario);
 
-                VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
-
-                ControllerInterfaz.cambiarVista(
-                        "/VentanaPrincipal/view/main_view.fxml",
-                        "/VentanaPrincipal/style/estilos.css",
-                        controlador
-                );
+                iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario);
 
             } else {
                 alertaController.mostrarAlerta(
@@ -167,6 +170,100 @@ public class MainController {
                         "Usuario o contraseña incorrectos"
                 );
             }
+        }
+    }
+
+
+    private volatile boolean hayNotificacionesActivasPendientes = false;
+    private volatile boolean interfazListaParaAviso = false;
+    private volatile boolean avisoNotificacionesMostrado = false;
+
+    private void iniciarCargaInterfazYNotificacionesSimultaneas(String rolUsuario) {
+        hayNotificacionesActivasPendientes = false;
+        interfazListaParaAviso = false;
+        avisoNotificacionesMostrado = false;
+
+        Thread hiloCargaInterfaz = new Thread(() -> Platform.runLater(() -> {
+            VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
+            String[] vista = obtenerVistaPrincipalPorRol(rolUsuario);
+            ControllerInterfaz.cambiarVista(vista[0], vista[1], controlador);
+
+            PauseTransition esperaRender = new PauseTransition(Duration.millis(450));
+            esperaRender.setOnFinished(evento -> {
+                interfazListaParaAviso = true;
+                intentarMostrarAvisoSiCorresponde();
+            });
+            esperaRender.play();
+        }));
+        hiloCargaInterfaz.setDaemon(true);
+
+        Thread hiloNotificaciones = new Thread(() -> {
+            hayNotificacionesActivasPendientes = new NotificacionService().hayNotificacionesActivas();
+            Platform.runLater(this::intentarMostrarAvisoSiCorresponde);
+        });
+        hiloNotificaciones.setDaemon(true);
+
+        hiloCargaInterfaz.start();
+        hiloNotificaciones.start();
+    }
+
+    private synchronized void intentarMostrarAvisoSiCorresponde() {
+        if (avisoNotificacionesMostrado) {
+            return;
+        }
+        if (!interfazListaParaAviso) {
+            return;
+        }
+        if (!hayNotificacionesActivasPendientes) {
+            return;
+        }
+
+        avisoNotificacionesMostrado = true;
+        Platform.runLater(this::mostrarDialogoNotificaciones);
+    }
+
+    private String[] obtenerVistaPrincipalPorRol(String rolUsuario) {
+        // Si en el futuro cada rol tiene una vista distinta, se configura aquí.
+        if ("Administrador".equalsIgnoreCase(rolUsuario)
+                || "Supervisor".equalsIgnoreCase(rolUsuario)
+                || "Auxiliar".equalsIgnoreCase(rolUsuario)
+                || "Usuario".equalsIgnoreCase(rolUsuario)) {
+            return new String[]{"/VentanaPrincipal/view/main_view.fxml", "/VentanaPrincipal/style/estilos.css"};
+        }
+
+        return new String[]{"/VentanaPrincipal/view/main_view.fxml", "/VentanaPrincipal/style/estilos.css"};
+    }
+
+    private void mostrarDialogoNotificaciones() {
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType btnVer = new ButtonType("Ver", ButtonBar.ButtonData.YES);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Notificaciones");
+        alert.setHeaderText("Existen notificaciones sin leer");
+        alert.setContentText("¿Deseas verlas ahora?");
+        alert.getButtonTypes().setAll(btnCerrar, btnVer);
+
+        alert.showAndWait().ifPresent(buttonType -> {
+            if (buttonType == btnVer) {
+                abrirVentanaNotificaciones();
+            }
+        });
+    }
+
+    private void abrirVentanaNotificaciones() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/notificaciones.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Notificaciones");
+            stage.setScene(scene);
+            stage.showAndWait();
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "No se pudo abrir la ventana de notificaciones: " + e.getMessage());
+            alert.showAndWait();
         }
     }
 

@@ -1,0 +1,26 @@
+.root-notificaciones {
+    -fx-background-color: #f6f8fb;
+}
+
+.header-notificaciones {
+    -fx-background-color: #e8eef8;
+}
+
+.titulo-notificaciones {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.boton-abrir {
+    -fx-background-color: #2f6db1;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.lista-notificaciones {
+    -fx-background-insets: 0;
+}
+
+.label-mensaje {
+    -fx-text-fill: #4d4d4d;
+}
