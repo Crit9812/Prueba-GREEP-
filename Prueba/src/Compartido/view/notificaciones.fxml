@@ -8,14 +8,14 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="Compartido.controller.notificacionesController"
-            prefWidth="700" prefHeight="450"
+            prefWidth="500" prefHeight="600"
             stylesheets="@/Compartido/style/notificaciones.css"
             styleClass="root-notificaciones">
 
     <top>
         <HBox spacing="10" styleClass="header-notificaciones">
             <padding>
-                <Insets top="12" right="12" bottom="12" left="12"/>
+                <Insets top="10" right="15" bottom="10" left="15"/>
             </padding>
             <Label text="Notificaciones" styleClass="titulo-notificaciones"/>
         </HBox>
@@ -28,7 +28,7 @@
     <bottom>
         <Label fx:id="labelMensaje" styleClass="label-mensaje" BorderPane.alignment="CENTER_LEFT">
             <padding>
-                <Insets top="10" right="12" bottom="10" left="12"/>
+                <Insets top="8" right="15" bottom="8" left="15"/>
             </padding>
         </Label>
     </bottom>

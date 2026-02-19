@@ -27,28 +27,25 @@ public class encabezadoController {
 
     @FXML
     public void initialize(){
-        Platform.runLater(() -> {
+        searchBar.prefWidthProperty().bind(panel.widthProperty().multiply(0.23));
+        searchBar.prefHeightProperty().bind(panel.heightProperty().multiply(0.49));
 
-            searchBar.prefWidthProperty().bind(panel.widthProperty().multiply(0.23));
-            searchBar.prefHeightProperty().bind(panel.heightProperty().multiply(0.49));
+        labelUsuario.prefWidthProperty().bind(panel.widthProperty().multiply(0.08));
+        labelUsuario.prefHeightProperty().bind(panel.heightProperty().multiply(0.8));
 
-            labelUsuario.prefWidthProperty().bind(panel.widthProperty().multiply(0.08));
-            labelUsuario.prefHeightProperty().bind(panel.heightProperty().multiply(0.8));
+        iconoNavbar.fitHeightProperty().bind(panel.heightProperty().multiply(0.48));
+        iconoNavbar.fitWidthProperty().bind(panel.widthProperty().multiply(0.028));
 
-            iconoNavbar.fitHeightProperty().bind(panel.heightProperty().multiply(0.48));
-            iconoNavbar.fitWidthProperty().bind(panel.widthProperty().multiply(0.028));
+        iconoNavbar2.fitHeightProperty().bind(panel.heightProperty().multiply(0.48));
+        iconoNavbar2.fitWidthProperty().bind(panel.widthProperty().multiply(0.028));
 
-            iconoNavbar2.fitHeightProperty().bind(panel.heightProperty().multiply(0.48));
-            iconoNavbar2.fitWidthProperty().bind(panel.widthProperty().multiply(0.028));
+        iconoNavbar3.fitHeightProperty().bind(panel.heightProperty().multiply(0.43));
+        iconoNavbar3.fitWidthProperty().bind(panel.widthProperty().multiply(0.028));
 
-            iconoNavbar3.fitHeightProperty().bind(panel.heightProperty().multiply(0.43));
-            iconoNavbar3.fitWidthProperty().bind(panel.widthProperty().multiply(0.028));
+        labelTitulo.prefWidthProperty().bind(panel.widthProperty().multiply(0.15));
+        labelTitulo.prefHeightProperty().bind(panel.heightProperty().multiply(0.5));
 
-            labelTitulo.prefWidthProperty().bind(panel.widthProperty().multiply(0.15));
-            labelTitulo.prefHeightProperty().bind(panel.heightProperty().multiply(0.5));
-
-            actualizarIconoNotificacionesEnParalelo();
-        });
+        actualizarIconoNotificacionesEnParalelo();
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
     }
