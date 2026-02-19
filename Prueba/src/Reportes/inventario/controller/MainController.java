@@ -88,7 +88,7 @@ public class MainController implements ControladorVista{
     private boolean editandoSegmentado = false;
     private String idSegmentadoActual = "";
     private Integer idArticuloNormalActual = null;
-    private final boolean soloLectura = !PermisosRol.esAdministrador();
+    private final boolean esAdministrador = PermisosRol.esAdministrador();
 
 
     @FXML
@@ -132,7 +132,7 @@ public class MainController implements ControladorVista{
                 }
             });
 
-            if (soloLectura && chkInventarioDetallado != null) {
+            if (esAdministrador && chkInventarioDetallado != null) {
                 chkInventarioDetallado.setSelected(false);
             }
 
@@ -153,7 +153,7 @@ public class MainController implements ControladorVista{
             javafx.scene.control.TableRow<ItemInventario> row = new javafx.scene.control.TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    if (soloLectura) {
+                    if (esAdministrador) {
                         abrirDetalleInventario(row.getItem());
                         return;
                     }
@@ -192,7 +192,7 @@ public class MainController implements ControladorVista{
     }
 
     private void abrirEdicionArticulo(ItemInventario item) {
-        if (soloLectura) {
+        if (esAdministrador) {
             return;
         }
 
