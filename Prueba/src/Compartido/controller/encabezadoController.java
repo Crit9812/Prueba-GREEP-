@@ -47,7 +47,7 @@ public class encabezadoController {
             labelTitulo.prefWidthProperty().bind(panel.widthProperty().multiply(0.15));
             labelTitulo.prefHeightProperty().bind(panel.heightProperty().multiply(0.5));
 
-            actualizarIconoNotificaciones();
+            actualizarIconoNotificacionesEnParalelo();
         });
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
@@ -71,7 +71,7 @@ public class encabezadoController {
     @FXML
     private void actualizar() {
         RefrescoHelper.refrescar();
-        actualizarIconoNotificaciones();
+        actualizarIconoNotificacionesEnParalelo();
     }
 
     @FXML
@@ -85,15 +85,22 @@ public class encabezadoController {
             stage.setTitle("Notificaciones");
             stage.setScene(scene);
             stage.showAndWait();
-            actualizarIconoNotificaciones();
+            actualizarIconoNotificacionesEnParalelo();
         } catch (Exception e) {
             Alert alert = new Alert(Alert.AlertType.ERROR, "No se pudo abrir la ventana de notificaciones: " + e.getMessage());
             alert.showAndWait();
         }
     }
 
-    private void actualizarIconoNotificaciones() {
-        String icono = notificacionService.hayNotificacionesActivas() ? "/img/n.png" : "/img/sobreC.png";
-        iconoNavbar3.setImage(new Image(getClass().getResourceAsStream(icono)));
+    private void actualizarIconoNotificacionesEnParalelo() {
+        Thread hiloRevisionNotificaciones = new Thread(() -> {
+            boolean hayNotificacionesActivas = notificacionService.hayNotificacionesActivas();
+            String icono = hayNotificacionesActivas ? "/img/n.png" : "/img/sobreC.png";
+
+            Platform.runLater(() -> iconoNavbar3.setImage(new Image(getClass().getResourceAsStream(icono))));
+        }, "hilo-revision-notificaciones-encabezado");
+
+        hiloRevisionNotificaciones.setDaemon(true);
+        hiloRevisionNotificaciones.start();
     }
 }
