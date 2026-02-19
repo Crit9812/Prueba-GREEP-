@@ -42,6 +42,8 @@ public class OverlayCarga {
         overlayCarga.setMinWidth(Region.USE_PREF_SIZE);
         overlayCarga.setMinHeight(Region.USE_PREF_SIZE);
 
+        overlayPane.setPickOnBounds(false);
+        overlayPane.setMouseTransparent(true);
         overlayPane.getChildren().add(overlayCarga);
     }
 
@@ -70,6 +72,8 @@ public class OverlayCarga {
         Runnable mostrarOverlay = () -> {
             overlayCarga.setManaged(true);
             overlayCarga.setVisible(true);
+            overlayPane.setPickOnBounds(true);
+            overlayPane.setMouseTransparent(false);
             overlayCarga.setMouseTransparent(false);
             asegurarOverlaySiempreAlFrente();
             overlayPane.toFront();
@@ -92,6 +96,8 @@ public class OverlayCarga {
             overlayCarga.setVisible(false);
             overlayCarga.setManaged(false);
             overlayCarga.setMouseTransparent(true);
+            overlayPane.setMouseTransparent(true);
+            overlayPane.setPickOnBounds(false);
         };
 
         if (Platform.isFxApplicationThread()) {
