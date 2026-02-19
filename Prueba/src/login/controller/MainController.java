@@ -208,12 +208,12 @@ public class MainController {
             }
             ControllerInterfaz.cambiarVistaConOverlayTemporal(vista[0], vista[1], controlador, milisegundosOverlayPrincipal);
 
-            PauseTransition esperaRender = new PauseTransition(Duration.millis(450));
-            esperaRender.setOnFinished(evento -> {
+            PauseTransition esperaFinCarga = new PauseTransition(Duration.millis(milisegundosOverlayPrincipal + 150));
+            esperaFinCarga.setOnFinished(evento -> {
                 interfazListaParaAviso = true;
                 intentarMostrarAvisoSiCorresponde();
             });
-            esperaRender.play();
+            esperaFinCarga.play();
         }));
         hiloCargaInterfaz.setDaemon(true);
 
