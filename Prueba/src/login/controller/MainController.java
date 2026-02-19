@@ -219,7 +219,7 @@ public class MainController {
         }
 
         avisoNotificacionesMostrado = true;
-        mostrarDialogoNotificaciones();
+        Platform.runLater(this::mostrarDialogoNotificaciones);
     }
 
     private String[] obtenerVistaPrincipalPorRol(String rolUsuario) {
