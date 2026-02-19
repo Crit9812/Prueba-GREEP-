@@ -1,6 +1,7 @@
 package Compartido.helper;
 
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
@@ -12,6 +13,7 @@ public class OverlayCarga {
     private final StackPane root;
     private final Pane overlayPane;
     private StackPane overlayCarga;
+    private boolean listenerOverlayActivo = false;
 
     public OverlayCarga(StackPane root, Pane overlayPane) {
         this.root = root;
@@ -43,6 +45,20 @@ public class OverlayCarga {
         overlayPane.getChildren().add(overlayCarga);
     }
 
+
+    private void asegurarOverlaySiempreAlFrente() {
+        if (listenerOverlayActivo || root == null || overlayPane == null) {
+            return;
+        }
+
+        listenerOverlayActivo = true;
+        root.getChildren().addListener((ListChangeListener<javafx.scene.Node>) change -> {
+            if (overlayCarga != null && overlayCarga.isVisible()) {
+                overlayPane.toFront();
+            }
+        });
+    }
+
     public void mostrar() {
         if (overlayCarga == null) {
             configurarOverlayCarga();
@@ -54,6 +70,8 @@ public class OverlayCarga {
             overlayCarga.setManaged(true);
             overlayCarga.setVisible(true);
             overlayCarga.setMouseTransparent(false);
+            asegurarOverlaySiempreAlFrente();
+            overlayPane.toFront();
             overlayCarga.toFront();
         });
     }
