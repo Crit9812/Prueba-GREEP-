@@ -132,11 +132,6 @@ public class MainController implements ControladorVista{
                 }
             });
 
-            if (soloLectura && chkInventarioDetallado != null) {
-                chkInventarioDetallado.setSelected(false);
-                chkInventarioDetallado.setDisable(true);
-            }
-
             configurarColumnasTabla();
             configurarInventarioDetallado();
             configurarFiltros();
