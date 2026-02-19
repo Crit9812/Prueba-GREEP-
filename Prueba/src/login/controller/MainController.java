@@ -165,8 +165,7 @@ public class MainController {
                 String rolUsuario = Compartido.sesion.SesionUsuario.getRolUsuario();
                 System.out.println("Rol desde la sesión: " + rolUsuario);
 
-                mostrarOverlayCargaTemporal(1300);
-                iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario);
+                iniciarSesionConCargaTemporal(rolUsuario, 1300);
 
             } else {
                 alertaController.mostrarAlerta(
@@ -183,6 +182,15 @@ public class MainController {
     private volatile boolean hayNotificacionesActivasPendientes = false;
     private volatile boolean interfazListaParaAviso = false;
     private volatile boolean avisoNotificacionesMostrado = false;
+
+
+    private void iniciarSesionConCargaTemporal(String rolUsuario, int milisegundosOverlay) {
+        mostrarOverlayCargaTemporal(milisegundosOverlay);
+
+        PauseTransition esperarOverlay = new PauseTransition(Duration.millis(milisegundosOverlay));
+        esperarOverlay.setOnFinished(event -> iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario));
+        esperarOverlay.play();
+    }
 
     private void mostrarOverlayCargaTemporal(int milisegundos) {
         if (overlayCarga == null) {
