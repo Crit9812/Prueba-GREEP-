@@ -70,7 +70,7 @@ public final class BusquedaInventarioHelper {
     public static synchronized List<SugerenciaProducto> filtrarSugerencias(String textoBusqueda, int limite) {
         String criterio = textoBusqueda == null ? "" : textoBusqueda.trim().toLowerCase(Locale.ROOT);
         if (criterio.isEmpty()) {
-            return obtenerPrimerasSugerencias(limite);
+            return Collections.emptyList();
         }
 
         List<SugerenciaProducto> sugerencias = new ArrayList<>();
@@ -83,17 +83,6 @@ public final class BusquedaInventarioHelper {
                 sugerencias.add(producto);
             }
 
-            if (sugerencias.size() >= limite) {
-                break;
-            }
-        }
-        return sugerencias;
-    }
-
-    private static List<SugerenciaProducto> obtenerPrimerasSugerencias(int limite) {
-        List<SugerenciaProducto> sugerencias = new ArrayList<>();
-        for (SugerenciaProducto producto : cacheProductosDisponibles) {
-            sugerencias.add(producto);
             if (sugerencias.size() >= limite) {
                 break;
             }

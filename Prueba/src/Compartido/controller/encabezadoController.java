@@ -57,6 +57,7 @@ public class encabezadoController {
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
 
         configurarBuscadorInventarioEncabezado();
+        Platform.runLater(() -> panel.requestFocus());
     }
 
     public void setTitulo(String titulo, String colorHex) {
