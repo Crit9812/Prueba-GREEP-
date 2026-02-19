@@ -1,9 +1,13 @@
 package controllerInterfaz;
 
-import javafx.application.Platform;
+import Compartido.helper.OverlayCarga;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.Screen;
@@ -18,6 +22,49 @@ public class ControllerInterfaz {
         primaryStage = stage;
     }
 
+
+    public static void cambiarVistaConOverlayTemporal(String rutaFXML, String rutaStyle, Object controlador, int milisegundosOverlay) {
+        try {
+            FXMLLoader loader = new FXMLLoader(ControllerInterfaz.class.getResource(rutaFXML));
+            loader.setController(controlador);
+
+            Parent root = loader.load();
+
+            Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+            Scene scene = new Scene(root, screenBounds.getWidth(), screenBounds.getHeight());
+            scene.getStylesheets().add(ControllerInterfaz.class.getResource(rutaStyle).toExternalForm());
+            root.applyCss();
+            root.layout();
+
+            primaryStage.getIcons().add(new Image(ControllerInterfaz.class.getResourceAsStream("/img/logo-GREEP.png")));
+            primaryStage.setTitle("Gestor de inventario GREEP");
+            primaryStage.setScene(scene);
+            primaryStage.show();
+
+            mostrarOverlayCargaTemporal(scene, milisegundosOverlay);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void mostrarOverlayCargaTemporal(Scene scene, int milisegundosOverlay) {
+        if (!(scene.getRoot() instanceof StackPane stackRoot)) {
+            return;
+        }
+
+        Pane overlayPane = new Pane();
+        stackRoot.getChildren().add(overlayPane);
+
+        OverlayCarga overlayCarga = new OverlayCarga(stackRoot, overlayPane);
+        overlayCarga.mostrar();
+
+        PauseTransition pausa = new PauseTransition(Duration.millis(milisegundosOverlay));
+        pausa.setOnFinished(event -> {
+            overlayCarga.ocultar();
+            stackRoot.getChildren().remove(overlayPane);
+        });
+        pausa.play();
+    }
 
     public static void cambiarVista(String rutaFXML, String rutaStyle, Object controlador) {
         try {
