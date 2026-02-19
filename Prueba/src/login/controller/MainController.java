@@ -40,6 +40,10 @@ public class MainController {
     private boolean botonActivo = false;
     private boolean contrasenaVisible = false;
 
+    private volatile boolean hayNotificacionesActivasPendientes = false;
+    private volatile boolean interfazListaParaAviso = false;
+    private volatile boolean avisoNotificacionesMostrado = false;
+
     @FXML
     public void initialize() {
         Platform.runLater(() -> {
