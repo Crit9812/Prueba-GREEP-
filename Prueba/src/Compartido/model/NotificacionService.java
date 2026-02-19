@@ -90,6 +90,91 @@ public class NotificacionService {
     }
 
 
+
+    public String obtenerDetalleSegunTipo(String idNotificacion) {
+        if (idNotificacion == null || idNotificacion.isBlank()) {
+            return "";
+        }
+
+        String idLimpio = idNotificacion.trim();
+        if (idLimpio.endsWith("C")) {
+            return obtenerDetalleCaducidad(idLimpio.substring(0, idLimpio.length() - 1));
+        }
+        if (idLimpio.endsWith("M")) {
+            return obtenerDetalleInventarioMinimo(idLimpio.substring(0, idLimpio.length() - 1));
+        }
+        return "";
+    }
+
+    private String obtenerDetalleCaducidad(String idArticuloTexto) {
+        String sql = "SELECT a.lote, COALESCE(u.nombre, 'Sin ubicación') AS ubicacion " +
+                "FROM articulo a " +
+                "LEFT JOIN ubicaciones u ON u.id = a.ubicacion " +
+                "WHERE a.idArticulo = ? LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return "";
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, Integer.parseInt(idArticuloTexto));
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String lote = rs.getString("lote");
+                        String ubicacion = rs.getString("ubicacion");
+
+                        return "Lote: " + (lote == null || lote.isBlank() ? "Sin lote" : lote) +
+                                "\nUbicación: " + (ubicacion == null || ubicacion.isBlank() ? "Sin ubicación" : ubicacion);
+                    }
+                }
+            }
+        } catch (NumberFormatException e) {
+            return "";
+        } catch (SQLException e) {
+            System.err.println("Error al obtener detalle de caducidad: " + e.getMessage());
+        }
+
+        return "";
+    }
+
+    private String obtenerDetalleInventarioMinimo(String idProducto) {
+        String sql = "SELECT p.nombre, p.unidadMedida, COALESCE(p.categoria, '') AS categoria, " +
+                "COALESCE(p.descripcion, '') AS descripcion, COALESCE(m.nombre, '') AS marca " +
+                "FROM productos p " +
+                "LEFT JOIN marcas m ON m.id = p.marca " +
+                "WHERE p.id = ? LIMIT 1";
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return "";
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, idProducto);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String marca = rs.getString("marca");
+                        String nombre = rs.getString("nombre");
+                        String unidadMedida = rs.getString("unidadMedida");
+                        String categoria = rs.getString("categoria");
+                        String descripcion = rs.getString("descripcion");
+
+                        return "Marca: " + (marca == null || marca.isBlank() ? "Sin marca" : marca) +
+                                "\nNombre: " + (nombre == null || nombre.isBlank() ? "Sin nombre" : nombre) +
+                                "\nUnidad de medida: " + (unidadMedida == null || unidadMedida.isBlank() ? "Sin unidad" : unidadMedida) +
+                                "\nCategoría: " + (categoria == null || categoria.isBlank() ? "Sin categoría" : categoria) +
+                                "\nDescripción: " + (descripcion == null || descripcion.isBlank() ? "Sin descripción" : descripcion);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener detalle de inventario mínimo: " + e.getMessage());
+        }
+
+        return "";
+    }
+
     public boolean hayNotificacionesActivas() {
         String sql = "SELECT 1 FROM Notificaciones WHERE LOWER(estado) = 'activo' LIMIT 1";
 

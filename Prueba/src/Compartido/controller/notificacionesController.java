@@ -75,7 +75,13 @@ public class notificacionesController {
             return;
         }
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, notificacion.getDescripcion(), ButtonType.OK);
+        String detalle = notificacionService.obtenerDetalleSegunTipo(notificacion.getId());
+        String mensaje = notificacion.getDescripcion();
+        if (detalle != null && !detalle.isBlank()) {
+            mensaje += "\n\n" + detalle;
+        }
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, mensaje, ButtonType.OK);
         alert.setTitle("Detalle de notificación");
         alert.setHeaderText("Notificación " + notificacion.getId());
         alert.showAndWait();
