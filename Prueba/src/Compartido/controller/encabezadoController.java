@@ -217,11 +217,15 @@ public class encabezadoController {
         if (controladorPrincipal == null) {
             return;
         }
-        try {
-            controladorPrincipal.cambiarVista("REPORTES");
-        } catch (Exception ignored) {
-        }
-        controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
+
+        Platform.runLater(() -> {
+            try {
+                controladorPrincipal.cambiarVista("REPORTES");
+            } catch (Exception ignored) {
+            }
+
+            Platform.runLater(() -> controladorPrincipal.cargarVista(EnumVistas.INVENTARIO));
+        });
     }
     public void setTitulo(String titulo, String colorHex) {
         labelTitulo.setText(titulo);
