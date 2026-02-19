@@ -162,7 +162,7 @@ public class MainController {
                 String rolUsuario = Compartido.sesion.SesionUsuario.getRolUsuario();
                 System.out.println("Rol desde la sesión: " + rolUsuario);
 
-                cargarInterfazPrincipalConHilo(rolUsuario);
+                iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario);
 
             } else {
                 alertaController.mostrarAlerta(
@@ -174,20 +174,52 @@ public class MainController {
     }
 
 
-    private void cargarInterfazPrincipalConHilo(String rolUsuario) {
+    private volatile boolean hayNotificacionesActivasPendientes = false;
+    private volatile boolean interfazListaParaAviso = false;
+    private volatile boolean avisoNotificacionesMostrado = false;
+
+    private void iniciarCargaInterfazYNotificacionesSimultaneas(String rolUsuario) {
+        hayNotificacionesActivasPendientes = false;
+        interfazListaParaAviso = false;
+        avisoNotificacionesMostrado = false;
+
         Thread hiloCargaInterfaz = new Thread(() -> Platform.runLater(() -> {
             VentanaPrincipal.controller.MainController controlador = new VentanaPrincipal.controller.MainController();
             String[] vista = obtenerVistaPrincipalPorRol(rolUsuario);
-
             ControllerInterfaz.cambiarVista(vista[0], vista[1], controlador);
 
-            PauseTransition esperaCargaUI = new PauseTransition(Duration.millis(1200));
-            esperaCargaUI.setOnFinished(evento -> iniciarHiloNotificacionesYMensaje());
-            esperaCargaUI.play();
+            PauseTransition esperaRender = new PauseTransition(Duration.millis(450));
+            esperaRender.setOnFinished(evento -> {
+                interfazListaParaAviso = true;
+                intentarMostrarAvisoSiCorresponde();
+            });
+            esperaRender.play();
         }));
-
         hiloCargaInterfaz.setDaemon(true);
+
+        Thread hiloNotificaciones = new Thread(() -> {
+            hayNotificacionesActivasPendientes = new NotificacionService().hayNotificacionesActivas();
+            Platform.runLater(this::intentarMostrarAvisoSiCorresponde);
+        });
+        hiloNotificaciones.setDaemon(true);
+
         hiloCargaInterfaz.start();
+        hiloNotificaciones.start();
+    }
+
+    private synchronized void intentarMostrarAvisoSiCorresponde() {
+        if (avisoNotificacionesMostrado) {
+            return;
+        }
+        if (!interfazListaParaAviso) {
+            return;
+        }
+        if (!hayNotificacionesActivasPendientes) {
+            return;
+        }
+
+        avisoNotificacionesMostrado = true;
+        mostrarDialogoNotificaciones();
     }
 
     private String[] obtenerVistaPrincipalPorRol(String rolUsuario) {
@@ -202,17 +234,6 @@ public class MainController {
         return new String[]{"/VentanaPrincipal/view/main_view.fxml", "/VentanaPrincipal/style/estilos.css"};
     }
 
-    private void iniciarHiloNotificacionesYMensaje() {
-        Thread hiloNotificaciones = new Thread(() -> {
-            boolean hayActivas = new NotificacionService().hayNotificacionesActivas();
-            if (hayActivas) {
-                Platform.runLater(this::mostrarDialogoNotificaciones);
-            }
-        });
-
-        hiloNotificaciones.setDaemon(true);
-        hiloNotificaciones.start();
-    }
     private void mostrarDialogoNotificaciones() {
         ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
         ButtonType btnVer = new ButtonType("Ver", ButtonBar.ButtonData.YES);
