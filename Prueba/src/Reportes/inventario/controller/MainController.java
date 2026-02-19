@@ -1,6 +1,7 @@
 package Reportes.inventario.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
@@ -135,9 +136,69 @@ public class MainController implements ControladorVista{
             configurarColumnasTabla();
             configurarInventarioDetallado();
             configurarFiltros();
+            comboValor.setEditable(true);
             cargarInventarioDisponible(false);
             configurarDobleClick();
+            aplicarBusquedaPendienteDeEncabezado();
         });
+    }
+
+    private void aplicarBusquedaPendienteDeEncabezado() {
+        BusquedaProductoHelper.SolicitudBusqueda solicitud = BusquedaProductoHelper.consumirSolicitud();
+        if (solicitud == null) {
+            return;
+        }
+
+        String idProducto = solicitud.getIdProducto();
+        String nombreProducto = solicitud.getNombreProducto();
+        String terminoBusqueda = solicitud.getTerminoBusqueda();
+
+        if ((idProducto == null || idProducto.isBlank()) && (terminoBusqueda == null || terminoBusqueda.isBlank())) {
+            return;
+        }
+
+        filtrosActivos.clear();
+        contenedorFiltros.getChildren().clear();
+
+        if (nombreProducto != null && !nombreProducto.isBlank()) {
+            comboFiltro.setValue("Producto");
+            actualizarValoresFiltro("Producto");
+            comboValor.setValue(nombreProducto);
+            if (comboValor.getEditor() != null) {
+                comboValor.getEditor().setText(nombreProducto);
+            }
+            aplicarFiltroPorTextoEnBarraInventario(nombreProducto);
+            return;
+        }
+
+        if (terminoBusqueda != null && !terminoBusqueda.isBlank()) {
+            aplicarFiltroPorTextoEnBarraInventario(terminoBusqueda);
+        }
+    }
+
+    private void aplicarFiltroPorTextoEnBarraInventario(String textoBusqueda) {
+        String termino = textoBusqueda == null ? "" : textoBusqueda.trim();
+        if (termino.isBlank()) {
+            return;
+        }
+
+        comboFiltro.setValue("Producto");
+        comboValor.setValue(termino);
+        if (comboValor.getEditor() != null) {
+            comboValor.getEditor().setText(termino);
+        }
+
+        String terminoNormalizado = termino.toLowerCase();
+        List<ItemInventario> filtrados = new ArrayList<>();
+        for (ItemInventario item : itemsInventarioOriginal) {
+            String nombre = item.getProducto() == null ? "" : item.getProducto().toLowerCase();
+            if (nombre.contains(terminoNormalizado)) {
+                filtrados.add(item);
+            }
+        }
+
+        itemsInventario.setAll(filtrados);
+        aplicarOrdenamiento();
     }
 
     private void configurarDobleClick() {
