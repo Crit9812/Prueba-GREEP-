@@ -41,6 +41,10 @@ public class navbarController {
 
     public void setControladorPrincipal(MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+
+        if (PermisosRol.esSupervisorOUsuario() && this.controladorPrincipal != null) {
+            Platform.runLater(() -> this.controladorPrincipal.cambiarVista("REPORTES"));
+        }
     }
 
     @FXML
