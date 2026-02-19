@@ -3,6 +3,7 @@ package login.controller;
 import controllerInterfaz.ControllerInterfaz;
 import javafx.animation.*;
 import javafx.application.Platform;
+import Compartido.helper.OverlayCarga;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -36,6 +37,7 @@ public class MainController {
     @FXML private VBox formulario;
     @FXML private alertaController alertaController;
     @FXML private Button botonOcultarContrasena;
+    @FXML private Pane overlayPane;
 
     private boolean botonActivo = false;
     private boolean contrasenaVisible = false;
@@ -68,6 +70,7 @@ public class MainController {
             logoImage.fitHeightProperty().bind(contenedor.heightProperty().multiply(0.65));
             logoImage.fitWidthProperty().bind(contenedor.widthProperty().multiply(0.28));
 
+            overlayCarga = new OverlayCarga(root, overlayPane);
             animarInicio();
             usernameField.setOnAction(event -> iniciarSesion());
             passwordField.setOnAction(event -> iniciarSesion());
@@ -162,6 +165,7 @@ public class MainController {
                 String rolUsuario = Compartido.sesion.SesionUsuario.getRolUsuario();
                 System.out.println("Rol desde la sesión: " + rolUsuario);
 
+                mostrarOverlayCargaTemporal(1300);
                 iniciarCargaInterfazYNotificacionesSimultaneas(rolUsuario);
 
             } else {
@@ -173,10 +177,23 @@ public class MainController {
         }
     }
 
+    private OverlayCarga overlayCarga;
+
 
     private volatile boolean hayNotificacionesActivasPendientes = false;
     private volatile boolean interfazListaParaAviso = false;
     private volatile boolean avisoNotificacionesMostrado = false;
+
+    private void mostrarOverlayCargaTemporal(int milisegundos) {
+        if (overlayCarga == null) {
+            return;
+        }
+        overlayCarga.mostrar();
+
+        PauseTransition ocultarOverlay = new PauseTransition(Duration.millis(milisegundos));
+        ocultarOverlay.setOnFinished(event -> overlayCarga.ocultar());
+        ocultarOverlay.play();
+    }
 
     private void iniciarCargaInterfazYNotificacionesSimultaneas(String rolUsuario) {
         hayNotificacionesActivasPendientes = false;
@@ -197,14 +214,14 @@ public class MainController {
         }));
         hiloCargaInterfaz.setDaemon(true);
 
-        Thread hiloNotificaciones = new Thread(() -> {
+        Thread hiloRevisionNotificaciones = new Thread(() -> {
             hayNotificacionesActivasPendientes = new NotificacionService().hayNotificacionesActivas();
             Platform.runLater(this::intentarMostrarAvisoSiCorresponde);
-        });
-        hiloNotificaciones.setDaemon(true);
+        }, "hilo-revision-notificaciones-login");
+        hiloRevisionNotificaciones.setDaemon(true);
 
         hiloCargaInterfaz.start();
-        hiloNotificaciones.start();
+        hiloRevisionNotificaciones.start();
     }
 
     private synchronized void intentarMostrarAvisoSiCorresponde() {

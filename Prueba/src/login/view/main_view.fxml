@@ -55,5 +55,6 @@
     </HBox>
 
     <fx:include fx:id="alerta" source="/Compartido/view/alerta.fxml"/>
+    <fx:include fx:id="overlayPane" source="/Compartido/view/label.fxml"/>
 
 </StackPane>
