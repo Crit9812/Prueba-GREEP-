@@ -1,5 +1,6 @@
 package main;
 
+import Compartido.model.NotificacionService;
 import conexion.Conexion;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -14,6 +15,9 @@ public class Main extends Application {
         // Establecer el stage en la clase ControllerInterfaz
         Conexion conect = new Conexion();
         conect.conectar();
+
+        NotificacionService notificacionService = new NotificacionService();
+        notificacionService.generarNotificacionesIniciales();
 
         //conexion de css de interfaz operaciones
         FXMLLoader inicio = new FXMLLoader(getClass().getResource("/login/view/main_view.fxml"));

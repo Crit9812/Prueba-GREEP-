@@ -6,6 +6,10 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.image.ImageView;
 import javafx.application.Platform;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 public class encabezadoController {
 
@@ -64,4 +68,21 @@ public class encabezadoController {
         RefrescoHelper.refrescar();
     }
 
+
+    @FXML
+    private void abrirNotificaciones() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Compartido/view/notificaciones.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Notificaciones");
+            stage.setScene(scene);
+            stage.showAndWait();
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "No se pudo abrir la ventana de notificaciones: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
 }

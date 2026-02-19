@@ -31,7 +31,7 @@
                 </graphic>
                 <tooltip><Tooltip text="Actualizar"/></tooltip>
             </Button>
-            <Button styleClass="botones-navbar-top" translateY="-0.8">
+            <Button styleClass="botones-navbar-top" translateY="-0.8" onAction="#abrirNotificaciones">
                 <graphic>
                     <ImageView fx:id="iconoNavbar3">
                         <image><Image url="@/img/sobreC.png"/></image>
