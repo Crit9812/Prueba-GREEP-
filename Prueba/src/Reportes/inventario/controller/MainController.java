@@ -150,8 +150,9 @@ public class MainController implements ControladorVista{
 
         String idProducto = solicitud.getIdProducto();
         String nombreProducto = solicitud.getNombreProducto();
+        String terminoBusqueda = solicitud.getTerminoBusqueda();
 
-        if (idProducto == null || idProducto.isBlank()) {
+        if ((idProducto == null || idProducto.isBlank()) && (terminoBusqueda == null || terminoBusqueda.isBlank())) {
             return;
         }
 
@@ -179,8 +180,37 @@ public class MainController implements ControladorVista{
                 filtrosActivos.add(filtro);
                 contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
                 aplicarFiltros();
+                return;
             }
         }
+
+        if (terminoBusqueda != null && !terminoBusqueda.isBlank()) {
+            aplicarFiltroPorCoincidencia(terminoBusqueda);
+        }
+    }
+
+    private void aplicarFiltroPorCoincidencia(String terminoBusqueda) {
+        String termino = terminoBusqueda.trim().toLowerCase();
+        if (termino.isBlank()) {
+            return;
+        }
+
+        comboFiltro.setValue("Producto");
+        Filtro filtro = new Filtro("Producto", terminoBusqueda.trim());
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+
+        List<ItemInventario> filtrados = new ArrayList<>();
+        for (ItemInventario item : itemsInventarioOriginal) {
+            String nombre = item.getProducto() == null ? "" : item.getProducto().toLowerCase();
+            String id = item.getClaveProducto() == null ? "" : item.getClaveProducto().toLowerCase();
+            if (nombre.contains(termino) || id.contains(termino)) {
+                filtrados.add(item);
+            }
+        }
+
+        itemsInventario.setAll(filtrados);
+        aplicarOrdenamiento();
     }
 
     private void configurarDobleClick() {

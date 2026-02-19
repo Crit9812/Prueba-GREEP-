@@ -7,8 +7,8 @@ public class BusquedaProductoHelper {
     private BusquedaProductoHelper() {
     }
 
-    public static synchronized void guardarSolicitud(String idProducto, String nombreProducto) {
-        solicitudPendiente = new SolicitudBusqueda(idProducto, nombreProducto);
+    public static synchronized void guardarSolicitud(String idProducto, String nombreProducto, String terminoBusqueda) {
+        solicitudPendiente = new SolicitudBusqueda(idProducto, nombreProducto, terminoBusqueda);
     }
 
     public static synchronized SolicitudBusqueda consumirSolicitud() {
@@ -20,10 +20,12 @@ public class BusquedaProductoHelper {
     public static class SolicitudBusqueda {
         private final String idProducto;
         private final String nombreProducto;
+        private final String terminoBusqueda;
 
-        public SolicitudBusqueda(String idProducto, String nombreProducto) {
+        public SolicitudBusqueda(String idProducto, String nombreProducto, String terminoBusqueda) {
             this.idProducto = idProducto;
             this.nombreProducto = nombreProducto;
+            this.terminoBusqueda = terminoBusqueda;
         }
 
         public String getIdProducto() {
@@ -32,6 +34,10 @@ public class BusquedaProductoHelper {
 
         public String getNombreProducto() {
             return nombreProducto;
+        }
+
+        public String getTerminoBusqueda() {
+            return terminoBusqueda;
         }
     }
 }

@@ -4,15 +4,20 @@ import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.RefrescoHelper;
 import Compartido.model.NotificacionService;
 import VentanaPrincipal.controller.EnumVistas;
+import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Side;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.CustomMenuItem;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -21,8 +26,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-
-import conexion.Conexion;
 
 public class encabezadoController {
 
@@ -83,7 +86,28 @@ public class encabezadoController {
             }
         });
 
+        searchBar.setOnAction(event -> ejecutarBusquedaPorEnter());
         menuSugerencias.setAutoHide(true);
+    }
+
+    private void ejecutarBusquedaPorEnter() {
+        String texto = searchBar.getText() == null ? "" : searchBar.getText().trim();
+        if (texto.isBlank()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        List<ProductoBusqueda> resultados = buscarProductos(texto);
+        if (!resultados.isEmpty()) {
+            seleccionarProducto(resultados.get(0), texto);
+            return;
+        }
+
+        BusquedaProductoHelper.guardarSolicitud(texto, texto, texto);
+        menuSugerencias.hide();
+        if (controladorPrincipal != null) {
+            controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
+        }
     }
 
     private void mostrarSugerencias(String textoBusqueda) {
@@ -101,11 +125,12 @@ public class encabezadoController {
 
         List<CustomMenuItem> items = new ArrayList<>();
         for (ProductoBusqueda producto : resultados) {
-            Label label = new Label(producto.id + " - " + producto.nombre);
-            label.setWrapText(false);
+            Label label = new Label(armarTextoSugerencia(producto));
+            label.setWrapText(true);
+            label.setMaxWidth(620);
 
             CustomMenuItem item = new CustomMenuItem(label, true);
-            item.setOnAction(event -> seleccionarProducto(producto));
+            item.setOnAction(event -> seleccionarProducto(producto, texto));
             items.add(item);
         }
 
@@ -116,13 +141,36 @@ public class encabezadoController {
         }
     }
 
+    private String armarTextoSugerencia(ProductoBusqueda producto) {
+        return producto.id + " - " + producto.nombre +
+                " | Marca: " + producto.marca +
+                " | Proveedor: " + producto.proveedor +
+                " | Unidad: " + producto.unidadMedida +
+                " | Clasificación: " + producto.clasificacion +
+                " | Existencias: " + producto.existencias;
+    }
+
     private List<ProductoBusqueda> buscarProductos(String texto) {
         List<ProductoBusqueda> productos = new ArrayList<>();
 
         String sql = """
-                SELECT p.id, p.nombre
+                SELECT p.id,
+                       p.nombre,
+                       COALESCE(m.nombre, 'Sin marca') AS marca,
+                       COALESCE(MIN(pv.Nombre), 'Sin proveedor') AS proveedor,
+                       COALESCE(p.unidadMedida, 'Sin unidad') AS unidadMedida,
+                       COALESCE(p.categoria, 'Sin clasificación') AS clasificacion,
+                       (SELECT COUNT(*)
+                        FROM articulo a
+                        INNER JOIN detalle_Entrada de2 ON a.idDetalleEntrada = de2.idDetalleEntrada
+                        WHERE de2.claveProducto = p.id
+                          AND LOWER(a.Estado) IN ('disponible','segmentado')) AS existencias
                 FROM productos p
+                LEFT JOIN marcas m ON m.id = p.marca
+                LEFT JOIN claves ca ON ca.idProducto = p.id AND ca.estado = 'activo'
+                LEFT JOIN proveedores pv ON pv.id = ca.idProveedor AND pv.status = 'activo'
                 WHERE p.id LIKE ? OR p.nombre LIKE ?
+                GROUP BY p.id, p.nombre, m.nombre, p.unidadMedida, p.categoria, existencias
                 ORDER BY
                     CASE WHEN p.id = ? THEN 0 ELSE 1 END,
                     CASE WHEN p.nombre = ? THEN 0 ELSE 1 END,
@@ -141,7 +189,15 @@ public class encabezadoController {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    productos.add(new ProductoBusqueda(rs.getString("id"), rs.getString("nombre")));
+                    productos.add(new ProductoBusqueda(
+                            rs.getString("id"),
+                            rs.getString("nombre"),
+                            rs.getString("marca"),
+                            rs.getString("proveedor"),
+                            rs.getString("unidadMedida"),
+                            rs.getString("clasificacion"),
+                            rs.getInt("existencias")
+                    ));
                 }
             }
         } catch (Exception e) {
@@ -151,7 +207,7 @@ public class encabezadoController {
         return productos;
     }
 
-    private void seleccionarProducto(ProductoBusqueda producto) {
+    private void seleccionarProducto(ProductoBusqueda producto, String terminoBusqueda) {
         if (producto == null) {
             return;
         }
@@ -159,7 +215,7 @@ public class encabezadoController {
         searchBar.setText(producto.nombre);
         menuSugerencias.hide();
 
-        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre);
+        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre, terminoBusqueda);
 
         if (controladorPrincipal != null) {
             controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
@@ -224,10 +280,21 @@ public class encabezadoController {
     private static class ProductoBusqueda {
         private final String id;
         private final String nombre;
+        private final String marca;
+        private final String proveedor;
+        private final String unidadMedida;
+        private final String clasificacion;
+        private final int existencias;
 
-        private ProductoBusqueda(String id, String nombre) {
+        private ProductoBusqueda(String id, String nombre, String marca, String proveedor,
+                                 String unidadMedida, String clasificacion, int existencias) {
             this.id = id;
             this.nombre = nombre;
+            this.marca = marca;
+            this.proveedor = proveedor;
+            this.unidadMedida = unidadMedida;
+            this.clasificacion = clasificacion;
+            this.existencias = existencias;
         }
     }
 }
