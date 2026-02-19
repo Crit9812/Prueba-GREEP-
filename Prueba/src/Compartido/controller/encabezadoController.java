@@ -99,9 +99,7 @@ public class encabezadoController {
 
         menuSugerencias.hide();
         BusquedaProductoHelper.guardarSolicitud("", "", texto);
-        if (controladorPrincipal != null) {
-            controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
-        }
+        navegarAInventario();
     }
 
     private void mostrarSugerencias(String textoBusqueda) {
@@ -209,13 +207,22 @@ public class encabezadoController {
         searchBar.setText(producto.nombre);
         menuSugerencias.hide();
 
-        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre, producto.nombre);
+        BusquedaProductoHelper.guardarSolicitud("", producto.nombre, producto.nombre);
 
-        if (controladorPrincipal != null) {
-            controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
-        }
+        navegarAInventario();
     }
 
+
+    private void navegarAInventario() {
+        if (controladorPrincipal == null) {
+            return;
+        }
+        try {
+            controladorPrincipal.cambiarVista("REPORTES");
+        } catch (Exception ignored) {
+        }
+        controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
+    }
     public void setTitulo(String titulo, String colorHex) {
         labelTitulo.setText(titulo);
         labelTitulo.setStyle("-fx-background-color: " + colorHex + ";");

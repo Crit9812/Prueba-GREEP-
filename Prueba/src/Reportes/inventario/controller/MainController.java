@@ -160,35 +160,15 @@ public class MainController implements ControladorVista{
         filtrosActivos.clear();
         contenedorFiltros.getChildren().clear();
 
-        comboFiltro.setValue("ID producto");
-        actualizarValoresFiltro("ID producto");
-
-        if (comboValor.getItems().contains(idProducto)) {
-            comboValor.setValue(idProducto);
-            if (comboValor.getEditor() != null) {
-                comboValor.getEditor().setText(idProducto);
-            }
-            Filtro filtro = new Filtro("ID producto", idProducto);
-            filtrosActivos.add(filtro);
-            contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
-            aplicarFiltros();
-            return;
-        }
-
         if (nombreProducto != null && !nombreProducto.isBlank()) {
             comboFiltro.setValue("Producto");
             actualizarValoresFiltro("Producto");
-            if (comboValor.getItems().contains(nombreProducto)) {
-                comboValor.setValue(nombreProducto);
-                if (comboValor.getEditor() != null) {
-                    comboValor.getEditor().setText(nombreProducto);
-                }
-                Filtro filtro = new Filtro("Producto", nombreProducto);
-                filtrosActivos.add(filtro);
-                contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
-                aplicarFiltros();
-                return;
+            comboValor.setValue(nombreProducto);
+            if (comboValor.getEditor() != null) {
+                comboValor.getEditor().setText(nombreProducto);
             }
+            aplicarFiltroPorTextoEnBarraInventario(nombreProducto);
+            return;
         }
 
         if (terminoBusqueda != null && !terminoBusqueda.isBlank()) {
@@ -203,6 +183,7 @@ public class MainController implements ControladorVista{
         }
 
         comboFiltro.setValue("Producto");
+        comboValor.setValue(termino);
         if (comboValor.getEditor() != null) {
             comboValor.getEditor().setText(termino);
         }
