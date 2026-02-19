@@ -21,7 +21,6 @@ import javafx.scene.control.ButtonType;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.util.concurrent.CompletableFuture;
 
 public class MainController {
 
@@ -184,19 +183,18 @@ public class MainController {
 
 
     private void mostrarAvisoNotificacionesSiExistenDespuesDeCargar() {
-        CompletableFuture
-                .supplyAsync(() -> new NotificacionService().hayNotificacionesActivas())
-                .thenAccept(hayActivas -> {
-                    if (!hayActivas) {
-                        return;
-                    }
-
-                    Platform.runLater(() -> {
-                        PauseTransition espera = new PauseTransition(Duration.millis(700));
-                        espera.setOnFinished(evento -> mostrarDialogoNotificaciones());
-                        espera.play();
-                    });
-                });
+        PauseTransition esperaCargaUI = new PauseTransition(Duration.millis(1200));
+        esperaCargaUI.setOnFinished(evento -> {
+            Thread hiloConsulta = new Thread(() -> {
+                boolean hayActivas = new NotificacionService().hayNotificacionesActivas();
+                if (hayActivas) {
+                    Platform.runLater(this::mostrarDialogoNotificaciones);
+                }
+            });
+            hiloConsulta.setDaemon(true);
+            hiloConsulta.start();
+        });
+        esperaCargaUI.play();
     }
 
     private void mostrarDialogoNotificaciones() {
