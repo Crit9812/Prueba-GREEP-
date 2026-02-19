@@ -61,6 +61,7 @@ public class DetalleInventarioController {
     @FXML private StackPane root;
     @FXML private Pane overlayPane;
     @FXML private Button btnAgregarArticulo;
+    @FXML private Label lblAgregar;
     @FXML private Region expansor;
     @FXML private Label lblPresentacion;
     @FXML private Label lblFactor;
@@ -87,6 +88,10 @@ public class DetalleInventarioController {
         if (soloLecturaReportes && btnAgregarArticulo != null) {
             btnAgregarArticulo.setVisible(false);
             btnAgregarArticulo.setManaged(false);
+        }
+        if (soloLecturaReportes && lblAgregar != null) {
+            lblAgregar.setVisible(false);
+            lblAgregar.setManaged(false);
         }
 
         actualizarDatosProducto();
