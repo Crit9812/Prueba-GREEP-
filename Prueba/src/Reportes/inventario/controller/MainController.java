@@ -162,7 +162,39 @@ public class MainController implements ControladorVista{
         Filtro filtroProducto = new Filtro("Producto", nombreProducto);
         filtrosActivos.add(filtroProducto);
         contenedorFiltros.getChildren().add(crearChipFiltro(filtroProducto));
+
         aplicarFiltros();
+
+        // NUEVO: al terminar, enfoca/selecciona y hace scroll al resultado
+        Platform.runLater(() -> enfocarResultadoBusqueda(nombreProducto));
+    }
+
+    private void enfocarResultadoBusqueda(String nombreProducto) {
+        if (contenidoTabla == null) return;
+
+        if (itemsInventario == null || itemsInventario.isEmpty()) {
+            return;
+        }
+
+        ItemInventario objetivo = null;
+
+        // Intentar encontrar coincidencia exacta por nombre de producto
+        for (ItemInventario item : itemsInventario) {
+            if (item != null && item.getProducto() != null && item.getProducto().equals(nombreProducto)) {
+                objetivo = item;
+                break;
+            }
+        }
+
+        // Si no hay coincidencia exacta, al menos seleccionar el primer resultado filtrado
+        if (objetivo == null) {
+            objetivo = itemsInventario.get(0);
+        }
+
+        contenidoTabla.getSelectionModel().clearSelection();
+        contenidoTabla.getSelectionModel().select(objetivo);
+        contenidoTabla.scrollTo(objetivo);
+        contenidoTabla.requestFocus();
     }
 
     private void configurarDobleClick() {

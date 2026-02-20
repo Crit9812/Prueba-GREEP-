@@ -75,7 +75,7 @@ public class encabezadoController {
 
     private void configurarBusquedaProductos() {
         menuSugerencias.setAutoHide(true);
-
+        searchBar.setOnAction(e -> buscarConEnter());
         searchBar.textProperty().addListener((obs, oldVal, newVal) -> {
             String termino = newVal == null ? "" : newVal.trim();
             if (termino.isEmpty()) {
@@ -110,6 +110,27 @@ public class encabezadoController {
                 menuSugerencias.hide();
             }
         });
+    }
+
+    private void buscarConEnter() {
+        String termino = searchBar.getText() == null ? "" : searchBar.getText().trim();
+
+        if (termino.isEmpty()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        List<SugerenciaProducto> sugerencias = buscarProductos(termino);
+
+        if (sugerencias.isEmpty()) {
+            menuSugerencias.hide();
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Producto no encontrado", ButtonType.OK);
+            alert.setHeaderText(null);
+            alert.showAndWait();
+            return;
+        }
+
+        seleccionarProducto(sugerencias.get(0));
     }
 
     private List<SugerenciaProducto> buscarProductos(String termino) {
@@ -166,10 +187,35 @@ public class encabezadoController {
         searchBar.setText(nombreProducto);
         menuSugerencias.hide();
 
+        // Se conserva lo que ya hace: guardar la solicitud para Inventario
         BusquedaProductoHelper.guardarSolicitud(idProducto, nombreProducto, nombreProducto);
 
-        if (controladorPrincipal != null) {
-            controladorPrincipal.cargarVista(EnumVistas.INVENTARIO);
+        // NUEVO: intentar resolver el controlador principal si no está seteado
+        resolverControladorPrincipalSiHaceFalta();
+
+        Platform.runLater(() -> controladorPrincipal.cargarVista(EnumVistas.INVENTARIO));
+    }
+
+    private void resolverControladorPrincipalSiHaceFalta() {
+        if (controladorPrincipal != null) return;
+
+        try {
+            if (panel != null && panel.getScene() != null) {
+                Object udScene = panel.getScene().getUserData();
+                if (udScene instanceof VentanaPrincipal.controller.MainController) {
+                    controladorPrincipal = (VentanaPrincipal.controller.MainController) udScene;
+                    return;
+                }
+
+                if (panel.getScene().getWindow() != null) {
+                    Object udWindow = panel.getScene().getWindow().getUserData();
+                    if (udWindow instanceof VentanaPrincipal.controller.MainController) {
+                        controladorPrincipal = (VentanaPrincipal.controller.MainController) udWindow;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // intencional: no hacemos cambios extra ni rompemos flujo
         }
     }
 
