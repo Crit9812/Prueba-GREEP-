@@ -103,6 +103,11 @@ public class encabezadoController {
     }
 
     private void mostrarSugerencias(String textoBusqueda) {
+        if (!searchBar.isFocused()) {
+            menuSugerencias.hide();
+            return;
+        }
+
         String texto = textoBusqueda == null ? "" : textoBusqueda.trim();
         if (texto.isBlank()) {
             menuSugerencias.hide();
@@ -134,12 +139,7 @@ public class encabezadoController {
     }
 
     private String armarTextoSugerencia(ProductoBusqueda producto) {
-        return producto.id + " - " + producto.nombre +
-                " | Marca: " + producto.marca +
-                " | Proveedor: " + producto.proveedor +
-                " | Unidad: " + producto.unidadMedida +
-                " | Clasificación: " + producto.clasificacion +
-                " | Existencias: " + producto.existencias;
+        return producto.id + " - " + producto.nombre;
     }
 
     private List<ProductoBusqueda> buscarProductos(String texto) {
@@ -207,7 +207,7 @@ public class encabezadoController {
         searchBar.setText(producto.nombre);
         menuSugerencias.hide();
 
-        BusquedaProductoHelper.guardarSolicitud("", producto.nombre, producto.nombre);
+        BusquedaProductoHelper.guardarSolicitud(producto.id, producto.nombre, producto.id);
 
         navegarAInventario();
     }

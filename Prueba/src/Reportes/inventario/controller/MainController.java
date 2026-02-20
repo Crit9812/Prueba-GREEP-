@@ -153,20 +153,21 @@ public class MainController implements ControladorVista{
         String nombreProducto = solicitud.getNombreProducto();
         String terminoBusqueda = solicitud.getTerminoBusqueda();
 
-        if ((idProducto == null || idProducto.isBlank()) && (terminoBusqueda == null || terminoBusqueda.isBlank())) {
+        if ((idProducto == null || idProducto.isBlank())
+                && (nombreProducto == null || nombreProducto.isBlank())
+                && (terminoBusqueda == null || terminoBusqueda.isBlank())) {
             return;
         }
 
         filtrosActivos.clear();
         contenedorFiltros.getChildren().clear();
 
+        if (idProducto != null && !idProducto.isBlank()) {
+            aplicarFiltroPorTextoEnBarraInventario(idProducto);
+            return;
+        }
+
         if (nombreProducto != null && !nombreProducto.isBlank()) {
-            comboFiltro.setValue("Producto");
-            actualizarValoresFiltro("Producto");
-            comboValor.setValue(nombreProducto);
-            if (comboValor.getEditor() != null) {
-                comboValor.getEditor().setText(nombreProducto);
-            }
             aplicarFiltroPorTextoEnBarraInventario(nombreProducto);
             return;
         }
@@ -192,7 +193,8 @@ public class MainController implements ControladorVista{
         List<ItemInventario> filtrados = new ArrayList<>();
         for (ItemInventario item : itemsInventarioOriginal) {
             String nombre = item.getProducto() == null ? "" : item.getProducto().toLowerCase();
-            if (nombre.contains(terminoNormalizado)) {
+            String idProductoItem = item.getClaveProducto() == null ? "" : item.getClaveProducto().toLowerCase();
+            if (nombre.contains(terminoNormalizado) || idProductoItem.contains(terminoNormalizado)) {
                 filtrados.add(item);
             }
         }
