@@ -131,7 +131,7 @@ public class encabezadoController {
                 "ORDER BY CASE WHEN p.id = ? THEN 0 WHEN p.nombre = ? THEN 1 ELSE 2 END, p.nombre ASC " +
                 "LIMIT 8";
 
-        try (Connection conn = Conexion.conectar();
+        try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             String like = "%" + termino + "%";
             ps.setString(1, like);
