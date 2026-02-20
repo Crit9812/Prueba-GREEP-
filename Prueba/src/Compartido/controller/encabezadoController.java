@@ -15,12 +15,17 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class encabezadoController {
 
@@ -34,6 +39,13 @@ public class encabezadoController {
 
     private final NotificacionService notificacionService = new NotificacionService();
     private final ContextMenu menuSugerencias = new ContextMenu();
+    private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(180));
+    private final ExecutorService buscadorExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread hilo = new Thread(r, "busqueda-encabezado");
+        hilo.setDaemon(true);
+        return hilo;
+    });
+    private final AtomicInteger versionBusqueda = new AtomicInteger(0);
     private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     @FXML
@@ -76,33 +88,18 @@ public class encabezadoController {
     private void configurarBusquedaProductos() {
         menuSugerencias.setAutoHide(true);
         searchBar.setOnAction(e -> buscarConEnter());
+        debounceBusqueda.setOnFinished(e -> ejecutarBusquedaAsincrona());
+
         searchBar.textProperty().addListener((obs, oldVal, newVal) -> {
             String termino = newVal == null ? "" : newVal.trim();
             if (termino.isEmpty()) {
+                versionBusqueda.incrementAndGet();
+                debounceBusqueda.stop();
                 menuSugerencias.hide();
                 return;
             }
 
-            List<SugerenciaProducto> sugerencias = buscarProductos(termino);
-            if (sugerencias.isEmpty()) {
-                menuSugerencias.hide();
-                return;
-            }
-
-            List<CustomMenuItem> items = new ArrayList<>();
-            for (SugerenciaProducto sugerencia : sugerencias) {
-                Label etiqueta = new Label(sugerencia.textoSugerencia());
-                etiqueta.setWrapText(true);
-
-                CustomMenuItem item = new CustomMenuItem(etiqueta, true);
-                item.setOnAction(event -> seleccionarProducto(sugerencia));
-                items.add(item);
-            }
-
-            menuSugerencias.getItems().setAll(items);
-            if (!menuSugerencias.isShowing()) {
-                menuSugerencias.show(searchBar, javafx.geometry.Side.BOTTOM, 0, 0);
-            }
+            debounceBusqueda.playFromStart();
         });
 
         searchBar.focusedProperty().addListener((obs, oldVal, focused) -> {
@@ -110,6 +107,51 @@ public class encabezadoController {
                 menuSugerencias.hide();
             }
         });
+    }
+
+    private void ejecutarBusquedaAsincrona() {
+        String termino = searchBar.getText() == null ? "" : searchBar.getText().trim();
+        if (termino.isEmpty()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        int versionActual = versionBusqueda.incrementAndGet();
+
+        buscadorExecutor.submit(() -> {
+            List<SugerenciaProducto> sugerencias = buscarProductos(termino);
+
+            Platform.runLater(() -> {
+                String textoVisible = searchBar.getText() == null ? "" : searchBar.getText().trim();
+                if (versionActual != versionBusqueda.get() || !termino.equals(textoVisible)) {
+                    return;
+                }
+
+                mostrarSugerencias(sugerencias);
+            });
+        });
+    }
+
+    private void mostrarSugerencias(List<SugerenciaProducto> sugerencias) {
+        if (sugerencias.isEmpty()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        List<CustomMenuItem> items = new ArrayList<>();
+        for (SugerenciaProducto sugerencia : sugerencias) {
+            Label etiqueta = new Label(sugerencia.textoSugerencia());
+            etiqueta.setWrapText(true);
+
+            CustomMenuItem item = new CustomMenuItem(etiqueta, true);
+            item.setOnAction(event -> seleccionarProducto(sugerencia));
+            items.add(item);
+        }
+
+        menuSugerencias.getItems().setAll(items);
+        if (!menuSugerencias.isShowing()) {
+            menuSugerencias.show(searchBar, javafx.geometry.Side.BOTTOM, 0, 0);
+        }
     }
 
     private void buscarConEnter() {
