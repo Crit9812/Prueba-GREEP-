@@ -13,14 +13,22 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.animation.PauseTransition;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class encabezadoController {
 
@@ -34,6 +42,21 @@ public class encabezadoController {
 
     private final NotificacionService notificacionService = new NotificacionService();
     private final ContextMenu menuSugerencias = new ContextMenu();
+    private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(180));
+    private final ExecutorService busquedaExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread hilo = new Thread(r, "encabezado-busqueda");
+        hilo.setDaemon(true);
+        return hilo;
+    });
+    private final AtomicInteger versionBusqueda = new AtomicInteger();
+    private final Map<String, List<SugerenciaProducto>> cacheBusqueda = Collections.synchronizedMap(
+            new LinkedHashMap<>(32, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, List<SugerenciaProducto>> eldest) {
+                    return size() > 50;
+                }
+            }
+    );
     private VentanaPrincipal.controller.MainController controladorPrincipal;
 
     @FXML
@@ -79,30 +102,15 @@ public class encabezadoController {
         searchBar.textProperty().addListener((obs, oldVal, newVal) -> {
             String termino = newVal == null ? "" : newVal.trim();
             if (termino.isEmpty()) {
+                versionBusqueda.incrementAndGet();
+                debounceBusqueda.stop();
                 menuSugerencias.hide();
                 return;
             }
 
-            List<SugerenciaProducto> sugerencias = buscarProductos(termino);
-            if (sugerencias.isEmpty()) {
-                menuSugerencias.hide();
-                return;
-            }
-
-            List<CustomMenuItem> items = new ArrayList<>();
-            for (SugerenciaProducto sugerencia : sugerencias) {
-                Label etiqueta = new Label(sugerencia.textoSugerencia());
-                etiqueta.setWrapText(true);
-
-                CustomMenuItem item = new CustomMenuItem(etiqueta, true);
-                item.setOnAction(event -> seleccionarProducto(sugerencia));
-                items.add(item);
-            }
-
-            menuSugerencias.getItems().setAll(items);
-            if (!menuSugerencias.isShowing()) {
-                menuSugerencias.show(searchBar, javafx.geometry.Side.BOTTOM, 0, 0);
-            }
+            int versionActual = versionBusqueda.incrementAndGet();
+            debounceBusqueda.setOnFinished(event -> buscarProductosEnTiempoReal(termino, versionActual));
+            debounceBusqueda.playFromStart();
         });
 
         searchBar.focusedProperty().addListener((obs, oldVal, focused) -> {
@@ -110,6 +118,47 @@ public class encabezadoController {
                 menuSugerencias.hide();
             }
         });
+    }
+
+    private void buscarProductosEnTiempoReal(String termino, int versionEsperada) {
+        List<SugerenciaProducto> sugerenciasCache = cacheBusqueda.get(termino);
+        if (sugerenciasCache != null) {
+            mostrarSugerencias(termino, sugerenciasCache, versionEsperada);
+            return;
+        }
+
+        busquedaExecutor.submit(() -> {
+            List<SugerenciaProducto> resultados = buscarProductos(termino);
+            cacheBusqueda.put(termino, resultados);
+            Platform.runLater(() -> mostrarSugerencias(termino, resultados, versionEsperada));
+        });
+    }
+
+    private void mostrarSugerencias(String termino, List<SugerenciaProducto> sugerencias, int versionEsperada) {
+        String terminoActual = searchBar.getText() == null ? "" : searchBar.getText().trim();
+        if (versionEsperada != versionBusqueda.get() || !termino.equals(terminoActual)) {
+            return;
+        }
+
+        if (sugerencias.isEmpty()) {
+            menuSugerencias.hide();
+            return;
+        }
+
+        List<CustomMenuItem> items = new ArrayList<>();
+        for (SugerenciaProducto sugerencia : sugerencias) {
+            Label etiqueta = new Label(sugerencia.textoSugerencia());
+            etiqueta.setWrapText(true);
+
+            CustomMenuItem item = new CustomMenuItem(etiqueta, true);
+            item.setOnAction(event -> seleccionarProducto(sugerencia));
+            items.add(item);
+        }
+
+        menuSugerencias.getItems().setAll(items);
+        if (!menuSugerencias.isShowing()) {
+            menuSugerencias.show(searchBar, javafx.geometry.Side.BOTTOM, 0, 0);
+        }
     }
 
     private void buscarConEnter() {
