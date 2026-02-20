@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class encabezadoController {
@@ -42,13 +43,14 @@ public class encabezadoController {
 
     private final NotificacionService notificacionService = new NotificacionService();
     private final ContextMenu menuSugerencias = new ContextMenu();
-    private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(180));
+    private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(90));
     private final ExecutorService busquedaExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread hilo = new Thread(r, "encabezado-busqueda");
         hilo.setDaemon(true);
         return hilo;
     });
     private final AtomicInteger versionBusqueda = new AtomicInteger();
+    private volatile Future<?> tareaBusquedaActual;
     private final Map<String, List<SugerenciaProducto>> cacheBusqueda = Collections.synchronizedMap(
             new LinkedHashMap<>(32, 0.75f, true) {
                 @Override
@@ -104,6 +106,9 @@ public class encabezadoController {
             if (termino.isEmpty()) {
                 versionBusqueda.incrementAndGet();
                 debounceBusqueda.stop();
+                if (tareaBusquedaActual != null) {
+                    tareaBusquedaActual.cancel(true);
+                }
                 menuSugerencias.hide();
                 return;
             }
@@ -121,21 +126,32 @@ public class encabezadoController {
     }
 
     private void buscarProductosEnTiempoReal(String termino, int versionEsperada) {
-        List<SugerenciaProducto> sugerenciasCache = cacheBusqueda.get(termino);
+        String terminoNormalizado = normalizarTermino(termino);
+
+        List<SugerenciaProducto> sugerenciasCache = cacheBusqueda.get(terminoNormalizado);
         if (sugerenciasCache != null) {
-            mostrarSugerencias(termino, sugerenciasCache, versionEsperada);
+            mostrarSugerencias(terminoNormalizado, sugerenciasCache, versionEsperada);
             return;
         }
 
-        busquedaExecutor.submit(() -> {
+        List<SugerenciaProducto> sugerenciasPrefijo = buscarEnCachePorPrefijo(terminoNormalizado);
+        if (!sugerenciasPrefijo.isEmpty()) {
+            mostrarSugerencias(terminoNormalizado, sugerenciasPrefijo, versionEsperada);
+        }
+
+        if (tareaBusquedaActual != null) {
+            tareaBusquedaActual.cancel(true);
+        }
+
+        tareaBusquedaActual = busquedaExecutor.submit(() -> {
             List<SugerenciaProducto> resultados = buscarProductos(termino);
-            cacheBusqueda.put(termino, resultados);
-            Platform.runLater(() -> mostrarSugerencias(termino, resultados, versionEsperada));
+            cacheBusqueda.put(terminoNormalizado, resultados);
+            Platform.runLater(() -> mostrarSugerencias(terminoNormalizado, resultados, versionEsperada));
         });
     }
 
     private void mostrarSugerencias(String termino, List<SugerenciaProducto> sugerencias, int versionEsperada) {
-        String terminoActual = searchBar.getText() == null ? "" : searchBar.getText().trim();
+        String terminoActual = normalizarTermino(searchBar.getText());
         if (versionEsperada != versionBusqueda.get() || !termino.equals(terminoActual)) {
             return;
         }
@@ -161,6 +177,53 @@ public class encabezadoController {
         }
     }
 
+
+    private String normalizarTermino(String termino) {
+        return termino == null ? "" : termino.trim().toLowerCase();
+    }
+
+    private List<SugerenciaProducto> buscarEnCachePorPrefijo(String termino) {
+        String mejorClave = null;
+        List<SugerenciaProducto> mejorBase = null;
+
+        synchronized (cacheBusqueda) {
+            for (Map.Entry<String, List<SugerenciaProducto>> entry : cacheBusqueda.entrySet()) {
+                String clave = entry.getKey();
+                if (!termino.startsWith(clave)) {
+                    continue;
+                }
+
+                if (mejorClave == null || clave.length() > mejorClave.length()) {
+                    mejorClave = clave;
+                    mejorBase = entry.getValue();
+                }
+            }
+        }
+
+        if (mejorBase == null) {
+            return Collections.emptyList();
+        }
+
+        return filtrarSugerenciasLocales(mejorBase, termino);
+    }
+
+    private List<SugerenciaProducto> filtrarSugerenciasLocales(List<SugerenciaProducto> base, String termino) {
+        List<SugerenciaProducto> filtradas = new ArrayList<>();
+        for (SugerenciaProducto sugerencia : base) {
+            if (coincide(sugerencia.id, termino) || coincide(sugerencia.nombre, termino)) {
+                filtradas.add(sugerencia);
+                if (filtradas.size() == 8) {
+                    break;
+                }
+            }
+        }
+        return filtradas;
+    }
+
+    private boolean coincide(String valor, String termino) {
+        return valor != null && valor.toLowerCase().contains(termino);
+    }
+
     private void buscarConEnter() {
         String termino = searchBar.getText() == null ? "" : searchBar.getText().trim();
 
@@ -169,7 +232,12 @@ public class encabezadoController {
             return;
         }
 
-        List<SugerenciaProducto> sugerencias = buscarProductos(termino);
+        String terminoNormalizado = normalizarTermino(termino);
+        List<SugerenciaProducto> sugerencias = cacheBusqueda.get(terminoNormalizado);
+        if (sugerencias == null) {
+            sugerencias = buscarProductos(termino);
+            cacheBusqueda.put(terminoNormalizado, sugerencias);
+        }
 
         if (sugerencias.isEmpty()) {
             menuSugerencias.hide();
