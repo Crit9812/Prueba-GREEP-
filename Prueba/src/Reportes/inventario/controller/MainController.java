@@ -1,6 +1,7 @@
 package Reportes.inventario.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
@@ -136,8 +137,32 @@ public class MainController implements ControladorVista{
             configurarInventarioDetallado();
             configurarFiltros();
             cargarInventarioDisponible(false);
+            aplicarBusquedaPendienteDesdeEncabezado();
             configurarDobleClick();
         });
+    }
+
+    private void aplicarBusquedaPendienteDesdeEncabezado() {
+        BusquedaProductoHelper.SolicitudBusqueda solicitud = BusquedaProductoHelper.consumirSolicitud();
+        if (solicitud == null) {
+            return;
+        }
+
+        String nombreProducto = solicitud.getNombreProducto();
+        if (nombreProducto == null || nombreProducto.isBlank()) {
+            return;
+        }
+
+        filtrosActivos.removeIf(f -> "Producto".equals(f.campo));
+        contenedorFiltros.getChildren().removeIf(node ->
+                node instanceof HBox && ((HBox) node).getChildren().stream()
+                        .anyMatch(child -> child instanceof Label && ((Label) child).getText().startsWith("Producto:"))
+        );
+
+        Filtro filtroProducto = new Filtro("Producto", nombreProducto);
+        filtrosActivos.add(filtroProducto);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtroProducto));
+        aplicarFiltros();
     }
 
     private void configurarDobleClick() {
