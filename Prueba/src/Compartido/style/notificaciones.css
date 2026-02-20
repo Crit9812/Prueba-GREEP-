@@ -27,7 +27,7 @@
 /* Estilo base de las celdas */
 .lista-notificaciones .list-cell {
     -fx-padding: 14px 18px;
-    -fx-background-color: #f0f0f0;  /* Gris para leídas */
+    -fx-background-color: #f0f0f0;
     -fx-border-color: #e0e0e0;
     -fx-border-width: 0 0 1px 0;
     -fx-font-size: 13px;
@@ -35,7 +35,7 @@
 
 /* Notificación no leída */
 .lista-notificaciones .list-cell.notificacion-activa {
-    -fx-background-color: #dcf0da;  /* Verde claro suave pero visible */
+    -fx-background-color: #dcf0da;
     -fx-border-color: #c0ddc0;
     -fx-border-width: 0 0 1px 0;
     -fx-effect: innershadow(gaussian, rgba(145, 212, 133, 0.15), 3, 0, 0, 0);
@@ -80,10 +80,10 @@
 }
 
 .lista-notificaciones .list-cell.notificacion-activa:hover {
-    -fx-background-color: #cce8ca;  /* Hover ligeramente más oscuro para no leídas */
+    -fx-background-color: #cce8ca;
 }
 
-/* Color de selección personalizado (verde menta) */
+/* Color de selección personalizado */
 .lista-notificaciones .list-cell:selected {
     -fx-background-color: #91d485 !important;
 }
