@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class encabezadoController {
@@ -43,12 +44,8 @@ public class encabezadoController {
 
     private final NotificacionService notificacionService = new NotificacionService();
     private final ContextMenu menuSugerencias = new ContextMenu();
-    private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(90));
-    private final ExecutorService busquedaExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread hilo = new Thread(r, "encabezado-busqueda");
-        hilo.setDaemon(true);
-        return hilo;
-    });
+    private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(45));
+    private final ExecutorService busquedaExecutor = Executors.newFixedThreadPool(2, crearThreadFactoryBusqueda());
     private final AtomicInteger versionBusqueda = new AtomicInteger();
     private volatile Future<?> tareaBusquedaActual;
     private final Map<String, List<SugerenciaProducto>> cacheBusqueda = Collections.synchronizedMap(
@@ -134,20 +131,29 @@ public class encabezadoController {
             return;
         }
 
-        List<SugerenciaProducto> sugerenciasPrefijo = buscarEnCachePorPrefijo(terminoNormalizado);
-        if (!sugerenciasPrefijo.isEmpty()) {
-            mostrarSugerencias(terminoNormalizado, sugerenciasPrefijo, versionEsperada);
-        }
-
         if (tareaBusquedaActual != null) {
             tareaBusquedaActual.cancel(true);
         }
 
         tareaBusquedaActual = busquedaExecutor.submit(() -> {
+            List<SugerenciaProducto> sugerenciasPrefijo = buscarEnCachePorPrefijo(terminoNormalizado);
+            if (!sugerenciasPrefijo.isEmpty()) {
+                Platform.runLater(() -> mostrarSugerencias(terminoNormalizado, sugerenciasPrefijo, versionEsperada));
+            }
+
             List<SugerenciaProducto> resultados = buscarProductos(termino);
             cacheBusqueda.put(terminoNormalizado, resultados);
             Platform.runLater(() -> mostrarSugerencias(terminoNormalizado, resultados, versionEsperada));
         });
+    }
+
+    private ThreadFactory crearThreadFactoryBusqueda() {
+        AtomicInteger secuencia = new AtomicInteger(1);
+        return runnable -> {
+            Thread hilo = new Thread(runnable, "encabezado-busqueda-" + secuencia.getAndIncrement());
+            hilo.setDaemon(true);
+            return hilo;
+        };
     }
 
     private void mostrarSugerencias(String termino, List<SugerenciaProducto> sugerencias, int versionEsperada) {
