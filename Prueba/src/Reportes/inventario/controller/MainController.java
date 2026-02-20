@@ -1,6 +1,7 @@
 package Reportes.inventario.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
@@ -136,8 +137,64 @@ public class MainController implements ControladorVista{
             configurarInventarioDetallado();
             configurarFiltros();
             cargarInventarioDisponible(false);
+            aplicarBusquedaPendienteDesdeEncabezado();
             configurarDobleClick();
         });
+    }
+
+    private void aplicarBusquedaPendienteDesdeEncabezado() {
+        BusquedaProductoHelper.SolicitudBusqueda solicitud = BusquedaProductoHelper.consumirSolicitud();
+        if (solicitud == null) {
+            return;
+        }
+
+        String nombreProducto = solicitud.getNombreProducto();
+        if (nombreProducto == null || nombreProducto.isBlank()) {
+            return;
+        }
+
+        filtrosActivos.removeIf(f -> "Producto".equals(f.campo));
+        contenedorFiltros.getChildren().removeIf(node ->
+                node instanceof HBox && ((HBox) node).getChildren().stream()
+                        .anyMatch(child -> child instanceof Label && ((Label) child).getText().startsWith("Producto:"))
+        );
+
+        Filtro filtroProducto = new Filtro("Producto", nombreProducto);
+        filtrosActivos.add(filtroProducto);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtroProducto));
+
+        aplicarFiltros();
+
+        // NUEVO: al terminar, enfoca/selecciona y hace scroll al resultado
+        Platform.runLater(() -> enfocarResultadoBusqueda(nombreProducto));
+    }
+
+    private void enfocarResultadoBusqueda(String nombreProducto) {
+        if (contenidoTabla == null) return;
+
+        if (itemsInventario == null || itemsInventario.isEmpty()) {
+            return;
+        }
+
+        ItemInventario objetivo = null;
+
+        // Intentar encontrar coincidencia exacta por nombre de producto
+        for (ItemInventario item : itemsInventario) {
+            if (item != null && item.getProducto() != null && item.getProducto().equals(nombreProducto)) {
+                objetivo = item;
+                break;
+            }
+        }
+
+        // Si no hay coincidencia exacta, al menos seleccionar el primer resultado filtrado
+        if (objetivo == null) {
+            objetivo = itemsInventario.get(0);
+        }
+
+        contenidoTabla.getSelectionModel().clearSelection();
+        contenidoTabla.getSelectionModel().select(objetivo);
+        contenidoTabla.scrollTo(objetivo);
+        contenidoTabla.requestFocus();
     }
 
     private void configurarDobleClick() {
