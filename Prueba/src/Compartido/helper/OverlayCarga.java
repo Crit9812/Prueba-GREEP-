@@ -1,7 +1,6 @@
 package Compartido.helper;
 
 import javafx.application.Platform;
-import javafx.collections.ListChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
@@ -14,7 +13,6 @@ public class OverlayCarga {
     private final Pane overlayPane;
     private StackPane overlayCarga;
     private Label labelCarga;
-    private boolean listenerOverlayActivo = false;
     private String mensaje = "Cargando...";
 
     public OverlayCarga(StackPane root, Pane overlayPane) {
@@ -73,20 +71,6 @@ public class OverlayCarga {
         }
     }
 
-
-    private void asegurarOverlaySiempreAlFrente() {
-        if (listenerOverlayActivo || root == null || overlayPane == null) {
-            return;
-        }
-
-        listenerOverlayActivo = true;
-        root.getChildren().addListener((ListChangeListener<javafx.scene.Node>) change -> {
-            if (overlayCarga != null && overlayCarga.isVisible()) {
-                overlayPane.toFront();
-            }
-        });
-    }
-
     public void mostrar() {
         if (overlayCarga == null) {
             configurarOverlayCarga();
@@ -101,9 +85,20 @@ public class OverlayCarga {
             overlayPane.setPickOnBounds(true);
             overlayPane.setMouseTransparent(false);
             overlayCarga.setMouseTransparent(false);
-            asegurarOverlaySiempreAlFrente();
-            overlayPane.toFront();
-            overlayCarga.toFront();
+            if (overlayPane.getParent() == root) {
+                int ultimoIndice = root.getChildren().size() - 1;
+                if (ultimoIndice >= 0 && root.getChildren().get(ultimoIndice) != overlayPane) {
+                    root.getChildren().remove(overlayPane);
+                    root.getChildren().add(overlayPane);
+                }
+            }
+            if (overlayCarga.getParent() == overlayPane) {
+                int ultimoIndiceOverlay = overlayPane.getChildren().size() - 1;
+                if (ultimoIndiceOverlay >= 0 && overlayPane.getChildren().get(ultimoIndiceOverlay) != overlayCarga) {
+                    overlayPane.getChildren().remove(overlayCarga);
+                    overlayPane.getChildren().add(overlayCarga);
+                }
+            }
         };
 
         if (Platform.isFxApplicationThread()) {

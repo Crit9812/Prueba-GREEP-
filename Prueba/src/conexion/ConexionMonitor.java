@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConexionMonitor {
     private static final ConexionMonitor INSTANCE = new ConexionMonitor();
-    private static final long INTERVALO_VERIFICACION_SEGUNDOS = 3;
+    private static final long INTERVALO_VERIFICACION_SEGUNDOS = 1;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "conexion-monitor");
