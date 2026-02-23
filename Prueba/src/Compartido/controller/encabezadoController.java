@@ -237,6 +237,23 @@ public class encabezadoController {
 
     private List<SugerenciaProducto> buscarProductos(String termino) {
         List<SugerenciaProducto> resultados = new ArrayList<>();
+        String terminoNormalizado = termino == null ? "" : termino.trim().toLowerCase();
+        String[] filtros = terminoNormalizado.isEmpty() ? new String[0] : terminoNormalizado.split("\\s+");
+
+        StringBuilder whereDinamico = new StringBuilder("WHERE p.estado = 'activo'");
+        for (String filtro : filtros) {
+            if (filtro == null || filtro.isBlank()) {
+                continue;
+            }
+
+            whereDinamico.append(" AND (")
+                    .append("LOWER(p.id) LIKE ? OR ")
+                    .append("LOWER(p.nombre) LIKE ? OR ")
+                    .append("LOWER(presentacionData.presentacion) LIKE ? OR ")
+                    .append("CAST(presentacionData.factor AS CHAR) LIKE ?")
+                    .append(")");
+        }
+
         String sql = "SELECT p.id, p.nombre, " +
                 "COALESCE(m.nombre, 'Sin marca') AS marca, " +
                 "COALESCE(( " +
@@ -279,18 +296,28 @@ public class encabezadoController {
                 "   ) base " +
                 "   GROUP BY base.idProducto, base.presentacion, base.factor " +
                 ") presentacionData ON presentacionData.idProducto = p.id " +
-                "WHERE p.estado = 'activo' AND (p.id LIKE ? OR p.nombre LIKE ?) " +
+                whereDinamico + " " +
                 "ORDER BY CASE WHEN p.id = ? THEN 0 WHEN p.nombre = ? THEN 1 ELSE 2 END, p.nombre ASC, " +
                 "presentacionData.presentacion ASC, presentacionData.factor ASC " +
                 "LIMIT 24";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            String like = "%" + termino + "%";
-            ps.setString(1, like);
-            ps.setString(2, like);
-            ps.setString(3, termino);
-            ps.setString(4, termino);
+            int indice = 1;
+            for (String filtro : filtros) {
+                if (filtro == null || filtro.isBlank()) {
+                    continue;
+                }
+
+                String like = "%" + filtro + "%";
+                ps.setString(indice++, like);
+                ps.setString(indice++, like);
+                ps.setString(indice++, like);
+                ps.setString(indice++, like);
+            }
+
+            ps.setString(indice++, termino);
+            ps.setString(indice, termino);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
