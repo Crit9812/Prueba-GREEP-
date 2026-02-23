@@ -2,6 +2,7 @@ package main;
 
 import Compartido.model.NotificacionService;
 import conexion.Conexion;
+import conexion.ConexionMonitor;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -14,7 +15,11 @@ public class Main extends Application {
     public void start(Stage stage) throws Exception {
         // Establecer el stage en la clase ControllerInterfaz
         Conexion conect = new Conexion();
-        conect.conectar();
+        try {
+            conect.conectar();
+        } catch (Exception ignored) {
+            // La app debe iniciar para que el monitor muestre el overlay de reconexión automática.
+        }
 
         NotificacionService notificacionService = new NotificacionService();
         notificacionService.generarNotificacionesIniciales();
@@ -34,6 +39,8 @@ public class Main extends Application {
         stage.setMaximized(true);
         controllerInterfaz.ControllerInterfaz.setStage(stage);
         stage.show();
+
+        ConexionMonitor.getInstance().iniciar(stage);
 
     }
 

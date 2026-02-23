@@ -1,7 +1,6 @@
 package Compartido.helper;
 
 import javafx.application.Platform;
-import javafx.collections.ListChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
@@ -13,11 +12,19 @@ public class OverlayCarga {
     private final StackPane root;
     private final Pane overlayPane;
     private StackPane overlayCarga;
-    private boolean listenerOverlayActivo = false;
+    private Label labelCarga;
+    private String mensaje = "Cargando...";
 
     public OverlayCarga(StackPane root, Pane overlayPane) {
         this.root = root;
         this.overlayPane = overlayPane;
+        configurarOverlayCarga();
+    }
+
+    public OverlayCarga(StackPane root, Pane overlayPane, String mensaje) {
+        this.root = root;
+        this.overlayPane = overlayPane;
+        this.mensaje = (mensaje == null || mensaje.trim().isEmpty()) ? "Cargando..." : mensaje;
         configurarOverlayCarga();
     }
 
@@ -26,7 +33,7 @@ public class OverlayCarga {
             return;
         }
 
-        Label labelCarga = new Label("Cargando...");
+        labelCarga = new Label(mensaje);
         labelCarga.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
 
         overlayCarga = new StackPane(labelCarga);
@@ -47,18 +54,21 @@ public class OverlayCarga {
         overlayPane.getChildren().add(overlayCarga);
     }
 
+    public void setMensaje(String mensaje) {
+        String nuevoMensaje = (mensaje == null || mensaje.trim().isEmpty()) ? "Cargando..." : mensaje;
+        this.mensaje = nuevoMensaje;
 
-    private void asegurarOverlaySiempreAlFrente() {
-        if (listenerOverlayActivo || root == null || overlayPane == null) {
-            return;
-        }
-
-        listenerOverlayActivo = true;
-        root.getChildren().addListener((ListChangeListener<javafx.scene.Node>) change -> {
-            if (overlayCarga != null && overlayCarga.isVisible()) {
-                overlayPane.toFront();
+        Runnable actualizarTexto = () -> {
+            if (labelCarga != null) {
+                labelCarga.setText(nuevoMensaje);
             }
-        });
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            actualizarTexto.run();
+        } else {
+            Platform.runLater(actualizarTexto);
+        }
     }
 
     public void mostrar() {
@@ -75,9 +85,20 @@ public class OverlayCarga {
             overlayPane.setPickOnBounds(true);
             overlayPane.setMouseTransparent(false);
             overlayCarga.setMouseTransparent(false);
-            asegurarOverlaySiempreAlFrente();
-            overlayPane.toFront();
-            overlayCarga.toFront();
+            if (overlayPane.getParent() == root) {
+                int ultimoIndice = root.getChildren().size() - 1;
+                if (ultimoIndice >= 0 && root.getChildren().get(ultimoIndice) != overlayPane) {
+                    root.getChildren().remove(overlayPane);
+                    root.getChildren().add(overlayPane);
+                }
+            }
+            if (overlayCarga.getParent() == overlayPane) {
+                int ultimoIndiceOverlay = overlayPane.getChildren().size() - 1;
+                if (ultimoIndiceOverlay >= 0 && overlayPane.getChildren().get(ultimoIndiceOverlay) != overlayCarga) {
+                    overlayPane.getChildren().remove(overlayCarga);
+                    overlayPane.getChildren().add(overlayCarga);
+                }
+            }
         };
 
         if (Platform.isFxApplicationThread()) {
