@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConexionMonitor {
     private static final ConexionMonitor INSTANCE = new ConexionMonitor();
-    private static final long INTERVALO_VERIFICACION_SEGUNDOS = 1;
+    private static final long INTERVALO_VERIFICACION_MILLIS = 400;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "conexion-monitor");
@@ -51,7 +51,7 @@ public class ConexionMonitor {
 
         if (monitorIniciado.compareAndSet(false, true)) {
             scheduler.scheduleAtFixedRate(this::verificarYRecuperarConexion, 0,
-                    INTERVALO_VERIFICACION_SEGUNDOS, TimeUnit.SECONDS);
+                    INTERVALO_VERIFICACION_MILLIS, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -163,7 +163,7 @@ public class ConexionMonitor {
         }
 
         try {
-            boolean disponible = Conexion.probarConexion();
+            boolean disponible = Conexion.probarConexionRapida();
 
             if (disponible != conexionDisponible) {
                 conexionDisponible = disponible;

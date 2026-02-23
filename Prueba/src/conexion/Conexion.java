@@ -21,6 +21,15 @@ public class Conexion {
             + "&maxReconnects=3";
     private static final String USER = "distribu_Admin";
     private static final String PASSWORD = "AdminGreep2025.";
+    private static final String URL_MONITOR = "jdbc:mysql://distribuidoragreep.com.mx:3306/distribu_almacen"
+            + "?useSSL=false"
+            + "&serverTimezone=UTC"
+            + "&characterEncoding=UTF-8"
+            + "&connectTimeout=1500"
+            + "&socketTimeout=1500"
+            + "&tcpKeepAlive=true"
+            + "&autoReconnect=true"
+            + "&maxReconnects=1";
 
     public static void main(String[] args) {
     }
@@ -48,6 +57,19 @@ public class Conexion {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+                 PreparedStatement statement = conn.prepareStatement("SELECT 1");
+                 ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static boolean probarConexionRapida() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            try (Connection conn = DriverManager.getConnection(URL_MONITOR, USER, PASSWORD);
                  PreparedStatement statement = conn.prepareStatement("SELECT 1");
                  ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
