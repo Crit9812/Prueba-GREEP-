@@ -15,7 +15,11 @@ public class Main extends Application {
     public void start(Stage stage) throws Exception {
         // Establecer el stage en la clase ControllerInterfaz
         Conexion conect = new Conexion();
-        conect.conectar();
+        try {
+            conect.conectar();
+        } catch (Exception ignored) {
+            // La app debe iniciar para que el monitor muestre el overlay de reconexión automática.
+        }
 
         NotificacionService notificacionService = new NotificacionService();
         notificacionService.generarNotificacionesIniciales();

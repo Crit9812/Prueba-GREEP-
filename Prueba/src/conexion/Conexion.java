@@ -31,14 +31,17 @@ public class Conexion {
 
             conn = DriverManager.getConnection(URL, USER, PASSWORD);
             System.out.println("Conexión exitosa a la base de datos.");
+            ConexionMonitor.getInstance().notificarConexionRestablecidaInmediata();
+            return conn;
 
         } catch (ClassNotFoundException e) {
             System.err.println("Driver JDBC no encontrado: " + e.getMessage());
+            throw new IllegalStateException("Driver JDBC no encontrado", e);
         } catch (SQLException e) {
             System.err.println("Error de conexión o SQL: " + e.getMessage());
+            ConexionMonitor.getInstance().notificarDesconexionInmediata();
+            throw new IllegalStateException("No se pudo establecer la conexión a la base de datos", e);
         }
-
-        return conn;
     }
 
     public static boolean probarConexion() {

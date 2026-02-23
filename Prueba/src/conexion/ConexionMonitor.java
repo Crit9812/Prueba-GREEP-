@@ -49,6 +49,16 @@ public class ConexionMonitor {
         }
     }
 
+    public void notificarDesconexionInmediata() {
+        conexionDisponible = false;
+        Platform.runLater(this::mostrarOverlayBloqueante);
+    }
+
+    public void notificarConexionRestablecidaInmediata() {
+        conexionDisponible = true;
+        Platform.runLater(this::ocultarOverlayBloqueante);
+    }
+
     private void configurarOverlayEnEscenaActual() {
         if (stage == null) {
             return;
