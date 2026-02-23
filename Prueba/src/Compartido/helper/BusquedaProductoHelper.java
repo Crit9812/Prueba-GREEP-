@@ -7,8 +7,9 @@ public class BusquedaProductoHelper {
     private BusquedaProductoHelper() {
     }
 
-    public static synchronized void guardarSolicitud(String idProducto, String nombreProducto, String terminoBusqueda) {
-        solicitudPendiente = new SolicitudBusqueda(idProducto, nombreProducto, terminoBusqueda);
+    public static synchronized void guardarSolicitud(String idProducto, String nombreProducto, String terminoBusqueda,
+                                                     String presentacion, String factor) {
+        solicitudPendiente = new SolicitudBusqueda(idProducto, nombreProducto, terminoBusqueda, presentacion, factor);
     }
 
     public static synchronized SolicitudBusqueda consumirSolicitud() {
@@ -21,11 +22,16 @@ public class BusquedaProductoHelper {
         private final String idProducto;
         private final String nombreProducto;
         private final String terminoBusqueda;
+        private final String presentacion;
+        private final String factor;
 
-        public SolicitudBusqueda(String idProducto, String nombreProducto, String terminoBusqueda) {
+        public SolicitudBusqueda(String idProducto, String nombreProducto, String terminoBusqueda,
+                                 String presentacion, String factor) {
             this.idProducto = idProducto;
             this.nombreProducto = nombreProducto;
             this.terminoBusqueda = terminoBusqueda;
+            this.presentacion = presentacion;
+            this.factor = factor;
         }
 
         public String getIdProducto() {
@@ -38,6 +44,14 @@ public class BusquedaProductoHelper {
 
         public String getTerminoBusqueda() {
             return terminoBusqueda;
+        }
+
+        public String getPresentacion() {
+            return presentacion;
+        }
+
+        public String getFactor() {
+            return factor;
         }
     }
 }
