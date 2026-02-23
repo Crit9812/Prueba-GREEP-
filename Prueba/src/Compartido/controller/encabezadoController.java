@@ -233,20 +233,50 @@ public class encabezadoController {
         List<SugerenciaProducto> resultados = new ArrayList<>();
         String sql = "SELECT p.id, p.nombre, " +
                 "COALESCE(m.nombre, 'Sin marca') AS marca, " +
-                "COALESCE(GROUP_CONCAT(DISTINCT prov.Nombre ORDER BY prov.Nombre SEPARATOR ', '), 'Sin proveedor') AS proveedor, " +
+                "COALESCE(( " +
+                "   SELECT GROUP_CONCAT(DISTINCT prov.Nombre ORDER BY prov.Nombre SEPARATOR ', ') " +
+                "   FROM detalle_Entrada deProv " +
+                "   JOIN entradas eProv ON eProv.idEntrada = deProv.claveEntrada " +
+                "   JOIN proveedores prov ON prov.id = eProv.idRemitente " +
+                "   WHERE deProv.claveProducto = p.id " +
+                "), 'Sin proveedor') AS proveedor, " +
                 "COALESCE(p.material, 'Sin material') AS material, " +
                 "COALESCE(p.unidadMedida, 'Sin unidad') AS unidad, " +
-                "SUM(CASE WHEN a.Estado = 'disponible' THEN 1 ELSE 0 END) AS existencia " +
+                "presentacionData.presentacion AS presentacion, " +
+                "presentacionData.factor AS factor, " +
+                "presentacionData.cantidad AS existencia " +
                 "FROM productos p " +
                 "LEFT JOIN marcas m ON m.id = p.marca " +
-                "LEFT JOIN detalle_Entrada de ON de.claveProducto = p.id " +
-                "LEFT JOIN entradas e ON e.idEntrada = de.claveEntrada " +
-                "LEFT JOIN proveedores prov ON prov.id = e.idRemitente " +
-                "LEFT JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada " +
+                "JOIN ( " +
+                "   SELECT base.idProducto, base.presentacion, base.factor, SUM(base.cantidad) AS cantidad " +
+                "   FROM ( " +
+                "       SELECT deDisp.claveProducto AS idProducto, " +
+                "              COALESCE(aDisp.presentacion, 'Sin presentación') AS presentacion, " +
+                "              COALESCE(aDisp.factor, 0) AS factor, " +
+                "              COUNT(DISTINCT aDisp.idArticulo) AS cantidad " +
+                "       FROM detalle_Entrada deDisp " +
+                "       JOIN articulo aDisp ON aDisp.idDetalleEntrada = deDisp.idDetalleEntrada " +
+                "       WHERE LOWER(aDisp.Estado) = 'disponible' " +
+                "       GROUP BY deDisp.claveProducto, COALESCE(aDisp.presentacion, 'Sin presentación'), COALESCE(aDisp.factor, 0) " +
+                "       UNION ALL " +
+                "       SELECT deSeg.claveProducto AS idProducto, " +
+                "              'pz' AS presentacion, " +
+                "              1 AS factor, " +
+                "              COUNT(DISTINCT da.idDetalle) AS cantidad " +
+                "       FROM detalle_Entrada deSeg " +
+                "       JOIN articulo aSeg ON aSeg.idDetalleEntrada = deSeg.idDetalleEntrada " +
+                "       JOIN detalleArticulo da ON da.idArticulo = aSeg.idArticulo " +
+                "       WHERE LOWER(aSeg.Estado) = 'segmentado' " +
+                "         AND LOWER(da.estado) = 'disponible' " +
+                "         AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "       GROUP BY deSeg.claveProducto " +
+                "   ) base " +
+                "   GROUP BY base.idProducto, base.presentacion, base.factor " +
+                ") presentacionData ON presentacionData.idProducto = p.id " +
                 "WHERE p.estado = 'activo' AND (p.id LIKE ? OR p.nombre LIKE ?) " +
-                "GROUP BY p.id, p.nombre, m.nombre, p.material, p.unidadMedida " +
-                "ORDER BY CASE WHEN p.id = ? THEN 0 WHEN p.nombre = ? THEN 1 ELSE 2 END, p.nombre ASC " +
-                "LIMIT 8";
+                "ORDER BY CASE WHEN p.id = ? THEN 0 WHEN p.nombre = ? THEN 1 ELSE 2 END, p.nombre ASC, " +
+                "presentacionData.presentacion ASC, presentacionData.factor ASC " +
+                "LIMIT 24";
 
         try (Connection conn = new Conexion().conectar();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -265,6 +295,8 @@ public class encabezadoController {
                             rs.getString("proveedor"),
                             rs.getString("material"),
                             rs.getString("unidad"),
+                            rs.getString("presentacion"),
+                            rs.getInt("factor"),
                             rs.getInt("existencia")
                     ));
                 }
@@ -322,22 +354,29 @@ public class encabezadoController {
         private final String proveedor;
         private final String material;
         private final String unidad;
+        private final String presentacion;
+        private final int factor;
         private final int existencia;
 
-        private SugerenciaProducto(String id, String nombre, String marca, String proveedor, String material, String unidad, int existencia) {
+        private SugerenciaProducto(String id, String nombre, String marca, String proveedor, String material,
+                                   String unidad, String presentacion, int factor, int existencia) {
             this.id = id;
             this.nombre = nombre;
             this.marca = marca;
             this.proveedor = proveedor;
             this.material = material;
             this.unidad = unidad;
+            this.presentacion = presentacion;
+            this.factor = factor;
             this.existencia = existencia;
         }
 
         private String textoSugerencia() {
             return id + " - " + nombre + "\n" +
                     "Marca: " + marca + " | Proveedor: " + proveedor + "\n" +
-                    "Material: " + material + " | Unidad: " + unidad + " | Existencia: " + existencia;
+                    "Material: " + material + " | Unidad: " + unidad +
+                    " | Presentación: " + presentacion + " | Factor: " + factor +
+                    " | Existencia: " + existencia;
         }
     }
 
