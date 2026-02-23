@@ -151,41 +151,106 @@
     -fx-background-radius: 5;
 }
 
-/* Estilo para los items del menú de sugerencias */
-.sugerencia-item {
-    -fx-background-color: transparent;
-    -fx-padding: 8px;
+
+/* Estilo para el menú contextual de sugerencias */
+.context-menu {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 0 1px 1px 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);
+    -fx-background-radius: 0 0 10px 10px;
+    -fx-border-radius: 0 0 10px 10px;
+
+    /*  Limitar altura */
+    -fx-max-height: 300px;
+    -fx-pref-height: 300px;
+
+    /* Eliminar padding por defecto */
+    -fx-padding: 0;
 }
 
-/* Hover con gris claro */
-/*.sugerencia-item:hover {
-    -fx-background-color: #f0f0f0;
-}*/
+/* Hacer que el contenido del menú sea scrollable */
+.context-menu .scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
 
-/* Selección por teclado (focused) */
+.context-menu .viewport {
+    -fx-background-color: transparent;
+}
 
+.context-menu .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 12px;
+}
+
+.context-menu .scroll-bar:vertical .thumb {
+    -fx-background-color: #cccccc;
+    -fx-background-radius: 5px;
+}
+
+.context-menu .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #999999;
+}
+
+.context-menu .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+/* Estilo base para los items de sugerencia */
+.sugerencia-item {
+    -fx-background-color: transparent;
+    -fx-padding: 8px 12px;
+    -fx-text-fill: #333333;
+    -fx-wrap-text: true;
+    -fx-max-width: 380px;
+}
+
+/* Estilo para el item seleccionado por teclado (focused) o hover */
+.menu-item:focused .sugerencia-item,
+.menu-item:hover .sugerencia-item,
+.sugerencia-item:hover,
+.sugerencia-item:focused {
+    -fx-background-color: #e8f5e6;
+    -fx-text-fill: #333333;
+}
+
+/* Para mantener el texto legible en el label completo cuando está seleccionado */
+.menu-item:focused .sugerencia-item .label,
+.menu-item:hover .sugerencia-item .label,
+.sugerencia-item:hover .label,
+.sugerencia-item:focused .label {
+    -fx-text-fill: #333333;
+}
 
 /* Asegurar que el fondo del CustomMenuItem también se herede */
 .menu-item .label {
     -fx-background-color: transparent;
 }
 
-/* Si quieres que el borde azul por defecto también desaparezca */
+/* Quitar el borde azul por defecto del menú-item cuando está focused */
 .menu-item:focused {
     -fx-background-color: transparent;
 }
-/*
-.menu-item:focused .sugerencia-item,
-.menu-item:focused .label {
-    -fx-background-color: #f0f0f0;
+
+/* Estilo para los CustomMenuItem */
+.custom-menu-item {
+    -fx-background-color: transparent;
 }
 
+/* Clase para selección manual) */
 .sugerencia-seleccionada {
-    -fx-background-color: #f0f0f0;
-    -fx-text-fill: black;
+    -fx-background-color: #e8f5e6;
+    -fx-text-fill: #333333;
 }
 
-.menu-item .sugerencia-item.sugerencia-seleccionada {
-    -fx-background-color: #f0f0f0;
-}*/
+.context-menu {
+    -fx-translate-y: -1px;
+}
 
+.context-menu .scroll-arrow {
+    -fx-shape: "";
+    -fx-background-color: transparent;
+    -fx-scale-x: 0;
+    -fx-scale-y: 0;
+}

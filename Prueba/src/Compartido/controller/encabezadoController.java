@@ -172,23 +172,21 @@ public class encabezadoController {
         List<CustomMenuItem> items = new ArrayList<>();
         for (SugerenciaProducto sugerencia : sugerencias) {
             Label etiqueta = new Label(sugerencia.textoSugerencia());
-            etiqueta.setBackground(null);
-            //etiqueta.setTextFill(Color.BLACK);
+            // CAMBIO: Eliminado setBackground(null) - no necesario con CSS
             etiqueta.setWrapText(true);
             etiqueta.setMaxWidth(400);
             etiqueta.getStyleClass().add("sugerencia-item");
 
-            int index = items.size(); // guardamos el índice
+            int index = items.size();
 
-            // Al entrar el ratón, seleccionamos este ítem
+            // CAMBIO: Simplificado el manejo de selección por mouse
             etiqueta.setOnMouseEntered(e -> {
                 if (selectedIndex != index) {
                     selectedIndex = index;
-                    actualizarEstiloSeleccion();
+                    // CAMBIO: En lugar de actualizar estilo manual, solo actualizamos índice
+                    // El CSS se encarga del hover
                 }
             });
-
-            // No necesitamos onMouseExited, la selección se mantiene hasta que otro ítem la cambie
 
             CustomMenuItem item = new CustomMenuItem(etiqueta, true);
             item.setOnAction(event -> seleccionarProducto(sugerencia));
@@ -198,9 +196,17 @@ public class encabezadoController {
 
         menuSugerencias.getItems().setAll(items);
 
+        // CAMBIO: Eliminada la llamada a actualizarEstiloSeleccion()
+        // El CSS manejará el foco automáticamente
+
         if (!itemsMenu.isEmpty()) {
             selectedIndex = 0;
-            actualizarEstiloSeleccion();
+            // CAMBIO: Enfocamos el primer item para que CSS muestre selección
+            Platform.runLater(() -> {
+                if (!itemsMenu.isEmpty() && itemsMenu.get(0).getContent() instanceof Label) {
+                    ((Label) itemsMenu.get(0).getContent()).requestFocus();
+                }
+            });
         }
 
         if (!menuSugerencias.isShowing()) {
@@ -429,33 +435,27 @@ public class encabezadoController {
     private void seleccionarSiguiente() {
         if (itemsMenu.isEmpty()) return;
         selectedIndex = (selectedIndex + 1) % itemsMenu.size();
-        actualizarEstiloSeleccion();  // <-- AÑADIR
+        enfocarItemSeleccionado();
     }
 
     private void seleccionarAnterior() {
         if (itemsMenu.isEmpty()) return;
         selectedIndex = (selectedIndex - 1 + itemsMenu.size()) % itemsMenu.size();
-        actualizarEstiloSeleccion();  // <-- AÑADIR
+        enfocarItemSeleccionado();
+    }
+
+    private void enfocarItemSeleccionado() {
+        if (selectedIndex >= 0 && selectedIndex < itemsMenu.size()) {
+            Node contenido = itemsMenu.get(selectedIndex).getContent();
+            if (contenido != null) {
+                contenido.requestFocus();
+            }
+        }
     }
 
     private void ejecutarItemSeleccionado() {
         if (selectedIndex >= 0 && selectedIndex < itemsMenu.size()) {
             itemsMenu.get(selectedIndex).fire();
-        }
-    }
-
-    private void actualizarEstiloSeleccion() {
-        for (int i = 0; i < itemsMenu.size(); i++) {
-            CustomMenuItem item = itemsMenu.get(i);
-            Node contenido = item.getContent();
-            if (contenido instanceof Label) {
-                Label label = (Label) contenido;
-                if (i == selectedIndex) {
-                    label.setBackground(new Background(new BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY)));
-                } else {
-                    label.setBackground(null);
-                }
-            }
         }
     }
 
