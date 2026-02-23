@@ -2,6 +2,7 @@ package main;
 
 import Compartido.model.NotificacionService;
 import conexion.Conexion;
+import conexion.ConexionMonitor;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -34,6 +35,8 @@ public class Main extends Application {
         stage.setMaximized(true);
         controllerInterfaz.ControllerInterfaz.setStage(stage);
         stage.show();
+
+        ConexionMonitor.getInstance().iniciar(stage);
 
     }
 

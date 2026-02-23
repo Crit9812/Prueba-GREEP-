@@ -4,23 +4,32 @@ package conexion;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class Conexion {
     public Connection conn;
+    private static final String URL = "jdbc:mysql://distribuidoragreep.com.mx:3306/distribu_almacen"
+            + "?useSSL=false"
+            + "&serverTimezone=UTC"
+            + "&characterEncoding=UTF-8"
+            + "&connectTimeout=15000"
+            + "&socketTimeout=120000"
+            + "&tcpKeepAlive=true"
+            + "&autoReconnect=true"
+            + "&maxReconnects=3";
+    private static final String USER = "distribu_Admin";
+    private static final String PASSWORD = "AdminGreep2025.";
 
     public static void main(String[] args) {
     }
 
     public Connection conectar(){
-        String url = "jdbc:mysql://distribuidoragreep.com.mx:3306/distribu_almacen?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8";
-        String user = "distribu_Admin";
-        String password = "AdminGreep2025.";
-
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            conn = DriverManager.getConnection(url, user, password);
+            conn = DriverManager.getConnection(URL, USER, PASSWORD);
             System.out.println("Conexión exitosa a la base de datos.");
 
         } catch (ClassNotFoundException e) {
@@ -30,5 +39,18 @@ public class Conexion {
         }
 
         return conn;
+    }
+
+    public static boolean probarConexion() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+                 PreparedStatement statement = conn.prepareStatement("SELECT 1");
+                 ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
