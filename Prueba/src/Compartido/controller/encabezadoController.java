@@ -236,13 +236,31 @@ public class encabezadoController {
                 "COALESCE(GROUP_CONCAT(DISTINCT prov.Nombre ORDER BY prov.Nombre SEPARATOR ', '), 'Sin proveedor') AS proveedor, " +
                 "COALESCE(p.material, 'Sin material') AS material, " +
                 "COALESCE(p.unidadMedida, 'Sin unidad') AS unidad, " +
-                "SUM(CASE WHEN a.Estado = 'disponible' THEN 1 ELSE 0 END) AS existencia " +
+                "( " +
+                "   COALESCE(( " +
+                "       SELECT COUNT(DISTINCT aDisp.idArticulo) " +
+                "       FROM detalle_Entrada deDisp " +
+                "       JOIN articulo aDisp ON aDisp.idDetalleEntrada = deDisp.idDetalleEntrada " +
+                "       WHERE deDisp.claveProducto = p.id " +
+                "         AND LOWER(aDisp.Estado) = 'disponible' " +
+                "   ), 0) " +
+                "   + " +
+                "   COALESCE(( " +
+                "       SELECT COUNT(DISTINCT da.idDetalle) " +
+                "       FROM detalle_Entrada deSeg " +
+                "       JOIN articulo aSeg ON aSeg.idDetalleEntrada = deSeg.idDetalleEntrada " +
+                "       JOIN detalleArticulo da ON da.idArticulo = aSeg.idArticulo " +
+                "       WHERE deSeg.claveProducto = p.id " +
+                "         AND LOWER(aSeg.Estado) = 'segmentado' " +
+                "         AND LOWER(da.estado) = 'disponible' " +
+                "         AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "   ), 0) " +
+                ") AS existencia " +
                 "FROM productos p " +
                 "LEFT JOIN marcas m ON m.id = p.marca " +
                 "LEFT JOIN detalle_Entrada de ON de.claveProducto = p.id " +
                 "LEFT JOIN entradas e ON e.idEntrada = de.claveEntrada " +
                 "LEFT JOIN proveedores prov ON prov.id = e.idRemitente " +
-                "LEFT JOIN articulo a ON a.idDetalleEntrada = de.idDetalleEntrada " +
                 "WHERE p.estado = 'activo' AND (p.id LIKE ? OR p.nombre LIKE ?) " +
                 "GROUP BY p.id, p.nombre, m.nombre, p.material, p.unidadMedida " +
                 "ORDER BY CASE WHEN p.id = ? THEN 0 WHEN p.nombre = ? THEN 1 ELSE 2 END, p.nombre ASC " +
