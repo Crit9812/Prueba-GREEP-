@@ -1,11 +1,10 @@
 package conexion;
 
+import Compartido.helper.OverlayCarga;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.stage.Popup;
+import javafx.scene.Scene;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import java.util.concurrent.Executors;
@@ -15,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConexionMonitor {
     private static final ConexionMonitor INSTANCE = new ConexionMonitor();
+    private static final long INTERVALO_VERIFICACION_SEGUNDOS = 3;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "conexion-monitor");
@@ -23,15 +23,14 @@ public class ConexionMonitor {
     });
 
     private final AtomicBoolean monitorIniciado = new AtomicBoolean(false);
-    private final AtomicBoolean reconectando = new AtomicBoolean(false);
+    private final AtomicBoolean verificando = new AtomicBoolean(false);
 
-    private final Popup popup = new Popup();
-    private final Button botonReconectar = new Button("Conectar");
     private volatile boolean conexionDisponible = true;
     private Stage stage;
+    private Pane overlayPane;
+    private OverlayCarga overlayCarga;
 
     private ConexionMonitor() {
-        crearPopup();
     }
 
     public static ConexionMonitor getInstance() {
@@ -40,101 +39,75 @@ public class ConexionMonitor {
 
     public void iniciar(Stage stagePrincipal) {
         this.stage = stagePrincipal;
+
+        stagePrincipal.sceneProperty().addListener((obs, oldScene, newScene) -> Platform.runLater(this::configurarOverlayEnEscenaActual));
+        Platform.runLater(this::configurarOverlayEnEscenaActual);
+
         if (monitorIniciado.compareAndSet(false, true)) {
-            scheduler.scheduleAtFixedRate(this::verificarConexion, 5, 20, TimeUnit.SECONDS);
+            scheduler.scheduleAtFixedRate(this::verificarYRecuperarConexion, 0,
+                    INTERVALO_VERIFICACION_SEGUNDOS, TimeUnit.SECONDS);
         }
-
-        stagePrincipal.xProperty().addListener((obs, oldVal, newVal) -> reposicionarPopup());
-        stagePrincipal.yProperty().addListener((obs, oldVal, newVal) -> reposicionarPopup());
-        stagePrincipal.widthProperty().addListener((obs, oldVal, newVal) -> reposicionarPopup());
-        stagePrincipal.heightProperty().addListener((obs, oldVal, newVal) -> reposicionarPopup());
-
-        verificarConexion();
     }
 
-    private void crearPopup() {
-        Label mensaje = new Label("Se perdió la conexión con el servidor.");
-        mensaje.setStyle("-fx-text-fill: white; -fx-font-size: 13px;");
-
-        botonReconectar.setStyle("-fx-background-color: #1f7a31; -fx-text-fill: white; -fx-font-weight: bold;");
-        botonReconectar.setOnAction(event -> reconectarManual());
-
-        HBox contenedor = new HBox(12, mensaje, botonReconectar);
-        contenedor.setPadding(new Insets(12));
-        contenedor.setStyle("-fx-background-color: #c0392b; -fx-background-radius: 10;");
-
-        popup.getContent().add(contenedor);
-        popup.setAutoHide(false);
-        popup.setHideOnEscape(false);
-    }
-
-    private void verificarConexion() {
-        if (reconectando.get()) {
+    private void configurarOverlayEnEscenaActual() {
+        if (stage == null) {
             return;
         }
 
-        boolean disponible = Conexion.probarConexion();
-        if (disponible == conexionDisponible) {
+        Scene scene = stage.getScene();
+        if (scene == null || !(scene.getRoot() instanceof StackPane root)) {
+            overlayCarga = null;
+            overlayPane = null;
             return;
         }
 
-        conexionDisponible = disponible;
-        if (!disponible) {
-            Platform.runLater(this::mostrarPopup);
-        } else {
-            Platform.runLater(this::ocultarPopup);
-        }
-    }
-
-    private void mostrarPopup() {
-        if (stage == null || !stage.isShowing()) {
+        if (overlayPane != null && overlayPane.getParent() == root && overlayCarga != null) {
             return;
         }
 
-        if (!popup.isShowing()) {
-            popup.show(stage);
+        overlayPane = new Pane();
+        root.getChildren().add(overlayPane);
+
+        overlayCarga = new OverlayCarga(root, overlayPane, "Conectando...");
+        overlayCarga.ocultar();
+
+        if (!conexionDisponible) {
+            overlayCarga.mostrar();
         }
-        reposicionarPopup();
     }
 
-    private void reposicionarPopup() {
-        if (stage == null || !popup.isShowing() || popup.getContent().isEmpty()) {
+    private void verificarYRecuperarConexion() {
+        if (!verificando.compareAndSet(false, true)) {
             return;
         }
 
-        double ancho = popup.getContent().get(0).prefWidth(-1);
-        double alto = popup.getContent().get(0).prefHeight(-1);
-        double x = stage.getX() + (stage.getWidth() - ancho) / 2;
-        double y = stage.getY() + stage.getHeight() - alto - 24;
-        popup.setX(x);
-        popup.setY(y);
-    }
-
-    private void ocultarPopup() {
-        if (popup.isShowing()) {
-            popup.hide();
-        }
-    }
-
-    private void reconectarManual() {
-        if (!reconectando.compareAndSet(false, true)) {
-            return;
-        }
-
-        botonReconectar.setDisable(true);
-        botonReconectar.setText("Conectando...");
-
-        scheduler.execute(() -> {
+        try {
             boolean disponible = Conexion.probarConexion();
-            Platform.runLater(() -> {
+
+            if (disponible != conexionDisponible) {
                 conexionDisponible = disponible;
                 if (disponible) {
-                    ocultarPopup();
+                    Platform.runLater(this::ocultarOverlayBloqueante);
+                } else {
+                    Platform.runLater(this::mostrarOverlayBloqueante);
                 }
-                botonReconectar.setDisable(false);
-                botonReconectar.setText("Conectar");
-                reconectando.set(false);
-            });
-        });
+            }
+        } finally {
+            verificando.set(false);
+        }
+    }
+
+    private void mostrarOverlayBloqueante() {
+        configurarOverlayEnEscenaActual();
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Conectando...");
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayBloqueante() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
     }
 }

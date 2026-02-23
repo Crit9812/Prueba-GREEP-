@@ -13,11 +13,20 @@ public class OverlayCarga {
     private final StackPane root;
     private final Pane overlayPane;
     private StackPane overlayCarga;
+    private Label labelCarga;
     private boolean listenerOverlayActivo = false;
+    private String mensaje = "Cargando...";
 
     public OverlayCarga(StackPane root, Pane overlayPane) {
         this.root = root;
         this.overlayPane = overlayPane;
+        configurarOverlayCarga();
+    }
+
+    public OverlayCarga(StackPane root, Pane overlayPane, String mensaje) {
+        this.root = root;
+        this.overlayPane = overlayPane;
+        this.mensaje = (mensaje == null || mensaje.trim().isEmpty()) ? "Cargando..." : mensaje;
         configurarOverlayCarga();
     }
 
@@ -26,7 +35,7 @@ public class OverlayCarga {
             return;
         }
 
-        Label labelCarga = new Label("Cargando...");
+        labelCarga = new Label(mensaje);
         labelCarga.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
 
         overlayCarga = new StackPane(labelCarga);
@@ -45,6 +54,23 @@ public class OverlayCarga {
         overlayPane.setPickOnBounds(false);
         overlayPane.setMouseTransparent(true);
         overlayPane.getChildren().add(overlayCarga);
+    }
+
+    public void setMensaje(String mensaje) {
+        String nuevoMensaje = (mensaje == null || mensaje.trim().isEmpty()) ? "Cargando..." : mensaje;
+        this.mensaje = nuevoMensaje;
+
+        Runnable actualizarTexto = () -> {
+            if (labelCarga != null) {
+                labelCarga.setText(nuevoMensaje);
+            }
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            actualizarTexto.run();
+        } else {
+            Platform.runLater(actualizarTexto);
+        }
     }
 
 
