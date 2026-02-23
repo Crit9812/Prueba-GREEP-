@@ -1,5 +1,10 @@
 package Compartido.controller;
 
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.paint.Color;
+import javafx.scene.layout.CornerRadii;
+import javafx.geometry.Insets;
 import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.RefrescoHelper;
 import Compartido.model.NotificacionService;
@@ -8,6 +13,7 @@ import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -37,6 +43,8 @@ public class encabezadoController {
     @FXML private Label labelUsuario;
     @FXML private Label labelTitulo;
 
+    private List<CustomMenuItem> itemsMenu = new ArrayList<>();
+    private int selectedIndex = -1;
     private final NotificacionService notificacionService = new NotificacionService();
     private final ContextMenu menuSugerencias = new ContextMenu();
     private final PauseTransition debounceBusqueda = new PauseTransition(Duration.millis(180));
@@ -90,6 +98,12 @@ public class encabezadoController {
         searchBar.setOnAction(e -> buscarConEnter());
         debounceBusqueda.setOnFinished(e -> ejecutarBusquedaAsincrona());
 
+        menuSugerencias.setOnHidden(e -> {
+            menuSugerencias.getItems().clear();
+            itemsMenu.clear();
+            selectedIndex = -1;
+        });
+
         searchBar.textProperty().addListener((obs, oldVal, newVal) -> {
             String termino = newVal == null ? "" : newVal.trim();
             if (termino.isEmpty()) {
@@ -105,6 +119,22 @@ public class encabezadoController {
         searchBar.focusedProperty().addListener((obs, oldVal, focused) -> {
             if (!focused) {
                 menuSugerencias.hide();
+            }
+        });
+
+        // Manejador de teclas para navegación con flechas y Enter
+        searchBar.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
+            if (menuSugerencias.isShowing() && !itemsMenu.isEmpty()) {
+                if (event.getCode() == javafx.scene.input.KeyCode.DOWN) {
+                    seleccionarSiguiente();
+                    event.consume();
+                } else if (event.getCode() == javafx.scene.input.KeyCode.UP) {
+                    seleccionarAnterior();
+                    event.consume();
+                } else if (event.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                    ejecutarItemSeleccionado();
+                    event.consume();
+                }
             }
         });
     }
@@ -138,17 +168,41 @@ public class encabezadoController {
             return;
         }
 
+        itemsMenu.clear();
         List<CustomMenuItem> items = new ArrayList<>();
         for (SugerenciaProducto sugerencia : sugerencias) {
             Label etiqueta = new Label(sugerencia.textoSugerencia());
+            etiqueta.setBackground(null);
+            //etiqueta.setTextFill(Color.BLACK);
             etiqueta.setWrapText(true);
+            etiqueta.setMaxWidth(400);
+            etiqueta.getStyleClass().add("sugerencia-item");
+
+            int index = items.size(); // guardamos el índice
+
+            // Al entrar el ratón, seleccionamos este ítem
+            etiqueta.setOnMouseEntered(e -> {
+                if (selectedIndex != index) {
+                    selectedIndex = index;
+                    actualizarEstiloSeleccion();
+                }
+            });
+
+            // No necesitamos onMouseExited, la selección se mantiene hasta que otro ítem la cambie
 
             CustomMenuItem item = new CustomMenuItem(etiqueta, true);
             item.setOnAction(event -> seleccionarProducto(sugerencia));
             items.add(item);
+            itemsMenu.add(item);
         }
 
         menuSugerencias.getItems().setAll(items);
+
+        if (!itemsMenu.isEmpty()) {
+            selectedIndex = 0;
+            actualizarEstiloSeleccion();
+        }
+
         if (!menuSugerencias.isShowing()) {
             menuSugerencias.show(searchBar, javafx.geometry.Side.BOTTOM, 0, 0);
         }
@@ -332,4 +386,38 @@ public class encabezadoController {
         hiloRevisionNotificaciones.setDaemon(true);
         hiloRevisionNotificaciones.start();
     }
+
+    private void seleccionarSiguiente() {
+        if (itemsMenu.isEmpty()) return;
+        selectedIndex = (selectedIndex + 1) % itemsMenu.size();
+        actualizarEstiloSeleccion();  // <-- AÑADIR
+    }
+
+    private void seleccionarAnterior() {
+        if (itemsMenu.isEmpty()) return;
+        selectedIndex = (selectedIndex - 1 + itemsMenu.size()) % itemsMenu.size();
+        actualizarEstiloSeleccion();  // <-- AÑADIR
+    }
+
+    private void ejecutarItemSeleccionado() {
+        if (selectedIndex >= 0 && selectedIndex < itemsMenu.size()) {
+            itemsMenu.get(selectedIndex).fire();
+        }
+    }
+
+    private void actualizarEstiloSeleccion() {
+        for (int i = 0; i < itemsMenu.size(); i++) {
+            CustomMenuItem item = itemsMenu.get(i);
+            Node contenido = item.getContent();
+            if (contenido instanceof Label) {
+                Label label = (Label) contenido;
+                if (i == selectedIndex) {
+                    label.setBackground(new Background(new BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY)));
+                } else {
+                    label.setBackground(null);
+                }
+            }
+        }
+    }
+
 }

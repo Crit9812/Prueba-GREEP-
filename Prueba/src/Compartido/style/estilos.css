@@ -150,3 +150,42 @@
     -fx-padding: 6 20;
     -fx-background-radius: 5;
 }
+
+/* Estilo para los items del menú de sugerencias */
+.sugerencia-item {
+    -fx-background-color: transparent;
+    -fx-padding: 8px;
+}
+
+/* Hover con gris claro */
+/*.sugerencia-item:hover {
+    -fx-background-color: #f0f0f0;
+}*/
+
+/* Selección por teclado (focused) */
+
+
+/* Asegurar que el fondo del CustomMenuItem también se herede */
+.menu-item .label {
+    -fx-background-color: transparent;
+}
+
+/* Si quieres que el borde azul por defecto también desaparezca */
+.menu-item:focused {
+    -fx-background-color: transparent;
+}
+/*
+.menu-item:focused .sugerencia-item,
+.menu-item:focused .label {
+    -fx-background-color: #f0f0f0;
+}
+
+.sugerencia-seleccionada {
+    -fx-background-color: #f0f0f0;
+    -fx-text-fill: black;
+}
+
+.menu-item .sugerencia-item.sugerencia-seleccionada {
+    -fx-background-color: #f0f0f0;
+}*/
+
