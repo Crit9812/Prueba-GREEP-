@@ -16,9 +16,11 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -184,6 +186,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("clientes");
             RefrescoHelper.registrarRefresco("clientes", this::actualizarClientes);
+            configurarAtajosTeclado();
 
             // Carga Inicial en background como productos
             cargarClientesEnTabla();
@@ -328,6 +331,19 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("clientes");
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevoCliente();
+            else if (event.getCode() == KeyCode.E) {
+                cliente c = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (c != null) clienteModel.eliminarCliente(c.getId());
+                cargarClientesEnTabla();
+            } else return;
+            event.consume();
+        });
     }
 
     @Override

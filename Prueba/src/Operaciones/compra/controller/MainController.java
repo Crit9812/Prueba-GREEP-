@@ -1,6 +1,7 @@
 package Operaciones.compra.controller;
 
 import Compartido.exportar.ReporteEntradaExporter;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import Operaciones.compra.model.compra;
@@ -18,6 +19,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -103,6 +106,7 @@ public class MainController implements ControladorVista {
         configurarSeleccionTodo();
         configurarBloqueoProveedor();
         configurarTotalCompra();
+        configurarAtajosTeclado();
 
         RefrescoHelper.setVistaActual("compra");
         RefrescoHelper.registrarRefresco("compra", this::actualizarCompra);
@@ -565,5 +569,23 @@ public class MainController implements ControladorVista {
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.A) {
+                miCheckBox.setSelected(true);
+            } else if (event.getCode() == KeyCode.E) {
+                eliminarSeleccionados();
+            } else if (event.getCode() == KeyCode.N) {
+                formularioNuevaCompra();
+            } else if (event.getCode() == KeyCode.G) {
+                guardarCompras();
+            } else {
+                return;
+            }
+            event.consume();
+        });
     }
 }

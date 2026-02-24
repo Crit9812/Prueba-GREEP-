@@ -1,6 +1,7 @@
 package Consultas.clasificacion.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
@@ -14,6 +15,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCode;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -77,6 +79,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("clasificacion");
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
+            configurarAtajosTeclado();
 
             dataLoadService = new DataLoadService();
             configurarDataLoadService();
@@ -592,6 +595,45 @@ public class MainController implements ControladorVista {
     }
 
     // ================== CLEANUP ==================
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) {
+                if (event.isShiftDown()) return;
+            }
+            if (event.getCode() == KeyCode.N && event.isAltDown()) return;
+            if (event.getCode() == KeyCode.N) return;
+            if (event.getCode() == KeyCode.E) eliminarSeleccionClasificacion();
+        });
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown() || event.getCode() != KeyCode.N) return;
+            String t = event.getText() == null ? "" : event.getText().toUpperCase();
+            if ("M".equals(t)) agregarMarca();
+            else if ("E".equals(t)) agregarEtiqueta();
+            else if ("B".equals(t)) agregarUbicacion();
+            else if ("U".equals(t)) agregarUM();
+            else agregarMarca();
+            event.consume();
+        });
+    }
+
+    private void eliminarSeleccionClasificacion() {
+        if (contenidoTablaMarcas.isFocused()) {
+            marcas m = contenidoTablaMarcas.getSelectionModel().getSelectedItem();
+            if (m != null && model.eliminarMarca(m.getId())) contenidoTablaMarcas.getItems().remove(m);
+        } else if (contenidoTablaEtiquetas.isFocused()) {
+            etiquetas e = contenidoTablaEtiquetas.getSelectionModel().getSelectedItem();
+            if (e != null && model.eliminarEtiqueta(e.getId())) contenidoTablaEtiquetas.getItems().remove(e);
+        } else if (contenidoTablaUbicaciones.isFocused()) {
+            ubicaciones u = contenidoTablaUbicaciones.getSelectionModel().getSelectedItem();
+            if (u != null && model.eliminarUbicacion(u.getId())) contenidoTablaUbicaciones.getItems().remove(u);
+        } else {
+            unidades_Medida u = contenidoTablaUM.getSelectionModel().getSelectedItem();
+            if (u != null && model.eliminarUM(u.getId())) contenidoTablaUM.getItems().remove(u);
+        }
+    }
+
     public void shutdown() {
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();

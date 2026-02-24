@@ -3,6 +3,7 @@ package Consultas.sucursales.controller;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
@@ -19,6 +20,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -288,6 +290,19 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("sucursales");
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevaSucursal();
+            else if (event.getCode() == KeyCode.E) {
+                sucursal c = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (c != null) sucursalModel.eliminarSucursal(c.getId());
+                cargarSucursalesEnTabla();
+            } else return;
+            event.consume();
+        });
     }
 
     @Override

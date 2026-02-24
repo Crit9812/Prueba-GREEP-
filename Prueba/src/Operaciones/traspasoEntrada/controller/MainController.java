@@ -4,6 +4,7 @@ import Compartido.exportar.ReporteTraspasoExporter;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.SelectorOrdenPopup;
+import Compartido.helper.AtajosTecladoHelper;
 import Formularios.controller.ControllerUbicacionTraspaso;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoEntrada.model.model;
@@ -25,6 +26,8 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
@@ -147,6 +150,7 @@ public class MainController implements ControladorVista {
 
                 configurarTabla();
                 cargarTablaAsincrona();
+                configurarAtajosTeclado();
 
                 RefrescoHelper.setVistaActual("traspasoEntrada");
                 RefrescoHelper.registrarRefresco("traspasoEntrada", new Runnable() {
@@ -979,5 +983,19 @@ public class MainController implements ControladorVista {
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.A) {
+                if (miCheckBox != null) miCheckBox.setSelected(true);
+            } else if (event.getCode() == KeyCode.G) {
+                aplicarAccion();
+            } else {
+                return;
+            }
+            event.consume();
+        });
     }
 }

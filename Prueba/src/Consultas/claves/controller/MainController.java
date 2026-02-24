@@ -3,6 +3,7 @@ package Consultas.claves.controller;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
@@ -127,6 +128,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("claves");
             RefrescoHelper.registrarRefresco("claves", this::actualizarClaves);
+            configurarAtajosTeclado();
 
             cargarTabla();
         });
@@ -335,6 +337,18 @@ public class MainController implements ControladorVista {
     }
 
     @Override
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevaSincronizacionClaves();
+            else if (event.getCode() == KeyCode.E) {
+                String[] fila = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (fila != null) eliminarClave(fila);
+            } else return;
+            event.consume();
+        });
+    }
+
     public void setContentArea(StackPane contentArea) {
         this.contentArea = contentArea;
     }

@@ -24,7 +24,9 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
+import javafx.scene.input.KeyCode;
 
 import java.io.IOException;
 
@@ -177,6 +179,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("proveedores");
             RefrescoHelper.registrarRefresco("proveedores", this::actualizarProveedores);
+            configurarAtajosTeclado();
 
             buscador.textProperty().addListener((observable, oldValue, newValue) -> buscarProveedores(newValue));
         });
@@ -340,6 +343,23 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("proveedores");
+    }
+
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) {
+                formularioNuevoProveedor();
+            } else if (event.getCode() == KeyCode.E) {
+                proveedores pSel = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (pSel != null && !soloLectura) proveedorModel.eliminar(pSel.getId());
+                cargarProveedoresEnTabla();
+            } else {
+                return;
+            }
+            event.consume();
+        });
     }
 
     @Override

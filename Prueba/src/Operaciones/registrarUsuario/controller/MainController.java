@@ -1,6 +1,7 @@
 package Operaciones.registrarUsuario.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
 import Operaciones.registrarUsuario.model.usuario;
 import javafx.collections.FXCollections;
@@ -9,6 +10,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -133,6 +135,8 @@ public class MainController implements ControladorVista {
                     if (u != null) intentarEditarUsuario(u);
                 }
             });
+
+            configurarAtajosTeclado();
         });
 
         RefrescoHelper.setVistaActual("registrarUsuario");
@@ -336,6 +340,38 @@ public class MainController implements ControladorVista {
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) {
+                abrirNuevoUsuario();
+            } else if (event.getCode() == KeyCode.E) {
+                eliminarUsuarioSeleccionado();
+            } else {
+                return;
+            }
+            event.consume();
+        });
+    }
+
+    private void eliminarUsuarioSeleccionado() {
+        usuario seleccionado = contenidoTabla.getSelectionModel().getSelectedItem();
+        if (seleccionado == null || "1".equals(seleccionado.getIdUsuario())) return;
+
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setContentText("¿Está seguro que desea eliminar este usuario?");
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                model m = new model();
+                if (m.eliminarUsuario(seleccionado.getIdUsuario())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el usuario.").showAndWait();
+                }
+            }
+        });
     }
 
 }
