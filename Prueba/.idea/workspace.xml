@@ -7,7 +7,6 @@
     <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en busqueda">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Compartido/controller/encabezadoController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/controller/encabezadoController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Compartido/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/style/estilos.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,7 +38,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="codex/add-connection-handling-and-alerts" />
+        <entry key="$PROJECT_DIR$/.." value="b609dfb567852fd62c9f306c27a32a8da7bbcf24" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -222,15 +221,9 @@
       <workItem from="1771009340448" duration="8390000" />
       <workItem from="1771596403156" duration="8561000" />
       <workItem from="1771729185106" duration="122000" />
-      <workItem from="1771859073407" duration="12736000" />
-    </task>
-    <task id="LOCAL-00020" summary="Venta finalizada, y nose que mas">
-      <option name="closed" value="true" />
-      <created>1767795164788</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1767795164788</updated>
+      <workItem from="1771859073407" duration="16236000" />
+      <workItem from="1771946327079" duration="1329000" />
+      <workItem from="1771951225216" duration="4306000" />
     </task>
     <task id="LOCAL-00021" summary="Modificacione en proveedores, compra y ventas">
       <option name="closed" value="true" />
@@ -616,7 +609,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771866839226</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="cambios en busqueda">
+      <option name="closed" value="true" />
+      <created>1771888878001</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1771888878001</updated>
+    </task>
+    <option name="localTasksCounter" value="70" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -655,7 +656,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/Pruebas" />
+                        <option value="origin/codex/add-keyboard-shortcuts-throughout-program" />
                       </list>
                     </value>
                   </entry>
