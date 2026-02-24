@@ -26,8 +26,6 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.animation.PauseTransition;
-import javafx.animation.Timeline;
-import javafx.animation.KeyFrame;
 import javafx.util.Duration;
 
 import java.sql.Connection;
@@ -63,7 +61,6 @@ public class encabezadoController {
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private Scene sceneAtajos;
     private final StringBuilder secuenciaAtajos = new StringBuilder();
-    private Timeline limpiezaSecuenciaAtajos;
 
     @FXML
     public void initialize(){
@@ -425,10 +422,11 @@ public class encabezadoController {
         }
 
         sceneAtajos = panel.getScene();
-        sceneAtajos.addEventFilter(KeyEvent.KEY_PRESSED, this::manejarAtajoTeclado);
+        sceneAtajos.addEventFilter(KeyEvent.KEY_PRESSED, this::manejarAtajoTecladoPresionado);
+        sceneAtajos.addEventFilter(KeyEvent.KEY_RELEASED, this::manejarAtajoTecladoLiberado);
     }
 
-    private void manejarAtajoTeclado(KeyEvent event) {
+    private void manejarAtajoTecladoPresionado(KeyEvent event) {
         resolverControladorPrincipalSiHaceFalta();
 
         if (new KeyCodeCombination(KeyCode.F1).match(event)) {
@@ -450,7 +448,7 @@ public class encabezadoController {
             return;
         }
 
-        if (!event.isShiftDown() || event.getCode().isFunctionKey()) {
+        if (!event.isShiftDown()) {
             return;
         }
 
@@ -460,8 +458,15 @@ public class encabezadoController {
         }
 
         secuenciaAtajos.append(letra);
-        procesarSecuenciaAtajos();
-        reiniciarTemporizadorSecuencia();
+        event.consume();
+    }
+
+    private void manejarAtajoTecladoLiberado(KeyEvent event) {
+        if (event.getCode() != KeyCode.SHIFT) {
+            return;
+        }
+
+        ejecutarSecuenciaAtajos();
         event.consume();
     }
 
@@ -485,121 +490,32 @@ public class encabezadoController {
         };
     }
 
-    private void procesarSecuenciaAtajos() {
+    private void ejecutarSecuenciaAtajos() {
         String secuencia = secuenciaAtajos.toString();
 
-        if (secuencia.endsWith("CO")) {
-            cambiarVistaSegura("CONSULTAS");
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("CM")) {
-            cargarVistaSegura(EnumVistas.COMPRA);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("PE")) {
-            cargarVistaSegura(EnumVistas.PEDIDOS);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("AI")) {
-            cargarVistaSegura(EnumVistas.AJUSTE_INVENTARIO);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("RU")) {
-            cargarVistaSegura(EnumVistas.REGISTRAR_USUARIO);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("PR")) {
-            cargarVistaSegura(EnumVistas.PROVEEDORES);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("CL")) {
-            cargarVistaSegura(EnumVistas.CLAVES);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("CS")) {
-            cargarVistaSegura(EnumVistas.CLASIFICACION);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-
-        if (secuencia.endsWith("O")) {
-            cambiarVistaSegura("OPERACIONES");
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("R")) {
-            cambiarVistaSegura("REPORTES");
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("A")) {
-            cambiarVistaSegura("CONFIGURACION");
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("E")) {
-            cargarVistaSegura(EnumVistas.TRASPASO_ENTRADA);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("S")) {
-            cargarVistaSegura(EnumVistas.TRASPASO_SALIDA);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("V")) {
-            cargarVistaSegura(EnumVistas.VENTA);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("I")) {
-            cargarVistaSegura(EnumVistas.INVENTARIO);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("H")) {
-            cargarVistaSegura(EnumVistas.HISTORIAL_ARTICULO);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("F")) {
-            cargarVistaSegura(EnumVistas.HISTORIAL);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-        if (secuencia.endsWith("U")) {
-            cargarVistaSegura(EnumVistas.UTILIDADES);
-            limpiarSecuenciaAtajos();
-            return;
-        }
-
-        if (secuencia.length() > 4) {
-            secuenciaAtajos.delete(0, secuencia.length() - 4);
-        }
-    }
-
-    private void reiniciarTemporizadorSecuencia() {
-        if (limpiezaSecuenciaAtajos != null) {
-            limpiezaSecuenciaAtajos.stop();
-        }
-        limpiezaSecuenciaAtajos = new Timeline(new KeyFrame(Duration.millis(550), e -> resolverAtajoPendiente()));
-        limpiezaSecuenciaAtajos.play();
-    }
-
-    private void resolverAtajoPendiente() {
-        String secuencia = secuenciaAtajos.toString();
-
-        if (secuencia.endsWith("C")) {
-            cargarVistaSegura(EnumVistas.CLIENTES);
-        } else if (secuencia.endsWith("P")) {
-            cargarVistaSegura(EnumVistas.PRODUCTO);
+        switch (secuencia) {
+            case "CO" -> cambiarVistaSegura("CONSULTAS");
+            case "CM" -> cargarVistaSegura(EnumVistas.COMPRA);
+            case "PE" -> cargarVistaSegura(EnumVistas.PEDIDOS);
+            case "AI" -> cargarVistaSegura(EnumVistas.AJUSTE_INVENTARIO);
+            case "RU" -> cargarVistaSegura(EnumVistas.REGISTRAR_USUARIO);
+            case "PR" -> cargarVistaSegura(EnumVistas.PROVEEDORES);
+            case "CL" -> cargarVistaSegura(EnumVistas.CLAVES);
+            case "CS" -> cargarVistaSegura(EnumVistas.CLASIFICACION);
+            case "O" -> cambiarVistaSegura("OPERACIONES");
+            case "R" -> cambiarVistaSegura("REPORTES");
+            case "A" -> cambiarVistaSegura("CONFIGURACION");
+            case "E" -> cargarVistaSegura(EnumVistas.TRASPASO_ENTRADA);
+            case "S" -> cargarVistaSegura(EnumVistas.TRASPASO_SALIDA);
+            case "V" -> cargarVistaSegura(EnumVistas.VENTA);
+            case "I" -> cargarVistaSegura(EnumVistas.INVENTARIO);
+            case "H" -> cargarVistaSegura(EnumVistas.HISTORIAL_ARTICULO);
+            case "F" -> cargarVistaSegura(EnumVistas.HISTORIAL);
+            case "U" -> cargarVistaSegura(EnumVistas.UTILIDADES);
+            case "P" -> cargarVistaSegura(EnumVistas.PRODUCTO);
+            case "C" -> cargarVistaSegura(EnumVistas.CLIENTES);
+            default -> {
+            }
         }
 
         limpiarSecuenciaAtajos();
@@ -607,9 +523,6 @@ public class encabezadoController {
 
     private void limpiarSecuenciaAtajos() {
         secuenciaAtajos.setLength(0);
-        if (limpiezaSecuenciaAtajos != null) {
-            limpiezaSecuenciaAtajos.stop();
-        }
     }
 
     private void cambiarVistaSegura(String vista) {
