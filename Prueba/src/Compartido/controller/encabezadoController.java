@@ -16,6 +16,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -61,6 +62,7 @@ public class encabezadoController {
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private Scene sceneAtajos;
     private final StringBuilder secuenciaAtajos = new StringBuilder();
+    private final StringBuilder secuenciaCtrl = new StringBuilder();
 
     @FXML
     public void initialize(){
@@ -448,6 +450,14 @@ public class encabezadoController {
             return;
         }
 
+        if (event.isControlDown()) {
+            String teclaCtrl = mapearLetraCtrl(event.getCode());
+            if (teclaCtrl != null) {
+                secuenciaCtrl.append(teclaCtrl);
+            }
+            return;
+        }
+
         if (!event.isShiftDown()) {
             return;
         }
@@ -462,12 +472,139 @@ public class encabezadoController {
     }
 
     private void manejarAtajoTecladoLiberado(KeyEvent event) {
-        if (event.getCode() != KeyCode.SHIFT) {
+        if (event.getCode() == KeyCode.SHIFT) {
+            ejecutarSecuenciaAtajos();
+            event.consume();
             return;
         }
 
-        ejecutarSecuenciaAtajos();
-        event.consume();
+        if (event.getCode() == KeyCode.CONTROL) {
+            if (ejecutarSecuenciaCtrl()) {
+                event.consume();
+            }
+        }
+    }
+
+    private String mapearLetraCtrl(KeyCode code) {
+        return switch (code) {
+            case A -> "A";
+            case E -> "E";
+            case N -> "N";
+            case G -> "G";
+            case M -> "M";
+            case B -> "B";
+            case U -> "U";
+            default -> null;
+        };
+    }
+
+    private boolean ejecutarSecuenciaCtrl() {
+        String secuencia = secuenciaCtrl.toString();
+        boolean ejecutado = switch (secuencia) {
+            case "A" -> seleccionarTodoContextual();
+            case "E" -> dispararBotonPorTextoOId("eliminar", "borrar", "delete", "btneliminar", "botoneliminar");
+            case "N" -> dispararBotonAgregarGeneral();
+            case "NM" -> dispararBotonAgregarEspecifico("marca", "marcas");
+            case "NE" -> dispararBotonAgregarEspecifico("etiqueta", "etiquetas");
+            case "NB" -> dispararBotonAgregarEspecifico("ubicacion", "ubicaciones", "bodega", "bodegas");
+            case "NU" -> dispararBotonAgregarEspecifico("unidad", "unidades", "medida");
+            case "G" -> dispararBotonPorTextoOId("guardar", "confirmar", "aceptar", "registrar");
+            default -> false;
+        };
+
+        secuenciaCtrl.setLength(0);
+        return ejecutado;
+    }
+
+    private boolean seleccionarTodoContextual() {
+        if (sceneAtajos == null) {
+            return false;
+        }
+
+        Node focus = sceneAtajos.getFocusOwner();
+        if (focus instanceof TableView<?> tableView) {
+            tableView.getSelectionModel().selectAll();
+            return true;
+        }
+
+        if (focus instanceof ListView<?> listView
+                && listView.getSelectionModel().getSelectionMode() == SelectionMode.MULTIPLE) {
+            listView.getSelectionModel().selectAll();
+            return true;
+        }
+
+        for (Node node : sceneAtajos.getRoot().lookupAll(".table-view")) {
+            if (node instanceof TableView<?> table) {
+                table.getSelectionModel().selectAll();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean dispararBotonAgregarGeneral() {
+        return dispararBotonPorTextoOId("agregar", "nuevo", "nueva", "alta", "add", "btnnuevo", "botonnuevo", "btnagregar");
+    }
+
+    private boolean dispararBotonAgregarEspecifico(String... terminosEspecificos) {
+        if (sceneAtajos == null || sceneAtajos.getRoot() == null) {
+            return false;
+        }
+
+        List<ButtonBase> candidatos = obtenerBotonesVisiblesInteractivos();
+        for (ButtonBase boton : candidatos) {
+            String firma = firmaBoton(boton);
+            boolean esAgregar = contieneAlguno(firma, "agregar", "nuevo", "nueva", "alta", "add");
+            if (!esAgregar) {
+                continue;
+            }
+            if (contieneAlguno(firma, terminosEspecificos)) {
+                boton.fire();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean dispararBotonPorTextoOId(String... terminos) {
+        if (sceneAtajos == null || sceneAtajos.getRoot() == null) {
+            return false;
+        }
+
+        for (ButtonBase boton : obtenerBotonesVisiblesInteractivos()) {
+            if (contieneAlguno(firmaBoton(boton), terminos)) {
+                boton.fire();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<ButtonBase> obtenerBotonesVisiblesInteractivos() {
+        List<ButtonBase> botones = new ArrayList<>();
+        for (Node node : sceneAtajos.getRoot().lookupAll(".button")) {
+            if (node instanceof ButtonBase boton && boton.isVisible() && !boton.isDisabled()) {
+                botones.add(boton);
+            }
+        }
+        return botones;
+    }
+
+    private String firmaBoton(ButtonBase boton) {
+        String id = boton.getId() == null ? "" : boton.getId();
+        String texto = boton.getText() == null ? "" : boton.getText();
+        String estilos = String.join(" ", boton.getStyleClass());
+        return (id + " " + texto + " " + estilos).toLowerCase();
+    }
+
+    private boolean contieneAlguno(String texto, String... terminos) {
+        for (String termino : terminos) {
+            if (texto.contains(termino.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String mapearLetraAtajo(KeyCode code) {
