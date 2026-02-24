@@ -517,8 +517,21 @@ public class encabezadoController {
     }
 
     private boolean seleccionarTodoContextual() {
-        if (sceneAtajos == null) {
+        if (sceneAtajos == null || sceneAtajos.getRoot() == null) {
             return false;
+        }
+
+        for (Node node : sceneAtajos.getRoot().lookupAll(".check-box")) {
+            if (node instanceof CheckBox checkBox) {
+                String texto = checkBox.getText() == null ? "" : checkBox.getText().toLowerCase();
+                String id = checkBox.getId() == null ? "" : checkBox.getId().toLowerCase();
+                if (texto.contains("seleccionar todo") || id.contains("seleccionartodo")) {
+                    if (!checkBox.isSelected()) {
+                        checkBox.fire();
+                    }
+                    return true;
+                }
+            }
         }
 
         Node focus = sceneAtajos.getFocusOwner();
@@ -578,7 +591,48 @@ public class encabezadoController {
                 return true;
             }
         }
+
+        for (Node node : sceneAtajos.getRoot().lookupAll(".label")) {
+            if (!(node instanceof Labeled label) || !label.isVisible()) {
+                continue;
+            }
+            String textoLabel = label.getText() == null ? "" : label.getText().toLowerCase();
+            if (!contieneAlguno(textoLabel, terminos)) {
+                continue;
+            }
+            ButtonBase botonRelacionado = buscarBotonRelacionadoporContenedor(label);
+            if (botonRelacionado != null) {
+                botonRelacionado.fire();
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    private ButtonBase buscarBotonRelacionadoporContenedor(Node referencia) {
+        if (referencia == null || referencia.getParent() == null) {
+            return null;
+        }
+
+        List<Node> hijos = referencia.getParent().getChildrenUnmodifiable();
+        int idx = hijos.indexOf(referencia);
+
+        for (int i = idx - 1; i >= 0; i--) {
+            Node candidato = hijos.get(i);
+            if (candidato instanceof ButtonBase boton && boton.isVisible() && !boton.isDisabled()) {
+                return boton;
+            }
+        }
+
+        for (int i = idx + 1; i < hijos.size(); i++) {
+            Node candidato = hijos.get(i);
+            if (candidato instanceof ButtonBase boton && boton.isVisible() && !boton.isDisabled()) {
+                return boton;
+            }
+        }
+
+        return null;
     }
 
     private List<ButtonBase> obtenerBotonesVisiblesInteractivos() {
