@@ -16,12 +16,18 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.util.Duration;
 
 import java.sql.Connection;
@@ -55,6 +61,9 @@ public class encabezadoController {
     });
     private final AtomicInteger versionBusqueda = new AtomicInteger(0);
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private Scene sceneAtajos;
+    private final StringBuilder secuenciaAtajos = new StringBuilder();
+    private Timeline limpiezaSecuenciaAtajos;
 
     @FXML
     public void initialize(){
@@ -82,6 +91,8 @@ public class encabezadoController {
         actualizarIconoNotificacionesEnParalelo();
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
+
+        Platform.runLater(this::configurarAtajosTecladoGlobales);
     }
 
     public void setTitulo(String titulo, String colorHex) {
@@ -401,6 +412,216 @@ public class encabezadoController {
     private void actualizar() {
         RefrescoHelper.refrescar();
         actualizarIconoNotificacionesEnParalelo();
+    }
+
+    private void configurarAtajosTecladoGlobales() {
+        if (panel == null || panel.getScene() == null) {
+            Platform.runLater(this::configurarAtajosTecladoGlobales);
+            return;
+        }
+
+        if (sceneAtajos == panel.getScene()) {
+            return;
+        }
+
+        sceneAtajos = panel.getScene();
+        sceneAtajos.addEventFilter(KeyEvent.KEY_PRESSED, this::manejarAtajoTeclado);
+    }
+
+    private void manejarAtajoTeclado(KeyEvent event) {
+        resolverControladorPrincipalSiHaceFalta();
+
+        if (new KeyCodeCombination(KeyCode.F1).match(event)) {
+            salir();
+            event.consume();
+            return;
+        }
+
+        if (new KeyCodeCombination(KeyCode.F2).match(event)) {
+            actualizar();
+            event.consume();
+            return;
+        }
+
+        if (new KeyCodeCombination(KeyCode.B, KeyCombination.CONTROL_DOWN).match(event)) {
+            searchBar.requestFocus();
+            searchBar.selectAll();
+            event.consume();
+            return;
+        }
+
+        if (!event.isShiftDown() || event.getCode().isFunctionKey()) {
+            return;
+        }
+
+        String letra = mapearLetraAtajo(event.getCode());
+        if (letra == null) {
+            return;
+        }
+
+        secuenciaAtajos.append(letra);
+        procesarSecuenciaAtajos();
+        reiniciarTemporizadorSecuencia();
+        event.consume();
+    }
+
+    private String mapearLetraAtajo(KeyCode code) {
+        return switch (code) {
+            case O -> "O";
+            case R -> "R";
+            case C -> "C";
+            case A -> "A";
+            case E -> "E";
+            case S -> "S";
+            case M -> "M";
+            case V -> "V";
+            case P -> "P";
+            case I -> "I";
+            case H -> "H";
+            case F -> "F";
+            case U -> "U";
+            case L -> "L";
+            default -> null;
+        };
+    }
+
+    private void procesarSecuenciaAtajos() {
+        String secuencia = secuenciaAtajos.toString();
+
+        if (secuencia.endsWith("CO")) {
+            cambiarVistaSegura("CONSULTAS");
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("CM")) {
+            cargarVistaSegura(EnumVistas.COMPRA);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("PE")) {
+            cargarVistaSegura(EnumVistas.PEDIDOS);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("AI")) {
+            cargarVistaSegura(EnumVistas.AJUSTE_INVENTARIO);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("RU")) {
+            cargarVistaSegura(EnumVistas.REGISTRAR_USUARIO);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("PR")) {
+            cargarVistaSegura(EnumVistas.PROVEEDORES);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("CL")) {
+            cargarVistaSegura(EnumVistas.CLAVES);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("CS")) {
+            cargarVistaSegura(EnumVistas.CLASIFICACION);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+
+        if (secuencia.endsWith("O")) {
+            cambiarVistaSegura("OPERACIONES");
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("R")) {
+            cambiarVistaSegura("REPORTES");
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("A")) {
+            cambiarVistaSegura("CONFIGURACION");
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("E")) {
+            cargarVistaSegura(EnumVistas.TRASPASO_ENTRADA);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("S")) {
+            cargarVistaSegura(EnumVistas.TRASPASO_SALIDA);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("V")) {
+            cargarVistaSegura(EnumVistas.VENTA);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("I")) {
+            cargarVistaSegura(EnumVistas.INVENTARIO);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("H")) {
+            cargarVistaSegura(EnumVistas.HISTORIAL_ARTICULO);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("F")) {
+            cargarVistaSegura(EnumVistas.HISTORIAL);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+        if (secuencia.endsWith("U")) {
+            cargarVistaSegura(EnumVistas.UTILIDADES);
+            limpiarSecuenciaAtajos();
+            return;
+        }
+
+        if (secuencia.length() > 4) {
+            secuenciaAtajos.delete(0, secuencia.length() - 4);
+        }
+    }
+
+    private void reiniciarTemporizadorSecuencia() {
+        if (limpiezaSecuenciaAtajos != null) {
+            limpiezaSecuenciaAtajos.stop();
+        }
+        limpiezaSecuenciaAtajos = new Timeline(new KeyFrame(Duration.millis(550), e -> resolverAtajoPendiente()));
+        limpiezaSecuenciaAtajos.play();
+    }
+
+    private void resolverAtajoPendiente() {
+        String secuencia = secuenciaAtajos.toString();
+
+        if (secuencia.endsWith("C")) {
+            cargarVistaSegura(EnumVistas.CLIENTES);
+        } else if (secuencia.endsWith("P")) {
+            cargarVistaSegura(EnumVistas.PRODUCTO);
+        }
+
+        limpiarSecuenciaAtajos();
+    }
+
+    private void limpiarSecuenciaAtajos() {
+        secuenciaAtajos.setLength(0);
+        if (limpiezaSecuenciaAtajos != null) {
+            limpiezaSecuenciaAtajos.stop();
+        }
+    }
+
+    private void cambiarVistaSegura(String vista) {
+        if (controladorPrincipal != null) {
+            controladorPrincipal.cambiarVista(vista);
+        }
+    }
+
+    private void cargarVistaSegura(EnumVistas vista) {
+        if (controladorPrincipal != null) {
+            controladorPrincipal.cargarVista(vista);
+        }
     }
 
     @FXML
