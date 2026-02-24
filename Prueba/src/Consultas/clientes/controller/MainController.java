@@ -349,7 +349,10 @@ public class MainController implements ControladorVista {
             else if (event.getCode() == KeyCode.E) {
                 cliente c = contenidoTabla.getSelectionModel().getSelectedItem();
                 eliminarCliente(c);
-            } else return;
+            } else if (event.getCode() == KeyCode.I) importarDatos();
+            else if (event.getCode() == KeyCode.R) exportarDatos();
+            else if (event.getCode() == KeyCode.D) exportarPlantilla();
+            else return;
             event.consume();
         });
     }

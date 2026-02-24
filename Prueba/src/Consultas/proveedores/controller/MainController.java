@@ -357,14 +357,14 @@ public class MainController implements ControladorVista {
     private void configurarAtajosTeclado() {
         AtajosTecladoHelper.instalar(root, event -> {
             if (!event.isControlDown()) return;
-            if (event.getCode() == KeyCode.N) {
-                formularioNuevoProveedor();
-            } else if (event.getCode() == KeyCode.E) {
+            if (event.getCode() == KeyCode.N) formularioNuevoProveedor();
+            else if (event.getCode() == KeyCode.E) {
                 proveedores pSel = contenidoTabla.getSelectionModel().getSelectedItem();
                 eliminarProveedor(pSel);
-            } else {
-                return;
-            }
+            } else if (event.getCode() == KeyCode.I) importarDatos();
+            else if (event.getCode() == KeyCode.R) exportarDatos();
+            else if (event.getCode() == KeyCode.D) exportarPlantilla();
+            else return;
             event.consume();
         });
     }

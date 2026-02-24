@@ -634,29 +634,27 @@ public class MainController implements ControladorVista {
                 return;
             }
 
-            if (event.getCode() == KeyCode.E && event.isControlDown()) {
-                eliminarSeleccionClasificacion();
+            if (esperandoSubAtajoAgregar) {
+                switch (event.getCode()) {
+                    case M -> agregarMarca();
+                    case E -> agregarEtiqueta();
+                    case B -> agregarUbicacion();
+                    case U -> agregarUM();
+                    default -> {
+                        esperandoSubAtajoAgregar = false;
+                        return;
+                    }
+                }
+
+                esperandoSubAtajoAgregar = false;
                 event.consume();
                 return;
             }
 
-            if (!esperandoSubAtajoAgregar) {
-                return;
+            if (event.getCode() == KeyCode.E && event.isControlDown()) {
+                eliminarSeleccionClasificacion();
+                event.consume();
             }
-
-            switch (event.getCode()) {
-                case M -> agregarMarca();
-                case E -> agregarEtiqueta();
-                case B -> agregarUbicacion();
-                case U -> agregarUM();
-                default -> {
-                    esperandoSubAtajoAgregar = false;
-                    return;
-                }
-            }
-
-            esperandoSubAtajoAgregar = false;
-            event.consume();
         });
     }
 
