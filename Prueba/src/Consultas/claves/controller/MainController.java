@@ -336,7 +336,6 @@ public class MainController implements ControladorVista {
         alerta.showAndWait();
     }
 
-    @Override
     private void configurarAtajosTeclado() {
         AtajosTecladoHelper.instalar(root, event -> {
             if (!event.isControlDown()) return;
