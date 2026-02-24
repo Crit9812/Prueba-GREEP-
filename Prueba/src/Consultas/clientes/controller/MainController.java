@@ -116,33 +116,7 @@ public class MainController implements ControladorVista {
                     } else {
                         btn.setOnAction(e -> {
                         cliente seleccionado = getTableView().getItems().get(getIndex());
-                        int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
-                        if (salidasNoCanceladas > 0) {
-                            String mensaje = "No se puede eliminar el cliente porque tiene"
-                                    + " salidas habilitadas: (" + salidasNoCanceladas + ")";
-                            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
-                            alertaAdvertencia.setTitle("Advertencia");
-                            alertaAdvertencia.setHeaderText(null);
-                            Label contenido = new Label(mensaje);
-                            contenido.setWrapText(true);
-                            alertaAdvertencia.getDialogPane().setContent(contenido);
-                            alertaAdvertencia.showAndWait();
-                            return;
-                        }
-                        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
-                        alerta.setTitle("Confirmar eliminación");
-                        alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea eliminar este cliente?");
-                        alerta.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.OK) {
-                                if (clienteModel.eliminarCliente(seleccionado.getId())) {
-                                    contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado correctamente").showAndWait();
-                                } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.").showAndWait();
-                                }
-                            }
-                        });
+                        eliminarCliente(seleccionado);
                     });
                     }
                 }
@@ -333,14 +307,48 @@ public class MainController implements ControladorVista {
         exportarPlantilla.exportarPlantilla("clientes");
     }
 
+    private void eliminarCliente(cliente seleccionado) {
+        if (soloLectura || seleccionado == null) {
+            return;
+        }
+
+        int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
+        if (salidasNoCanceladas > 0) {
+            String mensaje = "No se puede eliminar el cliente porque tiene"
+                    + " salidas habilitadas: (" + salidasNoCanceladas + ")";
+            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
+            alertaAdvertencia.setTitle("Advertencia");
+            alertaAdvertencia.setHeaderText(null);
+            Label contenido = new Label(mensaje);
+            contenido.setWrapText(true);
+            alertaAdvertencia.getDialogPane().setContent(contenido);
+            alertaAdvertencia.showAndWait();
+            return;
+        }
+
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro que desea eliminar este cliente?");
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (clienteModel.eliminarCliente(seleccionado.getId())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                    new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado correctamente").showAndWait();
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.").showAndWait();
+                }
+            }
+        });
+    }
+
     private void configurarAtajosTeclado() {
         AtajosTecladoHelper.instalar(root, event -> {
             if (!event.isControlDown()) return;
             if (event.getCode() == KeyCode.N) formularioNuevoCliente();
             else if (event.getCode() == KeyCode.E) {
                 cliente c = contenidoTabla.getSelectionModel().getSelectedItem();
-                if (c != null) clienteModel.eliminarCliente(c.getId());
-                cargarClientesEnTabla();
+                eliminarCliente(c);
             } else return;
             event.consume();
         });

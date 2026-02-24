@@ -149,6 +149,7 @@ public class MainController implements ControladorVista {
         preloadDatosUltraRapido();
         RefrescoHelper.setVistaActual("productos");
         RefrescoHelper.registrarRefresco("productos", this::actualizarProductos);
+        configurarAtajosTeclado();
 
     }
 
