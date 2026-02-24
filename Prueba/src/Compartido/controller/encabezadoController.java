@@ -322,7 +322,8 @@ public class encabezadoController {
         menuSugerencias.hide();
 
         // Se conserva lo que ya hace: guardar la solicitud para Inventario
-        BusquedaProductoHelper.guardarSolicitud(idProducto, nombreProducto, nombreProducto);
+        BusquedaProductoHelper.guardarSolicitud(idProducto, nombreProducto, nombreProducto,
+                sugerencia.presentacion, String.valueOf(sugerencia.factor));
 
         // NUEVO: intentar resolver el controlador principal si no está seteado
         resolverControladorPrincipalSiHaceFalta();

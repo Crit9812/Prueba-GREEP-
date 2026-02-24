@@ -153,23 +153,42 @@ public class MainController implements ControladorVista{
             return;
         }
 
-        filtrosActivos.removeIf(f -> "Producto".equals(f.campo));
-        contenedorFiltros.getChildren().removeIf(node ->
-                node instanceof HBox && ((HBox) node).getChildren().stream()
-                        .anyMatch(child -> child instanceof Label && ((Label) child).getText().startsWith("Producto:"))
-        );
+        String presentacion = solicitud.getPresentacion();
+        String factor = solicitud.getFactor();
 
-        Filtro filtroProducto = new Filtro("Producto", nombreProducto);
-        filtrosActivos.add(filtroProducto);
-        contenedorFiltros.getChildren().add(crearChipFiltro(filtroProducto));
+        limpiarFiltroExistente("Producto");
+        agregarFiltroBusquedaEncabezado("Producto", nombreProducto);
+
+        if (presentacion != null && !presentacion.isBlank()) {
+            limpiarFiltroExistente("Presentación");
+            agregarFiltroBusquedaEncabezado("Presentación", presentacion);
+        }
+
+        if (factor != null && !factor.isBlank()) {
+            limpiarFiltroExistente("Factor");
+            agregarFiltroBusquedaEncabezado("Factor", factor);
+        }
 
         aplicarFiltros();
 
-        // NUEVO: al terminar, enfoca/selecciona y hace scroll al resultado
-        Platform.runLater(() -> enfocarResultadoBusqueda(nombreProducto));
+        Platform.runLater(() -> enfocarResultadoBusqueda(nombreProducto, presentacion, factor));
     }
 
-    private void enfocarResultadoBusqueda(String nombreProducto) {
+    private void limpiarFiltroExistente(String campo) {
+        filtrosActivos.removeIf(f -> campo.equals(f.campo));
+        contenedorFiltros.getChildren().removeIf(node ->
+                node instanceof HBox && ((HBox) node).getChildren().stream()
+                        .anyMatch(child -> child instanceof Label && ((Label) child).getText().startsWith(campo + ":"))
+        );
+    }
+
+    private void agregarFiltroBusquedaEncabezado(String campo, String valor) {
+        Filtro filtro = new Filtro(campo, valor);
+        filtrosActivos.add(filtro);
+        contenedorFiltros.getChildren().add(crearChipFiltro(filtro));
+    }
+
+    private void enfocarResultadoBusqueda(String nombreProducto, String presentacion, String factor) {
         if (contenidoTabla == null) return;
 
         if (itemsInventario == null || itemsInventario.isEmpty()) {
@@ -178,15 +197,23 @@ public class MainController implements ControladorVista{
 
         ItemInventario objetivo = null;
 
-        // Intentar encontrar coincidencia exacta por nombre de producto
         for (ItemInventario item : itemsInventario) {
-            if (item != null && item.getProducto() != null && item.getProducto().equals(nombreProducto)) {
+            if (item == null) {
+                continue;
+            }
+
+            boolean coincideProducto = item.getProducto() != null && item.getProducto().equals(nombreProducto);
+            boolean coincidePresentacion = presentacion == null || presentacion.isBlank() ||
+                    (item.getPresentacion() != null && item.getPresentacion().equals(presentacion));
+            boolean coincideFactor = factor == null || factor.isBlank() ||
+                    (item.getFactor() != null && item.getFactor().equals(factor));
+
+            if (coincideProducto && coincidePresentacion && coincideFactor) {
                 objetivo = item;
                 break;
             }
         }
 
-        // Si no hay coincidencia exacta, al menos seleccionar el primer resultado filtrado
         if (objetivo == null) {
             objetivo = itemsInventario.get(0);
         }
