@@ -348,6 +348,31 @@ public class MainController implements ControladorVista {
     }
 
 
+    private void eliminarProveedorSeleccionado() {
+        if (soloLectura) {
+            return;
+        }
+        proveedores seleccionado = contenidoTabla.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) {
+            return;
+        }
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro que desea desactivar este proveedor?");
+
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (proveedorModel.eliminar(seleccionado.getId())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                    new Alert(Alert.AlertType.INFORMATION, "Proveedor desactivado correctamente").showAndWait();
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar el proveedor.").showAndWait();
+                }
+            }
+        });
+    }
+
     private void configurarAtajosTecladoConsultas() {
         AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "proveedores_cons", event -> {
             if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
