@@ -1,6 +1,7 @@
 package Reportes.historial.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.OverlayCarga;
@@ -17,6 +18,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.scene.Node;
 import javafx.scene.layout.*;
 import java.io.IOException;
@@ -115,6 +119,7 @@ public class MainController implements ControladorVista {
             cargarHistorial();
             configurarDobleClick();
         });
+        configurarAtajosTecladoReportes();
     }
 
     private void configurarDobleClick() {
@@ -679,6 +684,22 @@ public class MainController implements ControladorVista {
             this.campo = campo;
             this.valor = valor;
         }
+    }
+
+
+    private void configurarAtajosTecladoReportes() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "historial_reportes", event -> {
+            if (new KeyCodeCombination(KeyCode.X, KeyCombination.CONTROL_DOWN).match(event)) {
+                exportarExcel();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN).match(event)) {
+                vistaPreviaPdf();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN).match(event)) {
+                descargarPdf();
+                event.consume();
+            }
+        });
     }
 
     @Override

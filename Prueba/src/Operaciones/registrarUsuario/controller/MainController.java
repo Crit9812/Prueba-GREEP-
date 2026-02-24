@@ -1,6 +1,7 @@
 package Operaciones.registrarUsuario.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
 import Operaciones.registrarUsuario.model.usuario;
 import javafx.collections.FXCollections;
@@ -12,6 +13,9 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.application.Platform;
 import Operaciones.registrarUsuario.model.model;
 import javafx.scene.Scene;
@@ -136,6 +140,8 @@ public class MainController implements ControladorVista {
         });
 
         RefrescoHelper.setVistaActual("registrarUsuario");
+        configurarAtajosTecladoOperaciones();
+
         RefrescoHelper.registrarRefresco("registrarUsuario", this::actualizarUsuarios);
     }
 
@@ -320,12 +326,43 @@ public class MainController implements ControladorVista {
         hilo.start();
     }
 
+
+    private void eliminarUsuarioSeleccionado() {
+        usuario seleccionado = contenidoTabla != null ? contenidoTabla.getSelectionModel().getSelectedItem() : null;
+        if (seleccionado == null || "1".equals(seleccionado.getIdUsuario())) {
+            return;
+        }
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setContentText("¿Está seguro que desea eliminar este usuario?");
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                model m = new model();
+                if (m.eliminarUsuario(seleccionado.getIdUsuario())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                }
+            }
+        });
+    }
+
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+
+    private void configurarAtajosTecladoOperaciones() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "registrarUsuario_ops", event -> {
+            if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarUsuarioSeleccionado();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                abrirNuevoUsuario();
+                event.consume();
+            }
+        });
     }
 
     @Override

@@ -2,12 +2,16 @@ package Operaciones.traspasoSalida.controller;
 
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.application.Platform;
 import java.io.IOException;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -107,6 +111,8 @@ public class MainController implements ControladorVista {
         configurarTotalTraspaso();
         configurarConfirmacion();
         RefrescoHelper.setVistaActual("traspasoSalida");
+        configurarAtajosTecladoOperaciones();
+
         RefrescoHelper.registrarRefresco("traspasoSalida", this::actualizarTraspasoSalida);
     }
 
@@ -621,6 +627,25 @@ public class MainController implements ControladorVista {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+
+    private void configurarAtajosTecladoOperaciones() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "traspasoSalida_ops", event -> {
+            if (new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (miCheckBox != null) miCheckBox.setSelected(true);
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarSeleccionados();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                abrirTraspasoSalida();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN).match(event)) {
+                confirmarTraspasoSalida();
+                event.consume();
+            }
+        });
     }
 
     @Override

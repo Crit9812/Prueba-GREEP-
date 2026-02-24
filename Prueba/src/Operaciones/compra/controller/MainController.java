@@ -1,6 +1,7 @@
 package Operaciones.compra.controller;
 
 import Compartido.exportar.ReporteEntradaExporter;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import Operaciones.compra.model.compra;
@@ -22,6 +23,9 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -103,6 +107,7 @@ public class MainController implements ControladorVista {
         configurarSeleccionTodo();
         configurarBloqueoProveedor();
         configurarTotalCompra();
+        configurarAtajosTeclado();
 
         RefrescoHelper.setVistaActual("compra");
         RefrescoHelper.registrarRefresco("compra", this::actualizarCompra);
@@ -346,6 +351,24 @@ public class MainController implements ControladorVista {
     // =========================
     @FXML
     public void formularioNuevaCompra() { abrirFormularioCompra(null); }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "compra_operaciones", event -> {
+            if (new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (miCheckBox != null) miCheckBox.setSelected(true);
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarSeleccionados();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                formularioNuevaCompra();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN).match(event)) {
+                guardarCompras();
+                event.consume();
+            }
+        });
+    }
 
     private void abrirFormularioCompra(compra itemParaEditar) {
         String proveedorNombre = obtenerProveedorSeleccionado();

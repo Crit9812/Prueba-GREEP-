@@ -21,9 +21,13 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 
 import java.io.IOException;
@@ -176,6 +180,7 @@ public class MainController implements ControladorVista {
             });
 
             RefrescoHelper.setVistaActual("proveedores");
+            configurarAtajosTecladoConsultas();
             RefrescoHelper.registrarRefresco("proveedores", this::actualizarProveedores);
 
             buscador.textProperty().addListener((observable, oldValue, newValue) -> buscarProveedores(newValue));
@@ -340,6 +345,19 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("proveedores");
+    }
+
+
+    private void configurarAtajosTecladoConsultas() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "proveedores_cons", event -> {
+            if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarProveedorSeleccionado();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                formularioNuevoProveedor();
+                event.consume();
+            }
+        });
     }
 
     @Override

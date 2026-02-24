@@ -3,6 +3,7 @@ package Consultas.claves.controller;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
@@ -17,6 +18,8 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import VentanaPrincipal.controller.ControladorVista;
@@ -126,6 +129,7 @@ public class MainController implements ControladorVista {
             });
 
             RefrescoHelper.setVistaActual("claves");
+            configurarAtajosTecladoConsultas();
             RefrescoHelper.registrarRefresco("claves", this::actualizarClaves);
 
             cargarTabla();
@@ -332,6 +336,20 @@ public class MainController implements ControladorVista {
         contenido.setWrapText(true);
         alerta.getDialogPane().setContent(contenido);
         alerta.showAndWait();
+    }
+
+
+    private void configurarAtajosTecladoConsultas() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "claves_cons", event -> {
+            if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                String[] fila = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (fila != null) eliminarClave(fila);
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                formularioNuevaSincronizacionClaves();
+                event.consume();
+            }
+        });
     }
 
     @Override

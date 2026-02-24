@@ -17,8 +17,12 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -183,6 +187,7 @@ public class MainController implements ControladorVista {
             });
 
             RefrescoHelper.setVistaActual("clientes");
+            configurarAtajosTecladoConsultas();
             RefrescoHelper.registrarRefresco("clientes", this::actualizarClientes);
 
             // Carga Inicial en background como productos
@@ -328,6 +333,19 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("clientes");
+    }
+
+
+    private void configurarAtajosTecladoConsultas() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "clientes_cons", event -> {
+            if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarClienteSeleccionado();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                formularioNuevoCliente();
+                event.consume();
+            }
+        });
     }
 
     @Override

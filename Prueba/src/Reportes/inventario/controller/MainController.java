@@ -1,6 +1,7 @@
 package Reportes.inventario.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -20,6 +21,9 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import java.io.IOException;
@@ -140,6 +144,7 @@ public class MainController implements ControladorVista{
             aplicarBusquedaPendienteDesdeEncabezado();
             configurarDobleClick();
         });
+        configurarAtajosTecladoReportes();
     }
 
     private void aplicarBusquedaPendienteDesdeEncabezado() {
@@ -2373,6 +2378,22 @@ public class MainController implements ControladorVista{
             this.nombre = nombre;
             this.cantidad = cantidad;
         }
+    }
+
+
+    private void configurarAtajosTecladoReportes() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "inventario_reportes", event -> {
+            if (new KeyCodeCombination(KeyCode.X, KeyCombination.CONTROL_DOWN).match(event)) {
+                exportarExcel();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN).match(event)) {
+                vistaPreviaPdf();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN).match(event)) {
+                descargarPdf();
+                event.consume();
+            }
+        });
     }
 
     @Override

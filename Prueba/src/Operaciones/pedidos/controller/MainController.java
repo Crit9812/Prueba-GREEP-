@@ -2,6 +2,7 @@ package Operaciones.pedidos.controller;
 
 import Compartido.exportar.exportador;
 import Compartido.helper.OverlayCarga;
+import Compartido.helper.AtajosTecladoHelper;
 import Formularios.controller.controllerNuevoPedido;
 import Operaciones.pedidos.model.itemPedido;
 import javafx.application.Platform;
@@ -17,6 +18,9 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 import javafx.stage.Modality;
 import javafx.util.Callback;
@@ -306,6 +310,22 @@ public class MainController implements ControladorVista{
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
+    }
+
+
+    private void configurarAtajosTecladoOperaciones() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "pedidos_ops", event -> {
+            if (new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (miCheckBoxSeleccionarTodo != null) miCheckBoxSeleccionarTodo.setSelected(true);
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarProducto();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                abrirFormularioPedido();
+                event.consume();
+            }
+        });
     }
 
     @Override

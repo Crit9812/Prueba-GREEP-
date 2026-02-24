@@ -3,6 +3,7 @@ package Operaciones.traspasoEntrada.controller;
 import Compartido.exportar.ReporteTraspasoExporter;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.SelectorOrdenPopup;
 import Formularios.controller.ControllerUbicacionTraspaso;
 import Operaciones.compra.model.UbicacionCompra;
@@ -27,6 +28,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -149,7 +153,9 @@ public class MainController implements ControladorVista {
                 cargarTablaAsincrona();
 
                 RefrescoHelper.setVistaActual("traspasoEntrada");
-                RefrescoHelper.registrarRefresco("traspasoEntrada", new Runnable() {
+                configurarAtajosTecladoOperaciones();
+
+        RefrescoHelper.registrarRefresco("traspasoEntrada", new Runnable() {
                     @Override public void run() { actualizarTraspasoEntrada(); }
                 });
             }
@@ -969,6 +975,16 @@ public class MainController implements ControladorVista {
         alerta.setHeaderText(null);
         alerta.setContentText(mensaje);
         alerta.showAndWait();
+    }
+
+
+    private void configurarAtajosTecladoOperaciones() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "traspasoEntrada_ops", event -> {
+            if (new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (miCheckBox != null) miCheckBox.setSelected(true);
+                event.consume();
+            }
+        });
     }
 
     @Override

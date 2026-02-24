@@ -2,6 +2,7 @@ package Operaciones.ajusteInventario.controller;
 
 import Compartido.exportar.ReporteAjusteExporter;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
 import javafx.concurrent.Task;
 import Operaciones.ajusteInventario.model.model;
@@ -19,6 +20,9 @@ import javafx.collections.ListChangeListener;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.application.Platform;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -111,6 +115,8 @@ public class MainController implements ControladorVista {
         configurarTotalAjuste();
 
         RefrescoHelper.setVistaActual("ajusteInventario");
+        configurarAtajosTecladoOperaciones();
+
         RefrescoHelper.registrarRefresco("ajusteInventario", this::actualizarAjusteInventario);
     }
 
@@ -680,6 +686,25 @@ public class MainController implements ControladorVista {
         } finally {
             actualizandoSeleccionTodo = false;
         }
+    }
+
+
+    private void configurarAtajosTecladoOperaciones() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "ajusteInventario_ops", event -> {
+            if (new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (miCheckBox != null) miCheckBox.setSelected(true);
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarSeleccionados();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                abrirFormularioAgregar();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN).match(event)) {
+                guardarAjuste();
+                event.consume();
+            }
+        });
     }
 
     @Override

@@ -1,6 +1,7 @@
 package Consultas.clasificacion.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
@@ -14,6 +15,9 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -57,6 +61,7 @@ public class MainController implements ControladorVista {
 
     // Servicios para carga asíncrona
     private DataLoadService dataLoadService;
+    private long tiempoCtrlN = 0L;
 
     // Cache de datos
     private ObservableList<marcas> cacheMarcas = FXCollections.observableArrayList();
@@ -76,6 +81,7 @@ public class MainController implements ControladorVista {
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
 
             RefrescoHelper.setVistaActual("clasificacion");
+            configurarAtajosTecladoConsultas();
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
 
             dataLoadService = new DataLoadService();
@@ -596,6 +602,56 @@ public class MainController implements ControladorVista {
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();
         }
+    }
+
+
+    private void eliminarSeleccionActual() {
+        if (soloLectura) return;
+        if (contenidoTablaMarcas.isFocused()) {
+            marcas m = contenidoTablaMarcas.getSelectionModel().getSelectedItem();
+            if (m != null && model.eliminarMarca(m.getId())) cargarDatos();
+            return;
+        }
+        if (contenidoTablaEtiquetas.isFocused()) {
+            etiquetas e = contenidoTablaEtiquetas.getSelectionModel().getSelectedItem();
+            if (e != null && model.eliminarEtiqueta(e.getId())) cargarDatos();
+            return;
+        }
+        if (contenidoTablaUbicaciones.isFocused()) {
+            ubicaciones u = contenidoTablaUbicaciones.getSelectionModel().getSelectedItem();
+            if (u != null && model.eliminarUbicacion(u.getId())) cargarDatos();
+            return;
+        }
+        if (contenidoTablaUM.isFocused()) {
+            unidades_Medida um = contenidoTablaUM.getSelectionModel().getSelectedItem();
+            if (um != null && model.eliminarUM(um.getId())) cargarDatos();
+        }
+    }
+
+
+    private void configurarAtajosTecladoConsultas() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "clasificacion_cons", event -> {
+            if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarSeleccionActual();
+                event.consume();
+                return;
+            }
+            if (event.isControlDown() && event.getCode() == KeyCode.N) {
+                tiempoCtrlN = System.currentTimeMillis();
+                event.consume();
+                return;
+            }
+            if (!event.isControlDown()) return;
+            if (System.currentTimeMillis() - tiempoCtrlN > 1500) return;
+            switch (event.getCode()) {
+                case M -> agregarMarca();
+                case E -> agregarEtiqueta();
+                case B -> agregarUbicacion();
+                case U -> agregarUM();
+                default -> { return; }
+            }
+            event.consume();
+        });
     }
 
     @Override

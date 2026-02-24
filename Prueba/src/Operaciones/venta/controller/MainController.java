@@ -1,6 +1,7 @@
 package Operaciones.venta.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
 import Compartido.exportar.ReporteSalidaExporter;
 import javafx.scene.control.ButtonBar;
@@ -22,6 +23,9 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -119,6 +123,8 @@ public class MainController implements ControladorVista {
         configurarConfirmacion();
         configurarTotalVenta();
         RefrescoHelper.setVistaActual("venta");
+        configurarAtajosTecladoOperaciones();
+
         RefrescoHelper.registrarRefresco("venta", this::actualizarVenta);
     }
     private void actualizarVenta() {
@@ -684,6 +690,25 @@ public class MainController implements ControladorVista {
         });
 
         controllerFormularios.controllerFormulario.llamarFormulario("/Formularios/view/nuevoCliente.fxml", controlador, "Cliente");
+    }
+
+
+    private void configurarAtajosTecladoOperaciones() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "venta_ops", event -> {
+            if (new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN).match(event)) {
+                if (miCheckBox != null) miCheckBox.setSelected(true);
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN).match(event)) {
+                eliminarSeleccionados();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN).match(event)) {
+                abrirFormularioVenta();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN).match(event)) {
+                confirmarVenta();
+                event.consume();
+            }
+        });
     }
 
     @Override

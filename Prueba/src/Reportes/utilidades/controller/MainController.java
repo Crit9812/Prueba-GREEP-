@@ -1,6 +1,7 @@
 package Reportes.utilidades.controller;
 
 import Compartido.exportar.exportador;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Reportes.utilidades.model.UtilidadItem;
@@ -19,6 +20,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -128,6 +132,7 @@ public class MainController implements ControladorVista {
                 });
             });
         });
+        configurarAtajosTecladoReportes();
     }
 
     private void actualizarPoliticaRedimensionamiento() {
@@ -837,6 +842,22 @@ public class MainController implements ControladorVista {
             this.cliente = cliente;
             this.fechaSalida = fechaSalida;
         }
+    }
+
+
+    private void configurarAtajosTecladoReportes() {
+        AtajosTecladoHelper.registrarCuandoEscenaEsteLista(root, "utilidades_reportes", event -> {
+            if (new KeyCodeCombination(KeyCode.X, KeyCombination.CONTROL_DOWN).match(event)) {
+                exportarExcel();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN).match(event)) {
+                vistaPreviaPdf();
+                event.consume();
+            } else if (new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN).match(event)) {
+                descargarPdf();
+                event.consume();
+            }
+        });
     }
 
     @Override
