@@ -3,6 +3,7 @@ package Consultas.sucursales.controller;
 import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
@@ -19,6 +20,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -107,42 +109,9 @@ public class MainController implements ControladorVista {
                         btn.setManaged(false);
                     } else {
                         btn.setOnAction(e -> {
-                        sucursal seleccionado = getTableView().getItems().get(getIndex());
-                        int enEntradas = sucursalModel.contarEntradasPorSucursal(seleccionado.getId());
-                        int enSalidas = sucursalModel.contarSalidasPorSucursal(seleccionado.getId());
-                        if (enEntradas > 0 || enSalidas > 0) {
-                            StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar la sucursal porque tiene registros relacionados (activos, pendientes o disponibles):");
-                            if (enEntradas > 0) {
-                                motivo.append("\n- Entradas: ").append(enEntradas);
-                            }
-                            if (enSalidas > 0) {
-                                motivo.append("\n- Salidas: ").append(enSalidas);
-                            }
-                            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
-                            alertaAdvertencia.setTitle("Advertencia");
-                            alertaAdvertencia.setHeaderText(null);
-                            Label contenido = new Label(motivo.toString());
-                            contenido.setWrapText(true);
-                            alertaAdvertencia.getDialogPane().setContent(contenido);
-                            alertaAdvertencia.showAndWait();
-                            return;
-                        }
-                        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
-                        alerta.setTitle("Confirmar eliminación");
-                        alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea desactivar esta sucursal?");
-                        alerta.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.OK) {
-                                if (sucursalModel.eliminarSucursal(seleccionado.getId())) {
-                                    contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Sucursal desactivada correctamente").showAndWait();
-                                } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar la sucursal").showAndWait();
-                                }
-                            }
+                            sucursal seleccionado = getTableView().getItems().get(getIndex());
+                            eliminarSucursal(seleccionado);
                         });
-                    });
                     }
                 }
 
@@ -183,6 +152,7 @@ public class MainController implements ControladorVista {
 
         RefrescoHelper.setVistaActual("sucursales");
         RefrescoHelper.registrarRefresco("sucursales", this::actualizarSucursales);
+        configurarAtajosTeclado();
     }
 
     private void actualizarSucursales() {
@@ -288,6 +258,63 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("sucursales");
+    }
+
+    private void eliminarSucursal(sucursal seleccionado) {
+        if (soloLectura || seleccionado == null) {
+            return;
+        }
+
+        int enEntradas = sucursalModel.contarEntradasPorSucursal(seleccionado.getId());
+        int enSalidas = sucursalModel.contarSalidasPorSucursal(seleccionado.getId());
+        if (enEntradas > 0 || enSalidas > 0) {
+            StringBuilder motivo = new StringBuilder(
+                    "No se puede desactivar la sucursal porque tiene registros relacionados (activos, pendientes o disponibles):");
+            if (enEntradas > 0) {
+                motivo.append("\n- Entradas: ").append(enEntradas);
+            }
+            if (enSalidas > 0) {
+                motivo.append("\n- Salidas: ").append(enSalidas);
+            }
+            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
+            alertaAdvertencia.setTitle("Advertencia");
+            alertaAdvertencia.setHeaderText(null);
+            Label contenido = new Label(motivo.toString());
+            contenido.setWrapText(true);
+            alertaAdvertencia.getDialogPane().setContent(contenido);
+            alertaAdvertencia.showAndWait();
+            return;
+        }
+
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro que desea desactivar esta sucursal?");
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (sucursalModel.eliminarSucursal(seleccionado.getId())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                    new Alert(Alert.AlertType.INFORMATION, "Sucursal desactivada correctamente").showAndWait();
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar la sucursal").showAndWait();
+                }
+            }
+        });
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevaSucursal();
+            else if (event.getCode() == KeyCode.E) {
+                sucursal c = contenidoTabla.getSelectionModel().getSelectedItem();
+                eliminarSucursal(c);
+            } else if (event.getCode() == KeyCode.I) importarDatos();
+            else if (event.getCode() == KeyCode.R) exportarDatos();
+            else if (event.getCode() == KeyCode.D) exportarPlantilla();
+            else return;
+            event.consume();
+        });
     }
 
     @Override

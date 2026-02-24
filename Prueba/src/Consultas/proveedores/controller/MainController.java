@@ -24,7 +24,9 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
+import javafx.scene.input.KeyCode;
 
 import java.io.IOException;
 
@@ -103,43 +105,7 @@ public class MainController implements ControladorVista {
                     } else {
                         btn.setOnAction(e -> {
                         proveedores seleccionado = getTableView().getItems().get(getIndex());
-                        int enEntradas = proveedorModel.contarEntradasNoCanceladas(seleccionado.getId());
-                        int enClaves = proveedorModel.contarClavesNoDesactivadas(seleccionado.getId());
-                        if (enEntradas > 0 || enClaves > 0) {
-                            StringBuilder motivo = new StringBuilder(
-                                    "No se puede desactivar el proveedor porque tiene");
-                            if (enEntradas > 0 && enClaves < 0) {
-                                motivo.append(" entradas habilitadas: (").append(enEntradas).append(")");
-                            }
-                            if (enClaves > 0 && enEntradas < 0) {
-                                motivo.append(" claves habilitadas: (").append(enClaves).append(")");
-                            }
-                            if (enClaves > 0 && enEntradas > 0) {
-                                motivo.append(" claves habilitadas: (").append(enClaves).append(")").append(" y entradas habilitadas: (").append(enEntradas).append(")");
-                            }
-                            Alert alertaMotivo = new Alert(Alert.AlertType.WARNING);
-                            alertaMotivo.setTitle("No se puede desactivar");
-                            alertaMotivo.setHeaderText(null);
-                            alertaMotivo.setContentText(motivo.toString());
-                            alertaMotivo.getDialogPane().setPrefWidth(420);
-                            alertaMotivo.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
-                            alertaMotivo.showAndWait();
-                            return;
-                        }
-                        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
-                        alerta.setTitle("Confirmar eliminación");
-                        alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea desactivar este proveedor?");
-                        alerta.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.OK) {
-                                if (proveedorModel.eliminar(seleccionado.getId())) {
-                                    contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Proveedor desactivado correctamente").showAndWait();
-                                } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar el proveedor.").showAndWait();
-                                }
-                            }
-                        });
+                        eliminarProveedor(seleccionado);
                     });
                     }
                 }
@@ -177,6 +143,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("proveedores");
             RefrescoHelper.registrarRefresco("proveedores", this::actualizarProveedores);
+            configurarAtajosTeclado();
 
             buscador.textProperty().addListener((observable, oldValue, newValue) -> buscarProveedores(newValue));
         });
@@ -340,6 +307,66 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("proveedores");
+    }
+
+    private void eliminarProveedor(proveedores seleccionado) {
+        if (soloLectura || seleccionado == null) {
+            return;
+        }
+
+        int enEntradas = proveedorModel.contarEntradasNoCanceladas(seleccionado.getId());
+        int enClaves = proveedorModel.contarClavesNoDesactivadas(seleccionado.getId());
+        if (enEntradas > 0 || enClaves > 0) {
+            StringBuilder motivo = new StringBuilder("No se puede desactivar el proveedor porque tiene");
+            if (enEntradas > 0 && enClaves <= 0) {
+                motivo.append(" entradas habilitadas: (").append(enEntradas).append(")");
+            }
+            if (enClaves > 0 && enEntradas <= 0) {
+                motivo.append(" claves habilitadas: (").append(enClaves).append(")");
+            }
+            if (enClaves > 0 && enEntradas > 0) {
+                motivo.append(" claves habilitadas: (").append(enClaves)
+                        .append(") y entradas habilitadas: (").append(enEntradas).append(")");
+            }
+            Alert alertaMotivo = new Alert(Alert.AlertType.WARNING);
+            alertaMotivo.setTitle("No se puede desactivar");
+            alertaMotivo.setHeaderText(null);
+            alertaMotivo.setContentText(motivo.toString());
+            alertaMotivo.getDialogPane().setPrefWidth(420);
+            alertaMotivo.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+            alertaMotivo.showAndWait();
+            return;
+        }
+
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro que desea desactivar este proveedor?");
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (proveedorModel.eliminar(seleccionado.getId())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                    new Alert(Alert.AlertType.INFORMATION, "Proveedor desactivado correctamente").showAndWait();
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "No se pudo desactivar el proveedor.").showAndWait();
+                }
+            }
+        });
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevoProveedor();
+            else if (event.getCode() == KeyCode.E) {
+                proveedores pSel = contenidoTabla.getSelectionModel().getSelectedItem();
+                eliminarProveedor(pSel);
+            } else if (event.getCode() == KeyCode.I) importarDatos();
+            else if (event.getCode() == KeyCode.R) exportarDatos();
+            else if (event.getCode() == KeyCode.D) exportarPlantilla();
+            else return;
+            event.consume();
+        });
     }
 
     @Override

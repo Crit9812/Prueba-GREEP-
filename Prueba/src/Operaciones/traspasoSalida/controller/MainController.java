@@ -2,6 +2,7 @@ package Operaciones.traspasoSalida.controller;
 
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -15,6 +16,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import Operaciones.traspasoSalida.model.model;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 import javafx.beans.value.ObservableValue;
@@ -102,10 +105,11 @@ public class MainController implements ControladorVista {
             overlayCarga = new OverlayCarga(root, new Pane());
 
         });
-        configurarAutocompleteSucursales();
-        configurarTabla();
-        configurarTotalTraspaso();
-        configurarConfirmacion();
+            configurarAutocompleteSucursales();
+            configurarTabla();
+            configurarTotalTraspaso();
+            configurarConfirmacion();
+            configurarAtajosTeclado();
         RefrescoHelper.setVistaActual("traspasoSalida");
         RefrescoHelper.registrarRefresco("traspasoSalida", this::actualizarTraspasoSalida);
     }
@@ -631,5 +635,17 @@ public class MainController implements ControladorVista {
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.A) miCheckBox.setSelected(true);
+            else if (event.getCode() == KeyCode.E) eliminarSeleccionados();
+            else if (event.getCode() == KeyCode.N) abrirTraspasoSalida();
+            else if (event.getCode() == KeyCode.G) confirmarTraspasoSalida();
+            else return;
+            event.consume();
+        });
     }
 }

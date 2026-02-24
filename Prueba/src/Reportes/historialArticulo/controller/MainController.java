@@ -5,6 +5,7 @@ import VentanaPrincipal.controller.EnumVistas;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
+import Compartido.helper.AtajosTecladoHelper;
 import conexion.Conexion;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -16,6 +17,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.KeyCode;
 import javafx.scene.Node;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
@@ -95,6 +97,7 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void initialize() {
+        configurarAtajosTeclado();
         Platform.runLater(() -> {
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
@@ -1089,6 +1092,18 @@ public class MainController implements ControladorVista {
             this.campo = campo;
             this.valor = valor;
         }
+    }
+
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.R) exportarExcel();
+            else if (event.getCode() == KeyCode.P) vistaPreviaPdf();
+            else if (event.getCode() == KeyCode.D) descargarPdf();
+            else return;
+            event.consume();
+        });
     }
 
     @Override

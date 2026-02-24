@@ -2,6 +2,7 @@ package Consultas.producto.controller;
 
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
@@ -23,6 +24,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -147,6 +149,7 @@ public class MainController implements ControladorVista {
         preloadDatosUltraRapido();
         RefrescoHelper.setVistaActual("productos");
         RefrescoHelper.registrarRefresco("productos", this::actualizarProductos);
+        configurarAtajosTeclado();
 
     }
 
@@ -404,6 +407,21 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("productos");
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevoProducto();
+            else if (event.getCode() == KeyCode.E) {
+                producto pSel = contenidoTabla.getSelectionModel().getSelectedItem();
+                if (pSel != null) eliminarProducto(pSel);
+            } else if (event.getCode() == KeyCode.I) importarDatos();
+            else if (event.getCode() == KeyCode.R) exportarDatos();
+            else if (event.getCode() == KeyCode.D) exportarPlantilla();
+            else return;
+            event.consume();
+        });
     }
 
     @Override

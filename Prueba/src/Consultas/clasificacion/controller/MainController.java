@@ -1,6 +1,7 @@
 package Consultas.clasificacion.controller;
 
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
@@ -14,6 +15,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.KeyCode;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -63,6 +65,7 @@ public class MainController implements ControladorVista {
     private ObservableList<etiquetas> cacheEtiquetas = FXCollections.observableArrayList();
     private ObservableList<ubicaciones> cacheUbicaciones = FXCollections.observableArrayList();
     private ObservableList<unidades_Medida> cacheUM = FXCollections.observableArrayList();
+    private boolean esperandoSubAtajoAgregar = false;
 
     @FXML
     public void initialize() {
@@ -77,6 +80,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("clasificacion");
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
+            configurarAtajosTeclado();
 
             dataLoadService = new DataLoadService();
             configurarDataLoadService();
@@ -491,6 +495,35 @@ public class MainController implements ControladorVista {
         };
     }
 
+    private <T> void ejecutarEliminacionConValidaciones(
+            T item,
+            Function<T, Integer> contar,
+            Consumer<T> eliminar,
+            Function<T, String> obtenerNombre,
+            String tipo
+    ) {
+        if (soloLectura || item == null) {
+            return;
+        }
+
+        int vinculados = contar.apply(item);
+        String nombre = obtenerNombre.apply(item);
+
+        if (vinculados > 0) {
+            String tipoRelacion = "ubicación".equals(tipo) ? "artículo(s)" : "producto(s)";
+            mostrarAlertaWarning("No se puede eliminar",
+                    "No se puede desactivar la " + tipo + " \"" + nombre + "\" porque tiene "
+                            + vinculados + " " + tipoRelacion + " relacionado(s).");
+            return;
+        }
+
+        if (!confirmar("Desactivar " + tipo, nombre)) {
+            return;
+        }
+
+        new Thread(() -> eliminar.accept(item)).start();
+    }
+
     private Button crearBoton() {
         ImageView img = new ImageView(new Image(
                 getClass().getResourceAsStream("/img/eliminar.png")
@@ -592,6 +625,99 @@ public class MainController implements ControladorVista {
     }
 
     // ================== CLEANUP ==================
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (event.getCode() == KeyCode.N && event.isControlDown()) {
+                esperandoSubAtajoAgregar = true;
+                event.consume();
+                return;
+            }
+
+            if (esperandoSubAtajoAgregar) {
+                switch (event.getCode()) {
+                    case M -> agregarMarca();
+                    case E -> agregarEtiqueta();
+                    case B -> agregarUbicacion();
+                    case U -> agregarUM();
+                    default -> {
+                        esperandoSubAtajoAgregar = false;
+                        return;
+                    }
+                }
+
+                esperandoSubAtajoAgregar = false;
+                event.consume();
+                return;
+            }
+
+            if (event.getCode() == KeyCode.E && event.isControlDown()) {
+                eliminarSeleccionClasificacion();
+                event.consume();
+            }
+        });
+    }
+
+    private void eliminarSeleccionClasificacion() {
+        if (contenidoTablaMarcas.isFocused()) {
+            marcas m = contenidoTablaMarcas.getSelectionModel().getSelectedItem();
+            ejecutarEliminacionConValidaciones(m,
+                    x -> model.contarProductosPorMarca(x.getId()),
+                    x -> {
+                        if (model.eliminarMarca(x.getId())) {
+                            Platform.runLater(() -> {
+                                cacheMarcas.remove(x);
+                                contenidoTablaMarcas.getItems().remove(x);
+                            });
+                        }
+                    },
+                    marcas::getNombre,
+                    "marca");
+        } else if (contenidoTablaEtiquetas.isFocused()) {
+            etiquetas e = contenidoTablaEtiquetas.getSelectionModel().getSelectedItem();
+            ejecutarEliminacionConValidaciones(e,
+                    x -> model.contarProductosPorEtiqueta(x.getId()),
+                    x -> {
+                        if (model.eliminarEtiqueta(x.getId())) {
+                            Platform.runLater(() -> {
+                                cacheEtiquetas.remove(x);
+                                contenidoTablaEtiquetas.getItems().remove(x);
+                            });
+                        }
+                    },
+                    etiquetas::getNombre,
+                    "etiqueta");
+        } else if (contenidoTablaUbicaciones.isFocused()) {
+            ubicaciones u = contenidoTablaUbicaciones.getSelectionModel().getSelectedItem();
+            ejecutarEliminacionConValidaciones(u,
+                    x -> model.contarProductosPorUbicacion(x.getId()),
+                    x -> {
+                        if (model.eliminarUbicacion(x.getId())) {
+                            Platform.runLater(() -> {
+                                cacheUbicaciones.remove(x);
+                                contenidoTablaUbicaciones.getItems().remove(x);
+                            });
+                        }
+                    },
+                    ubicaciones::getNombre,
+                    "ubicación");
+        } else {
+            unidades_Medida u = contenidoTablaUM.getSelectionModel().getSelectedItem();
+            ejecutarEliminacionConValidaciones(u,
+                    x -> model.contarProductosPorUM(x.getNombre()),
+                    x -> {
+                        if (model.eliminarUM(x.getId())) {
+                            Platform.runLater(() -> {
+                                cacheUM.remove(x);
+                                contenidoTablaUM.getItems().remove(x);
+                            });
+                        }
+                    },
+                    unidades_Medida::getNombre,
+                    "unidad de medida");
+        }
+    }
+
     public void shutdown() {
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();

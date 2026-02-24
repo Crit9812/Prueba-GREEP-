@@ -16,9 +16,11 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
+import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -114,33 +116,7 @@ public class MainController implements ControladorVista {
                     } else {
                         btn.setOnAction(e -> {
                         cliente seleccionado = getTableView().getItems().get(getIndex());
-                        int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
-                        if (salidasNoCanceladas > 0) {
-                            String mensaje = "No se puede eliminar el cliente porque tiene"
-                                    + " salidas habilitadas: (" + salidasNoCanceladas + ")";
-                            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
-                            alertaAdvertencia.setTitle("Advertencia");
-                            alertaAdvertencia.setHeaderText(null);
-                            Label contenido = new Label(mensaje);
-                            contenido.setWrapText(true);
-                            alertaAdvertencia.getDialogPane().setContent(contenido);
-                            alertaAdvertencia.showAndWait();
-                            return;
-                        }
-                        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
-                        alerta.setTitle("Confirmar eliminación");
-                        alerta.setHeaderText(null);
-                        alerta.setContentText("¿Está seguro que desea eliminar este cliente?");
-                        alerta.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.OK) {
-                                if (clienteModel.eliminarCliente(seleccionado.getId())) {
-                                    contenidoTabla.getItems().remove(seleccionado);
-                                    new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado correctamente").showAndWait();
-                                } else {
-                                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.").showAndWait();
-                                }
-                            }
-                        });
+                        eliminarCliente(seleccionado);
                     });
                     }
                 }
@@ -184,6 +160,7 @@ public class MainController implements ControladorVista {
 
             RefrescoHelper.setVistaActual("clientes");
             RefrescoHelper.registrarRefresco("clientes", this::actualizarClientes);
+            configurarAtajosTeclado();
 
             // Carga Inicial en background como productos
             cargarClientesEnTabla();
@@ -328,6 +305,56 @@ public class MainController implements ControladorVista {
 
     public void exportarPlantilla() {
         exportarPlantilla.exportarPlantilla("clientes");
+    }
+
+    private void eliminarCliente(cliente seleccionado) {
+        if (soloLectura || seleccionado == null) {
+            return;
+        }
+
+        int salidasNoCanceladas = clienteModel.contarSalidasNoCanceladasPorCliente(seleccionado.getId());
+        if (salidasNoCanceladas > 0) {
+            String mensaje = "No se puede eliminar el cliente porque tiene"
+                    + " salidas habilitadas: (" + salidasNoCanceladas + ")";
+            Alert alertaAdvertencia = new Alert(Alert.AlertType.WARNING);
+            alertaAdvertencia.setTitle("Advertencia");
+            alertaAdvertencia.setHeaderText(null);
+            Label contenido = new Label(mensaje);
+            contenido.setWrapText(true);
+            alertaAdvertencia.getDialogPane().setContent(contenido);
+            alertaAdvertencia.showAndWait();
+            return;
+        }
+
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION);
+        alerta.setTitle("Confirmar eliminación");
+        alerta.setHeaderText(null);
+        alerta.setContentText("¿Está seguro que desea eliminar este cliente?");
+        alerta.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                if (clienteModel.eliminarCliente(seleccionado.getId())) {
+                    contenidoTabla.getItems().remove(seleccionado);
+                    new Alert(Alert.AlertType.INFORMATION, "Cliente eliminado correctamente").showAndWait();
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "No se pudo eliminar el cliente.").showAndWait();
+                }
+            }
+        });
+    }
+
+    private void configurarAtajosTeclado() {
+        AtajosTecladoHelper.instalar(root, event -> {
+            if (!event.isControlDown()) return;
+            if (event.getCode() == KeyCode.N) formularioNuevoCliente();
+            else if (event.getCode() == KeyCode.E) {
+                cliente c = contenidoTabla.getSelectionModel().getSelectedItem();
+                eliminarCliente(c);
+            } else if (event.getCode() == KeyCode.I) importarDatos();
+            else if (event.getCode() == KeyCode.R) exportarDatos();
+            else if (event.getCode() == KeyCode.D) exportarPlantilla();
+            else return;
+            event.consume();
+        });
     }
 
     @Override
