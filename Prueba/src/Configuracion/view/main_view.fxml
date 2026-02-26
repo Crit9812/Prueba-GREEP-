@@ -15,34 +15,25 @@
             <Insets top="30" right="30" bottom="30" left="30" />
         </padding>
 
-        <!-- Título de la sección -->
         <Label text="Configuración del Sistema"
                styleClass="titulo-config"
                style="-fx-font-size: 24px; -fx-font-weight: bold;" />
 
-        <!-- Aquí puedes agregar el contenido específico de Configuración -->
         <VBox spacing="15" styleClass="panel-config" VBox.vgrow="ALWAYS">
             <padding>
                 <Insets top="20" right="20" bottom="20" left="20" />
             </padding>
 
-            <!-- Ejemplo de opciones de configuración -->
-            <Label text="Opciones generales" styleClass="subtitulo-config" />
+            <Label text="Configuración general" styleClass="subtitulo-config" />
 
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 1:" minWidth="120" />
-                <Button text="Configurar" />
+                <Label text="IVA global (%):" minWidth="120" />
+                <TextField fx:id="txtIva" promptText="16" prefWidth="180" />
+                <Button fx:id="btnGuardarIva" text="Guardar IVA" onAction="#guardarIva" />
+                <Button fx:id="btnRecargarIva" text="Recargar" onAction="#recargarIva" />
             </HBox>
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 2:" minWidth="120" />
-                <Button text="Ver reportes"  />
-            </HBox>
-
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 3:" minWidth="120" />
-                <Button text="Consultar"  />
-            </HBox>
+            <Label fx:id="lblIvaActual" text="IVA actual: --" />
 
             <Region VBox.vgrow="ALWAYS" />
         </VBox>
