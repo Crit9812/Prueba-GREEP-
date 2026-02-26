@@ -2,6 +2,7 @@ package Configuracion.controller;
 
 import Compartido.model.IvaConfigService;
 import VentanaPrincipal.controller.ControladorVista;
+import conexion.Conexion;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -12,6 +13,10 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
+import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class MainController implements ControladorVista {
 
@@ -21,6 +26,18 @@ public class MainController implements ControladorVista {
     @FXML private Label lblIvaActual;
     @FXML private Button btnGuardarIva;
     @FXML private Button btnRecargarIva;
+    @FXML private Label lblSucursalNombre;
+    @FXML private Label lblSucursalDomicilio;
+    @FXML private Label lblSucursalCp;
+    @FXML private Label lblSucursalColonia;
+    @FXML private Label lblSucursalNumeroInt;
+    @FXML private Label lblSucursalNumeroExt;
+    @FXML private Label lblSucursalCiudad;
+    @FXML private Label lblSucursalEstado;
+    @FXML private Label lblSucursalLocalidad;
+    @FXML private Label lblSucursalPais;
+    @FXML private Label lblSucursalCorreo;
+    @FXML private Label lblSucursalTelefono;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -33,8 +50,95 @@ public class MainController implements ControladorVista {
         }
         SplitPane.setResizableWithParent(contenedor, true);
 
+        cargarDatosSucursalActual();
         configurarValidaciones();
         recargarIva();
+    }
+
+    private void cargarDatosSucursalActual() {
+        String nombreSucursal = obtenerNombreSucursalDesdeConexion();
+        if (nombreSucursal == null || nombreSucursal.isBlank()) {
+            mostrarSucursalNoDisponible();
+            return;
+        }
+
+        String sql = """
+                SELECT nombre, domicilio, cp, colonia, numeroInt, numeroExt, ciudad, estado, localidad, pais, correo, telefono
+                FROM sucursales
+                WHERE LOWER(nombre) = LOWER(?)
+                LIMIT 1
+                """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, nombreSucursal);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    lblSucursalNombre.setText(valorTexto(rs.getString("nombre")));
+                    lblSucursalDomicilio.setText(valorTexto(rs.getString("domicilio")));
+                    lblSucursalCp.setText(valorTexto(rs.getObject("cp")));
+                    lblSucursalColonia.setText(valorTexto(rs.getString("colonia")));
+                    lblSucursalNumeroInt.setText(valorTexto(rs.getObject("numeroInt")));
+                    lblSucursalNumeroExt.setText(valorTexto(rs.getObject("numeroExt")));
+                    lblSucursalCiudad.setText(valorTexto(rs.getString("ciudad")));
+                    lblSucursalEstado.setText(valorTexto(rs.getString("estado")));
+                    lblSucursalLocalidad.setText(valorTexto(rs.getString("localidad")));
+                    lblSucursalPais.setText(valorTexto(rs.getString("pais")));
+                    lblSucursalCorreo.setText(valorTexto(rs.getString("correo")));
+                    lblSucursalTelefono.setText(valorTexto(rs.getString("telefono")));
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        mostrarSucursalNoDisponible();
+    }
+
+    private String obtenerNombreSucursalDesdeConexion() {
+        try {
+            Field fieldUrl = Conexion.class.getDeclaredField("URL");
+            fieldUrl.setAccessible(true);
+            String url = (String) fieldUrl.get(null);
+            if (url == null || !url.contains("/")) {
+                return null;
+            }
+
+            String baseDatos = url.substring(url.lastIndexOf('/') + 1);
+            int indiceParametros = baseDatos.indexOf('?');
+            if (indiceParametros >= 0) {
+                baseDatos = baseDatos.substring(0, indiceParametros);
+            }
+
+            String prefijo = "distribu_";
+            if (baseDatos.toLowerCase().startsWith(prefijo)) {
+                return baseDatos.substring(prefijo.length());
+            }
+            return baseDatos;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String valorTexto(Object value) {
+        return value == null ? "--" : value.toString();
+    }
+
+    private void mostrarSucursalNoDisponible() {
+        lblSucursalNombre.setText("--");
+        lblSucursalDomicilio.setText("--");
+        lblSucursalCp.setText("--");
+        lblSucursalColonia.setText("--");
+        lblSucursalNumeroInt.setText("--");
+        lblSucursalNumeroExt.setText("--");
+        lblSucursalCiudad.setText("--");
+        lblSucursalEstado.setText("--");
+        lblSucursalLocalidad.setText("--");
+        lblSucursalPais.setText("--");
+        lblSucursalCorreo.setText("--");
+        lblSucursalTelefono.setText("--");
     }
 
     @FXML

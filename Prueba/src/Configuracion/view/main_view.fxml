@@ -26,6 +26,51 @@
 
             <Label text="Configuración general" styleClass="subtitulo-config" />
 
+            <GridPane hgap="12" vgap="8">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140" prefWidth="160" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+
+                <Label text="Sucursal:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalNombre" text="--" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                <Label text="Domicilio:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalDomicilio" text="--" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                <Label text="CP:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalCp" text="--" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                <Label text="Colonia:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalColonia" text="--" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                <Label text="Número int.:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalNumeroInt" text="--" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                <Label text="Número ext.:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalNumeroExt" text="--" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                <Label text="Ciudad:" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalCiudad" text="--" GridPane.rowIndex="6" GridPane.columnIndex="1" />
+
+                <Label text="Estado:" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalEstado" text="--" GridPane.rowIndex="7" GridPane.columnIndex="1" />
+
+                <Label text="Localidad:" GridPane.rowIndex="8" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalLocalidad" text="--" GridPane.rowIndex="8" GridPane.columnIndex="1" />
+
+                <Label text="País:" GridPane.rowIndex="9" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalPais" text="--" GridPane.rowIndex="9" GridPane.columnIndex="1" />
+
+                <Label text="Correo:" GridPane.rowIndex="10" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalCorreo" text="--" GridPane.rowIndex="10" GridPane.columnIndex="1" />
+
+                <Label text="Teléfono:" GridPane.rowIndex="11" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalTelefono" text="--" GridPane.rowIndex="11" GridPane.columnIndex="1" />
+            </GridPane>
+
+            <Separator />
+
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <Label text="IVA global (%):" minWidth="120" />
                 <TextField fx:id="txtIva" promptText="16" prefWidth="180" />
