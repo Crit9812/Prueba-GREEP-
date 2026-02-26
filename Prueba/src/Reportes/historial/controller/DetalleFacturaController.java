@@ -3060,7 +3060,11 @@ public class DetalleFacturaController {
             return;
         }
         boolean esVenta = "venta".equalsIgnoreCase(valorTexto(tipoMovimiento));
-        invocarReporteSalidaExporter(claveSalida, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), itemsSalida, esVenta);
+        String identificadorReporte = esVenta ? valorTexto(historial != null ? historial.getFactura() : "") : claveSalida;
+        if (identificadorReporte == null || identificadorReporte.isBlank()) {
+            identificadorReporte = claveSalida;
+        }
+        invocarReporteSalidaExporter(identificadorReporte, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), itemsSalida, esVenta);
     }
 
     private void descargarReporteAjuste(String claveAjuste) throws Exception {

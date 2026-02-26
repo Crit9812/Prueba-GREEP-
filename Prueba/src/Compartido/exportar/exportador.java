@@ -1,8 +1,11 @@
 package Compartido.exportar;
 
 import javafx.scene.control.Alert;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -583,8 +586,7 @@ public class exportador {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Éxito");
         alert.setHeaderText("Exportación exitosa");
-        alert.setContentText(mensaje);
-        alert.getDialogPane().setPrefSize(500, 200);
+        configurarMensajeLargo(alert, mensaje);
         alert.showAndWait();
     }
 
@@ -592,8 +594,25 @@ public class exportador {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
         alert.setHeaderText("Error al exportar");
-        alert.setContentText(mensaje);
-        alert.getDialogPane().setPrefSize(500, 200);
+        configurarMensajeLargo(alert, mensaje);
         alert.showAndWait();
+    }
+
+    private static void configurarMensajeLargo(Alert alert, String mensaje) {
+        TextArea area = new TextArea(mensaje != null ? mensaje : "");
+        area.setWrapText(true);
+        area.setEditable(false);
+        area.setFocusTraversable(false);
+        area.setMaxWidth(Double.MAX_VALUE);
+        area.setMaxHeight(Double.MAX_VALUE);
+
+        VBox contenedor = new VBox(area);
+        VBox.setVgrow(area, Priority.ALWAYS);
+        contenedor.setPrefWidth(760);
+        contenedor.setPrefHeight(320);
+
+        alert.getDialogPane().setContent(contenedor);
+        alert.getDialogPane().setPrefSize(780, 360);
+        alert.setResizable(true);
     }
 }
