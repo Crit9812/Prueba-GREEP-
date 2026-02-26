@@ -1,6 +1,7 @@
 package Formularios.controller;
 
 import Compartido.controller.productoCboxController;
+import Compartido.model.IvaConfigService;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Formularios.utilities.helperCompraEmergente;
 import Operaciones.compra.controller.MainController;
@@ -1325,21 +1326,65 @@ public class controllerCompraEmergente {
     }
 
     private void recalcularPrecios() {
-        String cantidadStr = txtCantidad != null ? txtCantidad.getText() : "";
-        String precioEntradaStr = txtPrecioEntrada != null ? txtPrecioEntrada.getText() : "";
+        int cantidad = parseEntero(txtCantidad != null ? txtCantidad.getText() : "");
+        BigDecimal precioEntrada = parseDecimal(txtPrecioEntrada != null ? txtPrecioEntrada.getText() : "");
         boolean aplicaIva = checkBoxIVA != null && checkBoxIVA.isSelected();
 
-        helperCompraEmergente.ResultadoCalculo resultado =
-                helperCompraEmergente.calcularPrecios(cantidadStr, precioEntradaStr, aplicaIva);
+        if (cantidad <= 0) {
+            if (txtPrecioIVA != null) txtPrecioIVA.clear();
+            if (txtPrecioBruto != null) txtPrecioBruto.clear();
+            if (txtPrecioTotal != null) txtPrecioTotal.clear();
+            return;
+        }
 
-        if (txtPrecioIVA != null) txtPrecioIVA.setText(resultado.getPrecioConIvaFormateado());
-        if (txtPrecioBruto != null) txtPrecioBruto.setText(resultado.getPrecioBrutoFormateado());
-        if (txtPrecioTotal != null) txtPrecioTotal.setText(resultado.getPrecioTotalFormateado());
+        BigDecimal precioConIva = precioEntrada;
+        if (aplicaIva) {
+            BigDecimal iva = precioEntrada.multiply(IvaConfigService.getIvaTasa());
+            precioConIva = precioEntrada.add(iva);
+        }
+
+        BigDecimal cantidadDecimal = BigDecimal.valueOf(cantidad);
+        BigDecimal precioBruto = precioEntrada.multiply(cantidadDecimal);
+        BigDecimal precioTotal = precioConIva.multiply(cantidadDecimal);
+
+        if (txtPrecioIVA != null) txtPrecioIVA.setText(formatearDecimal(precioConIva));
+        if (txtPrecioBruto != null) txtPrecioBruto.setText(formatearDecimal(precioBruto));
+        if (txtPrecioTotal != null) txtPrecioTotal.setText(formatearDecimal(precioTotal));
     }
 
     private String formatearDecimal(BigDecimal valor) {
         if (valor == null) return "0.00";
         return valor.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private int parseEntero(String valor) {
+        if (valor == null) {
+            return 0;
+        }
+        String limpio = valor.trim();
+        if (limpio.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(limpio);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private BigDecimal parseDecimal(String valor) {
+        if (valor == null) {
+            return BigDecimal.ZERO;
+        }
+        String limpio = valor.trim();
+        if (limpio.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(limpio);
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
     }
 
     private String obtenerCaducidadTexto() {
