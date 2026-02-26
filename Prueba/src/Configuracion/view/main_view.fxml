@@ -30,8 +30,9 @@
             <Label text="Opciones generales" styleClass="subtitulo-config" />
 
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 1:" minWidth="120" />
-                <Button text="Configurar" />
+                <Label text="IVA global (%):" minWidth="120" />
+                <TextField fx:id="txtIvaPorcentaje" promptText="16.00" prefWidth="120" />
+                <Button fx:id="btnGuardarIva" text="Guardar" onAction="#guardarIva" />
             </HBox>
 
             <HBox spacing="10" alignment="CENTER_LEFT">

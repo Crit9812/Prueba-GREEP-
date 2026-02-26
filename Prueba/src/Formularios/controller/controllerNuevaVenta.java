@@ -1,5 +1,6 @@
 package Formularios.controller;
 
+import Compartido.config.ConfiguracionFiscal;
 import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.venta.controller.MainController;
 import Operaciones.traspasoSalida.model.traspasoSalida;
@@ -40,8 +41,6 @@ public class controllerNuevaVenta extends FormularioSalidaController {
     private boolean modoSoloNormal = false;
     private boolean modoAjusteInventario = false;
 
-    // === CONSTANTE ESPECÍFICA ===
-    private static final BigDecimal IVA_TASA = new BigDecimal("0.16");
 
     @FXML
     public void initialize() {
@@ -613,7 +612,7 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         BigDecimal precioConIva = precioSalida;
 
         if (checkBoxIVA != null && checkBoxIVA.isSelected()) {
-            BigDecimal iva = precioSalida.multiply(IVA_TASA);
+            BigDecimal iva = precioSalida.multiply(ConfiguracionFiscal.getIvaTasaDecimal());
             precioConIva = precioSalida.add(iva);
         }
 
@@ -644,7 +643,7 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         BigDecimal precioConIva = precioSalida;
 
         if (checkBoxIVARapida != null && checkBoxIVARapida.isSelected()) {
-            BigDecimal iva = precioSalida.multiply(IVA_TASA);
+            BigDecimal iva = precioSalida.multiply(ConfiguracionFiscal.getIvaTasaDecimal());
             precioConIva = precioSalida.add(iva);
         }
 
