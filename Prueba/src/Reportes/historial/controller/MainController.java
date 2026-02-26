@@ -2,6 +2,10 @@ package Reportes.historial.controller;
 
 import Compartido.controller.encabezadoController;
 import Compartido.controller.navbarController;
+import Reportes.historial.exportar.ReporteMovimientoExporter;
+import Reportes.historial.model.MovimientoFactura;
+import Reportes.historial.model.model;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
@@ -9,7 +13,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.application.Platform;
+
 import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class MainController {
 
@@ -30,9 +38,19 @@ public class MainController {
     @FXML private Label lblDescargar;
 
     @FXML private VBox contenedorTabla;
-    @FXML private TableView contenidoTabla;
+    @FXML private TableView<MovimientoFactura> contenidoTabla;
+    @FXML private TableColumn<MovimientoFactura, String> colClaveMovimiento;
+    @FXML private TableColumn<MovimientoFactura, String> colFecha;
+    @FXML private TableColumn<MovimientoFactura, String> colHora;
+    @FXML private TableColumn<MovimientoFactura, String> colTipoMovimiento;
+    @FXML private TableColumn<MovimientoFactura, String> colTotal;
+    @FXML private TableColumn<MovimientoFactura, String> colUsuario;
+    @FXML private TableColumn<MovimientoFactura, String> colExterno;
+    @FXML private TableColumn<MovimientoFactura, String> colFacturaExterna;
 
     @FXML private encabezadoController paneNavbarController;
+
+    private final model historialModel = new model();
 
     @FXML
     public void initialize() {
@@ -75,11 +93,113 @@ public class MainController {
             lblVista.setMinWidth(Region.USE_PREF_SIZE);
             lblDescargar.setMinWidth(Region.USE_PREF_SIZE);
 
+            configurarTabla();
+            cargarDatos();
+            configurarBuscador();
+            configurarEventos();
+
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.78));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
             paneNavbarController.setTitulo("Historial por factura", "#ffffff");
         });
     }
-}
 
+    private void configurarTabla() {
+        colClaveMovimiento.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getClaveMovimiento()));
+        colFecha.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getFecha()));
+        colHora.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getHora()));
+        colTipoMovimiento.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getTipoMovimiento()));
+        colTotal.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getTotal()));
+        colUsuario.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getUsuario()));
+        colExterno.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getExterno()));
+        colFacturaExterna.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().getFacturaExterna()));
+    }
+
+    private void cargarDatos() {
+        contenidoTabla.setItems(FXCollections.observableArrayList(historialModel.obtenerMovimientos()));
+    }
+
+    private void configurarBuscador() {
+        buscarFactura.textProperty().addListener((obs, oldValue, newValue) -> {
+            String texto = newValue == null ? "" : newValue.trim().toLowerCase(Locale.ROOT);
+            List<MovimientoFactura> filtrados = historialModel.obtenerMovimientos().stream()
+                    .filter(m -> texto.isBlank() || contiene(m, texto))
+                    .collect(Collectors.toList());
+            contenidoTabla.setItems(FXCollections.observableArrayList(filtrados));
+        });
+    }
+
+    private boolean contiene(MovimientoFactura m, String texto) {
+        return m.getClaveMovimiento().toLowerCase(Locale.ROOT).contains(texto)
+                || m.getFacturaExterna().toLowerCase(Locale.ROOT).contains(texto)
+                || m.getTipoMovimiento().toLowerCase(Locale.ROOT).contains(texto)
+                || m.getExterno().toLowerCase(Locale.ROOT).contains(texto);
+    }
+
+    private void configurarEventos() {
+        contenidoTabla.setRowFactory(tv -> {
+            TableRow<MovimientoFactura> row = new TableRow<>();
+            row.setOnMouseClicked(evt -> {
+                if (evt.getClickCount() == 2 && !row.isEmpty()) {
+                    mostrarDetalleMovimiento(row.getItem());
+                }
+            });
+            return row;
+        });
+
+        lblDescargar.setOnMouseClicked(evt -> descargarSeleccionado());
+    }
+
+    private void descargarSeleccionado() {
+        MovimientoFactura seleccionado = contenidoTabla.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) {
+            mostrarMensaje("Selecciona un movimiento para descargar su reporte.", Alert.AlertType.INFORMATION);
+            return;
+        }
+        if (seleccionado.estaCanceladoPorCompleto()) {
+            mostrarMensaje("El movimiento está cancelado por completo y no se puede descargar.", Alert.AlertType.WARNING);
+            return;
+        }
+        ReporteMovimientoExporter.exportar(seleccionado, contenidoTabla.getScene() != null ? contenidoTabla.getScene().getWindow() : null);
+    }
+
+    private void mostrarDetalleMovimiento(MovimientoFactura movimiento) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Movimiento " + movimiento.getClaveMovimiento());
+        dialog.setHeaderText("Detalle del movimiento");
+
+        String detalle = "Tipo: " + movimiento.getTipoMovimiento() + "\n"
+                + "Fecha: " + movimiento.getFecha() + " " + movimiento.getHora() + "\n"
+                + "Total: " + movimiento.getTotal() + "\n"
+                + "Usuario: " + movimiento.getUsuario() + "\n"
+                + "Externo: " + movimiento.getExterno() + "\n"
+                + "Factura: " + movimiento.getFacturaExterna() + "\n"
+                + "Estado: " + movimiento.getEstado();
+        dialog.getDialogPane().setContent(new Label(detalle));
+
+        ButtonType cerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().add(cerrar);
+
+        if (!movimiento.estaCanceladoPorCompleto()) {
+            ButtonType descargar = new ButtonType("Descargar");
+            dialog.getDialogPane().getButtonTypes().add(descargar);
+            dialog.showAndWait().ifPresent(bt -> {
+                if (bt == descargar) {
+                    ReporteMovimientoExporter.exportar(movimiento, contenidoTabla.getScene() != null ? contenidoTabla.getScene().getWindow() : null);
+                }
+            });
+            return;
+        }
+
+        dialog.showAndWait();
+    }
+
+    private void mostrarMensaje(String texto, Alert.AlertType tipo) {
+        Alert alert = new Alert(tipo);
+        alert.setTitle("Historial por factura");
+        alert.setHeaderText(null);
+        alert.setContentText(texto);
+        alert.showAndWait();
+    }
+}
