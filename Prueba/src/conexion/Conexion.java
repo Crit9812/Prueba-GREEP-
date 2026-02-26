@@ -31,6 +31,10 @@ public class Conexion {
             + "&autoReconnect=true"
             + "&maxReconnects=1";
 
+    public static String getUrlPrincipal() {
+        return URL;
+    }
+
     public static void main(String[] args) {
     }
 

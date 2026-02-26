@@ -1,5 +1,6 @@
 package main;
 
+import Compartido.model.IvaConfigService;
 import Compartido.model.NotificacionService;
 import conexion.Conexion;
 import conexion.ConexionMonitor;
@@ -20,6 +21,8 @@ public class Main extends Application {
         } catch (Exception ignored) {
             // La app debe iniciar para que el monitor muestre el overlay de reconexión automática.
         }
+
+        IvaConfigService.recargarDesdeBaseDatos();
 
         NotificacionService notificacionService = new NotificacionService();
         notificacionService.generarNotificacionesIniciales();

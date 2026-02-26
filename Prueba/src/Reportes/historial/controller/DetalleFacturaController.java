@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import Compartido.exportar.ReporteAjusteExporter;
+import Compartido.model.IvaConfigService;
 import Compartido.exportar.ReporteEntradaExporter;
 import Compartido.exportar.ReporteSalidaExporter;
 import Compartido.exportar.ReporteTraspasoExporter;
@@ -54,7 +55,6 @@ public class DetalleFacturaController {
                     "litro", "kilogramo", "metro", "unidad"));
     private static final DateTimeFormatter DATE_FORMAT_SLASH = DateTimeFormatter.ofPattern("yyyy/MM/dd");
     private static final DateTimeFormatter DATE_FORMAT_GUION = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final BigDecimal IVA_DEFAULT = BigDecimal.valueOf(0.16);
     private static final Map<String, Map<String, String>> COLUMNAS_CACHE = new ConcurrentHashMap<>();
 
     private HistorialFactura historial;
@@ -3394,9 +3394,9 @@ public class DetalleFacturaController {
     private BigDecimal obtenerTasaIva(String pUnitStr, String pIvaStr) {
         BigDecimal pUnit = parseDecimal(pUnitStr);
         BigDecimal pIva = parseDecimal(pIvaStr);
-        if (pUnit == null || pIva == null || pUnit.compareTo(BigDecimal.ZERO) == 0) return IVA_DEFAULT;
+        if (pUnit == null || pIva == null || pUnit.compareTo(BigDecimal.ZERO) == 0) return IvaConfigService.getIvaTasa();
         BigDecimal tasa = pIva.divide(pUnit, 4, RoundingMode.HALF_UP).subtract(BigDecimal.ONE);
-        return tasa.compareTo(BigDecimal.ZERO) < 0 ? IVA_DEFAULT : tasa;
+        return tasa.compareTo(BigDecimal.ZERO) < 0 ? IvaConfigService.getIvaTasa() : tasa;
     }
 
     private List<String> obtenerUbicacionesActivas() {

@@ -39,8 +39,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     private boolean modoSoloNormal = false;
     private boolean modoAjusteInventario = false;
 
-    // === CONSTANTE ESPECÍFICA ===
-    private static final BigDecimal IVA_TASA = new BigDecimal("0.16"); // se conserva por compatibilidad
 
     @FXML
     public void initialize() {

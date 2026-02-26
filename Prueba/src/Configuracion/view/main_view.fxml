@@ -15,34 +15,72 @@
             <Insets top="30" right="30" bottom="30" left="30" />
         </padding>
 
-        <!-- Título de la sección -->
         <Label text="Configuración del Sistema"
                styleClass="titulo-config"
                style="-fx-font-size: 24px; -fx-font-weight: bold;" />
 
-        <!-- Aquí puedes agregar el contenido específico de Configuración -->
         <VBox spacing="15" styleClass="panel-config" VBox.vgrow="ALWAYS">
             <padding>
                 <Insets top="20" right="20" bottom="20" left="20" />
             </padding>
 
-            <!-- Ejemplo de opciones de configuración -->
-            <Label text="Opciones generales" styleClass="subtitulo-config" />
+            <Label text="Sucursal actual" styleClass="subtitulo-config" />
+
+            <GridPane hgap="10" vgap="8">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140" prefWidth="180" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+
+                <Label text="Nombre:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalNombre" text="-" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                <Label text="Domicilio:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalDomicilio" text="-" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                <Label text="CP:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalCp" text="-" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                <Label text="Colonia:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalColonia" text="-" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                <Label text="Número exterior:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalNumeroExt" text="-" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                <Label text="Número interior:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalNumeroInt" text="-" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                <Label text="Ciudad:" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalCiudad" text="-" GridPane.rowIndex="6" GridPane.columnIndex="1" />
+
+                <Label text="Estado:" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalEstado" text="-" GridPane.rowIndex="7" GridPane.columnIndex="1" />
+
+                <Label text="Localidad:" GridPane.rowIndex="8" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalLocalidad" text="-" GridPane.rowIndex="8" GridPane.columnIndex="1" />
+
+                <Label text="País:" GridPane.rowIndex="9" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalPais" text="-" GridPane.rowIndex="9" GridPane.columnIndex="1" />
+
+                <Label text="Correo:" GridPane.rowIndex="10" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalCorreo" text="-" GridPane.rowIndex="10" GridPane.columnIndex="1" />
+
+                <Label text="Teléfono:" GridPane.rowIndex="11" GridPane.columnIndex="0" />
+                <Label fx:id="lblSucursalTelefono" text="-" GridPane.rowIndex="11" GridPane.columnIndex="1" />
+            </GridPane>
+
+            <Separator />
+
+            <Label text="Configuración general" styleClass="subtitulo-config" />
 
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 1:" minWidth="120" />
-                <Button text="Configurar" />
+                <Label text="IVA global (%):" minWidth="120" />
+                <TextField fx:id="txtIva" promptText="16" prefWidth="180" />
+                <Button fx:id="btnGuardarIva" text="Guardar IVA" onAction="#guardarIva" />
+                <Button fx:id="btnRecargarIva" text="Recargar" onAction="#recargarIva" />
             </HBox>
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 2:" minWidth="120" />
-                <Button text="Ver reportes"  />
-            </HBox>
-
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="Opción 3:" minWidth="120" />
-                <Button text="Consultar"  />
-            </HBox>
+            <Label fx:id="lblIvaActual" text="IVA actual: --" />
 
             <Region VBox.vgrow="ALWAYS" />
         </VBox>
