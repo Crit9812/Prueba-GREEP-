@@ -12,8 +12,14 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.lang.reflect.Method;
 
+import Compartido.exportar.ReporteTraspasoExporter;
 import Compartido.helper.OverlayCarga;
+import Operaciones.compra.model.UbicacionCompra;
+import Operaciones.compra.model.compra;
+import Operaciones.traspasoSalida.model.traspasoSalida;
+
 import Compartido.sesion.PermisosRol;
 import Reportes.historial.model.HistorialFactura;
 import conexion.Conexion;
@@ -38,7 +44,7 @@ public class DetalleFacturaController {
     @FXML private Label lblTitulo;
     @FXML private VBox contenedorDetalles;
     @FXML private CheckBox chkDetallado;
-    @FXML private Button btnCerrar, btnCancelar, btnCancelarEntrada;
+    @FXML private Button btnCerrar, btnCancelar, btnCancelarEntrada, btnDescargarReporte;
     @FXML private ScrollPane scrollPane;
 
     private static final ObservableList<String> PRESENTACIONES = FXCollections.unmodifiableObservableList(
@@ -2991,6 +2997,212 @@ public class DetalleFacturaController {
         return ejecutarConteo(conn, sql.toString(), salidaId);
     }
 
+    @FXML
+    private void descargarReporteMovimiento() {
+        if (historial == null) {
+            return;
+        }
+        if (esMovimientoCanceladoCompleto()) {
+            mostrarAdvertencia("Movimiento cancelado", "No se puede descargar el reporte de un movimiento cancelado por completo.");
+            return;
+        }
+
+        String movimiento = valorTexto(historial.getMovimiento());
+        String clave = valorTexto(historial.getClaveMovimiento());
+
+        try {
+            if ("Entrada".equalsIgnoreCase(movimiento)) {
+                descargarReporteEntrada(clave);
+            } else if ("Salida".equalsIgnoreCase(movimiento)) {
+                descargarReporteSalida(clave, valorTexto(historial.getTipoMovimiento()));
+            } else if ("Ajuste".equalsIgnoreCase(movimiento)) {
+                descargarReporteAjuste(clave);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            mostrarAdvertencia("Error", "No se pudo generar el reporte: " + ex.getMessage());
+        }
+    }
+
+    private void descargarReporteEntrada(String claveEntrada) throws Exception {
+        if (claveEntrada == null || claveEntrada.isBlank()) {
+            mostrarAdvertencia("Entrada inválida", "No se encontró la clave de la entrada.");
+            return;
+        }
+        String tipo = valorTexto(historial != null ? historial.getTipoMovimiento() : "");
+        if ("traspaso".equalsIgnoreCase(tipo)) {
+            Operaciones.traspasoEntrada.model.model modelo = new Operaciones.traspasoEntrada.model.model();
+            List<Operaciones.traspasoEntrada.model.model.DetalleEntrada> detalles = modelo.obtenerDetallesEntrada(claveEntrada);
+            Map<String, List<UbicacionCompra>> ubicacionesPorProducto = obtenerUbicacionesPorProductoEntrada(claveEntrada);
+            String comentario = obtenerComentarioEntrada(claveEntrada);
+            ReporteTraspasoExporter.exportarReporte(claveEntrada, detalles, ubicacionesPorProducto,
+                    root != null && root.getScene() != null ? root.getScene().getWindow() : null,
+                    comentario);
+            return;
+        }
+
+        List<compra> itemsCompra = obtenerItemsCompraPorEntrada(claveEntrada);
+        if (itemsCompra.isEmpty()) {
+            mostrarAdvertencia("Sin detalles", "No se encontraron detalles para generar el reporte de compra.");
+            return;
+        }
+        invocarReporteEntradaExporter(claveEntrada, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), itemsCompra);
+    }
+
+    private void descargarReporteSalida(String claveSalida, String tipoMovimiento) throws Exception {
+        if (claveSalida == null || claveSalida.isBlank()) {
+            mostrarAdvertencia("Salida inválida", "No se encontró la clave de la salida.");
+            return;
+        }
+        List<traspasoSalida> itemsSalida = obtenerItemsSalidaPorSalida(claveSalida);
+        if (itemsSalida.isEmpty()) {
+            mostrarAdvertencia("Sin detalles", "No se encontraron detalles para generar el reporte de salida.");
+            return;
+        }
+        boolean esVenta = "venta".equalsIgnoreCase(valorTexto(tipoMovimiento));
+        invocarReporteSalidaExporter(claveSalida, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), itemsSalida, esVenta);
+    }
+
+    private void descargarReporteAjuste(String claveAjuste) throws Exception {
+        if (claveAjuste == null || claveAjuste.isBlank()) {
+            mostrarAdvertencia("Ajuste inválido", "No se encontró la clave del ajuste.");
+            return;
+        }
+        List<Object> items = new ArrayList<>();
+        items.addAll(obtenerItemsCompraPorEntrada(claveAjuste));
+        items.addAll(obtenerItemsSalidaPorSalida(claveAjuste));
+        if (items.isEmpty()) {
+            mostrarAdvertencia("Sin detalles", "No se encontraron detalles para generar el reporte de ajuste.");
+            return;
+        }
+        invocarReporteAjusteExporter(claveAjuste, valorTexto(historial.getNota()), items);
+    }
+
+    private String obtenerComentarioEntrada(String claveEntrada) {
+        String sql = "SELECT nota FROM entradas WHERE idEntrada = ? LIMIT 1";
+        try (Connection conn = new Conexion().conectar(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveEntrada);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return valorTexto(rs.getObject(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    private List<compra> obtenerItemsCompraPorEntrada(String claveEntrada) {
+        List<compra> items = new ArrayList<>();
+        String sql = "SELECT claveProducto, cantidad, precioUnitario, precioIVA, precioBrutoTotal, precioTotal, Nota FROM detalle_Entrada WHERE claveEntrada = ?";
+        try (Connection conn = new Conexion().conectar(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveEntrada);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    compra item = new compra();
+                    item.setClaveProducto(valorTexto(rs.getObject("claveProducto")));
+                    item.setProducto(obtenerNombreProducto(conn, item.getClaveProducto()));
+                    item.setCantidad(parseInteger(rs.getObject("cantidad")) != null ? parseInteger(rs.getObject("cantidad")) : 0);
+                    item.setPrecioEntrada(valorTexto(rs.getObject("precioUnitario")));
+                    item.setPrecioIva(valorTexto(rs.getObject("precioIVA")));
+                    item.setPrecioBruto(valorTexto(rs.getObject("precioBrutoTotal")));
+                    item.setPrecioTotal(valorTexto(rs.getObject("precioTotal")));
+                    item.setNota(valorTexto(rs.getObject("Nota")));
+                    items.add(item);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return items;
+    }
+
+    private List<traspasoSalida> obtenerItemsSalidaPorSalida(String claveSalida) {
+        List<traspasoSalida> items = new ArrayList<>();
+        String sql = "SELECT claveProductoSalida, cantidad, precioUnitarioSalida, precioIVASalida, precioBrutoTotalSalida, precioTotalSalida, Nota FROM detalle_Salida WHERE claveSalida = ?";
+        try (Connection conn = new Conexion().conectar(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveSalida);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    traspasoSalida item = new traspasoSalida();
+                    item.setClaveProducto(valorTexto(rs.getObject("claveProductoSalida")));
+                    item.setProducto(obtenerNombreProducto(conn, item.getClaveProducto()));
+                    item.setCantidad(parseInteger(rs.getObject("cantidad")) != null ? parseInteger(rs.getObject("cantidad")) : 0);
+                    item.setPrecioEntrada(valorTexto(rs.getObject("precioUnitarioSalida")));
+                    item.setPrecioIva(valorTexto(rs.getObject("precioIVASalida")));
+                    item.setPrecioBruto(valorTexto(rs.getObject("precioBrutoTotalSalida")));
+                    item.setPrecioTotal(valorTexto(rs.getObject("precioTotalSalida")));
+                    item.setNota(valorTexto(rs.getObject("Nota")));
+                    items.add(item);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return items;
+    }
+
+    private String obtenerNombreProducto(Connection conn, String claveProducto) {
+        if (claveProducto == null || claveProducto.isBlank()) return "";
+        String sql = "SELECT nombre FROM productos WHERE id = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return valorTexto(rs.getObject(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return claveProducto;
+    }
+
+    private Map<String, List<UbicacionCompra>> obtenerUbicacionesPorProductoEntrada(String claveEntrada) {
+        Map<String, List<UbicacionCompra>> mapa = new LinkedHashMap<>();
+        String sql = "SELECT d.claveProducto, u.nombre AS ubicacion, COUNT(a.idArticulo) AS cantidad " +
+                "FROM detalle_Entrada d " +
+                "JOIN articulo a ON a.idDetalleEntrada = d.idDetalleEntrada " +
+                "LEFT JOIN ubicaciones u ON u.id = a.ubicacion " +
+                "WHERE d.claveEntrada = ? " +
+                "GROUP BY d.claveProducto, u.nombre ORDER BY d.claveProducto, u.nombre";
+        try (Connection conn = new Conexion().conectar(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveEntrada);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String claveProducto = valorTexto(rs.getObject("claveProducto"));
+                    String ubicacion = valorTexto(rs.getObject("ubicacion"));
+                    int cantidad = parseInteger(rs.getObject("cantidad")) != null ? parseInteger(rs.getObject("cantidad")) : 0;
+                    mapa.computeIfAbsent(claveProducto, k -> new ArrayList<>())
+                            .add(new UbicacionCompra(ubicacion, cantidad));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return mapa;
+    }
+
+    private void invocarReporteEntradaExporter(String claveCompra, String proveedor, String comentario, List<compra> items) throws Exception {
+        Class<?> cls = Class.forName("Compartido.exportar.ReporteEntradaExporter");
+        Method m = cls.getMethod("exportarReporteCompra", String.class, String.class, String.class, List.class, javafx.stage.Window.class);
+        m.invoke(null, claveCompra, proveedor, comentario, new ArrayList<>(items),
+                root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+    }
+
+    private void invocarReporteSalidaExporter(String claveSalida, String externo, String comentario,
+                                              List<traspasoSalida> items, boolean esVenta) throws Exception {
+        Class<?> cls = Class.forName("Compartido.exportar.ReporteSalidaExporter");
+        String metodo = esVenta ? "exportarReporteVenta" : "exportarReporteTraspasoSalida";
+        Method m = cls.getMethod(metodo, String.class, String.class, String.class, List.class, javafx.stage.Window.class);
+        m.invoke(null, claveSalida, externo, comentario, new ArrayList<>(items),
+                root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+    }
+
+    private void invocarReporteAjusteExporter(String claveAjuste, String comentario, List<Object> items) throws Exception {
+        Class<?> cls = Class.forName("Compartido.exportar.ReporteAjusteExporter");
+        Method m = cls.getMethod("exportarReporteAjuste", String.class, String.class, List.class, javafx.stage.Window.class);
+        m.invoke(null, claveAjuste, comentario, new ArrayList<>(items),
+                root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+    }
+
     // === UTILIDADES ===
 
     private void actualizarEstadoUI() {
@@ -3034,6 +3246,13 @@ public class DetalleFacturaController {
             }
         }
 
+        boolean mostrarDescargar = historial != null && !esMovimientoCanceladoCompleto();
+        if (btnDescargarReporte != null) {
+            btnDescargarReporte.setVisible(mostrarDescargar);
+            btnDescargarReporte.setManaged(mostrarDescargar);
+            btnDescargarReporte.setDisable(!mostrarDescargar);
+        }
+
         if (soloLecturaReportes) {
             btnCancelar.setVisible(false);
             btnCancelar.setManaged(false);
@@ -3056,6 +3275,11 @@ public class DetalleFacturaController {
             btnCancelarEntrada.setManaged(mostrarEntrada);
             btnCancelarEntrada.setDisable(!mostrarEntrada);
         }
+    }
+
+    private boolean esMovimientoCanceladoCompleto() {
+        String estado = historial != null ? valorTexto(historial.getEstado()) : "";
+        return "cancelado".equalsIgnoreCase(estado);
     }
 
     private boolean esMovimientoValido(String tipo) {

@@ -49,6 +49,7 @@
                 <padding>
                     <Insets top="10" bottom="20" right="40"/>
                 </padding>
+                <Button fx:id="btnDescargarReporte" text="Descargar reporte" onAction="#descargarReporteMovimiento" styleClass="botonCancelar"/>
                 <Button fx:id="btnCancelarEntrada" text="Cancelar entrada" onAction="#cancelarEntrada" styleClass="botonCancelar"/>
                 <Button fx:id="btnCancelar" text="Cancelar" onAction="#cancelarMovimiento" styleClass="botonCancelar"/>
             </HBox>
