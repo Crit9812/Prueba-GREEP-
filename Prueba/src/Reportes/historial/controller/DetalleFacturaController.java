@@ -12,9 +12,6 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.lang.reflect.Method;
-
-import Compartido.exportar.ReporteTraspasoExporter;
 import Compartido.helper.OverlayCarga;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.compra.model.compra;
@@ -34,8 +31,15 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 public class DetalleFacturaController {
 
@@ -3031,13 +3035,8 @@ public class DetalleFacturaController {
         }
         String tipo = valorTexto(historial != null ? historial.getTipoMovimiento() : "");
         if ("traspaso".equalsIgnoreCase(tipo)) {
-            Operaciones.traspasoEntrada.model.model modelo = new Operaciones.traspasoEntrada.model.model();
-            List<Operaciones.traspasoEntrada.model.model.DetalleEntrada> detalles = modelo.obtenerDetallesEntrada(claveEntrada);
-            Map<String, List<UbicacionCompra>> ubicacionesPorProducto = obtenerUbicacionesPorProductoEntrada(claveEntrada);
-            String comentario = obtenerComentarioEntrada(claveEntrada);
-            ReporteTraspasoExporter.exportarReporte(claveEntrada, detalles, ubicacionesPorProducto,
-                    root != null && root.getScene() != null ? root.getScene().getWindow() : null,
-                    comentario);
+            List<Map<String, String>> lineas = obtenerLineasEntradaComoMapa(claveEntrada);
+            exportarPdfHistorialSeguro("Entrada", claveEntrada, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), lineas);
             return;
         }
 
@@ -3046,7 +3045,7 @@ public class DetalleFacturaController {
             mostrarAdvertencia("Sin detalles", "No se encontraron detalles para generar el reporte de compra.");
             return;
         }
-        invocarReporteEntradaExporter(claveEntrada, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), itemsCompra);
+        exportarPdfHistorialSeguro("Entrada", claveEntrada, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), convertirComprasALineas(itemsCompra));
     }
 
     private void descargarReporteSalida(String claveSalida, String tipoMovimiento) throws Exception {
@@ -3064,7 +3063,7 @@ public class DetalleFacturaController {
         if (identificadorReporte == null || identificadorReporte.isBlank()) {
             identificadorReporte = claveSalida;
         }
-        invocarReporteSalidaExporter(identificadorReporte, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), itemsSalida, esVenta);
+        exportarPdfHistorialSeguro(esVenta ? "Venta" : "Traspaso de salida", identificadorReporte, valorTexto(historial.getExterno()), valorTexto(historial.getNota()), convertirSalidasALineas(itemsSalida));
     }
 
     private void descargarReporteAjuste(String claveAjuste) throws Exception {
@@ -3079,7 +3078,7 @@ public class DetalleFacturaController {
             mostrarAdvertencia("Sin detalles", "No se encontraron detalles para generar el reporte de ajuste.");
             return;
         }
-        invocarReporteAjusteExporter(claveAjuste, valorTexto(historial.getNota()), items);
+        exportarPdfHistorialSeguro("Ajuste", claveAjuste, "-", valorTexto(historial.getNota()), convertirObjetosALineas(items));
     }
 
     private String obtenerComentarioEntrada(String claveEntrada) {
@@ -3184,27 +3183,133 @@ public class DetalleFacturaController {
         return mapa;
     }
 
-    private void invocarReporteEntradaExporter(String claveCompra, String proveedor, String comentario, List<compra> items) throws Exception {
-        Class<?> cls = Class.forName("Compartido.exportar.ReporteEntradaExporter");
-        Method m = cls.getMethod("exportarReporteCompra", String.class, String.class, String.class, List.class, javafx.stage.Window.class);
-        m.invoke(null, claveCompra, proveedor, comentario, new ArrayList<>(items),
-                root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+    private List<Map<String, String>> convertirComprasALineas(List<compra> items) {
+        List<Map<String, String>> lineas = new ArrayList<>();
+        for (compra item : items) {
+            Map<String, String> l = new LinkedHashMap<>();
+            l.put("clave", valorTexto(item.getClaveProducto()));
+            l.put("producto", valorTexto(item.getProducto()));
+            l.put("cantidad", String.valueOf(item.getCantidad()));
+            l.put("unitario", valorTexto(item.getPrecioEntrada()));
+            l.put("total", valorTexto(item.getPrecioTotal()));
+            lineas.add(l);
+        }
+        return lineas;
     }
 
-    private void invocarReporteSalidaExporter(String claveSalida, String externo, String comentario,
-                                              List<traspasoSalida> items, boolean esVenta) throws Exception {
-        Class<?> cls = Class.forName("Compartido.exportar.ReporteSalidaExporter");
-        String metodo = esVenta ? "exportarReporteVenta" : "exportarReporteTraspasoSalida";
-        Method m = cls.getMethod(metodo, String.class, String.class, String.class, List.class, javafx.stage.Window.class);
-        m.invoke(null, claveSalida, externo, comentario, new ArrayList<>(items),
-                root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+    private List<Map<String, String>> convertirSalidasALineas(List<traspasoSalida> items) {
+        List<Map<String, String>> lineas = new ArrayList<>();
+        for (traspasoSalida item : items) {
+            Map<String, String> l = new LinkedHashMap<>();
+            l.put("clave", valorTexto(item.getClaveProducto()));
+            l.put("producto", valorTexto(item.getProducto()));
+            l.put("cantidad", String.valueOf(item.getCantidad()));
+            l.put("unitario", valorTexto(item.getPrecioEntrada()));
+            l.put("total", valorTexto(item.getPrecioTotal()));
+            lineas.add(l);
+        }
+        return lineas;
     }
 
-    private void invocarReporteAjusteExporter(String claveAjuste, String comentario, List<Object> items) throws Exception {
-        Class<?> cls = Class.forName("Compartido.exportar.ReporteAjusteExporter");
-        Method m = cls.getMethod("exportarReporteAjuste", String.class, String.class, List.class, javafx.stage.Window.class);
-        m.invoke(null, claveAjuste, comentario, new ArrayList<>(items),
-                root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+    private List<Map<String, String>> convertirObjetosALineas(List<Object> items) {
+        List<Map<String, String>> lineas = new ArrayList<>();
+        for (Object item : items) {
+            if (item instanceof compra) {
+                lineas.addAll(convertirComprasALineas(List.of((compra) item)));
+            } else if (item instanceof traspasoSalida) {
+                lineas.addAll(convertirSalidasALineas(List.of((traspasoSalida) item)));
+            }
+        }
+        return lineas;
+    }
+
+    private List<Map<String, String>> obtenerLineasEntradaComoMapa(String claveEntrada) {
+        List<Map<String, String>> lineas = new ArrayList<>();
+        String sql = "SELECT claveProducto, cantidad, precioUnitario, precioTotal FROM detalle_Entrada WHERE claveEntrada = ?";
+        try (Connection conn = new Conexion().conectar(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveEntrada);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String clave = valorTexto(rs.getObject("claveProducto"));
+                    Map<String, String> l = new LinkedHashMap<>();
+                    l.put("clave", clave);
+                    l.put("producto", obtenerNombreProducto(conn, clave));
+                    l.put("cantidad", valorTexto(rs.getObject("cantidad")));
+                    l.put("unitario", valorTexto(rs.getObject("precioUnitario")));
+                    l.put("total", valorTexto(rs.getObject("precioTotal")));
+                    lineas.add(l);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return lineas;
+    }
+
+    private void exportarPdfHistorialSeguro(String tipo, String referencia, String externo, String comentario,
+                                            List<Map<String, String>> lineas) throws Exception {
+        if (lineas == null || lineas.isEmpty()) {
+            mostrarAdvertencia("Sin detalles", "No hay líneas para exportar.");
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Guardar reporte PDF");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
+        chooser.setInitialFileName("Reporte_" + tipo.replace(" ", "_") + "_" + referencia + ".pdf");
+
+        java.io.File destino = chooser.showSaveDialog(root != null && root.getScene() != null ? root.getScene().getWindow() : null);
+        if (destino == null) return;
+
+        try (PDDocument doc = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.LETTER);
+            doc.addPage(page);
+
+            PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                float y = 740;
+                cs.beginText(); cs.setFont(fontBold, 14); cs.newLineAtOffset(50, y); cs.showText("Reporte de " + tipo); cs.endText();
+                y -= 22;
+                cs.beginText(); cs.setFont(font, 10); cs.newLineAtOffset(50, y); cs.showText("Referencia: " + valorTexto(referencia)); cs.endText();
+                y -= 14;
+                cs.beginText(); cs.setFont(font, 10); cs.newLineAtOffset(50, y); cs.showText("Externo: " + valorTexto(externo)); cs.endText();
+                y -= 14;
+                cs.beginText(); cs.setFont(font, 10); cs.newLineAtOffset(50, y); cs.showText("Comentario: " + valorTexto(comentario)); cs.endText();
+                y -= 24;
+
+                cs.beginText(); cs.setFont(fontBold, 10); cs.newLineAtOffset(50, y);
+                cs.showText("Clave      Producto                         Cantidad   Unitario   Total");
+                cs.endText();
+                y -= 14;
+
+                for (Map<String, String> l : lineas) {
+                    String linea = String.format("%-10s %-30s %-9s %-10s %-10s",
+                            truncar(valorTexto(l.get("clave")), 10),
+                            truncar(valorTexto(l.get("producto")), 30),
+                            truncar(valorTexto(l.get("cantidad")), 9),
+                            truncar(valorTexto(l.get("unitario")), 10),
+                            truncar(valorTexto(l.get("total")), 10));
+                    cs.beginText(); cs.setFont(font, 9); cs.newLineAtOffset(50, y); cs.showText(linea); cs.endText();
+                    y -= 12;
+                    if (y < 60) break;
+                }
+            }
+
+            doc.save(destino);
+        }
+
+        Alert ok = new Alert(Alert.AlertType.INFORMATION);
+        ok.setTitle("Éxito");
+        ok.setHeaderText("Reporte generado correctamente");
+        ok.setContentText("Archivo:\n" + destino.getAbsolutePath());
+        ok.showAndWait();
+    }
+
+    private String truncar(String texto, int max) {
+        if (texto == null) return "";
+        return texto.length() <= max ? texto : texto.substring(0, Math.max(0, max - 3)) + "...";
     }
 
     // === UTILIDADES ===
