@@ -7,13 +7,11 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -44,12 +42,6 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void initialize() {
-        if (contenedor != null && root != null) {
-            contenedor.prefHeightProperty().bind(root.heightProperty());
-            contenedor.prefWidthProperty().bind(root.widthProperty());
-        }
-        SplitPane.setResizableWithParent(contenedor, true);
-
         cargarDatosSucursalActual();
         configurarValidaciones();
         recargarIva();
@@ -98,18 +90,10 @@ public class MainController implements ControladorVista {
     }
 
     private String obtenerNombreSucursalDesdeConexion() {
-        try {
-            Field fieldUrl = Conexion.class.getDeclaredField("URL");
-            fieldUrl.setAccessible(true);
-            String url = (String) fieldUrl.get(null);
-            if (url == null || !url.contains("/")) {
+        try (Connection conn = new Conexion().conectar()) {
+            String baseDatos = conn.getCatalog();
+            if (baseDatos == null || baseDatos.isBlank()) {
                 return null;
-            }
-
-            String baseDatos = url.substring(url.lastIndexOf('/') + 1);
-            int indiceParametros = baseDatos.indexOf('?');
-            if (indiceParametros >= 0) {
-                baseDatos = baseDatos.substring(0, indiceParametros);
             }
 
             String prefijo = "distribu_";
