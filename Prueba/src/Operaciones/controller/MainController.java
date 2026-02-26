@@ -20,6 +20,7 @@ public class MainController implements ControladorVista {
     @FXML private GridPane buttonGrid;
     @FXML private VBox contenedor;
     @FXML private Button btnAjusteInventario;
+    @FXML private Button btnRegistrarUsuario;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -57,26 +58,30 @@ public class MainController implements ControladorVista {
             }
         }
 
+        if (!PermisosRol.esAdministrador()) {
+            ocultarBotonOperacion(btnRegistrarUsuario);
+        }
+
         if (PermisosRol.esAuxiliar()) {
-            ocultarAjusteInventario();
+            ocultarBotonOperacion(btnAjusteInventario);
         }
     }
 
-    private void ocultarAjusteInventario() {
-        if (btnAjusteInventario == null) {
+    private void ocultarBotonOperacion(Button boton) {
+        if (boton == null) {
             return;
         }
 
-        btnAjusteInventario.setVisible(false);
-        btnAjusteInventario.setManaged(false);
+        boton.setVisible(false);
+        boton.setManaged(false);
 
-        Integer rowIndex = GridPane.getRowIndex(btnAjusteInventario);
-        Integer colIndex = GridPane.getColumnIndex(btnAjusteInventario);
-        int filaAjuste = rowIndex == null ? 0 : rowIndex;
-        int colAjuste = colIndex == null ? 0 : colIndex;
+        Integer rowIndex = GridPane.getRowIndex(boton);
+        Integer colIndex = GridPane.getColumnIndex(boton);
+        int filaBoton = rowIndex == null ? 0 : rowIndex;
+        int colBoton = colIndex == null ? 0 : colIndex;
 
         for (Node node : buttonGrid.getChildren()) {
-            if (!(node instanceof Button) || node == btnAjusteInventario || !node.isManaged()) {
+            if (!(node instanceof Button) || node == boton || !node.isManaged()) {
                 continue;
             }
 
@@ -85,7 +90,7 @@ public class MainController implements ControladorVista {
             int fila = row == null ? 0 : row;
             int columna = col == null ? 0 : col;
 
-            if (fila == filaAjuste && columna > colAjuste) {
+            if (fila == filaBoton && columna > colBoton) {
                 GridPane.setColumnIndex(node, columna - 1);
             }
         }

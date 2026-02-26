@@ -99,7 +99,7 @@
                 </graphic>
             </Button>
 
-            <Button styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="2"
+            <Button fx:id="btnRegistrarUsuario" styleClass="grid-button" GridPane.rowIndex="1" GridPane.columnIndex="2"
                     text="Registrar usuario" onAction="#ventanaRegistrarUsuario"
                     maxWidth="Infinity" maxHeight="Infinity">
                 <graphic>
