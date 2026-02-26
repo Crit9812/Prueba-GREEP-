@@ -13,9 +13,16 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import Compartido.exportar.ReporteAjusteExporter;
+import Compartido.exportar.ReporteEntradaExporter;
+import Compartido.exportar.ReporteSalidaExporter;
+import Compartido.exportar.ReporteTraspasoExporter;
 import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Reportes.historial.model.HistorialFactura;
+import Operaciones.compra.model.UbicacionCompra;
+import Operaciones.compra.model.compra;
+import Operaciones.traspasoSalida.model.traspasoSalida;
 import conexion.Conexion;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -30,6 +37,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 public class DetalleFacturaController {
 
@@ -38,7 +46,7 @@ public class DetalleFacturaController {
     @FXML private Label lblTitulo;
     @FXML private VBox contenedorDetalles;
     @FXML private CheckBox chkDetallado;
-    @FXML private Button btnCerrar, btnCancelar, btnCancelarEntrada;
+    @FXML private Button btnCerrar, btnCancelar, btnCancelarEntrada, btnDescargar;
     @FXML private ScrollPane scrollPane;
 
     private static final ObservableList<String> PRESENTACIONES = FXCollections.unmodifiableObservableList(
@@ -2991,9 +2999,252 @@ public class DetalleFacturaController {
         return ejecutarConteo(conn, sql.toString(), salidaId);
     }
 
+    @FXML
+    private void descargarReporte() {
+        if (historial == null || !puedeDescargarMovimiento()) {
+            return;
+        }
+
+        String movimiento = textoSeguro(historial.getMovimiento()).toLowerCase(Locale.ROOT);
+        String tipoMovimiento = textoSeguro(historial.getTipoMovimiento()).toLowerCase(Locale.ROOT);
+        String clave = textoSeguro(historial.getClaveMovimiento());
+        String comentario = textoSeguro(historial.getNota());
+        Window owner = obtenerOwnerVentana();
+
+        try (Connection conn = new Conexion().conectar()) {
+            if (conn == null) {
+                return;
+            }
+
+            if ("entrada".equals(movimiento)) {
+                if ("compra".equals(tipoMovimiento)) {
+                    ReporteEntradaExporter.exportarReporteCompra(
+                            clave,
+                            textoSeguro(historial.getExterno()),
+                            comentario,
+                            construirItemsCompra(conn, clave),
+                            owner
+                    );
+                    return;
+                }
+
+                List<Operaciones.traspasoEntrada.model.model.DetalleEntrada> detalles =
+                        construirDetallesTraspasoEntrada(conn, clave);
+                Map<String, List<UbicacionCompra>> ubicaciones = construirUbicacionesPorProducto(conn, clave, true);
+                ReporteTraspasoExporter.exportarReporte(clave, detalles, ubicaciones, owner, comentario);
+                return;
+            }
+
+            if ("salida".equals(movimiento)) {
+                List<traspasoSalida> itemsSalida = construirItemsSalida(conn, clave);
+                if ("venta".equals(tipoMovimiento)) {
+                    ReporteSalidaExporter.exportarReporteVenta(
+                            textoSeguro(historial.getFactura()),
+                            textoSeguro(historial.getExterno()),
+                            comentario,
+                            itemsSalida,
+                            owner
+                    );
+                } else {
+                    ReporteSalidaExporter.exportarReporteTraspasoSalida(
+                            clave,
+                            textoSeguro(historial.getExterno()),
+                            comentario,
+                            itemsSalida,
+                            owner
+                    );
+                }
+                return;
+            }
+
+            if ("ajuste".equals(movimiento)) {
+                ReporteAjusteExporter.exportarReporteAjuste(
+                        clave,
+                        comentario,
+                        construirItemsAjuste(conn, clave),
+                        owner
+                );
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAdvertencia("Error", "No fue posible descargar el reporte del movimiento.");
+        }
+    }
+
+    private Window obtenerOwnerVentana() {
+        if (root != null && root.getScene() != null) {
+            return root.getScene().getWindow();
+        }
+        return stage;
+    }
+
+    private boolean puedeDescargarMovimiento() {
+        if (historial == null) {
+            return false;
+        }
+        return !"cancelado".equalsIgnoreCase(textoSeguro(historial.getEstado()));
+    }
+
+    private String textoSeguro(String valor) {
+        return valor == null ? "" : valor.trim();
+    }
+
+    private List<compra> construirItemsCompra(Connection conn, String claveEntrada) throws SQLException {
+        List<DetalleLinea> lineas = obtenerDetallesEntrada(conn, claveEntrada, true, "Entrada");
+        List<compra> items = new ArrayList<>();
+
+        for (DetalleLinea linea : lineas) {
+            int cantidad = parseInteger(linea.cantidad) != null ? parseInteger(linea.cantidad) : 0;
+            String lote = "";
+            String caducidad = "";
+            String presentacion = "";
+            String factor = "";
+            List<UbicacionCompra> ubicaciones = new ArrayList<>();
+
+            if (!linea.articulos.isEmpty()) {
+                DetalleArticulo articulo = linea.articulos.get(0);
+                lote = textoSeguro(articulo.lote);
+                caducidad = textoSeguro(articulo.caducidad);
+                presentacion = textoSeguro(articulo.presentacion);
+                factor = textoSeguro(articulo.factor);
+                ubicaciones = agruparUbicaciones(linea.articulos);
+            }
+
+            compra item = new compra(
+                    textoSeguro(linea.claveProducto),
+                    textoSeguro(linea.producto),
+                    "",
+                    lote,
+                    caducidad,
+                    cantidad,
+                    "",
+                    presentacion,
+                    factor,
+                    ubicaciones,
+                    textoSeguro(linea.precioUnitario),
+                    textoSeguro(linea.precioIva),
+                    "",
+                    textoSeguro(linea.precioTotal),
+                    false,
+                    "",
+                    textoSeguro(historial.getExterno())
+            );
+            item.setNota(textoSeguro(linea.nota));
+            items.add(item);
+        }
+
+        return items;
+    }
+
+    private List<traspasoSalida> construirItemsSalida(Connection conn, String claveSalida) throws SQLException {
+        List<DetalleLinea> lineas = obtenerDetallesSalida(conn, claveSalida, true, "Salida");
+        List<traspasoSalida> items = new ArrayList<>();
+
+        for (DetalleLinea linea : lineas) {
+            int cantidad = parseInteger(linea.cantidad) != null ? parseInteger(linea.cantidad) : 0;
+            String lote = "";
+            String caducidad = "";
+            String presentacion = "";
+            int factor = 1;
+            List<UbicacionCompra> ubicaciones = new ArrayList<>();
+
+            if (!linea.articulos.isEmpty()) {
+                DetalleArticulo articulo = linea.articulos.get(0);
+                lote = textoSeguro(articulo.lote);
+                caducidad = textoSeguro(articulo.caducidad);
+                presentacion = textoSeguro(articulo.presentacion);
+                Integer factorValue = parseInteger(articulo.factor);
+                factor = factorValue != null ? factorValue : 1;
+                ubicaciones = agruparUbicaciones(linea.articulos);
+            }
+
+            traspasoSalida item = new traspasoSalida(
+                    textoSeguro(linea.claveProducto),
+                    textoSeguro(linea.producto),
+                    "",
+                    lote,
+                    caducidad,
+                    cantidad,
+                    presentacion,
+                    factor,
+                    ubicaciones,
+                    textoSeguro(linea.precioUnitario),
+                    textoSeguro(linea.precioIva),
+                    "",
+                    textoSeguro(linea.precioTotal)
+            );
+            item.setNota(textoSeguro(linea.nota));
+            items.add(item);
+        }
+
+        return items;
+    }
+
+    private List<Operaciones.traspasoEntrada.model.model.DetalleEntrada> construirDetallesTraspasoEntrada(Connection conn, String claveEntrada) throws SQLException {
+        List<DetalleLinea> lineas = obtenerDetallesEntrada(conn, claveEntrada, false, "Entrada");
+        List<Operaciones.traspasoEntrada.model.model.DetalleEntrada> detalles = new ArrayList<>();
+        String sucursal = textoSeguro(historial.getExterno());
+
+        for (DetalleLinea linea : lineas) {
+            detalles.add(new Operaciones.traspasoEntrada.model.model.DetalleEntrada(
+                    textoSeguro(linea.claveProducto),
+                    textoSeguro(linea.producto),
+                    textoSeguro(linea.cantidad),
+                    textoSeguro(linea.precioUnitario),
+                    textoSeguro(linea.precioTotal),
+                    sucursal
+            ));
+        }
+
+        return detalles;
+    }
+
+    private List<Object> construirItemsAjuste(Connection conn, String claveAjuste) throws SQLException {
+        List<Object> items = new ArrayList<>();
+        items.addAll(construirItemsCompra(conn, claveAjuste));
+        items.addAll(construirItemsSalida(conn, claveAjuste));
+        return items;
+    }
+
+    private Map<String, List<UbicacionCompra>> construirUbicacionesPorProducto(Connection conn,
+                                                                                String clave,
+                                                                                boolean entrada) throws SQLException {
+        Map<String, List<UbicacionCompra>> mapa = new HashMap<>();
+        List<DetalleLinea> lineas = entrada
+                ? obtenerDetallesEntrada(conn, clave, true, "Entrada")
+                : obtenerDetallesSalida(conn, clave, true, "Salida");
+
+        for (DetalleLinea linea : lineas) {
+            List<UbicacionCompra> ubicaciones = agruparUbicaciones(linea.articulos);
+            if (!ubicaciones.isEmpty()) {
+                mapa.put(textoSeguro(linea.claveProducto), ubicaciones);
+            }
+        }
+
+        return mapa;
+    }
+
+    private List<UbicacionCompra> agruparUbicaciones(List<DetalleArticulo> articulos) {
+        Map<String, Integer> cantidades = new LinkedHashMap<>();
+        for (DetalleArticulo articulo : articulos) {
+            String nombreUbicacion = textoSeguro(articulo.ubicacion);
+            if (nombreUbicacion.isBlank()) {
+                continue;
+            }
+            cantidades.put(nombreUbicacion, cantidades.getOrDefault(nombreUbicacion, 0) + 1);
+        }
+
+        List<UbicacionCompra> ubicaciones = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : cantidades.entrySet()) {
+            ubicaciones.add(new UbicacionCompra(entry.getKey(), entry.getValue()));
+        }
+        return ubicaciones;
+    }
+
     // === UTILIDADES ===
 
     private void actualizarEstadoUI() {
+
         if (lblTitulo != null) {
             lblTitulo.setText(historial == null ? "Detalles" : "Detalles - " + historial.getMovimiento());
         }
@@ -3032,6 +3283,13 @@ public class DetalleFacturaController {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        }
+
+        boolean habilitarDescarga = puedeDescargarMovimiento();
+        if (btnDescargar != null) {
+            btnDescargar.setVisible(habilitarDescarga);
+            btnDescargar.setManaged(habilitarDescarga);
+            btnDescargar.setDisable(!habilitarDescarga);
         }
 
         if (soloLecturaReportes) {
