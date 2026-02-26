@@ -27,6 +27,7 @@ public class navbarController {
     @FXML private Button botonReportes;
     @FXML private Button botonConsultas;
     @FXML private Button botonConfiguracion;
+    @FXML private Button botonPausa;
 
     private Pane overlayPane;
     private MainController controladorPrincipal;
@@ -51,25 +52,46 @@ public class navbarController {
     public void initialize() {
         Platform.runLater(() -> {
             aplicarPermisosPorRol();
+
             navbar.setSpacing(10);
             navbar.setPadding(new Insets(7, 1, 0, 0));
             navbar.setAlignment(Pos.TOP_CENTER);
 
             for (Node nodo : navbar.getChildren()) {
                 if (nodo instanceof HBox hbox) {
+                    for (Node subNodo : hbox.getChildren()) {
+                        if (subNodo instanceof Label) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (Node nodo : navbar.getChildren()) {
+                if (nodo instanceof HBox hbox) {
                     hbox.setAlignment(Pos.CENTER);
+
                     Button boton = null;
                     Label label = null;
 
                     for (Node subNodo : hbox.getChildren()) {
                         if (subNodo instanceof Button b) {
                             boton = b;
-                            boton.prefHeightProperty().bind(navbar.heightProperty().multiply(0.199));
+
+                            if (label != null) {
+                                // Solo establecer altura mínima para los botones de arriba
+                                boton.prefHeightProperty().unbind(); // quitar bindings anteriores
+                                boton.minHeightProperty().bind(navbar.heightProperty().multiply(0.1));
+                            }
+
+                            // Mantener ancho dinámico
                             boton.prefWidthProperty().bind(navbar.widthProperty().multiply(0.15));
+
                             if (b.getGraphic() instanceof ImageView iv) {
                                 iv.fitHeightProperty().bind(b.heightProperty().multiply(0.72));
                                 iv.fitWidthProperty().bind(b.widthProperty().multiply(0.62));
                             }
+
                         } else if (subNodo instanceof Label l) {
                             label = l;
                         }
@@ -79,6 +101,7 @@ public class navbarController {
                         Button finalBoton = boton;
                         Label finalLabel = label;
 
+                        // Ajuste dinámico de tamaño de fuente según altura del botón
                         finalBoton.heightProperty().addListener((obs, oldVal, newVal) -> {
                             double fontSize = newVal.doubleValue() * 0.3;
                             finalLabel.setStyle("-fx-font-size: " + fontSize + "px;");
@@ -96,6 +119,10 @@ public class navbarController {
         if (PermisosRol.esSupervisorOUsuario()) {
             ocultarElementoNavbar(botonOperaciones, labelOperaciones);
             ocultarElementoNavbar(botonConfiguracion, labelConfiguracion);
+            ocultarElementoNavbar(botonPausa, null);
+        }
+        if (PermisosRol.esAuxiliar()) {
+            ocultarElementoNavbar(botonPausa, null);
         }
     }
 
@@ -181,6 +208,13 @@ public class navbarController {
     public void ventanaConfiguracion() {
         if (controladorPrincipal != null) {
             controladorPrincipal.cambiarVista("CONFIGURACION");
+        }
+    }
+
+    @FXML
+    public void enEspera() {
+        if (controladorPrincipal != null) {
+            controladorPrincipal.pausarVistaActual();
         }
     }
 

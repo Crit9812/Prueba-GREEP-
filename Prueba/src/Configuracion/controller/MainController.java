@@ -17,7 +17,6 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void initialize() {
-        System.out.println("Configuración: Controlador inicializado");
 
         // Aquí puedes agregar lógica específica de Configuración
         // Por ejemplo, bindear tamaños si es necesario

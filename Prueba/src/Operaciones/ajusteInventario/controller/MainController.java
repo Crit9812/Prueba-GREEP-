@@ -1,5 +1,10 @@
 package Operaciones.ajusteInventario.controller;
 
+import Operaciones.compra.model.UbicacionCompra;
+import VentanaPrincipal.controller.Pausable;
+import VentanaPrincipal.controller.MovimientoType;
+import Compartido.helper.BorradorService;
+import Operaciones.ajusteInventario.model.AjusteBorradorDTO;
 import Compartido.exportar.ReporteAjusteExporter;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.OverlayCarga;
@@ -33,7 +38,7 @@ import java.util.List;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController implements ControladorVista {
+public class MainController implements ControladorVista, Pausable {
 
     @FXML private StackPane root;
     @FXML private VBox contenedor;
@@ -594,6 +599,7 @@ public class MainController implements ControladorVista {
         task.setOnSucceeded(e -> {
             String idAjuste = task.getValue();
             if (idAjuste != null && !idAjuste.isEmpty()) {
+                BorradorService.getInstance().eliminar(MovimientoType.AJUSTE);
                 String claveAjuste = "" + idAjuste;
 
                 if (overlayCarga != null) {
@@ -702,8 +708,176 @@ public class MainController implements ControladorVista {
             else if (event.getCode() == KeyCode.E) eliminarSeleccionados();
             else if (event.getCode() == KeyCode.N) abrirFormularioAgregar();
             else if (event.getCode() == KeyCode.G) guardarAjuste();
+            else if (event.getCode() == KeyCode.Q) abrirFormularioQuitar();
             else return;
             event.consume();
+        });
+    }
+
+    @Override
+    public MovimientoType getTipoMovimiento() {
+        return MovimientoType.AJUSTE;
+    }
+
+    @Override
+    public Object guardarBorrador() {
+        AjusteBorradorDTO dto = new AjusteBorradorDTO();
+        dto.setComentario(comentario != null ? comentario.getText() : "");
+
+        // Convertir entradas (compra)
+        List<AjusteBorradorDTO.ItemEntradaPlano> entradasPlano = new ArrayList<>();
+        for (compra item : itemsEntrada) {
+            AjusteBorradorDTO.ItemEntradaPlano p = new AjusteBorradorDTO.ItemEntradaPlano();
+            p.setClaveProducto(item.getClaveProducto());
+            p.setProducto(item.getProducto());
+            p.setDescripcion(item.getDescripcion());
+            p.setLote(item.getLote());
+            p.setCaducidad(item.getCaducidad());
+            p.setCantidad(item.getCantidad());
+            p.setClaveAlterna(item.getClaveAlterna());
+            p.setPresentacion(item.getPresentacion());
+            p.setFactor(item.getFactor());
+            p.setNota(item.getNota());
+            p.setPrecioEntrada(item.getPrecioEntrada());
+            p.setPrecioIva(item.getPrecioIva());
+            p.setPrecioBruto(item.getPrecioBruto());
+            p.setPrecioTotal(item.getPrecioTotal());
+            p.setAplicaIva(item.isAplicaIva());
+            /*p.setProveedorId(item.getProveedorId());
+            p.setProveedorNombre(item.getProveedorNombre());*/
+
+            // Ubicaciones
+            List<AjusteBorradorDTO.UbicacionPlano> ubicPlano = new ArrayList<>();
+            for (UbicacionCompra u : item.getUbicaciones()) {
+                ubicPlano.add(new AjusteBorradorDTO.UbicacionPlano(u.getUbicacion(), u.getCantidad()));
+            }
+            p.setUbicaciones(ubicPlano);
+
+            entradasPlano.add(p);
+        }
+        dto.setEntradas(entradasPlano);
+
+        // Convertir salidas (traspasoSalida)
+        List<AjusteBorradorDTO.ItemSalidaPlano> salidasPlano = new ArrayList<>();
+        for (traspasoSalida item : itemsSalida) {
+            AjusteBorradorDTO.ItemSalidaPlano p = new AjusteBorradorDTO.ItemSalidaPlano();
+            p.setClaveProducto(item.getClaveProducto());
+            p.setProducto(item.getProducto());
+            p.setDescripcion(item.getDescripcion());
+            p.setLote(item.getLote());
+            p.setCaducidad(item.getCaducidad());
+            p.setCantidad(item.getCantidad());
+            p.setPresentacion(item.getPresentacion());
+            p.setFactor(item.getFactor());
+            p.setNota(item.getNota());
+            p.setPrecioEntrada(item.getPrecioEntrada());
+            p.setPrecioIva(item.getPrecioIva());
+            p.setPrecioBruto(item.getPrecioBruto());
+            p.setPrecioTotal(item.getPrecioTotal());
+
+            // Ubicaciones
+            List<AjusteBorradorDTO.UbicacionPlano> ubicPlano = new ArrayList<>();
+            for (UbicacionCompra u : item.getUbicaciones()) {
+                ubicPlano.add(new AjusteBorradorDTO.UbicacionPlano(u.getUbicacion(), u.getCantidad()));
+            }
+            p.setUbicaciones(ubicPlano);
+
+            salidasPlano.add(p);
+        }
+        dto.setSalidas(salidasPlano);
+
+        return dto;
+    }
+
+    @Override
+    public void cargarBorrador(Object borrador) {
+        if (!(borrador instanceof AjusteBorradorDTO)) return;
+        AjusteBorradorDTO dto = (AjusteBorradorDTO) borrador;
+
+        Platform.runLater(() -> {
+            // Comentario
+            if (comentario != null) {
+                comentario.setText(dto.getComentario() != null ? dto.getComentario() : "");
+            }
+
+            // Limpiar listas actuales
+            itemsEntrada.clear();
+            itemsSalida.clear();
+
+            // Restaurar entradas
+            if (dto.getEntradas() != null) {
+                for (AjusteBorradorDTO.ItemEntradaPlano p : dto.getEntradas()) {
+                    compra item = new compra(); // constructor vacío
+
+                    item.setClaveProducto(p.getClaveProducto());
+                    item.setProducto(p.getProducto());
+                    item.setDescripcion(p.getDescripcion());
+                    item.setLote(p.getLote());
+                    item.setCaducidad(p.getCaducidad());
+                    item.setCantidad(p.getCantidad());
+                    item.setClaveAlterna(p.getClaveAlterna());
+                    item.setPresentacion(p.getPresentacion());
+                    item.setFactor(p.getFactor());
+                    item.setNota(p.getNota());
+                    item.setPrecioEntrada(p.getPrecioEntrada());
+                    item.setPrecioIva(p.getPrecioIva());
+                    item.setPrecioBruto(p.getPrecioBruto());
+                    item.setPrecioTotal(p.getPrecioTotal());
+                    item.setAplicaIva(p.isAplicaIva());
+                    /*item.setProveedorId(p.getProveedorId());
+                    item.setProveedorNombre(p.getProveedorNombre());*/
+
+                    // Restaurar ubicaciones
+                    if (p.getUbicaciones() != null) {
+                        List<UbicacionCompra> ubicaciones = new ArrayList<>();
+                        for (AjusteBorradorDTO.UbicacionPlano up : p.getUbicaciones()) {
+                            UbicacionCompra u = new UbicacionCompra(up.getUbicacion(), up.getCantidad());
+                            ubicaciones.add(u);
+                        }
+                        item.setUbicaciones(ubicaciones);
+                    }
+
+                    itemsEntrada.add(item);
+                }
+            }
+
+            // Restaurar salidas
+            if (dto.getSalidas() != null) {
+                for (AjusteBorradorDTO.ItemSalidaPlano p : dto.getSalidas()) {
+                    traspasoSalida item = new traspasoSalida(); // constructor vacío
+
+                    item.setClaveProducto(p.getClaveProducto());
+                    item.setProducto(p.getProducto());
+                    item.setDescripcion(p.getDescripcion());
+                    item.setLote(p.getLote());
+                    item.setCaducidad(p.getCaducidad());
+                    item.setCantidad(p.getCantidad());
+                    item.setPresentacion(p.getPresentacion());
+                    item.setFactor(p.getFactor());
+                    item.setNota(p.getNota());
+                    item.setPrecioEntrada(p.getPrecioEntrada());
+                    item.setPrecioIva(p.getPrecioIva());
+                    item.setPrecioBruto(p.getPrecioBruto());
+                    item.setPrecioTotal(p.getPrecioTotal());
+
+                    // Restaurar ubicaciones
+                    if (p.getUbicaciones() != null) {
+                        List<UbicacionCompra> ubicaciones = new ArrayList<>();
+                        for (AjusteBorradorDTO.UbicacionPlano up : p.getUbicaciones()) {
+                            UbicacionCompra u = new UbicacionCompra(up.getUbicacion(), up.getCantidad());
+                            ubicaciones.add(u);
+                        }
+                        item.setUbicaciones(ubicaciones);
+                    }
+
+                    itemsSalida.add(item);
+                }
+            }
+
+            // Refrescar la tabla unificada
+            refrescarTabla();
+            actualizarSeleccionTodo();
+            actualizarTotalAjuste();
         });
     }
 }

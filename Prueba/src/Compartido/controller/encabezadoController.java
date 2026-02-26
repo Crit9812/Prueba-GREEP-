@@ -1,10 +1,7 @@
 package Compartido.controller;
 
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.paint.Color;
-import javafx.scene.layout.CornerRadii;
-import javafx.geometry.Insets;
+import Compartido.helper.AccionesAtajos;
+import Compartido.helper.GestorAtajos;
 import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.RefrescoHelper;
 import Compartido.model.NotificacionService;
@@ -16,13 +13,10 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.animation.PauseTransition;
@@ -59,8 +53,7 @@ public class encabezadoController {
     });
     private final AtomicInteger versionBusqueda = new AtomicInteger(0);
     private VentanaPrincipal.controller.MainController controladorPrincipal;
-    private Scene sceneAtajos;
-    private final StringBuilder secuenciaAtajos = new StringBuilder();
+    private GestorAtajos gestorAtajos;
 
     @FXML
     public void initialize(){
@@ -89,7 +82,10 @@ public class encabezadoController {
 
         labelUsuario.setText(Compartido.sesion.SesionUsuario.getNombreUsuario());
 
-        Platform.runLater(this::configurarAtajosTecladoGlobales);
+        // Intentar crear gestor si ya hay escena
+        if (panel != null && panel.getScene() != null) {
+            crearGestorAtajos();
+        }
     }
 
     public void setTitulo(String titulo, String colorHex) {
@@ -99,6 +95,55 @@ public class encabezadoController {
 
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;
+        // Crear gestor si es posible
+        if (panel != null && panel.getScene() != null) {
+            crearGestorAtajos();
+        }
+    }
+
+    private void crearGestorAtajos() {
+        if (gestorAtajos != null) return;
+        Scene scene = panel.getScene();
+        if (scene == null) return;
+
+        gestorAtajos = new GestorAtajos(scene, new AccionesAtajos() {
+            @Override
+            public void salir() {
+                encabezadoController.this.salir();
+            }
+
+            @Override
+            public void actualizar() {
+                encabezadoController.this.actualizar();
+            }
+
+            @Override
+            public void enfocarBusqueda() {
+                searchBar.requestFocus();
+                searchBar.selectAll();
+            }
+
+            @Override
+            public void navegarA(String vista) {
+                if (controladorPrincipal != null) {
+                    controladorPrincipal.cambiarVista(vista);
+                }
+            }
+
+            @Override
+            public void navegarA(EnumVistas vista) {
+                if (controladorPrincipal != null) {
+                    controladorPrincipal.cargarVista(vista);
+                }
+            }
+
+            @Override
+            public void pausar() {
+                if (controladorPrincipal != null) {
+                    controladorPrincipal.pausarVistaActual();
+                }
+            }
+        });
     }
 
     private void configurarBusquedaProductos() {
@@ -133,13 +178,13 @@ public class encabezadoController {
         // Manejador de teclas para navegación con flechas y Enter
         searchBar.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
             if (menuSugerencias.isShowing() && !itemsMenu.isEmpty()) {
-                if (event.getCode() == javafx.scene.input.KeyCode.DOWN) {
+                if (event.getCode() == KeyCode.DOWN) {
                     seleccionarSiguiente();
                     event.consume();
-                } else if (event.getCode() == javafx.scene.input.KeyCode.UP) {
+                } else if (event.getCode() == KeyCode.UP) {
                     seleccionarAnterior();
                     event.consume();
-                } else if (event.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                } else if (event.getCode() == KeyCode.ENTER) {
                     ejecutarItemSeleccionado();
                     event.consume();
                 }
@@ -180,19 +225,15 @@ public class encabezadoController {
         List<CustomMenuItem> items = new ArrayList<>();
         for (SugerenciaProducto sugerencia : sugerencias) {
             Label etiqueta = new Label(sugerencia.textoSugerencia());
-            // CAMBIO: Eliminado setBackground(null) - no necesario con CSS
             etiqueta.setWrapText(true);
             etiqueta.setMaxWidth(400);
             etiqueta.getStyleClass().add("sugerencia-item");
 
             int index = items.size();
 
-            // CAMBIO: Simplificado el manejo de selección por mouse
             etiqueta.setOnMouseEntered(e -> {
                 if (selectedIndex != index) {
                     selectedIndex = index;
-                    // CAMBIO: En lugar de actualizar estilo manual, solo actualizamos índice
-                    // El CSS se encarga del hover
                 }
             });
 
@@ -204,12 +245,8 @@ public class encabezadoController {
 
         menuSugerencias.getItems().setAll(items);
 
-        // CAMBIO: Eliminada la llamada a actualizarEstiloSeleccion()
-        // El CSS manejará el foco automáticamente
-
         if (!itemsMenu.isEmpty()) {
             selectedIndex = 0;
-            // CAMBIO: Enfocamos el primer item para que CSS muestre selección
             Platform.runLater(() -> {
                 if (!itemsMenu.isEmpty() && itemsMenu.get(0).getContent() instanceof Label) {
                     ((Label) itemsMenu.get(0).getContent()).requestFocus();
@@ -329,11 +366,9 @@ public class encabezadoController {
         searchBar.setText(nombreProducto);
         menuSugerencias.hide();
 
-        // Se conserva lo que ya hace: guardar la solicitud para Inventario
         BusquedaProductoHelper.guardarSolicitud(idProducto, nombreProducto, nombreProducto,
                 sugerencia.presentacion, String.valueOf(sugerencia.factor));
 
-        // NUEVO: intentar resolver el controlador principal si no está seteado
         resolverControladorPrincipalSiHaceFalta();
 
         Platform.runLater(() -> controladorPrincipal.cargarVista(EnumVistas.INVENTARIO));
@@ -357,9 +392,7 @@ public class encabezadoController {
                     }
                 }
             }
-        } catch (Exception ignored) {
-            // intencional: no hacemos cambios extra ni rompemos flujo
-        }
+        } catch (Exception ignored) {}
     }
 
     private static class SugerenciaProducto {
@@ -411,132 +444,6 @@ public class encabezadoController {
         actualizarIconoNotificacionesEnParalelo();
     }
 
-    private void configurarAtajosTecladoGlobales() {
-        if (panel == null || panel.getScene() == null) {
-            Platform.runLater(this::configurarAtajosTecladoGlobales);
-            return;
-        }
-
-        if (sceneAtajos == panel.getScene()) {
-            return;
-        }
-
-        sceneAtajos = panel.getScene();
-        sceneAtajos.addEventFilter(KeyEvent.KEY_PRESSED, this::manejarAtajoTecladoPresionado);
-        sceneAtajos.addEventFilter(KeyEvent.KEY_RELEASED, this::manejarAtajoTecladoLiberado);
-    }
-
-    private void manejarAtajoTecladoPresionado(KeyEvent event) {
-        resolverControladorPrincipalSiHaceFalta();
-
-        if (new KeyCodeCombination(KeyCode.F1).match(event)) {
-            salir();
-            event.consume();
-            return;
-        }
-
-        if (new KeyCodeCombination(KeyCode.F2).match(event)) {
-            actualizar();
-            event.consume();
-            return;
-        }
-
-        if (new KeyCodeCombination(KeyCode.B, KeyCombination.CONTROL_DOWN).match(event)) {
-            searchBar.requestFocus();
-            searchBar.selectAll();
-            event.consume();
-            return;
-        }
-
-        if (!event.isShiftDown()) {
-            return;
-        }
-
-        String letra = mapearLetraAtajo(event.getCode());
-        if (letra == null) {
-            return;
-        }
-
-        secuenciaAtajos.append(letra);
-        event.consume();
-    }
-
-    private void manejarAtajoTecladoLiberado(KeyEvent event) {
-        if (event.getCode() != KeyCode.SHIFT) {
-            return;
-        }
-
-        ejecutarSecuenciaAtajos();
-        event.consume();
-    }
-
-    private String mapearLetraAtajo(KeyCode code) {
-        return switch (code) {
-            case O -> "O";
-            case R -> "R";
-            case C -> "C";
-            case A -> "A";
-            case E -> "E";
-            case S -> "S";
-            case M -> "M";
-            case V -> "V";
-            case P -> "P";
-            case I -> "I";
-            case H -> "H";
-            case F -> "F";
-            case U -> "U";
-            case L -> "L";
-            default -> null;
-        };
-    }
-
-    private void ejecutarSecuenciaAtajos() {
-        String secuencia = secuenciaAtajos.toString();
-
-        switch (secuencia) {
-            case "CO" -> cambiarVistaSegura("CONSULTAS");
-            case "CM" -> cargarVistaSegura(EnumVistas.COMPRA);
-            case "PE" -> cargarVistaSegura(EnumVistas.PEDIDOS);
-            case "AI" -> cargarVistaSegura(EnumVistas.AJUSTE_INVENTARIO);
-            case "RU" -> cargarVistaSegura(EnumVistas.REGISTRAR_USUARIO);
-            case "PR" -> cargarVistaSegura(EnumVistas.PROVEEDORES);
-            case "CL" -> cargarVistaSegura(EnumVistas.CLAVES);
-            case "CS" -> cargarVistaSegura(EnumVistas.CLASIFICACION);
-            case "O" -> cambiarVistaSegura("OPERACIONES");
-            case "R" -> cambiarVistaSegura("REPORTES");
-            case "A" -> cambiarVistaSegura("CONFIGURACION");
-            case "E" -> cargarVistaSegura(EnumVistas.TRASPASO_ENTRADA);
-            case "S" -> cargarVistaSegura(EnumVistas.TRASPASO_SALIDA);
-            case "V" -> cargarVistaSegura(EnumVistas.VENTA);
-            case "I" -> cargarVistaSegura(EnumVistas.INVENTARIO);
-            case "H" -> cargarVistaSegura(EnumVistas.HISTORIAL_ARTICULO);
-            case "F" -> cargarVistaSegura(EnumVistas.HISTORIAL);
-            case "U" -> cargarVistaSegura(EnumVistas.UTILIDADES);
-            case "P" -> cargarVistaSegura(EnumVistas.PRODUCTO);
-            case "C" -> cargarVistaSegura(EnumVistas.CLIENTES);
-            default -> {
-            }
-        }
-
-        limpiarSecuenciaAtajos();
-    }
-
-    private void limpiarSecuenciaAtajos() {
-        secuenciaAtajos.setLength(0);
-    }
-
-    private void cambiarVistaSegura(String vista) {
-        if (controladorPrincipal != null) {
-            controladorPrincipal.cambiarVista(vista);
-        }
-    }
-
-    private void cargarVistaSegura(EnumVistas vista) {
-        if (controladorPrincipal != null) {
-            controladorPrincipal.cargarVista(vista);
-        }
-    }
-
     @FXML
     private void abrirNotificaciones() {
         try {
@@ -567,6 +474,7 @@ public class encabezadoController {
         hiloRevisionNotificaciones.start();
     }
 
+    // ========== MÉTODOS DE NAVEGACIÓN DEL MENÚ DE SUGERENCIAS ==========
     private void seleccionarSiguiente() {
         if (itemsMenu.isEmpty()) return;
         selectedIndex = (selectedIndex + 1) % itemsMenu.size();
@@ -593,5 +501,4 @@ public class encabezadoController {
             itemsMenu.get(selectedIndex).fire();
         }
     }
-
 }

@@ -15,7 +15,7 @@
            managed="false" visible="false"/>
     <Label fx:id="labelConsultas" text="Consultas" styleClass="hover-label"
            managed="false" visible="false"/>
-    <Label fx:id="labelConfiguracion" text="Configuración" styleClass="hover-label"
+    <Label fx:id="labelConfiguracion" text="Ajustes" styleClass="hover-label"
            managed="false" visible="false"/>
 
 </Pane>

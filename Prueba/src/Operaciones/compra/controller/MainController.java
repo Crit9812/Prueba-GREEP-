@@ -2,10 +2,15 @@ package Operaciones.compra.controller;
 
 import Compartido.exportar.ReporteEntradaExporter;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.BorradorService;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
+import Operaciones.compra.model.CompraBorradorDTO;
+import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.compra.model.compra;
 import Operaciones.compra.model.model;
+import VentanaPrincipal.controller.MovimientoType;
+import VentanaPrincipal.controller.Pausable;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
@@ -36,7 +41,7 @@ import java.util.function.Consumer;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController implements ControladorVista {
+public class MainController implements ControladorVista, Pausable {
 
     @FXML private StackPane root;
     @FXML private Label labelUsuario;
@@ -443,6 +448,8 @@ public class MainController implements ControladorVista {
                     mostrarAlerta("Error", "No se pudo registrar la compra.");
                 }
         );
+
+        BorradorService.getInstance().eliminar(MovimientoType.COMPRA);
     }
 
     // =========================
@@ -450,13 +457,27 @@ public class MainController implements ControladorVista {
     // =========================
     @FXML
     public void eliminarSeleccionados() {
-        if (itemsCompra.isEmpty()) { mostrarAlerta("Advertencia", "No hay registros para eliminar."); return; }
-        if (itemsCompra.stream().noneMatch(compra::isSeleccionado)) { mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar."); return; }
+        if (itemsCompra.isEmpty()) {
+            mostrarAlerta("Advertencia", "No hay registros para eliminar.");
+            return;
+        }
+        if (itemsCompra.stream().noneMatch(compra::isSeleccionado)) {
+            mostrarAlerta("Advertencia", "Seleccione al menos una fila para eliminar.");
+            return;
+        }
 
-        itemsCompra.removeIf(compra::isSeleccionado);
-        actualizarSeleccionTodo();
-        contenidoTabla.refresh();
-        actualizarTotalCompra();
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmar eliminación");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Está seguro de que desea eliminar los registros seleccionados?");
+
+        java.util.Optional<ButtonType> resultado = confirmacion.showAndWait();
+        if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+            itemsCompra.removeIf(compra::isSeleccionado);
+            actualizarSeleccionTodo();
+            contenidoTabla.refresh();
+            actualizarTotalCompra();
+        }
     }
 
     public void refrescarTabla() { contenidoTabla.refresh(); }
@@ -588,4 +609,122 @@ public class MainController implements ControladorVista {
             event.consume();
         });
     }
+
+    /*---------------------------------------------------------------*/
+    /*-------------------- INTERFAZ PAUSABLE ----------------------- */
+    /*---------------------------------------------------------------*/
+
+    @Override
+    public MovimientoType getTipoMovimiento() {
+        return MovimientoType.COMPRA;
+    }
+
+    @Override
+    public Object guardarBorrador() {
+        CompraBorradorDTO dto = new CompraBorradorDTO();
+
+        dto.setProveedorNombre(obtenerProveedorSeleccionado());
+        dto.setProveedorId(proveedorSeleccionadoId);
+        dto.setNumeroFactura(factura != null ? factura.getText() : "");
+        dto.setComentario(comentario != null ? comentario.getText() : "");
+
+        List<CompraBorradorDTO.ItemCompraPlano> planos = new ArrayList<>();
+        for (compra item : itemsCompra) {
+            CompraBorradorDTO.ItemCompraPlano p = new CompraBorradorDTO.ItemCompraPlano();
+            p.setClaveProducto(item.getClaveProducto());
+            p.setProducto(item.getProducto());
+            p.setDescripcion(item.getDescripcion());
+            p.setLote(item.getLote());
+            p.setCaducidad(item.getCaducidad());
+            p.setCantidad(item.getCantidad());
+            p.setClaveAlterna(item.getClaveAlterna());
+            p.setPresentacion(item.getPresentacion());
+            p.setFactor(item.getFactor());
+            p.setNota(item.getNota());
+            p.setPrecioEntrada(item.getPrecioEntrada());
+            p.setPrecioIva(item.getPrecioIva());
+            p.setPrecioBruto(item.getPrecioBruto());
+            p.setPrecioTotal(item.getPrecioTotal());
+            p.setAplicaIva(item.isAplicaIva());
+
+            // Convertir ubicaciones
+            List<CompraBorradorDTO.UbicacionPlano> ubicacionesPlano = new ArrayList<>();
+            for (UbicacionCompra u : item.getUbicaciones()) {
+                ubicacionesPlano.add(new CompraBorradorDTO.UbicacionPlano(u.getUbicacion(), u.getCantidad()));
+            }
+            p.setUbicaciones(ubicacionesPlano);
+
+            planos.add(p);
+        }
+        dto.setItems(planos);
+
+        return dto;
+    }
+
+    @Override
+    public void cargarBorrador(Object borrador) {
+        if (!(borrador instanceof CompraBorradorDTO)) return;
+        CompraBorradorDTO dto = (CompraBorradorDTO) borrador;
+
+        Platform.runLater(() -> {
+            // Proveedor
+            if (dto.getProveedorNombre() != null && !dto.getProveedorNombre().isEmpty()) {
+                buscador.setValue(dto.getProveedorNombre());
+                buscador.getEditor().setText(dto.getProveedorNombre());
+                proveedorSeleccionadoId = dto.getProveedorId();
+            }
+
+            // Factura y comentario
+            if (factura != null) {
+                factura.setText(dto.getNumeroFactura() != null ? dto.getNumeroFactura() : "");
+            }
+            if (comentario != null) {
+                comentario.setText(dto.getComentario() != null ? dto.getComentario() : "");
+            }
+
+            // Items
+            if (dto.getItems() != null) {
+                List<compra> nuevos = new ArrayList<>();
+                for (CompraBorradorDTO.ItemCompraPlano p : dto.getItems()) {
+                    compra item = new compra(); // Constructor vacío
+
+                    item.setClaveProducto(p.getClaveProducto());
+                    item.setProducto(p.getProducto());
+                    item.setDescripcion(p.getDescripcion());
+                    item.setLote(p.getLote());
+                    item.setCaducidad(p.getCaducidad());
+                    item.setCantidad(p.getCantidad());
+                    item.setClaveAlterna(p.getClaveAlterna());
+                    item.setPresentacion(p.getPresentacion());
+                    item.setFactor(p.getFactor());
+                    item.setNota(p.getNota());
+                    item.setPrecioEntrada(p.getPrecioEntrada());
+                    item.setPrecioIva(p.getPrecioIva());
+                    item.setPrecioBruto(p.getPrecioBruto());
+                    item.setPrecioTotal(p.getPrecioTotal());
+                    item.setAplicaIva(p.isAplicaIva());
+
+                    // Restaurar ubicaciones (esto actualizará ubicacionResumen automáticamente)
+                    if (p.getUbicaciones() != null) {
+                        List<UbicacionCompra> ubicaciones = new ArrayList<>();
+                        for (CompraBorradorDTO.UbicacionPlano up : p.getUbicaciones()) {
+                            // Si UbicacionCompra tiene constructor (String, int)
+                            UbicacionCompra u = new UbicacionCompra(up.getUbicacion(), up.getCantidad());
+                            ubicaciones.add(u);
+                        }
+                        item.setUbicaciones(ubicaciones);
+                    }
+
+                    nuevos.add(item);
+                }
+                itemsCompra.setAll(nuevos);
+            }
+
+            // Actualizar UI
+            buscador.setDisable(!itemsCompra.isEmpty());
+            actualizarSeleccionTodo();
+            actualizarTotalCompra();
+        });
+    }
+
 }

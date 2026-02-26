@@ -3,6 +3,7 @@ package Operaciones.traspasoSalida.controller;
 import Compartido.helper.OverlayCarga;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Operaciones.compra.model.UbicacionCompra;
 import javafx.concurrent.Task;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -31,8 +32,12 @@ import Compartido.exportar.ReporteSalidaExporter;
 import javafx.scene.control.ButtonBar;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
+import VentanaPrincipal.controller.Pausable;
+import VentanaPrincipal.controller.MovimientoType;
+import Compartido.helper.BorradorService;
+import Operaciones.traspasoSalida.model.TraspasoSalidaBorradorDTO;
 
-public class MainController implements ControladorVista {
+public class MainController implements ControladorVista, Pausable {
 
     @FXML private StackPane root;
     @FXML private Label labelUsuario;
@@ -114,26 +119,12 @@ public class MainController implements ControladorVista {
         RefrescoHelper.registrarRefresco("traspasoSalida", this::actualizarTraspasoSalida);
     }
 
-    // Añade estos métodos en la clase MainController (traspasoSalida):
-
-    /**
-     * Verifica si ya existe un producto con la misma clave y lote en la lista de traspaso.
-     * @param claveProducto Clave del producto
-     * @param lote Lote del producto
-     * @return true si ya existe, false en caso contrario
-     */
+    // Añade estos métodos en la clase MainController (traspasoSalida)
     public boolean existeProductoLote(String claveProducto, String lote) {
         return existeProductoLote(claveProducto, lote, null);
     }
 
-    /**
-     * Verifica si ya existe un producto con la misma clave y lote en la lista de traspaso,
-     * excluyendo un item específico (útil para edición).
-     * @param claveProducto Clave del producto
-     * @param lote Lote del producto
-     * @param itemExcluir Item a excluir de la búsqueda (generalmente el que se está editando)
-     * @return true si ya existe, false en caso contrario
-     */
+
     public boolean existeProductoLote(String claveProducto, String lote, traspasoSalida itemExcluir) {
         if (claveProducto == null || claveProducto.isBlank() || lote == null || lote.isBlank()) {
             return false;
@@ -556,6 +547,9 @@ public class MainController implements ControladorVista {
                 hilo.start();
             }
         });
+
+        BorradorService.getInstance().eliminar(MovimientoType.TRASPASO);
+
     }
 
     private void actualizarTotalTraspaso() {
@@ -646,6 +640,118 @@ public class MainController implements ControladorVista {
             else if (event.getCode() == KeyCode.G) confirmarTraspasoSalida();
             else return;
             event.consume();
+        });
+    }
+
+    /*---------------------------------------------------------------*/
+    /*-------------------- INTERFAZ PAUSABLE ----------------------- */
+    /*---------------------------------------------------------------*/
+
+    @Override
+    public MovimientoType getTipoMovimiento() {
+        return MovimientoType.TRASPASO;
+    }
+
+    @Override
+    public Object guardarBorrador() {
+        TraspasoSalidaBorradorDTO dto = new TraspasoSalidaBorradorDTO();
+
+        // Sucursal destino
+        dto.setSucursalNombre(buscador.getValue() != null ? buscador.getValue() : "");
+        dto.setSucursalId(sucursalSeleccionadaId);
+
+        // Comentario
+        dto.setComentario(comentario != null ? comentario.getText() : "");
+
+        // Items
+        List<TraspasoSalidaBorradorDTO.ItemTraspasoPlano> planos = new ArrayList<>();
+        for (traspasoSalida item : itemsTraspaso) {
+            TraspasoSalidaBorradorDTO.ItemTraspasoPlano p = new TraspasoSalidaBorradorDTO.ItemTraspasoPlano();
+
+            p.setClaveProducto(item.getClaveProducto());
+            p.setProducto(item.getProducto());
+            p.setDescripcion(item.getDescripcion());
+            p.setLote(item.getLote());
+            p.setCaducidad(item.getCaducidad());
+            p.setCantidad(item.getCantidad());
+            p.setPresentacion(item.getPresentacion());
+            p.setFactor(item.getFactor());
+            p.setNota(item.getNota());
+            p.setPrecioEntrada(item.getPrecioEntrada());
+            p.setPrecioIva(item.getPrecioIva());
+            p.setPrecioBruto(item.getPrecioBruto());
+            p.setPrecioTotal(item.getPrecioTotal());
+
+            // Convertir ubicaciones
+            List<TraspasoSalidaBorradorDTO.UbicacionPlano> ubicacionesPlano = new ArrayList<>();
+            for (UbicacionCompra u : item.getUbicaciones()) {
+                ubicacionesPlano.add(new TraspasoSalidaBorradorDTO.UbicacionPlano(u.getUbicacion(), u.getCantidad()));
+            }
+            p.setUbicaciones(ubicacionesPlano);
+
+            planos.add(p);
+        }
+        dto.setItems(planos);
+
+        return dto;
+    }
+
+    @Override
+    public void cargarBorrador(Object borrador) {
+        if (!(borrador instanceof TraspasoSalidaBorradorDTO)) return;
+        TraspasoSalidaBorradorDTO dto = (TraspasoSalidaBorradorDTO) borrador;
+
+        Platform.runLater(() -> {
+            // Sucursal
+            if (dto.getSucursalNombre() != null && !dto.getSucursalNombre().isEmpty()) {
+                buscador.setValue(dto.getSucursalNombre());
+                buscador.getEditor().setText(dto.getSucursalNombre());
+                sucursalSeleccionadaId = dto.getSucursalId();
+            }
+
+            // Comentario
+            if (comentario != null) {
+                comentario.setText(dto.getComentario() != null ? dto.getComentario() : "");
+            }
+
+            // Items
+            if (dto.getItems() != null) {
+                List<traspasoSalida> nuevos = new ArrayList<>();
+                for (TraspasoSalidaBorradorDTO.ItemTraspasoPlano p : dto.getItems()) {
+                    traspasoSalida item = new traspasoSalida(); // Constructor vacío
+
+                    item.setClaveProducto(p.getClaveProducto());
+                    item.setProducto(p.getProducto());
+                    item.setDescripcion(p.getDescripcion());
+                    item.setLote(p.getLote());
+                    item.setCaducidad(p.getCaducidad());
+                    item.setCantidad(p.getCantidad());
+                    item.setPresentacion(p.getPresentacion());
+                    item.setFactor(p.getFactor());
+                    item.setNota(p.getNota());
+                    item.setPrecioEntrada(p.getPrecioEntrada());
+                    item.setPrecioIva(p.getPrecioIva());
+                    item.setPrecioBruto(p.getPrecioBruto());
+                    item.setPrecioTotal(p.getPrecioTotal());
+
+                    // Restaurar ubicaciones
+                    if (p.getUbicaciones() != null) {
+                        List<UbicacionCompra> ubicaciones = new ArrayList<>();
+                        for (TraspasoSalidaBorradorDTO.UbicacionPlano up : p.getUbicaciones()) {
+                            UbicacionCompra u = new UbicacionCompra(up.getUbicacion(), up.getCantidad());
+                            ubicaciones.add(u);
+                        }
+                        item.setUbicaciones(ubicaciones); // Esto actualizará ubicacionResumen automáticamente
+                    }
+
+                    nuevos.add(item);
+                }
+                itemsTraspaso.setAll(nuevos);
+            }
+
+            // Actualizar UI
+            actualizarSeleccionGeneral();
+            actualizarTotalTraspaso();
         });
     }
 }

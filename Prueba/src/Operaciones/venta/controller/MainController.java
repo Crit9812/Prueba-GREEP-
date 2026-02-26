@@ -36,8 +36,13 @@ import javafx.util.Callback;
 import Operaciones.traspasoSalida.model.traspasoSalida;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
+import VentanaPrincipal.controller.Pausable;
+import VentanaPrincipal.controller.MovimientoType;
+import Compartido.helper.BorradorService;
+import Operaciones.venta.model.VentaBorradorDTO;
+import Operaciones.compra.model.UbicacionCompra;
 
-public class MainController implements ControladorVista {
+public class MainController implements ControladorVista, Pausable {
 
     @FXML private StackPane root;
     @FXML private VBox contenedor;
@@ -352,6 +357,8 @@ public class MainController implements ControladorVista {
                             overlayCarga.ocultar();
                         }
                         mostrarConfirmacionReporteVenta(facturaTexto, nombreCliente, nota, copiaItems);
+                        BorradorService.getInstance().eliminar(MovimientoType.VENTA);
+                        itemsVenta.clear();
                     } else {
                         if (overlayCarga != null) {
                             overlayCarga.ocultar();
@@ -372,6 +379,7 @@ public class MainController implements ControladorVista {
                 hilo.start();
             }
         });
+
     }
 
     private void mostrarConfirmacionReporteVenta(String factura,
@@ -709,6 +717,128 @@ public class MainController implements ControladorVista {
             else return;
             event.consume();
         });
+    }
+
+    /*---------------------------------------------------------------*/
+    /*-------------------- INTERFAZ PAUSABLE ----------------------- */
+    /*---------------------------------------------------------------*/
+
+    @Override
+    public MovimientoType getTipoMovimiento() {
+        return MovimientoType.VENTA;
+    }
+
+    @Override
+    public Object guardarBorrador() {
+        VentaBorradorDTO dto = new VentaBorradorDTO();
+
+        // Cliente
+        dto.setClienteNombre(obtenerClienteSeleccionado());
+        dto.setClienteId(clienteSeleccionadoId);
+        dto.setNumeroFactura(factura != null ? factura.getText() : "");
+        dto.setComentario(comentario != null ? comentario.getText() : "");
+
+        // Items
+        List<VentaBorradorDTO.ItemVentaPlano> planos = new ArrayList<>();
+        for (traspasoSalida item : itemsVenta) {
+            VentaBorradorDTO.ItemVentaPlano p = new VentaBorradorDTO.ItemVentaPlano();
+            p.setClaveProducto(item.getClaveProducto());
+            p.setProducto(item.getProducto());
+            p.setDescripcion(item.getDescripcion());
+            p.setLote(item.getLote());
+            p.setCaducidad(item.getCaducidad());
+            p.setCantidad(item.getCantidad());
+            p.setPresentacion(item.getPresentacion());
+            p.setFactor(item.getFactor());
+            p.setNota(item.getNota());
+            p.setPrecioEntrada(item.getPrecioEntrada());
+            p.setPrecioIva(item.getPrecioIva());
+            p.setPrecioBruto(item.getPrecioBruto());
+            p.setPrecioTotal(item.getPrecioTotal());
+
+            // Ubicaciones
+            List<VentaBorradorDTO.UbicacionPlano> ubicacionesPlano = new ArrayList<>();
+            for (UbicacionCompra u : item.getUbicaciones()) {
+                ubicacionesPlano.add(new VentaBorradorDTO.UbicacionPlano(u.getUbicacion(), u.getCantidad()));
+            }
+            p.setUbicaciones(ubicacionesPlano);
+
+            planos.add(p);
+        }
+        dto.setItems(planos);
+
+        return dto;
+    }
+
+    @Override
+    public void cargarBorrador(Object borrador) {
+        if (!(borrador instanceof VentaBorradorDTO)) return;
+        VentaBorradorDTO dto = (VentaBorradorDTO) borrador;
+
+        Platform.runLater(() -> {
+            // Cliente
+            if (dto.getClienteNombre() != null && !dto.getClienteNombre().isEmpty()) {
+                buscador.setValue(dto.getClienteNombre());
+                buscador.getEditor().setText(dto.getClienteNombre());
+                clienteSeleccionadoId = dto.getClienteId();
+            }
+
+            // Factura y comentario
+            if (factura != null) {
+                factura.setText(dto.getNumeroFactura() != null ? dto.getNumeroFactura() : "");
+            }
+            if (comentario != null) {
+                comentario.setText(dto.getComentario() != null ? dto.getComentario() : "");
+            }
+
+            // Items
+            if (dto.getItems() != null) {
+                List<traspasoSalida> nuevos = new ArrayList<>();
+                for (VentaBorradorDTO.ItemVentaPlano p : dto.getItems()) {
+                    traspasoSalida item = new traspasoSalida(); // Constructor vacío
+
+                    item.setClaveProducto(p.getClaveProducto());
+                    item.setProducto(p.getProducto());
+                    item.setDescripcion(p.getDescripcion());
+                    item.setLote(p.getLote());
+                    item.setCaducidad(p.getCaducidad());
+                    item.setCantidad(p.getCantidad());
+                    item.setPresentacion(p.getPresentacion());
+                    item.setFactor(p.getFactor());
+                    item.setNota(p.getNota());
+                    item.setPrecioEntrada(p.getPrecioEntrada());
+                    item.setPrecioIva(p.getPrecioIva());
+                    item.setPrecioBruto(p.getPrecioBruto());
+                    item.setPrecioTotal(p.getPrecioTotal());
+
+                    // Restaurar ubicaciones
+                    if (p.getUbicaciones() != null) {
+                        List<UbicacionCompra> ubicaciones = new ArrayList<>();
+                        for (VentaBorradorDTO.UbicacionPlano up : p.getUbicaciones()) {
+                            UbicacionCompra u = new UbicacionCompra(up.getUbicacion(), up.getCantidad());
+                            ubicaciones.add(u);
+                        }
+                        item.setUbicaciones(ubicaciones);
+                    }
+
+                    nuevos.add(item);
+                }
+                itemsVenta.setAll(nuevos);
+            }
+
+            // Actualizar UI
+            actualizarSeleccionGeneral();
+            actualizarTotalVenta();
+        });
+    }
+
+    // Método auxiliar para obtener el cliente seleccionado
+    private String obtenerClienteSeleccionado() {
+        String valor = buscador.getValue();
+        if (valor == null || valor.isBlank()) {
+            valor = buscador.getEditor().getText();
+        }
+        return valor != null ? valor.trim() : "";
     }
 
 }

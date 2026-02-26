@@ -4,12 +4,14 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.*?>
 
+<?import javafx.geometry.Insets?>
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:id="navbar"
       prefWidth="55"
       minWidth="55"
       maxWidth="55"
+      maxHeight="Infinity"
       styleClass="navbar"
       fx:controller="Compartido.controller.navbarController"
       stylesheets="@/Compartido/style/estilos.css">
@@ -77,4 +79,24 @@
         <Label fx:id="labelConfiguracion" text="Configuración" styleClass="hover-label"
                managed="false" visible="false" />
     </HBox>
+
+    <Region VBox.vgrow="ALWAYS" prefHeight="9999" />
+
+    <HBox styleClass="navbar-hbox">
+        <VBox.margin>
+            <Insets bottom="15"/>
+        </VBox.margin>
+        <Button fx:id="botonPausa"
+                onMouseClicked="#enEspera"
+                styleClass="boton">
+            <graphic>
+                <ImageView>
+                    <image><Image url="@/img/pausa1.png" /></image>
+                </ImageView>
+            </graphic>
+        </Button>
+    </HBox>
+
+
+
 </VBox>

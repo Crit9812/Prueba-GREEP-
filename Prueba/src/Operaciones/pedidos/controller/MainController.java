@@ -1,5 +1,9 @@
 package Operaciones.pedidos.controller;
 
+import VentanaPrincipal.controller.Pausable;
+import VentanaPrincipal.controller.MovimientoType;
+import Compartido.helper.BorradorService;
+import Operaciones.pedidos.model.PedidoBorradorDTO;
 import Compartido.exportar.exportador;
 import Compartido.helper.AtajosTecladoHelper;
 import Compartido.helper.OverlayCarga;
@@ -23,10 +27,13 @@ import javafx.stage.Stage;
 import javafx.stage.Modality;
 import javafx.util.Callback;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 
-public class MainController implements ControladorVista{
+public class MainController implements ControladorVista, Pausable{
 
     @FXML private StackPane root;
     @FXML private VBox contenedor;
@@ -192,27 +199,59 @@ public class MainController implements ControladorVista{
             new Alert(Alert.AlertType.WARNING, "No hay datos para exportar.").showAndWait();
             return;
         }
+
         if (overlayCarga != null) {
             overlayCarga.mostrar();
         }
+
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
-                exportador.exportarTabla(contenidoTabla, "pedidos", "pdf");
+                try {
+                    // La exportación debe ejecutarse en el hilo de JavaFX porque usa DirectoryChooser
+                    Platform.runLater(() -> {
+                        try {
+                            exportador.exportarTabla(contenidoTabla, "pedidos", "pdf");
+
+                            Platform.runLater(() -> {
+                                if (overlayCarga != null) {
+                                    overlayCarga.ocultar();
+                                }
+                                BorradorService.getInstance().eliminar(MovimientoType.PEDIDO);
+                                mostrarAlerta("Éxito", "El pedido se exportó correctamente.");
+                            });
+
+                        } catch (Exception e) {
+                            Platform.runLater(() -> {
+                                if (overlayCarga != null) {
+                                    overlayCarga.ocultar();
+                                }
+                                mostrarError("Error al exportar: " + e.getMessage());
+                            });
+                            e.printStackTrace();
+                        }
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException("Error al exportar: " + e.getMessage(), e);
+                }
                 return null;
             }
         };
-        task.setOnSucceeded(event -> {
-            if (overlayCarga != null) {
-                overlayCarga.ocultar();
-            }
-        });
+
         task.setOnFailed(event -> {
-            if (overlayCarga != null) {
-                overlayCarga.ocultar();
+            Throwable exception = task.getException();
+            if (exception != null) {
+                Platform.runLater(() -> {
+                    if (overlayCarga != null) {
+                        overlayCarga.ocultar();
+                    }
+                    mostrarError("Error en exportación: " + exception.getMessage());
+                });
             }
-            mostrarError("No se pudo exportar el pedido.");
         });
+
         Thread hilo = new Thread(task);
         hilo.setDaemon(true);
         hilo.start();
@@ -327,8 +366,67 @@ public class MainController implements ControladorVista{
             if (event.getCode() == KeyCode.A) miCheckBoxSeleccionarTodo.setSelected(true);
             else if (event.getCode() == KeyCode.E) eliminarProducto();
             else if (event.getCode() == KeyCode.N) abrirFormularioPedido();
+            else if (event.getCode() == KeyCode.D) descargar();
             else return;
             event.consume();
+        });
+    }
+
+    /*---------------------------------------------------------------*/
+    /*-------------------- INTERFAZ PAUSABLE ----------------------- */
+    /*---------------------------------------------------------------*/
+
+    @Override
+    public MovimientoType getTipoMovimiento() {
+        return MovimientoType.PEDIDO;
+    }
+
+    @Override
+    public Object guardarBorrador() {
+        PedidoBorradorDTO dto = new PedidoBorradorDTO();
+        List<PedidoBorradorDTO.ItemPedidoPlano> planos = new ArrayList<>();
+
+        for (itemPedido item : itemsPedido) {
+            PedidoBorradorDTO.ItemPedidoPlano p = new PedidoBorradorDTO.ItemPedidoPlano();
+            p.setClaveProducto(item.getClaveProducto());
+            p.setProducto(item.getProducto());
+            p.setDescripcion(item.getDescripcion());
+            p.setCantidad(item.getCantidad());
+            p.setClaveAlterna(item.getClaveAlterna());
+            p.setPresentacion(item.getPresentacion());
+            p.setFactor(item.getFactor());
+            planos.add(p);
+        }
+
+        dto.setItems(planos);
+        return dto;
+    }
+
+    @Override
+    public void cargarBorrador(Object borrador) {
+        if (!(borrador instanceof PedidoBorradorDTO)) return;
+        PedidoBorradorDTO dto = (PedidoBorradorDTO) borrador;
+
+        Platform.runLater(() -> {
+            if (dto.getItems() != null) {
+                List<itemPedido> nuevos = new ArrayList<>();
+                for (PedidoBorradorDTO.ItemPedidoPlano p : dto.getItems()) {
+                    itemPedido item = new itemPedido(
+                            p.getClaveProducto(),
+                            p.getProducto(),
+                            p.getDescripcion(),
+                            p.getCantidad(),
+                            p.getClaveAlterna(),
+                            p.getPresentacion(),
+                            p.getFactor()
+                    );
+                    nuevos.add(item);
+                }
+                itemsPedido.setAll(nuevos);
+            }
+            // Actualizar selección todo (siempre queda en false al cargar)
+            miCheckBoxSeleccionarTodo.setSelected(false);
+            refrescarTabla();
         });
     }
 

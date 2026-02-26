@@ -54,6 +54,23 @@ public class traspasoSalida {
         this.precioTotal.set(precioTotal != null ? precioTotal : "");
     }
 
+    // Constructor vacío
+    public traspasoSalida() {
+        this.claveProducto.set("");
+        this.producto.set("");
+        this.descripcion.set("");
+        this.lote.set("");
+        this.caducidad.set("");
+        this.cantidad.set(0);
+        this.presentacion.set("");
+        this.factor.set(0);
+        this.nota.set("");
+        this.precioEntrada.set("");
+        this.precioIva.set("");
+        this.precioBruto.set("");
+        this.precioTotal.set("");
+    }
+
     private String armarResumenUbicaciones() {
         if (ubicaciones.isEmpty()) {
             return "";

@@ -58,6 +58,26 @@ public class compra {
         this.proveedorNombre.set(proveedorNombre != null ? proveedorNombre : "");
     }
 
+    // Constructor vacío
+    public compra() {
+        this.claveProducto.set("");
+        this.producto.set("");
+        this.descripcion.set("");
+        this.lote.set("");
+        this.caducidad.set("");
+        this.cantidad.set(0);
+        this.claveAlterna.set("");
+        this.presentacion.set("");
+        this.factor.set("");
+        this.precioEntrada.set("");
+        this.precioIva.set("");
+        this.precioBruto.set("");
+        this.precioTotal.set("");
+        this.aplicaIva.set(false);
+        this.proveedorId.set("");
+        this.proveedorNombre.set("");
+    }
+
     private String armarResumenUbicaciones() {
         if (ubicaciones.isEmpty()) {
             return "";
