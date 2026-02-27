@@ -61,6 +61,18 @@
     -fx-background-color: #7ecb70;
 }
 
+.boton-ocultar-contrasena {
+    -fx-background-color: #fff;
+    -fx-border-color: #b2b2b2;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-text-fill: #333;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 4 8;
+}
+
 .seccion-atajo {
     -fx-font-size: 14px;
     -fx-font-weight: bold;

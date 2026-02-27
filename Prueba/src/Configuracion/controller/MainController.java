@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -43,8 +44,12 @@ public class MainController implements ControladorVista {
     @FXML private Label lblUsuarioApellidoM;
     @FXML private Label lblUsuarioUserName;
     @FXML private Label lblUsuarioRol;
-    @FXML private Label lblUsuarioContrasena;
     @FXML private Label lblUsuarioEstado;
+    @FXML private PasswordField txtUsuarioContrasenaOculta;
+    @FXML private TextField txtUsuarioContrasenaVisible;
+    @FXML private Button btnToggleContrasenaUsuario;
+
+    private boolean usuarioContrasenaVisible = false;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -53,8 +58,16 @@ public class MainController implements ControladorVista {
     public void initialize() {
         cargarDatosSucursalActual();
         cargarDatosUsuarioSesion();
+        configurarCampoContrasenaUsuario();
         configurarValidaciones();
         recargarIva();
+    }
+
+    private void configurarCampoContrasenaUsuario() {
+        txtUsuarioContrasenaVisible.setVisible(false);
+        txtUsuarioContrasenaVisible.setManaged(false);
+        txtUsuarioContrasenaOculta.setVisible(true);
+        txtUsuarioContrasenaOculta.setManaged(true);
     }
 
     private void cargarDatosUsuarioSesion() {
@@ -84,7 +97,9 @@ public class MainController implements ControladorVista {
                     lblUsuarioApellidoM.setText(valorTexto(rs.getString("apellidoMUsuario")));
                     lblUsuarioUserName.setText(valorTexto(rs.getString("userName")));
                     lblUsuarioRol.setText(valorTexto(rs.getString("rolUsuario")));
-                    lblUsuarioContrasena.setText(valorTexto(rs.getString("contrasenaUsuario")));
+                    String contrasena = valorTexto(rs.getString("contrasenaUsuario"));
+                    txtUsuarioContrasenaOculta.setText(contrasena);
+                    txtUsuarioContrasenaVisible.setText(contrasena);
                     lblUsuarioEstado.setText(valorTexto(rs.getString("estado")));
                     return;
                 }
@@ -181,8 +196,28 @@ public class MainController implements ControladorVista {
         lblUsuarioApellidoM.setText("--");
         lblUsuarioUserName.setText("--");
         lblUsuarioRol.setText("--");
-        lblUsuarioContrasena.setText("--");
+        txtUsuarioContrasenaOculta.setText("--");
+        txtUsuarioContrasenaVisible.setText("--");
         lblUsuarioEstado.setText("--");
+    }
+
+    @FXML
+    private void toggleContrasenaUsuario() {
+        usuarioContrasenaVisible = !usuarioContrasenaVisible;
+
+        if (usuarioContrasenaVisible) {
+            txtUsuarioContrasenaVisible.setText(txtUsuarioContrasenaOculta.getText());
+            txtUsuarioContrasenaVisible.setVisible(true);
+            txtUsuarioContrasenaVisible.setManaged(true);
+            txtUsuarioContrasenaOculta.setVisible(false);
+            txtUsuarioContrasenaOculta.setManaged(false);
+        } else {
+            txtUsuarioContrasenaOculta.setText(txtUsuarioContrasenaVisible.getText());
+            txtUsuarioContrasenaOculta.setVisible(true);
+            txtUsuarioContrasenaOculta.setManaged(true);
+            txtUsuarioContrasenaVisible.setVisible(false);
+            txtUsuarioContrasenaVisible.setManaged(false);
+        }
     }
 
     @FXML

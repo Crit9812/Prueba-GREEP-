@@ -89,7 +89,11 @@
                         <Label fx:id="lblUsuarioRol" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="3" />
 
                         <Label text="Contraseña:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioContrasena" text="--" styleClass="valor-campo" GridPane.rowIndex="6" GridPane.columnIndex="3" />
+                        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="6" GridPane.columnIndex="3">
+                            <PasswordField fx:id="txtUsuarioContrasenaOculta" text="--" editable="false" focusTraversable="false" prefWidth="220" />
+                            <TextField fx:id="txtUsuarioContrasenaVisible" text="--" editable="false" focusTraversable="false" visible="false" managed="false" prefWidth="220" />
+                            <Button fx:id="btnToggleContrasenaUsuario" text="👁" onAction="#toggleContrasenaUsuario" styleClass="boton-ocultar-contrasena" />
+                        </HBox>
 
                         <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="2" />
                         <Label fx:id="lblUsuarioEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="3" />
