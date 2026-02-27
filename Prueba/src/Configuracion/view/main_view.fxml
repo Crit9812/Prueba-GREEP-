@@ -19,98 +19,123 @@
 
                 <Label text="Configuración del Sistema" styleClass="titulo-config" />
 
+                <!-- Panel dual: Información del Sistema (izquierda) e Información del Usuario (derecha) -->
+                <HBox spacing="20" HBox.hgrow="ALWAYS">
+                    <!-- Panel izquierdo: Información del Sistema -->
+                    <VBox spacing="15" styleClass="panel-config" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                        <padding>
+                            <Insets top="20" right="20" bottom="20" left="20" />
+                        </padding>
+
+                        <Label text="INFORMACIÓN DEL SISTEMA" styleClass="subtitulo-config" />
+
+                        <GridPane hgap="15" vgap="8" GridPane.vgrow="ALWAYS">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="120" prefWidth="140" />
+                                <ColumnConstraints hgrow="ALWAYS" minWidth="200" />
+                            </columnConstraints>
+
+                            <Label text="Sucursal:" styleClass="etiqueta-campo" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalNombre" text="--" styleClass="valor-campo" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                            <Label text="Domicilio:" styleClass="etiqueta-campo" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalDomicilio" text="--" styleClass="valor-campo" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                            <Label text="CP:" styleClass="etiqueta-campo" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalCp" text="--" styleClass="valor-campo" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                            <Label text="Colonia:" styleClass="etiqueta-campo" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalColonia" text="--" styleClass="valor-campo" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                            <Label text="Número int.:" styleClass="etiqueta-campo" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalNumeroInt" text="--" styleClass="valor-campo" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                            <Label text="Número ext.:" styleClass="etiqueta-campo" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalNumeroExt" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                            <Label text="Ciudad:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalCiudad" text="--" styleClass="valor-campo" GridPane.rowIndex="6" GridPane.columnIndex="1" />
+
+                            <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="1" />
+
+                            <Label text="Localidad:" styleClass="etiqueta-campo" GridPane.rowIndex="8" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalLocalidad" text="--" styleClass="valor-campo" GridPane.rowIndex="8" GridPane.columnIndex="1" />
+
+                            <Label text="País:" styleClass="etiqueta-campo" GridPane.rowIndex="9" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalPais" text="--" styleClass="valor-campo" GridPane.rowIndex="9" GridPane.columnIndex="1" />
+
+                            <Label text="Correo:" styleClass="etiqueta-campo" GridPane.rowIndex="10" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalCorreo" text="--" styleClass="valor-campo" GridPane.rowIndex="10" GridPane.columnIndex="1" />
+
+                            <Label text="Teléfono:" styleClass="etiqueta-campo" GridPane.rowIndex="11" GridPane.columnIndex="0" />
+                            <Label fx:id="lblSucursalTelefono" text="--" styleClass="valor-campo" GridPane.rowIndex="11" GridPane.columnIndex="1" />
+                        </GridPane>
+                    </VBox>
+
+                    <!-- Panel derecho: Información del Usuario -->
+                    <VBox spacing="15" styleClass="panel-config" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                        <padding>
+                            <Insets top="20" right="20" bottom="20" left="20" />
+                        </padding>
+
+                        <Label text="INFORMACIÓN DEL USUARIO" styleClass="subtitulo-config" />
+
+                        <GridPane hgap="15" vgap="8" GridPane.vgrow="ALWAYS">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="120" prefWidth="140" />
+                                <ColumnConstraints hgrow="ALWAYS" minWidth="200" />
+                            </columnConstraints>
+
+                            <Label text="ID usuario:" styleClass="etiqueta-campo" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioId" text="--" styleClass="valor-campo" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                            <Label text="Nombre:" styleClass="etiqueta-campo" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioNombre" text="--" styleClass="valor-campo" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                            <Label text="Apellido paterno:" styleClass="etiqueta-campo" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioApellidoP" text="--" styleClass="valor-campo" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                            <Label text="Apellido materno:" styleClass="etiqueta-campo" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioApellidoM" text="--" styleClass="valor-campo" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                            <Label text="Nombre de usuario:" styleClass="etiqueta-campo" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioUserName" text="--" styleClass="valor-campo" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                            <Label text="Rol:" styleClass="etiqueta-campo" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioRol" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                            <Label text="Contraseña:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                            <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="6" GridPane.columnIndex="1">
+                                <PasswordField fx:id="txtUsuarioContrasenaOculta" text="--" editable="false" focusTraversable="false" HBox.hgrow="ALWAYS" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-background-insets: 0; -fx-background-radius: 0; -fx-border-width: 0;" />
+                                <TextField fx:id="txtUsuarioContrasenaVisible" text="--" editable="false" focusTraversable="false" visible="false" managed="false" HBox.hgrow="ALWAYS" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-background-insets: 0; -fx-background-radius: 0; -fx-border-width: 0;" />
+                                <Button fx:id="btnToggleContrasenaUsuario" text="👁" onAction="#toggleContrasenaUsuario" styleClass="boton-ocultar-contrasena" />
+                            </HBox>
+
+                            <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                            <Label fx:id="lblUsuarioEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="1" />
+                        </GridPane>
+                    </VBox>
+                </HBox>
+
+                <!-- Panel: Configuración de IVA -->
                 <VBox spacing="15" styleClass="panel-config">
                     <padding>
                         <Insets top="20" right="20" bottom="20" left="20" />
                     </padding>
 
-                    <Label text="Configuración general" styleClass="subtitulo-config" />
-
-                    <GridPane hgap="30" vgap="8">
-                        <columnConstraints>
-                            <ColumnConstraints minWidth="160" prefWidth="180" />
-                            <ColumnConstraints hgrow="ALWAYS" />
-                            <ColumnConstraints minWidth="160" prefWidth="180" />
-                            <ColumnConstraints hgrow="ALWAYS" />
-                        </columnConstraints>
-
-                        <Label text="Sucursal:" styleClass="etiqueta-campo" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalNombre" text="--" styleClass="valor-campo" GridPane.rowIndex="0" GridPane.columnIndex="1" />
-
-                        <Label text="Domicilio:" styleClass="etiqueta-campo" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalDomicilio" text="--" styleClass="valor-campo" GridPane.rowIndex="1" GridPane.columnIndex="1" />
-
-                        <Label text="CP:" styleClass="etiqueta-campo" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalCp" text="--" styleClass="valor-campo" GridPane.rowIndex="2" GridPane.columnIndex="1" />
-
-                        <Label text="Colonia:" styleClass="etiqueta-campo" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalColonia" text="--" styleClass="valor-campo" GridPane.rowIndex="3" GridPane.columnIndex="1" />
-
-                        <Label text="Número int.:" styleClass="etiqueta-campo" GridPane.rowIndex="4" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalNumeroInt" text="--" styleClass="valor-campo" GridPane.rowIndex="4" GridPane.columnIndex="1" />
-
-                        <Label text="Número ext.:" styleClass="etiqueta-campo" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalNumeroExt" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="1" />
-
-                        <Label text="Ciudad:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalCiudad" text="--" styleClass="valor-campo" GridPane.rowIndex="6" GridPane.columnIndex="1" />
-
-                        <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="1" />
-
-                        <Label text="Localidad:" styleClass="etiqueta-campo" GridPane.rowIndex="8" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalLocalidad" text="--" styleClass="valor-campo" GridPane.rowIndex="8" GridPane.columnIndex="1" />
-
-                        <Label text="País:" styleClass="etiqueta-campo" GridPane.rowIndex="9" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalPais" text="--" styleClass="valor-campo" GridPane.rowIndex="9" GridPane.columnIndex="1" />
-
-                        <Label text="Correo:" styleClass="etiqueta-campo" GridPane.rowIndex="10" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalCorreo" text="--" styleClass="valor-campo" GridPane.rowIndex="10" GridPane.columnIndex="1" />
-
-                        <Label text="Teléfono:" styleClass="etiqueta-campo" GridPane.rowIndex="11" GridPane.columnIndex="0" />
-                        <Label fx:id="lblSucursalTelefono" text="--" styleClass="valor-campo" GridPane.rowIndex="11" GridPane.columnIndex="1" />
-
-                        <Label text="ID usuario:" styleClass="etiqueta-campo" GridPane.rowIndex="0" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioId" text="--" styleClass="valor-campo" GridPane.rowIndex="0" GridPane.columnIndex="3" />
-
-                        <Label text="Nombre:" styleClass="etiqueta-campo" GridPane.rowIndex="1" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioNombre" text="--" styleClass="valor-campo" GridPane.rowIndex="1" GridPane.columnIndex="3" />
-
-                        <Label text="Apellido paterno:" styleClass="etiqueta-campo" GridPane.rowIndex="2" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioApellidoP" text="--" styleClass="valor-campo" GridPane.rowIndex="2" GridPane.columnIndex="3" />
-
-                        <Label text="Apellido materno:" styleClass="etiqueta-campo" GridPane.rowIndex="3" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioApellidoM" text="--" styleClass="valor-campo" GridPane.rowIndex="3" GridPane.columnIndex="3" />
-
-                        <Label text="Nombre de usuario:" styleClass="etiqueta-campo" GridPane.rowIndex="4" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioUserName" text="--" styleClass="valor-campo" GridPane.rowIndex="4" GridPane.columnIndex="3" />
-
-                        <Label text="Rol:" styleClass="etiqueta-campo" GridPane.rowIndex="5" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioRol" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="3" />
-
-                        <Label text="Contraseña:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="2" />
-                        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="6" GridPane.columnIndex="3">
-                            <PasswordField fx:id="txtUsuarioContrasenaOculta" text="--" editable="false" focusTraversable="false" prefWidth="220" />
-                            <TextField fx:id="txtUsuarioContrasenaVisible" text="--" editable="false" focusTraversable="false" visible="false" managed="false" prefWidth="220" />
-                            <Button fx:id="btnToggleContrasenaUsuario" text="👁" onAction="#toggleContrasenaUsuario" styleClass="boton-ocultar-contrasena" />
-                        </HBox>
-
-                        <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="2" />
-                        <Label fx:id="lblUsuarioEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="3" />
-                    </GridPane>
-
-                    <Separator />
+                    <Label text="CONFIGURACIÓN DE IVA" styleClass="subtitulo-config" />
 
                     <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="IVA global (%):" styleClass="etiqueta-campo" minWidth="160" />
+                        <Label text="IVA global (%):" styleClass="etiqueta-campo" minWidth="120" />
                         <TextField fx:id="txtIva" promptText="16" prefWidth="180" />
                         <Button fx:id="btnGuardarIva" text="Guardar IVA" onAction="#guardarIva" styleClass="btn-config" />
-                        <Button fx:id="btnRecargarIva" text="Recargar" onAction="#recargarIva" styleClass="btn-config" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="lblIvaActual" text="IVA actual: --" styleClass="valor-campo" />
                     </HBox>
-
-                    <Label fx:id="lblIvaActual" text="IVA actual: --" styleClass="valor-campo" />
                 </VBox>
 
+                <!-- Panel: Atajos de teclado en dos columnas -->
                 <VBox spacing="12" styleClass="panel-config">
                     <padding>
                         <Insets top="20" right="20" bottom="20" left="20" />
@@ -118,60 +143,83 @@
 
                     <Label text="CONTROLES / ATAJOS DE TECLADO" styleClass="subtitulo-config" />
 
-                    <Label text="GENERAL:" styleClass="seccion-atajo" />
-                    <VBox spacing="4">
-                        <Label text="• F1: Cerrar Sesión" styleClass="texto-atajo" />
-                        <Label text="• F2: Actualizar" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + B: Seleccionar barra de búsqueda" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + Space: Guardar un borrador de la interfaz actual" styleClass="texto-atajo" />
-                        <Label text="• Alt + F4: Cerrar el programa" styleClass="texto-atajo" />
-                    </VBox>
+                    <GridPane hgap="40" vgap="12">
+                        <columnConstraints>
+                            <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
+                            <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
+                        </columnConstraints>
 
-                    <Label text="NAVEGACIÓN ENTRE VENTANAS:" styleClass="seccion-atajo" />
-                    <VBox spacing="4">
-                        <Label text="• Shift + O: Menú de operaciones" styleClass="texto-atajo" />
-                        <Label text="• Shift + R: Menú de reportes" styleClass="texto-atajo" />
-                        <Label text="• Shift + CO: Menú de consultas" styleClass="texto-atajo" />
-                        <Label text="• Shift + A: Apartado de ajustes / configuración" styleClass="texto-atajo" />
-                        <Label text="• Shift + E: Ventana de Traspaso de Entrada" styleClass="texto-atajo" />
-                        <Label text="• Shift + S: Ventana de Traspaso de Salida" styleClass="texto-atajo" />
-                        <Label text="• Shift + CM: Ventana de Compra" styleClass="texto-atajo" />
-                        <Label text="• Shift + V: Ventana de Venta" styleClass="texto-atajo" />
-                        <Label text="• Shift + PE: Ventana de Pedidos" styleClass="texto-atajo" />
-                        <Label text="• Shift + AI: Ventana de Ajuste de Inventario" styleClass="texto-atajo" />
-                        <Label text="• Shift + RU: Ventana de Registrar Usuario" styleClass="texto-atajo" />
-                        <Label text="• Shift + I: Ventana de Inventario" styleClass="texto-atajo" />
-                        <Label text="• Shift + H: Ventana de Historial por Artículo" styleClass="texto-atajo" />
-                        <Label text="• Shift + F: Ventana de Historial por Factura" styleClass="texto-atajo" />
-                        <Label text="• Shift + U: Ventana de Utilidades" styleClass="texto-atajo" />
-                        <Label text="• Shift + P: Ventana de Productos" styleClass="texto-atajo" />
-                        <Label text="• Shift + PR: Ventana de Proveedores" styleClass="texto-atajo" />
-                        <Label text="• Shift + SU: Ventana de Sucursales" styleClass="texto-atajo" />
-                        <Label text="• Shift + C: Ventana de Clientes" styleClass="texto-atajo" />
-                        <Label text="• Shift + CL: Ventana de Claves" styleClass="texto-atajo" />
-                        <Label text="• Shift + CS: Ventana de Clasificación" styleClass="texto-atajo" />
-                    </VBox>
+                        <!-- Columna izquierda -->
+                        <VBox spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label text="GENERAL:" styleClass="seccion-atajo" />
+                            <VBox spacing="4">
+                                <Label text="• F1: Cerrar Sesión" styleClass="texto-atajo" />
+                                <Label text="• F2: Actualizar" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + B: Seleccionar barra de búsqueda" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + Space: Guardar un borrador" styleClass="texto-atajo" />
+                                <Label text="• Alt + F4: Cerrar el programa" styleClass="texto-atajo" />
+                            </VBox>
+                        </VBox>
 
-                    <Label text="ACCIONES EN VENTANAS:" styleClass="seccion-atajo" />
-                    <VBox spacing="4">
-                        <Label text="• Ctrl + A: Seleccionar todo" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + E: Eliminar seleccionado" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + N: Abrir formulario de Agregar" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + G: Confirmar o Guardar movimiento" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + I: Importar" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + R: Exportar" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + D: Descargar (plantilla)" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + P: Vista Previa" styleClass="texto-atajo" />
-                    </VBox>
+                        <!-- Columna derecha -->
+                        <VBox spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label text="ACCIONES EN VENTANAS:" styleClass="seccion-atajo" />
+                            <VBox spacing="4">
+                                <Label text="• Ctrl + A: Seleccionar todo" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + E: Eliminar seleccionado" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + N: Abrir formulario de Agregar" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + G: Confirmar o Guardar" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + I: Importar" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + R: Exportar" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + D: Descargar plantilla" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + P: Vista Previa" styleClass="texto-atajo" />
+                            </VBox>
+                        </VBox>
 
-                    <Label text="ACCIONES ESPECÍFICAS:" styleClass="seccion-atajo" />
-                    <VBox spacing="4">
-                        <Label text="• Ctrl + N + M: Agregar Nueva Marca en Clasificación" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + N + E: Agregar Nueva Etiqueta en Clasificación" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + N + B: Agregar Nueva Ubicación en Clasificación" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + N + U: Agregar Nueva Unidad de medida en Clasificación" styleClass="texto-atajo" />
-                        <Label text="• Ctrl + Q: Abrir Formulario de Quitar Producto en Ajuste Inventario" styleClass="texto-atajo" />
-                    </VBox>
+                        <!-- Fila 2, Columna izquierda -->
+                        <VBox spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label text="NAVEGACIÓN ENTRE VENTANAS:" styleClass="seccion-atajo" />
+                            <VBox spacing="4">
+                                <Label text="• Shift + O: Menú de operaciones" styleClass="texto-atajo" />
+                                <Label text="• Shift + R: Menú de reportes" styleClass="texto-atajo" />
+                                <Label text="• Shift + CO: Menú de consultas" styleClass="texto-atajo" />
+                                <Label text="• Shift + A: Ajustes" styleClass="texto-atajo" />
+                                <Label text="• Shift + E: Traspaso Entrada" styleClass="texto-atajo" />
+                                <Label text="• Shift + S: Traspaso Salida" styleClass="texto-atajo" />
+                                <Label text="• Shift + CM: Compra" styleClass="texto-atajo" />
+                                <Label text="• Shift + V: Venta" styleClass="texto-atajo" />
+                                <Label text="• Shift + PE: Pedidos" styleClass="texto-atajo" />
+                                <Label text="• Shift + AI: Ajuste Inventario" styleClass="texto-atajo" />
+                                <Label text="• Shift + RU: Registrar Usuario" styleClass="texto-atajo" />
+                                <Label text="• Shift + I: Inventario" styleClass="texto-atajo" />
+                                <Label text="• Shift + H: Historial por Artículo" styleClass="texto-atajo" />
+                            </VBox>
+                        </VBox>
+
+                        <!-- Fila 2, Columna derecha -->
+                        <VBox spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label text="CONTINUACIÓN NAVEGACIÓN:" styleClass="seccion-atajo" />
+                            <VBox spacing="4">
+                                <Label text="• Shift + F: Historial por Factura" styleClass="texto-atajo" />
+                                <Label text="• Shift + U: Utilidades" styleClass="texto-atajo" />
+                                <Label text="• Shift + P: Productos" styleClass="texto-atajo" />
+                                <Label text="• Shift + PR: Proveedores" styleClass="texto-atajo" />
+                                <Label text="• Shift + SU: Sucursales" styleClass="texto-atajo" />
+                                <Label text="• Shift + C: Clientes" styleClass="texto-atajo" />
+                                <Label text="• Shift + CL: Claves" styleClass="texto-atajo" />
+                                <Label text="• Shift + CS: Clasificación" styleClass="texto-atajo" />
+                            </VBox>
+
+                            <Label text="ACCIONES ESPECÍFICAS:" styleClass="seccion-atajo" />
+                            <VBox spacing="4">
+                                <Label text="• Ctrl + N + M: Nueva Marca" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + N + E: Nueva Etiqueta" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + N + B: Nueva Ubicación" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + N + U: Nueva Unidad" styleClass="texto-atajo" />
+                                <Label text="• Ctrl + Q: Quitar Producto" styleClass="texto-atajo" />
+                            </VBox>
+                        </VBox>
+                    </GridPane>
                 </VBox>
             </VBox>
         </content>

@@ -50,15 +50,15 @@
 }
 
 .btn-config {
-    -fx-background-color: #91D485;
-    -fx-text-fill: #1f3a1f;
+    -fx-background-color: #333;
+    -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
     -fx-cursor: hand;
 }
 
 .btn-config:hover {
-    -fx-background-color: #7ecb70;
+    -fx-background-color: #444;
 }
 
 .boton-ocultar-contrasena {

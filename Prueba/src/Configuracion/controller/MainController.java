@@ -2,6 +2,7 @@ package Configuracion.controller;
 
 import Compartido.model.IvaConfigService;
 import Compartido.sesion.SesionUsuario;
+import Compartido.helper.RefrescoHelper;
 import VentanaPrincipal.controller.ControladorVista;
 import conexion.Conexion;
 import javafx.fxml.FXML;
@@ -24,8 +25,6 @@ public class MainController implements ControladorVista {
     @FXML private VBox contenedor;
     @FXML private TextField txtIva;
     @FXML private Label lblIvaActual;
-    @FXML private Button btnGuardarIva;
-    @FXML private Button btnRecargarIva;
     @FXML private Label lblSucursalNombre;
     @FXML private Label lblSucursalDomicilio;
     @FXML private Label lblSucursalCp;
@@ -61,6 +60,9 @@ public class MainController implements ControladorVista {
         configurarCampoContrasenaUsuario();
         configurarValidaciones();
         recargarIva();
+
+        RefrescoHelper.setVistaActual("configuracion");
+        RefrescoHelper.registrarRefresco("configuracion", this::recargarIva);
     }
 
     private void configurarCampoContrasenaUsuario() {

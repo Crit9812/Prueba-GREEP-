@@ -430,12 +430,25 @@ public class encabezadoController {
 
     @FXML
     private void salir() {
-        login.controller.MainController controlador = new login.controller.MainController();
-        controllerInterfaz.ControllerInterfaz.cambiarVista(
-                "/login/view/main_view.fxml",
-                "/login/style/estilos.css",
-                controlador
-        );
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Cerrar sesión");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Está seguro que desea cerrar la sesión?");
+
+        ButtonType btnSi = new ButtonType("Sí");
+        ButtonType btnNo = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
+        confirmacion.getButtonTypes().setAll(btnSi, btnNo);
+
+        confirmacion.showAndWait().ifPresent(response -> {
+            if (response == btnSi) {
+                login.controller.MainController controlador = new login.controller.MainController();
+                controllerInterfaz.ControllerInterfaz.cambiarVista(
+                        "/login/view/main_view.fxml",
+                        "/login/style/estilos.css",
+                        controlador
+                );
+            }
+        });
     }
 
     @FXML
