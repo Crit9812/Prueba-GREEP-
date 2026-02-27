@@ -1063,26 +1063,57 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         cbProductoNombre.setValue(itemParaEditar.getProducto());
         txtDescripcion.setText(itemParaEditar.getDescripcion());
 
+        // Al sincronizar clave/producto/descripción se disparan listeners que pueden limpiar
+        // campos dependientes. Reaplicamos la información en el siguiente ciclo de UI para
+        // garantizar que toda la información del registro quede precargada en edición.
+        Platform.runLater(this::aplicarDatosItemEnEdicion);
+    }
+
+    private void aplicarDatosItemEnEdicion() {
+        if (itemParaEditar == null) {
+            return;
+        }
+
+        if (txtDescripcion != null) {
+            txtDescripcion.setText(itemParaEditar.getDescripcion());
+        }
+
         if (txtNota != null) {
             txtNota.setText(itemParaEditar.getNota());
         }
 
-        txtLote.setText(itemParaEditar.getLote());
+        if (txtLote != null) {
+            txtLote.setText(itemParaEditar.getLote());
+        }
         configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
         loteValidado = true;
         caducidadValidada = true;
-        txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
-        cbPresentacion.setValue(itemParaEditar.getPresentacion());
-        txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
+        if (txtCantidad != null) {
+            txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
+        }
+        if (cbPresentacion != null) {
+            cbPresentacion.setValue(itemParaEditar.getPresentacion());
+        }
+        if (txtFactor != null) {
+            txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
+        }
         presentacionValida = true;
         factorValido = true;
         cargarPreciosDesdeProducto();
 
         String precioSalida = itemParaEditar.getPrecioEntrada();
-        txtPrecioSalida.setText(precioSalida);
-        txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
-        txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
-        txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
+        if (txtPrecioSalida != null) {
+            txtPrecioSalida.setText(precioSalida);
+        }
+        if (txtPrecioIVA != null) {
+            txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
+        }
+        if (txtPrecioBruto != null) {
+            txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
+        }
+        if (txtPrecioTotal != null) {
+            txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
+        }
 
         if (checkBoxIVA != null) {
             BigDecimal base = parseDecimal(precioSalida);
