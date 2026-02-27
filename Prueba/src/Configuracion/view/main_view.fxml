@@ -10,33 +10,140 @@
            fx:id="root"
            stylesheets="@/Configuracion/style/estilos.css">
 
-    <VBox fx:id="contenedor" spacing="20" alignment="TOP_CENTER" styleClass="contenedor-config">
-        <padding>
-            <Insets top="30" right="30" bottom="30" left="30" />
-        </padding>
+    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="config-scroll">
+        <content>
+            <VBox fx:id="contenedor" spacing="20" alignment="TOP_LEFT" styleClass="contenedor-config">
+                <padding>
+                    <Insets top="30" right="30" bottom="30" left="30" />
+                </padding>
 
-        <Label text="Configuración del Sistema"
-               styleClass="titulo-config"
-               style="-fx-font-size: 24px; -fx-font-weight: bold;" />
+                <Label text="Configuración del Sistema" styleClass="titulo-config" />
 
-        <VBox spacing="15" styleClass="panel-config" VBox.vgrow="ALWAYS">
-            <padding>
-                <Insets top="20" right="20" bottom="20" left="20" />
-            </padding>
+                <VBox spacing="15" styleClass="panel-config">
+                    <padding>
+                        <Insets top="20" right="20" bottom="20" left="20" />
+                    </padding>
 
-            <Label text="Configuración general" styleClass="subtitulo-config" />
+                    <Label text="Configuración general" styleClass="subtitulo-config" />
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="IVA global (%):" minWidth="120" />
-                <TextField fx:id="txtIva" promptText="16" prefWidth="180" />
-                <Button fx:id="btnGuardarIva" text="Guardar IVA" onAction="#guardarIva" />
-                <Button fx:id="btnRecargarIva" text="Recargar" onAction="#recargarIva" />
-            </HBox>
+                    <GridPane hgap="12" vgap="8">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="160" prefWidth="180" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
 
-            <Label fx:id="lblIvaActual" text="IVA actual: --" />
+                        <Label text="Sucursal:" styleClass="etiqueta-campo" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalNombre" text="--" styleClass="valor-campo" GridPane.rowIndex="0" GridPane.columnIndex="1" />
 
-            <Region VBox.vgrow="ALWAYS" />
-        </VBox>
+                        <Label text="Domicilio:" styleClass="etiqueta-campo" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalDomicilio" text="--" styleClass="valor-campo" GridPane.rowIndex="1" GridPane.columnIndex="1" />
 
-    </VBox>
+                        <Label text="CP:" styleClass="etiqueta-campo" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalCp" text="--" styleClass="valor-campo" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                        <Label text="Colonia:" styleClass="etiqueta-campo" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalColonia" text="--" styleClass="valor-campo" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                        <Label text="Número int.:" styleClass="etiqueta-campo" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalNumeroInt" text="--" styleClass="valor-campo" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                        <Label text="Número ext.:" styleClass="etiqueta-campo" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalNumeroExt" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+
+                        <Label text="Ciudad:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalCiudad" text="--" styleClass="valor-campo" GridPane.rowIndex="6" GridPane.columnIndex="1" />
+
+                        <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="1" />
+
+                        <Label text="Localidad:" styleClass="etiqueta-campo" GridPane.rowIndex="8" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalLocalidad" text="--" styleClass="valor-campo" GridPane.rowIndex="8" GridPane.columnIndex="1" />
+
+                        <Label text="País:" styleClass="etiqueta-campo" GridPane.rowIndex="9" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalPais" text="--" styleClass="valor-campo" GridPane.rowIndex="9" GridPane.columnIndex="1" />
+
+                        <Label text="Correo:" styleClass="etiqueta-campo" GridPane.rowIndex="10" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalCorreo" text="--" styleClass="valor-campo" GridPane.rowIndex="10" GridPane.columnIndex="1" />
+
+                        <Label text="Teléfono:" styleClass="etiqueta-campo" GridPane.rowIndex="11" GridPane.columnIndex="0" />
+                        <Label fx:id="lblSucursalTelefono" text="--" styleClass="valor-campo" GridPane.rowIndex="11" GridPane.columnIndex="1" />
+                    </GridPane>
+
+                    <Separator />
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="IVA global (%):" styleClass="etiqueta-campo" minWidth="160" />
+                        <TextField fx:id="txtIva" promptText="16" prefWidth="180" />
+                        <Button fx:id="btnGuardarIva" text="Guardar IVA" onAction="#guardarIva" styleClass="btn-config" />
+                        <Button fx:id="btnRecargarIva" text="Recargar" onAction="#recargarIva" styleClass="btn-config" />
+                    </HBox>
+
+                    <Label fx:id="lblIvaActual" text="IVA actual: --" styleClass="valor-campo" />
+                </VBox>
+
+                <VBox spacing="12" styleClass="panel-config">
+                    <padding>
+                        <Insets top="20" right="20" bottom="20" left="20" />
+                    </padding>
+
+                    <Label text="CONTROLES / ATAJOS DE TECLADO" styleClass="subtitulo-config" />
+
+                    <Label text="GENERAL:" styleClass="seccion-atajo" />
+                    <VBox spacing="4">
+                        <Label text="• F1: Cerrar Sesión" styleClass="texto-atajo" />
+                        <Label text="• F2: Actualizar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + B: Seleccionar barra de búsqueda" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + Space: Guardar un borrador de la interfaz actual" styleClass="texto-atajo" />
+                        <Label text="• Alt + F4: Cerrar el programa" styleClass="texto-atajo" />
+                    </VBox>
+
+                    <Label text="NAVEGACIÓN ENTRE VENTANAS:" styleClass="seccion-atajo" />
+                    <VBox spacing="4">
+                        <Label text="• Shift + O: Menú de operaciones" styleClass="texto-atajo" />
+                        <Label text="• Shift + R: Menú de reportes" styleClass="texto-atajo" />
+                        <Label text="• Shift + CO: Menú de consultas" styleClass="texto-atajo" />
+                        <Label text="• Shift + A: Apartado de ajustes / configuración" styleClass="texto-atajo" />
+                        <Label text="• Shift + E: Ventana de Traspaso de Entrada" styleClass="texto-atajo" />
+                        <Label text="• Shift + S: Ventana de Traspaso de Salida" styleClass="texto-atajo" />
+                        <Label text="• Shift + CM: Ventana de Compra" styleClass="texto-atajo" />
+                        <Label text="• Shift + V: Ventana de Venta" styleClass="texto-atajo" />
+                        <Label text="• Shift + PE: Ventana de Pedidos" styleClass="texto-atajo" />
+                        <Label text="• Shift + AI: Ventana de Ajuste de Inventario" styleClass="texto-atajo" />
+                        <Label text="• Shift + RU: Ventana de Registrar Usuario" styleClass="texto-atajo" />
+                        <Label text="• Shift + I: Ventana de Inventario" styleClass="texto-atajo" />
+                        <Label text="• Shift + H: Ventana de Historial por Artículo" styleClass="texto-atajo" />
+                        <Label text="• Shift + F: Ventana de Historial por Factura" styleClass="texto-atajo" />
+                        <Label text="• Shift + U: Ventana de Utilidades" styleClass="texto-atajo" />
+                        <Label text="• Shift + P: Ventana de Productos" styleClass="texto-atajo" />
+                        <Label text="• Shift + PR: Ventana de Proveedores" styleClass="texto-atajo" />
+                        <Label text="• Shift + SU: Ventana de Sucursales" styleClass="texto-atajo" />
+                        <Label text="• Shift + C: Ventana de Clientes" styleClass="texto-atajo" />
+                        <Label text="• Shift + CL: Ventana de Claves" styleClass="texto-atajo" />
+                        <Label text="• Shift + CS: Ventana de Clasificación" styleClass="texto-atajo" />
+                    </VBox>
+
+                    <Label text="ACCIONES EN VENTANAS:" styleClass="seccion-atajo" />
+                    <VBox spacing="4">
+                        <Label text="• Ctrl + A: Seleccionar todo" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + E: Eliminar seleccionado" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N: Abrir formulario de Agregar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + G: Confirmar o Guardar movimiento" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + I: Importar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + R: Exportar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + D: Descargar (plantilla)" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + P: Vista Previa" styleClass="texto-atajo" />
+                    </VBox>
+
+                    <Label text="ACCIONES ESPECÍFICAS:" styleClass="seccion-atajo" />
+                    <VBox spacing="4">
+                        <Label text="• Ctrl + N + M: Agregar Nueva Marca en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N + E: Agregar Nueva Etiqueta en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N + B: Agregar Nueva Ubicación en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N + U: Agregar Nueva Unidad de medida en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + Q: Abrir Formulario de Quitar Producto en Ajuste Inventario" styleClass="texto-atajo" />
+                    </VBox>
+                </VBox>
+            </VBox>
+        </content>
+    </ScrollPane>
 </StackPane>
