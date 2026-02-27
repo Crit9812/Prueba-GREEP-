@@ -1,12 +1,14 @@
 package Configuracion.controller;
 
 import Compartido.model.IvaConfigService;
+import Compartido.sesion.SesionUsuario;
 import VentanaPrincipal.controller.ControladorVista;
 import conexion.Conexion;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -36,6 +38,18 @@ public class MainController implements ControladorVista {
     @FXML private Label lblSucursalPais;
     @FXML private Label lblSucursalCorreo;
     @FXML private Label lblSucursalTelefono;
+    @FXML private Label lblUsuarioId;
+    @FXML private Label lblUsuarioNombre;
+    @FXML private Label lblUsuarioApellidoP;
+    @FXML private Label lblUsuarioApellidoM;
+    @FXML private Label lblUsuarioUserName;
+    @FXML private Label lblUsuarioRol;
+    @FXML private Label lblUsuarioEstado;
+    @FXML private PasswordField txtUsuarioContrasenaOculta;
+    @FXML private TextField txtUsuarioContrasenaVisible;
+    @FXML private Button btnToggleContrasenaUsuario;
+
+    private boolean usuarioContrasenaVisible = false;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -43,8 +57,58 @@ public class MainController implements ControladorVista {
     @FXML
     public void initialize() {
         cargarDatosSucursalActual();
+        cargarDatosUsuarioSesion();
+        configurarCampoContrasenaUsuario();
         configurarValidaciones();
         recargarIva();
+    }
+
+    private void configurarCampoContrasenaUsuario() {
+        txtUsuarioContrasenaVisible.setVisible(false);
+        txtUsuarioContrasenaVisible.setManaged(false);
+        txtUsuarioContrasenaOculta.setVisible(true);
+        txtUsuarioContrasenaOculta.setManaged(true);
+    }
+
+    private void cargarDatosUsuarioSesion() {
+        Integer idUsuario = SesionUsuario.getIdUsuario();
+        if (idUsuario == null) {
+            mostrarUsuarioNoDisponible();
+            return;
+        }
+
+        String sql = """
+                SELECT idUsuario, nombreUsuario, apellidoPUsuario, apellidoMUsuario,
+                       userName, rolUsuario, contrasenaUsuario, estado
+                FROM usuarios
+                WHERE idUsuario = ?
+                LIMIT 1
+                """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idUsuario);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    lblUsuarioId.setText(valorTexto(rs.getObject("idUsuario")));
+                    lblUsuarioNombre.setText(valorTexto(rs.getString("nombreUsuario")));
+                    lblUsuarioApellidoP.setText(valorTexto(rs.getString("apellidoPUsuario")));
+                    lblUsuarioApellidoM.setText(valorTexto(rs.getString("apellidoMUsuario")));
+                    lblUsuarioUserName.setText(valorTexto(rs.getString("userName")));
+                    lblUsuarioRol.setText(valorTexto(rs.getString("rolUsuario")));
+                    String contrasena = valorTexto(rs.getString("contrasenaUsuario"));
+                    txtUsuarioContrasenaOculta.setText(contrasena);
+                    txtUsuarioContrasenaVisible.setText(contrasena);
+                    lblUsuarioEstado.setText(valorTexto(rs.getString("estado")));
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        mostrarUsuarioNoDisponible();
     }
 
     private void cargarDatosSucursalActual() {
@@ -123,6 +187,37 @@ public class MainController implements ControladorVista {
         lblSucursalPais.setText("--");
         lblSucursalCorreo.setText("--");
         lblSucursalTelefono.setText("--");
+    }
+
+    private void mostrarUsuarioNoDisponible() {
+        lblUsuarioId.setText("--");
+        lblUsuarioNombre.setText("--");
+        lblUsuarioApellidoP.setText("--");
+        lblUsuarioApellidoM.setText("--");
+        lblUsuarioUserName.setText("--");
+        lblUsuarioRol.setText("--");
+        txtUsuarioContrasenaOculta.setText("--");
+        txtUsuarioContrasenaVisible.setText("--");
+        lblUsuarioEstado.setText("--");
+    }
+
+    @FXML
+    private void toggleContrasenaUsuario() {
+        usuarioContrasenaVisible = !usuarioContrasenaVisible;
+
+        if (usuarioContrasenaVisible) {
+            txtUsuarioContrasenaVisible.setText(txtUsuarioContrasenaOculta.getText());
+            txtUsuarioContrasenaVisible.setVisible(true);
+            txtUsuarioContrasenaVisible.setManaged(true);
+            txtUsuarioContrasenaOculta.setVisible(false);
+            txtUsuarioContrasenaOculta.setManaged(false);
+        } else {
+            txtUsuarioContrasenaOculta.setText(txtUsuarioContrasenaVisible.getText());
+            txtUsuarioContrasenaOculta.setVisible(true);
+            txtUsuarioContrasenaOculta.setManaged(true);
+            txtUsuarioContrasenaVisible.setVisible(false);
+            txtUsuarioContrasenaVisible.setManaged(false);
+        }
     }
 
     @FXML
