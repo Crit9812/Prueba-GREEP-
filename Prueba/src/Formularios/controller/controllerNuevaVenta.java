@@ -40,6 +40,7 @@ public class controllerNuevaVenta extends FormularioSalidaController {
     private String tituloFormulario = "Venta";
     private boolean modoSoloNormal = false;
     private boolean modoAjusteInventario = false;
+    private boolean cargandoEdicion = false;
 
 
     @FXML
@@ -1060,6 +1061,8 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
+        cargandoEdicion = true;
+        seleccionarClaveAlternaPendiente = false;
         limpiarFormularioParaNuevo();
         programarCargaItemParaEditar(0);
     }
@@ -1069,6 +1072,7 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
+        seleccionarClaveAlternaPendiente = false;
         boolean seleccionado = productoController != null
                 && productoController.setSeleccion(itemParaEditar.getClaveProducto(), itemParaEditar.getProducto());
 
@@ -1077,25 +1081,49 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
-        if (!seleccionado) {
-            if (cbClaveProducto != null) {
-                cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
-                if (cbClaveProducto.getEditor() != null) {
-                    cbClaveProducto.getEditor().setText(itemParaEditar.getClaveProducto());
-                }
-            }
-            if (cbProductoNombre != null) {
-                cbProductoNombre.setValue(itemParaEditar.getProducto());
-                if (cbProductoNombre.getEditor() != null) {
-                    cbProductoNombre.getEditor().setText(itemParaEditar.getProducto());
-                }
-            }
-        }
+        aplicarSeleccionManualParaEdicion();
+        desactivarAutorellenoEnEdicion();
 
         // Al sincronizar clave/producto/descripción se disparan listeners que pueden limpiar
         // campos dependientes. Reaplicamos la información en el siguiente ciclo de UI para
         // garantizar que toda la información del registro quede precargada en edición.
-        Platform.runLater(this::aplicarDatosItemEnEdicion);
+        Platform.runLater(() -> {
+            desactivarAutorellenoEnEdicion();
+            aplicarDatosItemEnEdicion();
+        });
+    }
+
+    private void aplicarSeleccionManualParaEdicion() {
+        if (itemParaEditar == null) {
+            return;
+        }
+        if (cbClaveProducto != null) {
+            cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
+            if (cbClaveProducto.getEditor() != null) {
+                cbClaveProducto.getEditor().setText(itemParaEditar.getClaveProducto());
+            }
+        }
+        if (cbProductoNombre != null) {
+            cbProductoNombre.setValue(itemParaEditar.getProducto());
+            if (cbProductoNombre.getEditor() != null) {
+                cbProductoNombre.getEditor().setText(itemParaEditar.getProducto());
+            }
+        }
+    }
+
+    private void desactivarAutorellenoEnEdicion() {
+        if (!cargandoEdicion) {
+            return;
+        }
+
+        seleccionarClaveAlternaPendiente = false;
+
+        if (cbClaveAlterna != null) {
+            cbClaveAlterna.setValue("");
+            if (cbClaveAlterna.getEditor() != null) {
+                cbClaveAlterna.getEditor().clear();
+            }
+        }
     }
 
     private void aplicarDatosItemEnEdicion() {
@@ -1152,6 +1180,11 @@ public class controllerNuevaVenta extends FormularioSalidaController {
 
         cargarUbicacionesParaEdicion(itemParaEditar.getUbicaciones());
         recalcularPrecios();
+
+        Platform.runLater(() -> {
+            desactivarAutorellenoEnEdicion();
+            cargandoEdicion = false;
+        });
     }
 
     private void configurarCaducidadDesdeTexto(String caducidadTexto) {
