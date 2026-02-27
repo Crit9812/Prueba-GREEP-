@@ -89,16 +89,59 @@
                     <Label text="CONTROLES / ATAJOS DE TECLADO" styleClass="subtitulo-config" />
 
                     <Label text="GENERAL:" styleClass="seccion-atajo" />
-                    <Label text="F1: Cerrar Sesión\nF2: Actualizar\nCtrl + B: Seleccionar barra de búsqueda\nCtrl + Space: Guardar un borrador de la interfaz actual\nAlt + F4: Cerrar el programa" styleClass="texto-atajo" wrapText="true" />
+                    <VBox spacing="4">
+                        <Label text="• F1: Cerrar Sesión" styleClass="texto-atajo" />
+                        <Label text="• F2: Actualizar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + B: Seleccionar barra de búsqueda" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + Space: Guardar un borrador de la interfaz actual" styleClass="texto-atajo" />
+                        <Label text="• Alt + F4: Cerrar el programa" styleClass="texto-atajo" />
+                    </VBox>
 
                     <Label text="NAVEGACIÓN ENTRE VENTANAS:" styleClass="seccion-atajo" />
-                    <Label text="Shift + O: Menú de operaciones\nShift + R: Menú de reportes\nShift + CO: Menú de consultas\nShift + A: Apartado de ajustes / configuración\nShift + E: Ventana de Traspaso de Entrada\nShift + S: Ventana de Traspaso de Salida\nShift + CM: Ventana de Compra\nShift + V: Ventana de Venta\nShift + PE: Ventana de Pedidos\nShift + AI: Ventana de Ajuste de Inventario\nShift + RU: Ventana de Registrar Usuario\nShift + I: Ventana de Inventario\nShift + H: Ventana de Historial por Artículo\nShift + F: Ventana de Historial por Factura\nShift + U: Ventana de Utilidades\nShift + P: Ventana de Productos\nShift + PR: Ventana de Proveedores\nShift + SU: Ventana de Sucursales\nShift + C: Ventana de Clientes\nShift + CL: Ventana de Claves\nShift + CS: Ventana de Clasificación" styleClass="texto-atajo" wrapText="true" />
+                    <VBox spacing="4">
+                        <Label text="• Shift + O: Menú de operaciones" styleClass="texto-atajo" />
+                        <Label text="• Shift + R: Menú de reportes" styleClass="texto-atajo" />
+                        <Label text="• Shift + CO: Menú de consultas" styleClass="texto-atajo" />
+                        <Label text="• Shift + A: Apartado de ajustes / configuración" styleClass="texto-atajo" />
+                        <Label text="• Shift + E: Ventana de Traspaso de Entrada" styleClass="texto-atajo" />
+                        <Label text="• Shift + S: Ventana de Traspaso de Salida" styleClass="texto-atajo" />
+                        <Label text="• Shift + CM: Ventana de Compra" styleClass="texto-atajo" />
+                        <Label text="• Shift + V: Ventana de Venta" styleClass="texto-atajo" />
+                        <Label text="• Shift + PE: Ventana de Pedidos" styleClass="texto-atajo" />
+                        <Label text="• Shift + AI: Ventana de Ajuste de Inventario" styleClass="texto-atajo" />
+                        <Label text="• Shift + RU: Ventana de Registrar Usuario" styleClass="texto-atajo" />
+                        <Label text="• Shift + I: Ventana de Inventario" styleClass="texto-atajo" />
+                        <Label text="• Shift + H: Ventana de Historial por Artículo" styleClass="texto-atajo" />
+                        <Label text="• Shift + F: Ventana de Historial por Factura" styleClass="texto-atajo" />
+                        <Label text="• Shift + U: Ventana de Utilidades" styleClass="texto-atajo" />
+                        <Label text="• Shift + P: Ventana de Productos" styleClass="texto-atajo" />
+                        <Label text="• Shift + PR: Ventana de Proveedores" styleClass="texto-atajo" />
+                        <Label text="• Shift + SU: Ventana de Sucursales" styleClass="texto-atajo" />
+                        <Label text="• Shift + C: Ventana de Clientes" styleClass="texto-atajo" />
+                        <Label text="• Shift + CL: Ventana de Claves" styleClass="texto-atajo" />
+                        <Label text="• Shift + CS: Ventana de Clasificación" styleClass="texto-atajo" />
+                    </VBox>
 
                     <Label text="ACCIONES EN VENTANAS:" styleClass="seccion-atajo" />
-                    <Label text="Ctrl + A: Seleccionar todo\nCtrl + E: Eliminar seleccionado\nCtrl + N: Abrir formulario de Agregar\nCtrl + G: Confirmar o Guardar movimiento\nCtrl + I: Importar\nCtrl + R: Exportar\nCtrl + D: Descargar (plantilla)\nCtrl + P: Vista Previa" styleClass="texto-atajo" wrapText="true" />
+                    <VBox spacing="4">
+                        <Label text="• Ctrl + A: Seleccionar todo" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + E: Eliminar seleccionado" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N: Abrir formulario de Agregar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + G: Confirmar o Guardar movimiento" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + I: Importar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + R: Exportar" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + D: Descargar (plantilla)" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + P: Vista Previa" styleClass="texto-atajo" />
+                    </VBox>
 
                     <Label text="ACCIONES ESPECÍFICAS:" styleClass="seccion-atajo" />
-                    <Label text="Ctrl + N + M: Agregar Nueva Marca en Clasificación\nCtrl + N + E: Agregar Nueva Etiqueta en Clasificación\nCtrl + N + B: Agregar Nueva Ubicación en Clasificación\nCtrl + N + U: Agregar Nueva Unidad de medida en Clasificación\nCtrl + Q: Abrir Formulario de Quitar Producto en Ajuste Inventario" styleClass="texto-atajo" wrapText="true" />
+                    <VBox spacing="4">
+                        <Label text="• Ctrl + N + M: Agregar Nueva Marca en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N + E: Agregar Nueva Etiqueta en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N + B: Agregar Nueva Ubicación en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + N + U: Agregar Nueva Unidad de medida en Clasificación" styleClass="texto-atajo" />
+                        <Label text="• Ctrl + Q: Abrir Formulario de Quitar Producto en Ajuste Inventario" styleClass="texto-atajo" />
+                    </VBox>
                 </VBox>
             </VBox>
         </content>
