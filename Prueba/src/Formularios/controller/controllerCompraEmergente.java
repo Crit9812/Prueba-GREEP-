@@ -83,6 +83,7 @@ public class controllerCompraEmergente {
 
     private boolean inicializado = false;
     private compra itemParaEditar;
+    private boolean cargandoEdicion = false;
 
     private String ultimoIdProductoDescripcion = "";
     private boolean seleccionarClaveAlternaPendiente = false;
@@ -304,6 +305,7 @@ public class controllerCompraEmergente {
         }
         if (cbClaveAlterna != null) {
             cbClaveAlterna.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (cargandoEdicion) return;
                 if (newVal != null) actualizarDescripcionDesdeProducto();
                 actualizarImagenProducto();
                 if (modoAjusteInventario) solicitarPrecioAjusteDebounced();
@@ -313,6 +315,7 @@ public class controllerCompraEmergente {
 
         if (cbPresentacion != null) {
             cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (cargandoEdicion) return;
                 if (newVal != null && newVal.equalsIgnoreCase("pz")) {
                     if (txtFactor != null) txtFactor.setText("1");
                     if (modoAjusteInventario) solicitarPrecioAjusteDebounced();
@@ -327,6 +330,7 @@ public class controllerCompraEmergente {
 
         if (txtLote != null) {
             txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (cargandoEdicion) return;
                 if (modoAjusteInventario) solicitarPrecioAjusteDebounced();
                 solicitarValidacionDuplicadoDebounced();
             });
@@ -334,6 +338,7 @@ public class controllerCompraEmergente {
 
         if (txtFactor != null) {
             txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (cargandoEdicion) return;
                 if (modoAjusteInventario) solicitarPrecioAjusteDebounced();
             });
         }
@@ -345,7 +350,7 @@ public class controllerCompraEmergente {
     private void onProductoCambio(boolean nuevoNoNulo) {
         if (nuevoNoNulo) {
             actualizarDescripcionDesdeProducto();
-            seleccionarClaveAlternaPendiente = true;
+            seleccionarClaveAlternaPendiente = !cargandoEdicion;
         }
         actualizarImagenProducto();
 
@@ -379,7 +384,7 @@ public class controllerCompraEmergente {
 
         cbClaveAlterna.getItems().addListener((javafx.collections.ListChangeListener<String>) change -> {
             if (cbClaveAlterna.getItems().isEmpty()) return;
-            if (!seleccionarClaveAlternaPendiente) return;
+            if (!seleccionarClaveAlternaPendiente || cargandoEdicion) return;
 
             seleccionarClaveAlternaPendiente = false;
             Platform.runLater(this::seleccionarPrimerClaveAlternaDisponible);
@@ -1077,6 +1082,9 @@ public class controllerCompraEmergente {
     private void cargarItemParaEditar() {
         if (itemParaEditar == null) return;
 
+        cargandoEdicion = true;
+        seleccionarClaveAlternaPendiente = false;
+
         if (cbClaveProducto != null) cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
         if (cbProductoNombre != null) cbProductoNombre.setValue(itemParaEditar.getProducto());
         if (cbClaveAlterna != null) cbClaveAlterna.setValue(itemParaEditar.getClaveAlterna());
@@ -1098,6 +1106,8 @@ public class controllerCompraEmergente {
 
         cargarUbicacionesParaEdicion(itemParaEditar.getUbicaciones());
         recalcularPrecios();
+
+        Platform.runLater(() -> cargandoEdicion = false);
     }
 
     // ==========================
