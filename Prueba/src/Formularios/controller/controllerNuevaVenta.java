@@ -40,6 +40,7 @@ public class controllerNuevaVenta extends FormularioSalidaController {
     private String tituloFormulario = "Venta";
     private boolean modoSoloNormal = false;
     private boolean modoAjusteInventario = false;
+    private boolean cargandoEdicion = false;
 
 
     @FXML
@@ -1053,36 +1054,123 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         return construirItemsRapidos(clave, nombre, descripcion, asignaciones, presentacion, factor);
     }
 
+    private static final int MAX_INTENTOS_SELECCION_EDICION = 10;
+
     private void cargarItemParaEditar() {
         if (itemParaEditar == null) {
             return;
         }
 
+        cargandoEdicion = true;
+        seleccionarClaveAlternaPendiente = false;
         limpiarFormularioParaNuevo();
-        cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
-        cbProductoNombre.setValue(itemParaEditar.getProducto());
-        txtDescripcion.setText(itemParaEditar.getDescripcion());
+        programarCargaItemParaEditar(0);
+    }
+
+    private void programarCargaItemParaEditar(int intentos) {
+        if (itemParaEditar == null) {
+            return;
+        }
+
+        seleccionarClaveAlternaPendiente = false;
+        boolean seleccionado = productoController != null
+                && productoController.setSeleccion(itemParaEditar.getClaveProducto(), itemParaEditar.getProducto());
+
+        if (!seleccionado && intentos < MAX_INTENTOS_SELECCION_EDICION) {
+            Platform.runLater(() -> programarCargaItemParaEditar(intentos + 1));
+            return;
+        }
+
+        aplicarSeleccionManualParaEdicion();
+        desactivarAutorellenoEnEdicion();
+
+        // Al sincronizar clave/producto/descripción se disparan listeners que pueden limpiar
+        // campos dependientes. Reaplicamos la información en el siguiente ciclo de UI para
+        // garantizar que toda la información del registro quede precargada en edición.
+        Platform.runLater(() -> {
+            desactivarAutorellenoEnEdicion();
+            aplicarDatosItemEnEdicion();
+        });
+    }
+
+    private void aplicarSeleccionManualParaEdicion() {
+        if (itemParaEditar == null) {
+            return;
+        }
+        if (cbClaveProducto != null) {
+            cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
+            if (cbClaveProducto.getEditor() != null) {
+                cbClaveProducto.getEditor().setText(itemParaEditar.getClaveProducto());
+            }
+        }
+        if (cbProductoNombre != null) {
+            cbProductoNombre.setValue(itemParaEditar.getProducto());
+            if (cbProductoNombre.getEditor() != null) {
+                cbProductoNombre.getEditor().setText(itemParaEditar.getProducto());
+            }
+        }
+    }
+
+    private void desactivarAutorellenoEnEdicion() {
+        if (!cargandoEdicion) {
+            return;
+        }
+
+        seleccionarClaveAlternaPendiente = false;
+
+        if (cbClaveAlterna != null) {
+            cbClaveAlterna.setValue("");
+            if (cbClaveAlterna.getEditor() != null) {
+                cbClaveAlterna.getEditor().clear();
+            }
+        }
+    }
+
+    private void aplicarDatosItemEnEdicion() {
+        if (itemParaEditar == null) {
+            return;
+        }
+
+        if (txtDescripcion != null) {
+            txtDescripcion.setText(itemParaEditar.getDescripcion());
+        }
 
         if (txtNota != null) {
             txtNota.setText(itemParaEditar.getNota());
         }
 
-        txtLote.setText(itemParaEditar.getLote());
+        if (txtLote != null) {
+            txtLote.setText(itemParaEditar.getLote());
+        }
         configurarCaducidadDesdeTexto(itemParaEditar.getCaducidad());
         loteValidado = true;
         caducidadValidada = true;
-        txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
-        cbPresentacion.setValue(itemParaEditar.getPresentacion());
-        txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
+        if (txtCantidad != null) {
+            txtCantidad.setText(String.valueOf(itemParaEditar.getCantidad()));
+        }
+        if (cbPresentacion != null) {
+            cbPresentacion.setValue(itemParaEditar.getPresentacion());
+        }
+        if (txtFactor != null) {
+            txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
+        }
         presentacionValida = true;
         factorValido = true;
         cargarPreciosDesdeProducto();
 
         String precioSalida = itemParaEditar.getPrecioEntrada();
-        txtPrecioSalida.setText(precioSalida);
-        txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
-        txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
-        txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
+        if (txtPrecioSalida != null) {
+            txtPrecioSalida.setText(precioSalida);
+        }
+        if (txtPrecioIVA != null) {
+            txtPrecioIVA.setText(itemParaEditar.getPrecioIva());
+        }
+        if (txtPrecioBruto != null) {
+            txtPrecioBruto.setText(itemParaEditar.getPrecioBruto());
+        }
+        if (txtPrecioTotal != null) {
+            txtPrecioTotal.setText(itemParaEditar.getPrecioTotal());
+        }
 
         if (checkBoxIVA != null) {
             BigDecimal base = parseDecimal(precioSalida);
@@ -1092,6 +1180,11 @@ public class controllerNuevaVenta extends FormularioSalidaController {
 
         cargarUbicacionesParaEdicion(itemParaEditar.getUbicaciones());
         recalcularPrecios();
+
+        Platform.runLater(() -> {
+            desactivarAutorellenoEnEdicion();
+            cargandoEdicion = false;
+        });
     }
 
     private void configurarCaducidadDesdeTexto(String caducidadTexto) {
