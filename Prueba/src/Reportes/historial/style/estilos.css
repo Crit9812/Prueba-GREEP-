@@ -114,6 +114,21 @@
     -fx-background-color: #c0392b;
 }
 
+.boton{
+    -fx-background-color: #333;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-border-radius: 5;
+    -fx-font-weight: bold;
+    -fx-pref-width: 160;
+    -fx-pref-height: 35;
+    -fx-background-radius: 5;
+}
+
+.boton:hover {
+    -fx-background-color: #444;
+}
+
 .barraBusqueda {
     -fx-background-color: #fff;
     -fx-font-size: 14px;
