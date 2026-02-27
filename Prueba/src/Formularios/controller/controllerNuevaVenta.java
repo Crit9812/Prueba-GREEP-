@@ -1053,15 +1053,44 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         return construirItemsRapidos(clave, nombre, descripcion, asignaciones, presentacion, factor);
     }
 
+    private static final int MAX_INTENTOS_SELECCION_EDICION = 10;
+
     private void cargarItemParaEditar() {
         if (itemParaEditar == null) {
             return;
         }
 
         limpiarFormularioParaNuevo();
-        cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
-        cbProductoNombre.setValue(itemParaEditar.getProducto());
-        txtDescripcion.setText(itemParaEditar.getDescripcion());
+        programarCargaItemParaEditar(0);
+    }
+
+    private void programarCargaItemParaEditar(int intentos) {
+        if (itemParaEditar == null) {
+            return;
+        }
+
+        boolean seleccionado = productoController != null
+                && productoController.setSeleccion(itemParaEditar.getClaveProducto(), itemParaEditar.getProducto());
+
+        if (!seleccionado && intentos < MAX_INTENTOS_SELECCION_EDICION) {
+            Platform.runLater(() -> programarCargaItemParaEditar(intentos + 1));
+            return;
+        }
+
+        if (!seleccionado) {
+            if (cbClaveProducto != null) {
+                cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
+                if (cbClaveProducto.getEditor() != null) {
+                    cbClaveProducto.getEditor().setText(itemParaEditar.getClaveProducto());
+                }
+            }
+            if (cbProductoNombre != null) {
+                cbProductoNombre.setValue(itemParaEditar.getProducto());
+                if (cbProductoNombre.getEditor() != null) {
+                    cbProductoNombre.getEditor().setText(itemParaEditar.getProducto());
+                }
+            }
+        }
 
         // Al sincronizar clave/producto/descripción se disparan listeners que pueden limpiar
         // campos dependientes. Reaplicamos la información en el siguiente ciclo de UI para
