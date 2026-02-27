@@ -26,8 +26,10 @@
 
                     <Label text="Configuración general" styleClass="subtitulo-config" />
 
-                    <GridPane hgap="12" vgap="8">
+                    <GridPane hgap="30" vgap="8">
                         <columnConstraints>
+                            <ColumnConstraints minWidth="160" prefWidth="180" />
+                            <ColumnConstraints hgrow="ALWAYS" />
                             <ColumnConstraints minWidth="160" prefWidth="180" />
                             <ColumnConstraints hgrow="ALWAYS" />
                         </columnConstraints>
@@ -67,6 +69,30 @@
 
                         <Label text="Teléfono:" styleClass="etiqueta-campo" GridPane.rowIndex="11" GridPane.columnIndex="0" />
                         <Label fx:id="lblSucursalTelefono" text="--" styleClass="valor-campo" GridPane.rowIndex="11" GridPane.columnIndex="1" />
+
+                        <Label text="ID usuario:" styleClass="etiqueta-campo" GridPane.rowIndex="0" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioId" text="--" styleClass="valor-campo" GridPane.rowIndex="0" GridPane.columnIndex="3" />
+
+                        <Label text="Nombre:" styleClass="etiqueta-campo" GridPane.rowIndex="1" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioNombre" text="--" styleClass="valor-campo" GridPane.rowIndex="1" GridPane.columnIndex="3" />
+
+                        <Label text="Apellido paterno:" styleClass="etiqueta-campo" GridPane.rowIndex="2" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioApellidoP" text="--" styleClass="valor-campo" GridPane.rowIndex="2" GridPane.columnIndex="3" />
+
+                        <Label text="Apellido materno:" styleClass="etiqueta-campo" GridPane.rowIndex="3" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioApellidoM" text="--" styleClass="valor-campo" GridPane.rowIndex="3" GridPane.columnIndex="3" />
+
+                        <Label text="Nombre de usuario:" styleClass="etiqueta-campo" GridPane.rowIndex="4" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioUserName" text="--" styleClass="valor-campo" GridPane.rowIndex="4" GridPane.columnIndex="3" />
+
+                        <Label text="Rol:" styleClass="etiqueta-campo" GridPane.rowIndex="5" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioRol" text="--" styleClass="valor-campo" GridPane.rowIndex="5" GridPane.columnIndex="3" />
+
+                        <Label text="Contraseña:" styleClass="etiqueta-campo" GridPane.rowIndex="6" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioContrasena" text="--" styleClass="valor-campo" GridPane.rowIndex="6" GridPane.columnIndex="3" />
+
+                        <Label text="Estado:" styleClass="etiqueta-campo" GridPane.rowIndex="7" GridPane.columnIndex="2" />
+                        <Label fx:id="lblUsuarioEstado" text="--" styleClass="valor-campo" GridPane.rowIndex="7" GridPane.columnIndex="3" />
                     </GridPane>
 
                     <Separator />

@@ -1,6 +1,7 @@
 package Configuracion.controller;
 
 import Compartido.model.IvaConfigService;
+import Compartido.sesion.SesionUsuario;
 import VentanaPrincipal.controller.ControladorVista;
 import conexion.Conexion;
 import javafx.fxml.FXML;
@@ -36,6 +37,14 @@ public class MainController implements ControladorVista {
     @FXML private Label lblSucursalPais;
     @FXML private Label lblSucursalCorreo;
     @FXML private Label lblSucursalTelefono;
+    @FXML private Label lblUsuarioId;
+    @FXML private Label lblUsuarioNombre;
+    @FXML private Label lblUsuarioApellidoP;
+    @FXML private Label lblUsuarioApellidoM;
+    @FXML private Label lblUsuarioUserName;
+    @FXML private Label lblUsuarioRol;
+    @FXML private Label lblUsuarioContrasena;
+    @FXML private Label lblUsuarioEstado;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -43,8 +52,48 @@ public class MainController implements ControladorVista {
     @FXML
     public void initialize() {
         cargarDatosSucursalActual();
+        cargarDatosUsuarioSesion();
         configurarValidaciones();
         recargarIva();
+    }
+
+    private void cargarDatosUsuarioSesion() {
+        Integer idUsuario = SesionUsuario.getIdUsuario();
+        if (idUsuario == null) {
+            mostrarUsuarioNoDisponible();
+            return;
+        }
+
+        String sql = """
+                SELECT idUsuario, nombreUsuario, apellidoPUsuario, apellidoMUsuario,
+                       userName, rolUsuario, contrasenaUsuario, estado
+                FROM usuarios
+                WHERE idUsuario = ?
+                LIMIT 1
+                """;
+
+        try (Connection conn = new Conexion().conectar();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idUsuario);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    lblUsuarioId.setText(valorTexto(rs.getObject("idUsuario")));
+                    lblUsuarioNombre.setText(valorTexto(rs.getString("nombreUsuario")));
+                    lblUsuarioApellidoP.setText(valorTexto(rs.getString("apellidoPUsuario")));
+                    lblUsuarioApellidoM.setText(valorTexto(rs.getString("apellidoMUsuario")));
+                    lblUsuarioUserName.setText(valorTexto(rs.getString("userName")));
+                    lblUsuarioRol.setText(valorTexto(rs.getString("rolUsuario")));
+                    lblUsuarioContrasena.setText(valorTexto(rs.getString("contrasenaUsuario")));
+                    lblUsuarioEstado.setText(valorTexto(rs.getString("estado")));
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        mostrarUsuarioNoDisponible();
     }
 
     private void cargarDatosSucursalActual() {
@@ -123,6 +172,17 @@ public class MainController implements ControladorVista {
         lblSucursalPais.setText("--");
         lblSucursalCorreo.setText("--");
         lblSucursalTelefono.setText("--");
+    }
+
+    private void mostrarUsuarioNoDisponible() {
+        lblUsuarioId.setText("--");
+        lblUsuarioNombre.setText("--");
+        lblUsuarioApellidoP.setText("--");
+        lblUsuarioApellidoM.setText("--");
+        lblUsuarioUserName.setText("--");
+        lblUsuarioRol.setText("--");
+        lblUsuarioContrasena.setText("--");
+        lblUsuarioEstado.setText("--");
     }
 
     @FXML
