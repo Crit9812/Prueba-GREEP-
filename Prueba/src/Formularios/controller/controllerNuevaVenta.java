@@ -1117,13 +1117,6 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         }
 
         seleccionarClaveAlternaPendiente = false;
-
-        if (cbClaveAlterna != null) {
-            cbClaveAlterna.setValue("");
-            if (cbClaveAlterna.getEditor() != null) {
-                cbClaveAlterna.getEditor().clear();
-            }
-        }
     }
 
     private void aplicarDatosItemEnEdicion() {
