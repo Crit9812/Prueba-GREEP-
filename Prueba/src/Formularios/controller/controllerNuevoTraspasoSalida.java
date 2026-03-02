@@ -824,10 +824,28 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             txtFactor.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
         }
 
+        if (txtDescripcion != null) {
+            txtDescripcion.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (!bloqueoAutoseleccionEdicion || itemParaEditar == null) return;
+
+                String esperada = itemParaEditar.getDescripcion() == null ? "" : itemParaEditar.getDescripcion();
+                String actual = newVal == null ? "" : newVal;
+                if (!esperada.equals(actual)) {
+                    txtDescripcion.setText(esperada);
+                }
+            });
+            txtDescripcion.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            txtDescripcion.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+
         if (txtLote != null) {
             txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
-                if (bloqueoAutoseleccionEdicion && itemParaEditar != null && !itemParaEditar.getLote().equals(newVal)) {
-                    txtLote.setText(itemParaEditar.getLote());
+                if (!bloqueoAutoseleccionEdicion || itemParaEditar == null) return;
+
+                String esperado = itemParaEditar.getLote() == null ? "" : itemParaEditar.getLote();
+                String actual = newVal == null ? "" : newVal;
+                if (!esperado.equals(actual)) {
+                    txtLote.setText(esperado);
                 }
             });
             txtLote.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
