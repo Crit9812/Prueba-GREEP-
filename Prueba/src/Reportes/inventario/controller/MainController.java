@@ -1,5 +1,6 @@
 package Reportes.inventario.controller;
 
+import Compartido.helper.RefrescoHelper;
 import Compartido.exportar.exportador;
 import Compartido.helper.BusquedaProductoHelper;
 import Compartido.helper.SelectorColumnasPopup;
@@ -142,7 +143,15 @@ public class MainController implements ControladorVista{
             cargarInventarioDisponible(false);
             aplicarBusquedaPendienteDesdeEncabezado();
             configurarDobleClick();
+            RefrescoHelper.setVistaActual("inventario");
+            RefrescoHelper.registrarRefresco("inventario", this::refrescarVista);
         });
+    }
+
+    private void refrescarVista() {
+        // Recargar inventario respetando el modo actual (resumen o detallado)
+        boolean detallado = chkInventarioDetallado.isSelected();
+        cargarInventarioDisponible(detallado);
     }
 
     private void aplicarBusquedaPendienteDesdeEncabezado() {
@@ -659,6 +668,7 @@ public class MainController implements ControladorVista{
                             BigDecimal nuevoBruto = precioUnitario.multiply(nuevaCantidad)
                                     .setScale(2, java.math.RoundingMode.HALF_UP);
                             BigDecimal nuevoTotal = precioIva.multiply(nuevaCantidad)
+
                                     .setScale(2, java.math.RoundingMode.HALF_UP);
 
                             StringBuilder updateDetalle = new StringBuilder("UPDATE detalle_Entrada SET ");

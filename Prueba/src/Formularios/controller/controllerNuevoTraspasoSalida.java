@@ -4,7 +4,9 @@ import Formularios.model.modelNuevoTraspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoSalida.controller.MainController;
 import Operaciones.traspasoSalida.model.traspasoSalida;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline; // ✅ FIX LOTE
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -43,6 +45,11 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     private boolean bloqueoAutoseleccionEdicion = false;
     private boolean permitirEdicionManualLote = false;
 
+    // ✅ FIX LOTE: protección contra autolimpieza tardía (debounce/tareas/listeners del padre)
+    private Timeline proteccionPrecargaLoteTimeline;
+    private boolean usuarioModificoLote = false;
+    private String lotePrecargado = null;
+    private LocalDate caducidadPrecargada = null;
 
     @FXML
     public void initialize() {
@@ -51,6 +58,19 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         initializeBase();
         aplicarModoSoloNormal();
         configurarBloqueoAutoseleccionEdicion();
+
+        // ✅ FIX LOTE: si el usuario escribe en lote, desactivamos la "protección" para no pisar cambios manuales
+        if (txtLote != null) {
+            txtLote.addEventFilter(KeyEvent.KEY_TYPED, e -> usuarioModificoLote = true);
+            txtLote.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+                // solo marca "posible edición manual" si después teclean; aquí no hacemos nada más
+            });
+        }
+        if (dpCaducidad != null) {
+            dpCaducidad.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+                // el usuario ya interactuó con caducidad; no bloqueamos, solo evita restauraciones agresivas
+            });
+        }
 
         if (itemParaEditar != null) {
             if (tabRapido != null) {
@@ -189,7 +209,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             limpiarFormularioParaNuevo();
         }
     }
-
 
     private boolean validarCantidadPorUbicacion(String clave, String lote, java.time.LocalDate caducidad,
                                                 String presentacion, int factor,
@@ -766,6 +785,18 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     private void cargarItemParaEditar() {
         if (itemParaEditar == null) return;
 
+        // ✅ FIX LOTE: resetea estado de edición manual y toma snapshot de los valores que NO deben borrarse solos
+        usuarioModificoLote = false;
+        lotePrecargado = itemParaEditar.getLote() == null ? "" : itemParaEditar.getLote();
+        caducidadPrecargada = null;
+        String cadTxt = itemParaEditar.getCaducidad();
+        if (cadTxt != null && !cadTxt.isBlank()) {
+            try { caducidadPrecargada = LocalDate.parse(cadTxt); } catch (Exception ignored) { caducidadPrecargada = null; }
+        }
+
+        // ✅ FIX LOTE: detener cualquier protección anterior (por si reusan el mismo controller)
+        detenerProteccionPrecargaLote();
+
         bloqueoAutoseleccionEdicion = true;
         permitirEdicionManualLote = false;
 
@@ -798,6 +829,60 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
         cargarUbicacionesParaEdicion(itemParaEditar.getUbicaciones());
         recalcularPrecios();
+
+        // ✅ FIX LOTE: activa protección unos segundos para evitar que se borre solo al abrir (por listeners/tareas tardías)
+        iniciarProteccionPrecargaLote();
+    }
+
+    // ✅ FIX LOTE
+    private void iniciarProteccionPrecargaLote() {
+        if (itemParaEditar == null) return;
+        if (txtLote == null) return;
+
+        final String esperadoLote = lotePrecargado == null ? "" : lotePrecargado;
+        final LocalDate esperadaCad = caducidadPrecargada;
+
+        // Checamos varias veces (porque el “borrado” suele venir de un debounce a 300ms-1500ms)
+        List<Duration> checks = List.of(
+                Duration.millis(150),
+                Duration.millis(350),
+                Duration.millis(700),
+                Duration.millis(1200),
+                Duration.millis(2000),
+                Duration.millis(3200)
+        );
+
+        List<KeyFrame> frames = new ArrayList<>();
+        for (Duration d : checks) {
+            frames.add(new KeyFrame(d, e -> {
+                if (itemParaEditar == null) return;
+                if (usuarioModificoLote) return; // si el usuario ya tocó el lote, no restauramos nada
+
+                // Si por algún proceso tardío lo limpian o cambian, lo devolvemos al precargado
+                String actual = t(txtLote);
+                if (!esperadoLote.isBlank() && actual.isBlank()) {
+                    txtLote.setText(esperadoLote);
+                }
+
+                // Caducidad (por si también te la están limpiando)
+                if (dpCaducidad != null && esperadaCad != null && dpCaducidad.getValue() == null) {
+                    dpCaducidad.setValue(esperadaCad);
+                }
+            }));
+        }
+
+        proteccionPrecargaLoteTimeline = new Timeline();
+        proteccionPrecargaLoteTimeline.getKeyFrames().addAll(frames);
+        proteccionPrecargaLoteTimeline.setCycleCount(1);
+        proteccionPrecargaLoteTimeline.playFromStart();
+    }
+
+    // ✅ FIX LOTE
+    private void detenerProteccionPrecargaLote() {
+        if (proteccionPrecargaLoteTimeline != null) {
+            try { proteccionPrecargaLoteTimeline.stop(); } catch (Exception ignored) {}
+            proteccionPrecargaLoteTimeline = null;
+        }
     }
 
     private void configurarBloqueoAutoseleccionEdicion() {
@@ -846,6 +931,8 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
                 String esperado = itemParaEditar.getLote() == null ? "" : itemParaEditar.getLote();
                 String actual = newVal == null ? "" : newVal;
+
+                // ✅ FIX LOTE: si algo lo intenta cambiar (incluido dejarlo en blanco), lo devolvemos
                 if (!esperado.equals(actual)) {
                     txtLote.setText(esperado);
                 }
@@ -853,6 +940,8 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             txtLote.addEventFilter(KeyEvent.KEY_TYPED, e -> {
                 bloqueoAutoseleccionEdicion = false;
                 permitirEdicionManualLote = true;
+                usuarioModificoLote = true; // ✅ FIX LOTE: en cuanto el usuario teclea, ya no restauramos por protección
+                detenerProteccionPrecargaLote();
             });
         }
 
@@ -934,6 +1023,9 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     }
 
     private void cerrarFormulario() {
+        // ✅ FIX LOTE: detener timeline para evitar fugas si cierras rápido
+        detenerProteccionPrecargaLote();
+
         if (btnGuardar == null || btnGuardar.getScene() == null) return;
         Stage stage = (Stage) btnGuardar.getScene().getWindow();
         if (stage != null) stage.close();

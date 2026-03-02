@@ -1,5 +1,6 @@
 package Reportes.utilidades.controller;
 
+import Compartido.helper.RefrescoHelper;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -130,6 +131,8 @@ public class MainController implements ControladorVista {
                     actualizarPoliticaRedimensionamiento();
                 });
             });
+            RefrescoHelper.setVistaActual("utilidades");
+            RefrescoHelper.registrarRefresco("utilidades", this::cargarUtilidades);
         });
     }
 
