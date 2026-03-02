@@ -414,7 +414,7 @@ public class MainController implements ControladorVista, Pausable {
 
         List<compra> snapshot = new ArrayList<>(itemsCompra);
 
-        if (overlayCarga != null) overlayCarga.mostrar();
+        mostrarOverlayCarga("Cargando...");
 
         runAsync(
                 () -> {
@@ -425,7 +425,7 @@ public class MainController implements ControladorVista, Pausable {
                 },
                 claveCompra -> {
                     if (claveCompra == null) {
-                        if (overlayCarga != null) overlayCarga.ocultar();
+                        ocultarOverlayCarga();
                         mostrarAlerta("Error", "No se pudo registrar la compra.");
                         return;
                     }
@@ -442,11 +442,11 @@ public class MainController implements ControladorVista, Pausable {
                     buscador.setDisable(false);
                     buscador.setValue(null);
 
-                    if (overlayCarga != null) overlayCarga.ocultar();
+                    ocultarOverlayCarga();
                     mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
                 },
                 ex -> {
-                    if (overlayCarga != null) overlayCarga.ocultar();
+                    ocultarOverlayCarga();
                     mostrarAlerta("Error", "No se pudo registrar la compra.");
                 }
         );
@@ -483,6 +483,17 @@ public class MainController implements ControladorVista, Pausable {
     }
 
     public void refrescarTabla() { contenidoTabla.refresh(); }
+
+    private void mostrarOverlayCarga(String mensaje) {
+        if (overlayCarga == null) return;
+        overlayCarga.setMensaje(mensaje);
+        overlayCarga.mostrar();
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga == null) return;
+        overlayCarga.ocultar();
+    }
 
     private boolean confirmarRegistroCompra() {
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
