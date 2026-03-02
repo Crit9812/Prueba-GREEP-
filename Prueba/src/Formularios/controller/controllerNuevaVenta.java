@@ -11,6 +11,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import javafx.concurrent.Task;
 
@@ -41,6 +43,8 @@ public class controllerNuevaVenta extends FormularioSalidaController {
     private boolean modoSoloNormal = false;
     private boolean modoAjusteInventario = false;
     private boolean cargandoEdicion = false;
+    private boolean bloqueoAutoseleccionEdicion = false;
+    private boolean permitirEdicionManualLote = false;
 
 
     @FXML
@@ -55,6 +59,7 @@ public class controllerNuevaVenta extends FormularioSalidaController {
 
         // Configuración específica de venta
         aplicarModoSoloNormal();
+        configurarBloqueoAutoseleccionEdicion();
 
         if (itemParaEditar != null) {
             if (tabRapido != null) {
@@ -1062,9 +1067,116 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         }
 
         cargandoEdicion = true;
+        bloqueoAutoseleccionEdicion = true;
+        permitirEdicionManualLote = false;
         seleccionarClaveAlternaPendiente = false;
-        limpiarFormularioParaNuevo();
         programarCargaItemParaEditar(0);
+    }
+
+    private void configurarBloqueoAutoseleccionEdicion() {
+        if (cbClaveProducto != null) {
+            cbClaveProducto.valueProperty().addListener((obs, oldVal, newVal) -> protegerValorEnEdicion(cbClaveProducto));
+            cbClaveProducto.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            cbClaveProducto.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+        if (cbProductoNombre != null) {
+            cbProductoNombre.valueProperty().addListener((obs, oldVal, newVal) -> protegerValorEnEdicion(cbProductoNombre));
+            cbProductoNombre.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            cbProductoNombre.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+        if (cbPresentacion != null) {
+            cbPresentacion.valueProperty().addListener((obs, oldVal, newVal) -> protegerValorEnEdicion(cbPresentacion));
+            cbPresentacion.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            cbPresentacion.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+        if (txtFactor != null) {
+            txtFactor.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (bloqueoAutoseleccionEdicion && itemParaEditar != null && !String.valueOf(itemParaEditar.getFactor()).equals(newVal)) {
+                    txtFactor.setText(String.valueOf(itemParaEditar.getFactor()));
+                }
+            });
+            txtFactor.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            txtFactor.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+
+        if (txtDescripcion != null) {
+            txtDescripcion.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (!bloqueoAutoseleccionEdicion || itemParaEditar == null) {
+                    return;
+                }
+                String esperada = itemParaEditar.getDescripcion() == null ? "" : itemParaEditar.getDescripcion();
+                String actual = newVal == null ? "" : newVal;
+                if (!esperada.equals(actual)) {
+                    txtDescripcion.setText(esperada);
+                }
+            });
+            txtDescripcion.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            txtDescripcion.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+
+        if (txtLote != null) {
+            txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (itemParaEditar == null || permitirEdicionManualLote) {
+                    return;
+                }
+                String esperado = itemParaEditar.getLote() == null ? "" : itemParaEditar.getLote();
+                String actual = newVal == null ? "" : newVal;
+                if (!esperado.equals(actual)) {
+                    txtLote.setText(esperado);
+                }
+            });
+            txtLote.addEventFilter(KeyEvent.KEY_TYPED, e -> {
+                bloqueoAutoseleccionEdicion = false;
+                permitirEdicionManualLote = true;
+            });
+        }
+
+        if (dpCaducidad != null) {
+            dpCaducidad.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (!bloqueoAutoseleccionEdicion || itemParaEditar == null) {
+                    return;
+                }
+                java.time.LocalDate esperada = null;
+                String cad = itemParaEditar.getCaducidad();
+                if (cad != null && !cad.isBlank()) {
+                    try {
+                        esperada = java.time.LocalDate.parse(cad);
+                    } catch (java.time.format.DateTimeParseException ignored) {
+                        esperada = null;
+                    }
+                }
+                if ((esperada == null && newVal != null) || (esperada != null && !esperada.equals(newVal))) {
+                    dpCaducidad.setValue(esperada);
+                }
+            });
+            dpCaducidad.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            dpCaducidad.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+    }
+
+    private void protegerValorEnEdicion(ComboBox<String> combo) {
+        if (!bloqueoAutoseleccionEdicion || itemParaEditar == null || combo == null) {
+            return;
+        }
+
+        String esperado;
+        if (combo == cbClaveProducto) {
+            esperado = itemParaEditar.getClaveProducto();
+        } else if (combo == cbProductoNombre) {
+            esperado = itemParaEditar.getProducto();
+        } else if (combo == cbPresentacion) {
+            esperado = itemParaEditar.getPresentacion();
+        } else {
+            return;
+        }
+
+        String actual = combo.getValue();
+        if (esperado != null && !esperado.equals(actual)) {
+            combo.setValue(esperado);
+            if (combo.getEditor() != null) {
+                combo.getEditor().setText(esperado);
+            }
+        }
     }
 
     private void programarCargaItemParaEditar(int intentos) {
@@ -1149,7 +1261,14 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         }
         presentacionValida = true;
         factorValido = true;
-        cargarPreciosDesdeProducto();
+
+        if (txtPrecioEntrada != null) {
+            txtPrecioEntrada.setText(itemParaEditar.getPrecioEntrada());
+        }
+
+        if (txtPrecioEntradaIva != null) {
+            txtPrecioEntradaIva.setText(itemParaEditar.getPrecioIva());
+        }
 
         String precioSalida = itemParaEditar.getPrecioEntrada();
         if (txtPrecioSalida != null) {

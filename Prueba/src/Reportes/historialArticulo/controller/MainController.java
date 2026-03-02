@@ -1,6 +1,7 @@
 package Reportes.historialArticulo.controller;
 
 import VentanaPrincipal.controller.ControladorVista;
+import Compartido.helper.RefrescoHelper;
 import VentanaPrincipal.controller.EnumVistas;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
@@ -82,6 +83,7 @@ public class MainController implements ControladorVista {
     @FXML private Label lblExistencias;
 
     private StackPane contentArea;
+    private String productoSeleccionadoId;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final ObservableList<ProductoOpcion> productosCache = FXCollections.observableArrayList();
     private final ObservableList<ProductoOpcion> productosFiltrados = FXCollections.observableArrayList();
@@ -131,7 +133,52 @@ public class MainController implements ControladorVista {
             configurarBuscadorProducto();
             configurarFiltros();
             configurarFiltroFechas();
+            RefrescoHelper.setVistaActual("historialArticulo");
+            RefrescoHelper.registrarRefresco("historialArticulo", this::refrescarVista);
         });
+    }
+
+    private void refrescarVista() {
+        // Si hay un producto seleccionado, recargar su historial
+        if (productoSeleccionadoId != null && !productoSeleccionadoId.isBlank()) {
+            cargarHistorialArticulo(productoSeleccionadoId);
+        }
+        // Opcional: recargar la lista de productos en el buscador (para reflejar altas/bajas)
+        // Se puede hacer en segundo plano sin bloquear la UI
+        Task<List<ProductoOpcion>> task = new Task<>() {
+            @Override
+            protected List<ProductoOpcion> call() {
+                return cargarProductosActivos();
+            }
+            @Override
+            protected void succeeded() {
+                List<ProductoOpcion> resultado = getValue();
+                productosCache.setAll(resultado != null ? resultado : List.of());
+                // Mantener la selección actual si sigue existiendo
+                String textoActual = buscarProducto.getEditor().getText();
+                ProductoOpcion seleccionado = buscarProducto.getValue();
+                if (seleccionado != null) {
+                    // Verificar que el producto aún esté en la lista actualizada
+                    boolean existe = productosCache.stream()
+                            .anyMatch(p -> p.getId().equals(seleccionado.getId()));
+                    if (!existe) {
+                        // Si ya no existe, limpiar selección
+                        buscarProducto.setValue(null);
+                        productoSeleccionadoId = null;
+                        limpiarDetalleProducto();
+                        historialItems.clear();
+                    } else {
+                        // Forzar actualización del texto visible (por si cambió nombre/descripción)
+                        buscarProducto.getEditor().setText(seleccionado.getTextoVisible());
+                    }
+                }
+                // Refiltrar la lista desplegable según el texto actual
+                filtrarProductos(textoActual);
+            }
+        };
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void configurarColumnas() {
@@ -220,8 +267,10 @@ public class MainController implements ControladorVista {
                 actualizandoBusqueda = true;
                 buscarProducto.getEditor().setText(newVal.getTextoVisible());
                 actualizandoBusqueda = false;
+                productoSeleccionadoId = newVal.getId();
                 cargarHistorialArticulo(newVal.getId());
             } else {
+                productoSeleccionadoId = null;
                 limpiarDetalleProducto();
             }
         });

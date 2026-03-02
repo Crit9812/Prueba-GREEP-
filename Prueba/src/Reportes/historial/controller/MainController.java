@@ -1,5 +1,6 @@
 package Reportes.historial.controller;
 
+import Compartido.helper.RefrescoHelper;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
@@ -117,6 +118,9 @@ public class MainController implements ControladorVista {
             configurarBusquedaFactura();
             cargarHistorial();
             configurarDobleClick();
+
+            RefrescoHelper.setVistaActual("historial");
+            RefrescoHelper.registrarRefresco("historial", this::cargarHistorial);
         });
     }
 
