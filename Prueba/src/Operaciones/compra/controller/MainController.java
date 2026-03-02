@@ -442,7 +442,6 @@ public class MainController implements ControladorVista, Pausable {
                     buscador.setDisable(false);
                     buscador.setValue(null);
 
-                    ocultarOverlayCarga();
                     mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
                 },
                 ex -> {
@@ -586,6 +585,8 @@ public class MainController implements ControladorVista, Pausable {
                                             String nombreProveedor,
                                             String comentario,
                                             List<compra> itemsCompra) {
+        ocultarOverlayCarga();
+
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
         dialogo.setTitle("Registro exitoso");
         dialogo.setHeaderText("Compra registrada correctamente");
