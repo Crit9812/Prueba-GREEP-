@@ -305,73 +305,7 @@ public class GenericDAO<T> {
         return lista;
     }
 
-    // --------------------- Métodos auxiliares -------------------
-
-    // Metodo generalizado para construir descripciones concatenando campos
-    public static String construirDescripcion(String... campos) {
-        if (campos == null || campos.length == 0) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        for (String campo : campos) {
-            if (campo != null && !campo.trim().isEmpty()) {
-                if (sb.length() > 0) {
-                    sb.append(" ");
-                }
-                sb.append(campo.trim());
-            }
-        }
-
-        return sb.toString();
-    }
-
     // --------------------- Métodos  -------------------
-
-    public ArrayList<Map<String, String>> obtenerProductosConMarcaEtiqueta() {
-        ArrayList<Map<String, String>> resultados = new ArrayList<>();
-
-        String sql = """
-        SELECT
-            p.id,
-            p.nombre,
-            p.descripcion,
-            m.nombre AS marca,
-            e.nombre AS etiqueta
-        FROM productos p
-        LEFT JOIN marcas m ON m.id = p.marca
-        LEFT JOIN etiquetas e ON e.id = p.etiqueta
-        ORDER BY p.nombre
-    """;
-
-        try (PreparedStatement ps = this.conexion.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                Map<String, String> producto = new HashMap<>();
-
-                // Usar el método generalizado para construir descripción
-                String descripcionCompleta = construirDescripcion(
-                        rs.getString("marca"),
-                        rs.getString("etiqueta")
-                );
-
-                producto.put("id", rs.getString("id"));
-                producto.put("nombre", rs.getString("nombre"));
-                producto.put("descripcion", descripcionCompleta);
-
-                resultados.add(producto);
-            }
-
-        } catch (Exception e) {
-            System.out.println("Error en obtenerProductosConMarcaEtiqueta: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return resultados;
-    }
-
     public static class ValidacionDisponibilidadSalida {
         private final boolean entradaCompletada;
         private final int disponiblesSinSalida;
@@ -1160,6 +1094,43 @@ public class GenericDAO<T> {
             }
         }
         return null;
+    }
+
+
+    public String obtenerResumenProducto(String idProducto) {
+        String sql = "SELECT p.material, p.descripcion, p.unidadMedida, " +
+                "m.nombre AS marca_nombre, " +
+                "e.nombre AS etiqueta_nombre " +
+                "FROM productos p " +
+                "LEFT JOIN marcas m ON p.marca = m.id " +
+                "LEFT JOIN etiquetas e ON p.etiqueta = e.id " +
+                "WHERE p.id = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String marca = rs.getString("marca_nombre");
+                    String material = rs.getString("material");
+                    String unidad = rs.getString("unidadMedida");
+                    String etiqueta = rs.getString("etiqueta_nombre");
+                    String descripcion = rs.getString("descripcion");
+
+                    // Construir el string separado por comas, reemplazando null por cadena vacía
+                    return String.join(", ",
+                            (marca != null ? marca : ""),
+                            (material != null ? material : ""),
+                            (unidad != null ? unidad : ""),
+                            (etiqueta != null ? etiqueta : ""),
+                            (descripcion != null ? descripcion : "")
+                    );
+                } else {
+                    return "Producto no encontrado";
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error en obtenerResumenProducto: " + e.getMessage());
+            return null;
+        }
     }
 
 }

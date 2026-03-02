@@ -1,5 +1,6 @@
 package Reportes.historial.controller;
 
+import Consultas.producto.model.producto;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import Compartido.exportar.ReporteAjusteExporter;
+import Compartido.model.DAO.GenericDAO;
 import Compartido.model.IvaConfigService;
 import Compartido.exportar.ReporteEntradaExporter;
 import Compartido.exportar.ReporteSalidaExporter;
@@ -3004,6 +3006,9 @@ public class DetalleFacturaController {
         if (historial == null || !puedeDescargarMovimiento()) {
             return;
         }
+        GenericDAO<producto> productoDAO = new GenericDAO<>(producto.class);
+        String info = productoDAO.obtenerResumenProducto("A002");
+        System.out.println(info);
 
         String movimiento = textoSeguro(historial.getMovimiento()).toLowerCase(Locale.ROOT);
         String tipoMovimiento = textoSeguro(historial.getTipoMovimiento()).toLowerCase(Locale.ROOT);
