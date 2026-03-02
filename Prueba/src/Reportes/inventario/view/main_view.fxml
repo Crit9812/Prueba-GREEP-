@@ -181,6 +181,18 @@
                                 </TableView>
                             </content>
                         </ScrollPane>
+
+                        <HBox alignment="CENTER_RIGHT">
+                            <Label fx:id="lblTotalInventario" text="Total:" styleClass="labels">
+                                <HBox.margin>
+                                    <Insets right="10"/>
+                                </HBox.margin>
+                            </Label>
+                            <TextField fx:id="totalInventario"
+                                       editable="false"
+                                       styleClass="total-field"
+                                       promptText="Total"/>
+                        </HBox>
                     </VBox>
                 </VBox>
             </SplitPane>
