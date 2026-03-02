@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="agegado de cache">
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en formulaios">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Formularios/controller/controllerNuevoTraspasoSalida.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/historial/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historial/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/inventario/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/utilidades/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/utilidades/controller/MainController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Formularios/model/modelNuevoPedido.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +38,7 @@
     </excluded-from-favorite>
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$/.." value="Pruebas" />
+        <entry key="$PROJECT_DIR$/.." value="codex/fix-form-data-preloading-for-editing" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -98,7 +94,7 @@
     "dart.analysis.tool.window.visible": "false",
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "database.data.extractors.current.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "#190 on codex/fix-form-data-preloading-for-editing",
+    "git-widget-placeholder": "Pruebas",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -232,23 +228,7 @@
       <workItem from="1772133087347" duration="12532000" />
       <workItem from="1772200680197" duration="19162000" />
       <workItem from="1772230813664" duration="628000" />
-      <workItem from="1772460550556" duration="4434000" />
-    </task>
-    <task id="LOCAL-00025" summary="Modificaciones de consultas agregadas">
-      <option name="closed" value="true" />
-      <created>1768232022094</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1768232022094</updated>
-    </task>
-    <task id="LOCAL-00026" summary="Modificaciones de consultas agregadas">
-      <option name="closed" value="true" />
-      <created>1768238289449</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1768238289449</updated>
+      <workItem from="1772460550556" duration="6769000" />
     </task>
     <task id="LOCAL-00027" summary="Correccion en el formulario de compra, dos botones agregados">
       <option name="closed" value="true" />
@@ -626,7 +606,23 @@
       <option name="project" value="LOCAL" />
       <updated>1772224107284</updated>
     </task>
-    <option name="localTasksCounter" value="74" />
+    <task id="LOCAL-00074" summary="cambios en formulaios">
+      <option name="closed" value="true" />
+      <created>1772465353047</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1772465353047</updated>
+    </task>
+    <task id="LOCAL-00075" summary="cambios en formulaios">
+      <option name="closed" value="true" />
+      <created>1772465727955</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1772465727955</updated>
+    </task>
+    <option name="localTasksCounter" value="76" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -686,7 +682,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Correccion en los formularios cliente, proveedore y sucursales, y agregado bien de autocompletado con cp" />
     <MESSAGE value="Correcciones" />
     <MESSAGE value="Correcciones de todo lo roto" />
     <MESSAGE value="Revert &quot;Filtrar ubicaciones activas en traspaso entrada&quot;&#10;&#10;This reverts commit 074d52f4" />
@@ -711,7 +706,8 @@
     <MESSAGE value="cambios en busqueda" />
     <MESSAGE value="Agregado de teclas de acceso rapido en todo el programa" />
     <MESSAGE value="agegado de cache" />
-    <option name="LAST_COMMIT_MESSAGE" value="agegado de cache" />
+    <MESSAGE value="cambios en formulaios" />
+    <option name="LAST_COMMIT_MESSAGE" value="cambios en formulaios" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
