@@ -74,6 +74,8 @@ public class MainController implements ControladorVista{
     @FXML private TableColumn<ItemInventario, String> colPrecioTotal;
     @FXML private TableColumn<ItemInventario, String> colPrecioTotalIva;
     @FXML private TableColumn<ItemInventario, String> colInventarioMinimo;
+    @FXML private Label lblTotalInventario;
+    @FXML private TextField totalInventario;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -143,6 +145,7 @@ public class MainController implements ControladorVista{
             cargarInventarioDisponible(false);
             aplicarBusquedaPendienteDesdeEncabezado();
             configurarDobleClick();
+            configurarTotalInventario();
             RefrescoHelper.setVistaActual("inventario");
             RefrescoHelper.registrarRefresco("inventario", this::refrescarVista);
         });
@@ -1881,6 +1884,7 @@ public class MainController implements ControladorVista{
             }
         }
         itemsInventario.setAll(filtrados);
+        actualizarTotalInventario();
         aplicarOrdenamiento();
     }
 
@@ -1962,6 +1966,27 @@ public class MainController implements ControladorVista{
         }
 
         exportador.previsualizarPDF(contenidoTabla, "Inventario", filtrosAplicados);
+    }
+
+    private void configurarTotalInventario() {
+        if (itemsInventario == null) {
+            return;
+        }
+        itemsInventario.addListener((javafx.collections.ListChangeListener<ItemInventario>) cambio -> actualizarTotalInventario());
+        actualizarTotalInventario();
+    }
+
+    private void actualizarTotalInventario() {
+        if (totalInventario == null) {
+            return;
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (ItemInventario item : itemsInventario) {
+            total = total.add(parseDecimal(item.getPrecioTotalIva()));
+        }
+
+        totalInventario.setText(formatearMoneda(total));
     }
 
     private void mostrarAdvertencia(String titulo, String mensaje) {
