@@ -823,6 +823,38 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
             txtFactor.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
             txtFactor.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
         }
+
+        if (txtLote != null) {
+            txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
+                if (bloqueoAutoseleccionEdicion && itemParaEditar != null && !itemParaEditar.getLote().equals(newVal)) {
+                    txtLote.setText(itemParaEditar.getLote());
+                }
+            });
+            txtLote.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            txtLote.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
+
+        if (dpCaducidad != null) {
+            dpCaducidad.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (!bloqueoAutoseleccionEdicion || itemParaEditar == null) return;
+
+                LocalDate esperada = null;
+                String cad = itemParaEditar.getCaducidad();
+                if (cad != null && !cad.isBlank()) {
+                    try {
+                        esperada = LocalDate.parse(cad);
+                    } catch (java.time.format.DateTimeParseException ignored) {
+                        esperada = null;
+                    }
+                }
+
+                if ((esperada == null && newVal != null) || (esperada != null && !esperada.equals(newVal))) {
+                    dpCaducidad.setValue(esperada);
+                }
+            });
+            dpCaducidad.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            dpCaducidad.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+        }
     }
 
     private void protegerValorEnEdicion(ComboBox<String> combo) {
