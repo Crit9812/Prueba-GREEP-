@@ -1063,7 +1063,6 @@ public class controllerNuevaVenta extends FormularioSalidaController {
 
         cargandoEdicion = true;
         seleccionarClaveAlternaPendiente = false;
-        limpiarFormularioParaNuevo();
         programarCargaItemParaEditar(0);
     }
 
@@ -1149,7 +1148,14 @@ public class controllerNuevaVenta extends FormularioSalidaController {
         }
         presentacionValida = true;
         factorValido = true;
-        cargarPreciosDesdeProducto();
+
+        if (txtPrecioEntrada != null) {
+            txtPrecioEntrada.setText(itemParaEditar.getPrecioEntrada());
+        }
+
+        if (txtPrecioEntradaIva != null) {
+            txtPrecioEntradaIva.setText(itemParaEditar.getPrecioIva());
+        }
 
         String precioSalida = itemParaEditar.getPrecioEntrada();
         if (txtPrecioSalida != null) {

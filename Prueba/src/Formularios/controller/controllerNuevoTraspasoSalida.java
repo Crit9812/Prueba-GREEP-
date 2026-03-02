@@ -761,8 +761,6 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     private void cargarItemParaEditar() {
         if (itemParaEditar == null) return;
 
-        limpiarFormularioParaNuevo();
-
         cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
         cbProductoNombre.setValue(itemParaEditar.getProducto());
         txtDescripcion.setText(itemParaEditar.getDescripcion());
@@ -780,7 +778,8 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         presentacionValida = true;
         factorValido = true;
 
-        cargarPreciosDesdeProducto();
+        if (txtPrecioEntrada != null) txtPrecioEntrada.setText(itemParaEditar.getPrecioEntrada());
+        if (txtPrecioEntradaIva != null) txtPrecioEntradaIva.setText(itemParaEditar.getPrecioIva());
 
         String precioSalida = itemParaEditar.getPrecioEntrada();
         if (txtPrecioSalida != null) txtPrecioSalida.setText(precioSalida);
