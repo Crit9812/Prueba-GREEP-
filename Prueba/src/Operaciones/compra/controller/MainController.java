@@ -87,6 +87,7 @@ public class MainController implements ControladorVista, Pausable {
 
     private OverlayCarga overlayCarga;
     private Pane overlayPaneCarga;
+    private StackPane overlayRootActual;
 
     private final ExecutorService bg = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
@@ -102,12 +103,7 @@ public class MainController implements ControladorVista, Pausable {
 
     @FXML
     public void initialize() {
-        Platform.runLater(() -> {
-            bindLayout();
-            overlayPaneCarga = new Pane();
-            root.getChildren().add(overlayPaneCarga);
-            overlayCarga = new OverlayCarga(root, overlayPaneCarga);
-        });
+        Platform.runLater(this::bindLayout);
 
         configurarAutocompleteProveedores();
         configurarTabla();
@@ -487,6 +483,7 @@ public class MainController implements ControladorVista, Pausable {
     public void refrescarTabla() { contenidoTabla.refresh(); }
 
     private void mostrarOverlayCarga(String mensaje) {
+        inicializarOverlayGlobal();
         if (overlayCarga == null) return;
         overlayCarga.setMensaje(mensaje);
         overlayCarga.mostrar();
@@ -495,6 +492,30 @@ public class MainController implements ControladorVista, Pausable {
     private void ocultarOverlayCarga() {
         if (overlayCarga == null) return;
         overlayCarga.ocultar();
+    }
+
+    private void inicializarOverlayGlobal() {
+        if (root == null || root.getScene() == null) {
+            return;
+        }
+
+        StackPane rootEscena = (root.getScene().getRoot() instanceof StackPane stackPaneEscena)
+                ? stackPaneEscena
+                : root;
+
+        if (overlayCarga != null && overlayPaneCarga != null && overlayRootActual == rootEscena
+                && overlayPaneCarga.getParent() == rootEscena) {
+            return;
+        }
+
+        if (overlayPaneCarga != null && overlayPaneCarga.getParent() instanceof Pane parentPane) {
+            parentPane.getChildren().remove(overlayPaneCarga);
+        }
+
+        overlayPaneCarga = new Pane();
+        overlayRootActual = rootEscena;
+        overlayRootActual.getChildren().add(overlayPaneCarga);
+        overlayCarga = new OverlayCarga(overlayRootActual, overlayPaneCarga);
     }
 
     private boolean confirmarRegistroCompra() {
