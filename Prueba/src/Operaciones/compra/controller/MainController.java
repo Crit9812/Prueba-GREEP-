@@ -410,9 +410,11 @@ public class MainController implements ControladorVista, Pausable {
         if (numeroFactura.isEmpty()) { mostrarAlerta("Advertencia", "Debe capturar el número de factura antes de confirmar."); return; }
 
         String comentarioTexto = comentario != null ? comentario.getText().trim() : "";
+        if (!confirmarRegistroCompra()) return;
+
         List<compra> snapshot = new ArrayList<>(itemsCompra);
 
-        if (overlayCarga != null) overlayCarga.mostrar();
+        mostrarOverlayCarga("Cargando...");
 
         runAsync(
                 () -> {
@@ -423,7 +425,7 @@ public class MainController implements ControladorVista, Pausable {
                 },
                 claveCompra -> {
                     if (claveCompra == null) {
-                        if (overlayCarga != null) overlayCarga.ocultar();
+                        ocultarOverlayCarga();
                         mostrarAlerta("Error", "No se pudo registrar la compra.");
                         return;
                     }
@@ -440,11 +442,11 @@ public class MainController implements ControladorVista, Pausable {
                     buscador.setDisable(false);
                     buscador.setValue(null);
 
-                    if (overlayCarga != null) overlayCarga.ocultar();
+                    ocultarOverlayCarga();
                     mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
                 },
                 ex -> {
-                    if (overlayCarga != null) overlayCarga.ocultar();
+                    ocultarOverlayCarga();
                     mostrarAlerta("Error", "No se pudo registrar la compra.");
                 }
         );
@@ -481,6 +483,31 @@ public class MainController implements ControladorVista, Pausable {
     }
 
     public void refrescarTabla() { contenidoTabla.refresh(); }
+
+    private void mostrarOverlayCarga(String mensaje) {
+        if (overlayCarga == null) return;
+        overlayCarga.setMensaje(mensaje);
+        overlayCarga.mostrar();
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga == null) return;
+        overlayCarga.ocultar();
+    }
+
+    private boolean confirmarRegistroCompra() {
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmar compra");
+        confirmacion.setHeaderText("¿Deseas confirmar el registro de esta compra?");
+        confirmacion.setContentText("Si aceptas, se guardarán los registros en la base de datos.");
+
+        ButtonType btnAceptar = new ButtonType("Aceptar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        confirmacion.getButtonTypes().setAll(btnAceptar, btnCancelar);
+
+        return confirmacion.showAndWait().filter(respuesta -> respuesta == btnAceptar).isPresent();
+    }
+
 
     // =========================
     // Proveedores (refresco y selección)
