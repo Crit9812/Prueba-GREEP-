@@ -41,6 +41,7 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
     private boolean modoSoloNormal = false;
     private boolean modoAjusteInventario = false;
     private boolean bloqueoAutoseleccionEdicion = false;
+    private boolean permitirEdicionManualLote = false;
 
 
     @FXML
@@ -766,6 +767,7 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
         if (itemParaEditar == null) return;
 
         bloqueoAutoseleccionEdicion = true;
+        permitirEdicionManualLote = false;
 
         cbClaveProducto.setValue(itemParaEditar.getClaveProducto());
         cbProductoNombre.setValue(itemParaEditar.getProducto());
@@ -840,7 +842,7 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
 
         if (txtLote != null) {
             txtLote.textProperty().addListener((obs, oldVal, newVal) -> {
-                if (!bloqueoAutoseleccionEdicion || itemParaEditar == null) return;
+                if (itemParaEditar == null || permitirEdicionManualLote) return;
 
                 String esperado = itemParaEditar.getLote() == null ? "" : itemParaEditar.getLote();
                 String actual = newVal == null ? "" : newVal;
@@ -848,8 +850,10 @@ public class controllerNuevoTraspasoSalida extends FormularioSalidaController {
                     txtLote.setText(esperado);
                 }
             });
-            txtLote.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
-            txtLote.addEventFilter(KeyEvent.KEY_PRESSED, e -> bloqueoAutoseleccionEdicion = false);
+            txtLote.addEventFilter(KeyEvent.KEY_TYPED, e -> {
+                bloqueoAutoseleccionEdicion = false;
+                permitirEdicionManualLote = true;
+            });
         }
 
         if (dpCaducidad != null) {
