@@ -86,6 +86,8 @@ public class MainController implements ControladorVista, Pausable {
     private boolean actualizandoFiltroProveedor = false;
 
     private OverlayCarga overlayCarga;
+    private Pane overlayPaneCarga;
+    private StackPane overlayRootActual;
 
     private final ExecutorService bg = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
@@ -101,10 +103,7 @@ public class MainController implements ControladorVista, Pausable {
 
     @FXML
     public void initialize() {
-        Platform.runLater(() -> {
-            bindLayout();
-            overlayCarga = new OverlayCarga(root, new Pane());
-        });
+        Platform.runLater(this::bindLayout);
 
         configurarAutocompleteProveedores();
         configurarTabla();
@@ -442,7 +441,6 @@ public class MainController implements ControladorVista, Pausable {
                     buscador.setDisable(false);
                     buscador.setValue(null);
 
-                    ocultarOverlayCarga();
                     mostrarConfirmacionReporte(claveCompra, proveedorNombre, comentarioTexto, copiaItems);
                 },
                 ex -> {
@@ -485,6 +483,7 @@ public class MainController implements ControladorVista, Pausable {
     public void refrescarTabla() { contenidoTabla.refresh(); }
 
     private void mostrarOverlayCarga(String mensaje) {
+        inicializarOverlayGlobal();
         if (overlayCarga == null) return;
         overlayCarga.setMensaje(mensaje);
         overlayCarga.mostrar();
@@ -493,6 +492,30 @@ public class MainController implements ControladorVista, Pausable {
     private void ocultarOverlayCarga() {
         if (overlayCarga == null) return;
         overlayCarga.ocultar();
+    }
+
+    private void inicializarOverlayGlobal() {
+        if (root == null || root.getScene() == null) {
+            return;
+        }
+
+        StackPane rootEscena = (root.getScene().getRoot() instanceof StackPane stackPaneEscena)
+                ? stackPaneEscena
+                : root;
+
+        if (overlayCarga != null && overlayPaneCarga != null && overlayRootActual == rootEscena
+                && overlayPaneCarga.getParent() == rootEscena) {
+            return;
+        }
+
+        if (overlayPaneCarga != null && overlayPaneCarga.getParent() instanceof Pane parentPane) {
+            parentPane.getChildren().remove(overlayPaneCarga);
+        }
+
+        overlayPaneCarga = new Pane();
+        overlayRootActual = rootEscena;
+        overlayRootActual.getChildren().add(overlayPaneCarga);
+        overlayCarga = new OverlayCarga(overlayRootActual, overlayPaneCarga);
     }
 
     private boolean confirmarRegistroCompra() {
@@ -586,6 +609,8 @@ public class MainController implements ControladorVista, Pausable {
                                             String nombreProveedor,
                                             String comentario,
                                             List<compra> itemsCompra) {
+        ocultarOverlayCarga();
+
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION);
         dialogo.setTitle("Registro exitoso");
         dialogo.setHeaderText("Compra registrada correctamente");
