@@ -86,6 +86,7 @@ public class MainController implements ControladorVista, Pausable {
     private boolean actualizandoFiltroProveedor = false;
 
     private OverlayCarga overlayCarga;
+    private Pane overlayPaneCarga;
 
     private final ExecutorService bg = Executors.newFixedThreadPool(
             Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
@@ -103,7 +104,9 @@ public class MainController implements ControladorVista, Pausable {
     public void initialize() {
         Platform.runLater(() -> {
             bindLayout();
-            overlayCarga = new OverlayCarga(root, new Pane());
+            overlayPaneCarga = new Pane();
+            root.getChildren().add(overlayPaneCarga);
+            overlayCarga = new OverlayCarga(root, overlayPaneCarga);
         });
 
         configurarAutocompleteProveedores();
