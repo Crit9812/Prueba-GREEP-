@@ -180,6 +180,9 @@
                         </TableView>
 
                         <VBox alignment="CENTER_RIGHT" spacing="10">
+                            <VBox.margin>
+                                <Insets top="8"/>
+                            </VBox.margin>
                             <HBox alignment="CENTER_RIGHT">
                                 <Label text="Total de compra:" styleClass="labels">
                                     <HBox.margin>
