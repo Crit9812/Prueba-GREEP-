@@ -233,6 +233,7 @@ public class DetalleFacturaController {
 
 
     @FXML private void cancelarEntrada() {
+
         if (soloLecturaReportes) return;
         if (!esMovimientoValido("Entrada")) return;
         Integer entradaId = parseInteger(historial.getClaveMovimiento());
@@ -3006,9 +3007,6 @@ public class DetalleFacturaController {
         if (historial == null || !puedeDescargarMovimiento()) {
             return;
         }
-        GenericDAO<producto> productoDAO = new GenericDAO<>(producto.class);
-        String info = productoDAO.obtenerResumenProducto("A002");
-        System.out.println(info);
 
         String movimiento = textoSeguro(historial.getMovimiento()).toLowerCase(Locale.ROOT);
         String tipoMovimiento = textoSeguro(historial.getTipoMovimiento()).toLowerCase(Locale.ROOT);
@@ -3115,10 +3113,22 @@ public class DetalleFacturaController {
                 ubicaciones = agruparUbicaciones(linea.articulos);
             }
 
+            String resumen = "";
+            if (linea.claveProducto != null && !linea.claveProducto.isBlank()) {
+                try {
+                    GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+                    resumen = dao.obtenerResumenProducto(linea.claveProducto);
+                    if (resumen == null) resumen = "";
+                } catch (Exception e) {
+                    resumen = "";
+                }
+            }
+
+
             compra item = new compra(
                     textoSeguro(linea.claveProducto),
                     textoSeguro(linea.producto),
-                    "",
+                    resumen,
                     lote,
                     caducidad,
                     cantidad,
@@ -3163,10 +3173,21 @@ public class DetalleFacturaController {
                 ubicaciones = agruparUbicaciones(linea.articulos);
             }
 
+            String resumen = "";
+            if (linea.claveProducto != null && !linea.claveProducto.isBlank()) {
+                try {
+                    GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+                    resumen = dao.obtenerResumenProducto(linea.claveProducto);
+                    if (resumen == null) resumen = "";
+                } catch (Exception e) {
+                    resumen = "";
+                }
+            }
+
             traspasoSalida item = new traspasoSalida(
                     textoSeguro(linea.claveProducto),
                     textoSeguro(linea.producto),
-                    "",
+                    resumen,
                     lote,
                     caducidad,
                     cantidad,

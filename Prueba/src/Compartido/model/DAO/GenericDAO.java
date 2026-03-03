@@ -1096,7 +1096,6 @@ public class GenericDAO<T> {
         return null;
     }
 
-
     public String obtenerResumenProducto(String idProducto) {
         String sql = "SELECT p.material, p.descripcion, p.unidadMedida, " +
                 "m.nombre AS marca_nombre, " +
@@ -1115,14 +1114,23 @@ public class GenericDAO<T> {
                     String etiqueta = rs.getString("etiqueta_nombre");
                     String descripcion = rs.getString("descripcion");
 
-                    // Construir el string separado por comas, reemplazando null por cadena vacía
-                    return String.join(", ",
-                            (marca != null ? marca : ""),
-                            (material != null ? material : ""),
-                            (unidad != null ? unidad : ""),
-                            (etiqueta != null ? etiqueta : ""),
-                            (descripcion != null ? descripcion : "")
-                    );
+                    // Construir lista solo con campos no nulos y no vacíos
+                    java.util.ArrayList<String> partes = new java.util.ArrayList<>();
+
+                    if (marca != null && !marca.trim().isEmpty())
+                        partes.add(marca.trim());
+                    if (material != null && !material.trim().isEmpty())
+                        partes.add(material.trim());
+                    if (unidad != null && !unidad.trim().isEmpty())
+                        partes.add(unidad.trim());
+                    if (etiqueta != null && !etiqueta.trim().isEmpty())
+                        partes.add(etiqueta.trim());
+
+                    if (partes.isEmpty()) {
+                        return "";
+                    }
+                    return String.join(", ", partes);
+
                 } else {
                     return "Producto no encontrado";
                 }

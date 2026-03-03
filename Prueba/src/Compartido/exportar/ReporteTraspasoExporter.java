@@ -1,10 +1,11 @@
 package Compartido.exportar;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import Operaciones.compra.model.UbicacionCompra;
 import Operaciones.traspasoEntrada.model.model;
 import javafx.stage.Window;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,13 +20,16 @@ public class ReporteTraspasoExporter extends AbstractPDFExporter<model.DetalleEn
         private String claveProducto;
         private String producto;
         private String cantidad;
+        private String descripcion;
         private String precioUnitario;
         private String precioTotal;
-        private String nombreSucursal; // Para obtener el remitente
+        private String nombreSucursal;
+
 
         public DetalleEntradaPDF(model.DetalleEntrada detalle) {
             this.claveProducto = detalle.getClaveProducto();
-            this.producto = detalle.getProducto();
+            this.producto = extraerNombreBase(detalle.getProducto());
+            this.descripcion = obtenerDescripcionProducto(detalle.getClaveProducto());
             this.cantidad = detalle.getCantidad();
             this.precioUnitario = detalle.getPrecioUnitario();
             this.precioTotal = detalle.getPrecioTotal();
@@ -42,9 +46,39 @@ public class ReporteTraspasoExporter extends AbstractPDFExporter<model.DetalleEn
         public String getClaveProducto() { return claveProducto; }
         public String getProducto() { return producto; }
         public String getCantidad() { return cantidad; }
+        public String getDescripcion() { return descripcion; }
         public String getPrecioUnitario() { return precioUnitario; }
         public String getPrecioTotal() { return precioTotal; }
         public String getNombreSucursal() { return nombreSucursal; }
+    }
+    private static String extraerNombreBase(String nombreCompleto) {
+        if (nombreCompleto == null || nombreCompleto.isEmpty()) {
+            return "";
+        }
+
+        // Buscar el primer guion con espacios " - "
+        int indiceGuion = nombreCompleto.indexOf(" - ");
+        if (indiceGuion > 0) {
+            // Devolver solo la parte antes del guion
+            return nombreCompleto.substring(0, indiceGuion).trim();
+        }
+
+        // Si no hay guion, devolver el nombre completo
+        return nombreCompleto;
+    }
+
+    private static String obtenerDescripcionProducto(String claveProducto) {
+        if (claveProducto == null || claveProducto.isBlank()) {
+            return "";
+        }
+        try {
+            GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+            String resumen = dao.obtenerResumenProducto(claveProducto);
+            return resumen != null ? resumen : "";
+        } catch (Exception e) {
+            System.out.println("Error al obtener descripción del producto " + claveProducto + ": " + e.getMessage());
+            return "";
+        }
     }
 
     public ReporteTraspasoExporter(Map<String, List<UbicacionCompra>> ubicacionesPorProducto) {
@@ -70,14 +104,12 @@ public class ReporteTraspasoExporter extends AbstractPDFExporter<model.DetalleEn
 
     @Override
     protected String[] getHeaders() {
-        // EXACTAMENTE igual al código original
-        return new String[]{"#", "Clave", "Producto", "Cantidad", "Precio Unit.", "Precio Total"};
+        return new String[]{"#", "Clave", "Producto", "Descripción", "Cantidad", "Precio Unit.", "Precio Total"};
     }
 
     @Override
     protected float[] getColumnWidths() {
-        // EXACTAMENTE igual al código original
-        return new float[]{40, 90, 180, 70, 90, 90};
+        return new float[]{40, 80, 120, 100, 70, 80, 80};
     }
 
     @Override
@@ -118,23 +150,62 @@ public class ReporteTraspasoExporter extends AbstractPDFExporter<model.DetalleEn
         contentStream.endText();
         xPos += scaledWidths[2];
 
-        // Columna 4: Cantidad
+        // Columna 4: Descripción con 2 líneas automáticas
+        String descripcion = detalle.getDescripcion() != null ? detalle.getDescripcion() : "";
+        String linea1 = "";
+        String linea2 = "";
+
+        int maxLength = 18; // Ajusta según el ancho de tu columna
+
+        if (descripcion.length() > maxLength) {
+            // Buscar el último espacio antes del límite para cortar por palabras
+            int lastSpace = descripcion.lastIndexOf(" ", maxLength);
+            if (lastSpace > 0) {
+                linea1 = descripcion.substring(0, lastSpace);
+                linea2 = descripcion.substring(lastSpace + 1, Math.min(lastSpace + 1 + maxLength, descripcion.length()));
+            } else {
+                // No hay espacio, cortar forzosamente
+                linea1 = descripcion.substring(0, maxLength);
+                linea2 = descripcion.substring(maxLength, Math.min(maxLength * 2, descripcion.length()));
+            }
+        } else {
+            // Si es corta, toda en la primera línea
+            linea1 = descripcion;
+        }
+
+        contentStream.beginText();
+        contentStream.setFont(fontDatos, 9); // Reducido a 9 para que quepa mejor
+        contentStream.newLineAtOffset(xPos + PDFCommons.CELL_PADDING, currentY - 3); // Ajustado para centrar
+        contentStream.showText(linea1);
+        contentStream.endText();
+
+        if (!linea2.isEmpty()) {
+            contentStream.beginText();
+            contentStream.setFont(fontDatos, 9);
+            contentStream.newLineAtOffset(xPos + PDFCommons.CELL_PADDING, currentY - 15); // 10 unidades más abajo
+            contentStream.showText(linea2);
+            contentStream.endText();
+        }
+
+        xPos += scaledWidths[3];
+
+        // Columna 5: Cantidad
         contentStream.beginText();
         contentStream.setFont(fontDatos, 10);
         contentStream.newLineAtOffset(xPos + PDFCommons.CELL_PADDING, currentY - 15);
         contentStream.showText(detalle.getCantidad() != null ? detalle.getCantidad() : "");
         contentStream.endText();
-        xPos += scaledWidths[3];
+        xPos += scaledWidths[4];
 
-        // Columna 5: Precio Unitario
+        // Columna 6: Precio Unitario
         contentStream.beginText();
         contentStream.setFont(fontDatos, 10);
         contentStream.newLineAtOffset(xPos + PDFCommons.CELL_PADDING, currentY - 15);
         contentStream.showText(detalle.getPrecioUnitario() != null ? detalle.getPrecioUnitario() : "");
         contentStream.endText();
-        xPos += scaledWidths[4];
+        xPos += scaledWidths[5];
 
-        // Columna 6: Precio Total - en rojo (igual que en el original)
+        // Columna 7: Precio Total - en rojo (igual que en el original)
         contentStream.setNonStrokingColor(PDFCommons.COLOR_TOTALES[0], PDFCommons.COLOR_TOTALES[1], PDFCommons.COLOR_TOTALES[2]);
         contentStream.beginText();
         contentStream.setFont(fontCabecera, 10);
@@ -311,4 +382,5 @@ public class ReporteTraspasoExporter extends AbstractPDFExporter<model.DetalleEn
                                        Window owner) {
         exportarReporte(claveEntrada, detalles, ubicacionesPorProducto, owner, "");
     }
+
 }

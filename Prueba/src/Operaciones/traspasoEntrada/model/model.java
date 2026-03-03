@@ -1,5 +1,7 @@
 package Operaciones.traspasoEntrada.model;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import Operaciones.compra.model.UbicacionCompra;
 import conexion.Conexion;
 import javafx.collections.FXCollections;
@@ -141,35 +143,23 @@ public class model {
     }
 
     public String obtenerNombreProducto(String claveProducto) {
-        String nombreProducto = "";
-        String marca = "";
-        String presentacion = "";
-        String compuesto = "";
-
         if (claveProducto == null || claveProducto.trim().isEmpty()) {
-            return claveProducto; // Devolver la clave si está vacía
+            return claveProducto;
         }
 
         try (Connection conn = new Conexion().conectar()) {
             // Obtener columnas de la tabla productos
             Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
 
-            // Buscar las columnas necesarias
             String colClaveProducto = resolverColumna(columnasProductos, "id", "claveProducto", "clave_producto", "producto_id");
             String colNombre = resolverColumna(columnasProductos, "nombre", "nombreProducto", "producto_nombre", "descripcion");
-            String colMarca = resolverColumna(columnasProductos, "marca", "idMarca", "marca_id");
-            String colPresentacion = resolverColumna(columnasProductos, "presentacion", "unidadMedida", "unidad_medida", "presentation");
 
-            // Verificar que las columnas necesarias existen
             if (colClaveProducto == null || colNombre == null) {
-                System.err.println("No se pudieron encontrar las columnas necesarias en productos");
-                return claveProducto; // Devolver la clave si no encuentra columnas
+                return claveProducto;
             }
 
-            String sql = "SELECT " +
-                    "`" + colNombre + "` AS nombre, " +
-                    (colMarca != null ? "`" + colMarca + "` AS marca, " : "NULL AS marca, ") +
-                    (colPresentacion != null ? "`" + colPresentacion + "` AS presentacion " : "NULL AS presentacion ") +
+            // Consulta para obtener el nombre del producto
+            String sql = "SELECT `" + colNombre + "` AS nombre " +
                     "FROM `productos` " +
                     "WHERE `" + colClaveProducto + "` = ? " +
                     "LIMIT 1";
@@ -179,27 +169,21 @@ public class model {
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        nombreProducto = formato(rs.getObject("nombre"));
-                        marca = formato(rs.getObject("marca"));
-                        marca = resolverNombreMarca(conn, marca);
-                        presentacion = formato(rs.getObject("presentacion"));
+                        String nombreProducto = formato(rs.getObject("nombre"));
 
-                        // Construir el compuesto
+                        // Obtener la descripción usando GenericDAO
+                        GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+                        String descripcion = dao.obtenerResumenProducto(claveProducto);
+
+                        // Construir el nombre compuesto
                         StringBuilder sb = new StringBuilder();
-                        sb.append(nombreProducto);
+                        sb.append(nombreProducto != null ? nombreProducto : claveProducto);
 
-                        if (marca != null && !marca.isEmpty()) {
-                            sb.append(" - ").append(marca);
+                        if (descripcion != null && !descripcion.isEmpty()) {
+                            sb.append(" - ").append(descripcion);
                         }
 
-                        if (presentacion != null && !presentacion.isEmpty()) {
-                            sb.append(" (").append(presentacion).append(")");
-                        }
-
-                        compuesto = sb.toString();
-
-                    } else {
-                        compuesto = claveProducto; // Devolver la clave como nombre
+                        return sb.toString();
                     }
                 }
             }
@@ -207,11 +191,9 @@ public class model {
         } catch (Exception e) {
             System.err.println("Error al obtener información del producto '" + claveProducto + "': " + e.getMessage());
             e.printStackTrace();
-            // En caso de error, devolver la clave del producto
-            compuesto = claveProducto;
         }
 
-        return compuesto.isEmpty() ? claveProducto : compuesto;
+        return claveProducto;
     }
 
     public ObservableList<traspasoEntrada> obtenerPendientes() {
