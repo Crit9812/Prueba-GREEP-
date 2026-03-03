@@ -179,6 +179,9 @@
                         </TableView>
 
                         <HBox alignment="CENTER_RIGHT">
+                            <VBox.margin>
+                                <Insets top="8"/>
+                            </VBox.margin>
                             <Label fx:id="lblTotalInventario" text="Total:" styleClass="labels">
                                 <HBox.margin>
                                     <Insets right="10"/>
