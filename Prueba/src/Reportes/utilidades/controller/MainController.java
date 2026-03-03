@@ -19,6 +19,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.KeyCode;
@@ -83,6 +84,9 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<UtilidadItem, String> colFacturaVenta;
     @FXML private TableColumn<UtilidadItem, String> colPorcentajeUtilidad;
     @FXML private TableColumn<UtilidadItem, String> colUtilidadPesos;
+    @FXML private TextField totalCompraGeneral;
+    @FXML private TextField totalVentaGeneral;
+    @FXML private TextField totalUtilidadGeneral;
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -119,7 +123,7 @@ public class MainController implements ControladorVista {
             lblDescargar.setMinWidth(Region.USE_PREF_SIZE);
 
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.78));
-            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.72));
 
             configurarColumnas();
             configurarFiltros();
@@ -538,6 +542,28 @@ public class MainController implements ControladorVista {
         }
         utilidades.setAll(filtrados);
         aplicarOrdenamiento();
+        actualizarTotalesGenerales();
+    }
+
+
+    private void actualizarTotalesGenerales() {
+        if (totalCompraGeneral == null || totalVentaGeneral == null || totalUtilidadGeneral == null) {
+            return;
+        }
+
+        double sumaTotalCompra = 0;
+        double sumaTotalVenta = 0;
+        double sumaTotalUtilidad = 0;
+
+        for (UtilidadItem item : utilidades) {
+            sumaTotalCompra += parseNumero(item.getTotalCompra());
+            sumaTotalVenta += parseNumero(item.getTotalVenta());
+            sumaTotalUtilidad += parseNumero(item.getUtilidadPesos());
+        }
+
+        totalCompraGeneral.setText(formatoNumero(sumaTotalCompra));
+        totalVentaGeneral.setText(formatoNumero(sumaTotalVenta));
+        totalUtilidadGeneral.setText(formatoNumero(sumaTotalUtilidad));
     }
 
     private String obtenerValorCampo(UtilidadItem item, String campo) {
