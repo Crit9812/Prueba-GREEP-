@@ -153,13 +153,11 @@
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
-                        <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="ALWAYS" vbarPolicy="AS_NEEDED">
-                            <content>
-                                <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
-                                    <columnResizePolicy>
-                                        <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
-                                    </columnResizePolicy>
-                                    <columns>
+                        <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
+                            <columnResizePolicy>
+                                <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                            <columns>
                                         <TableColumn fx:id="colId" text="ID" minWidth="70"/>
                                         <TableColumn fx:id="colClaveProducto" text="ID producto" minWidth="90"/>
                                         <TableColumn fx:id="colCantidad" text="Cantidad" minWidth="100" />
@@ -177,10 +175,8 @@
                                         <TableColumn fx:id="colPrecioTotal" text="Precio total" minWidth="140" />
                                         <TableColumn fx:id="colPrecioTotalIva" text="Precio total (IVA)" minWidth="160" />
                                         <TableColumn fx:id="colInventarioMinimo" text="Inventario mínimo" minWidth="180" />
-                                    </columns>
-                                </TableView>
-                            </content>
-                        </ScrollPane>
+                            </columns>
+                        </TableView>
 
                         <HBox alignment="CENTER_RIGHT">
                             <Label fx:id="lblTotalInventario" text="Total:" styleClass="labels">

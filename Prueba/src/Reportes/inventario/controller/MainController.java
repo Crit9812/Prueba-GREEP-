@@ -118,7 +118,7 @@ public class MainController implements ControladorVista{
 
             // Tabla
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.81));
-            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.84));
 
             overlayCarga = new OverlayCarga(root, new Pane());
 
