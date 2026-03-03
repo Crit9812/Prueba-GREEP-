@@ -1,5 +1,7 @@
 package Compartido.model;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import conexion.Conexion;
 import java.sql.*;
 import java.util.*;
@@ -135,7 +137,8 @@ public class modelProductoCbox {
         Map<String, String> producto = new HashMap<>();
 
         // Datos básicos
-        producto.put("id", rs.getString("id"));
+        String id = rs.getString("id");
+        producto.put("id", id);
         producto.put("nombre", rs.getString("nombre"));
         producto.put("categoria", rs.getString("categoria"));
 
@@ -148,30 +151,27 @@ public class modelProductoCbox {
         producto.put("marca", marca != null ? marca : "");
         producto.put("etiqueta", etiqueta != null ? etiqueta : "");
         producto.put("unidadMedida", unidadMedida != null ? unidadMedida : "");
-        producto.put("descripcion", construirDescripcion(marca, etiqueta, unidadMedida, descripcionOriginal));
+        producto.put("descripcion", obtenerDescripcionProducto(id));
         producto.put("urlImagen", rs.getString("urlImagen"));
 
         return producto;
     }
 
-    /**
-     * Construye la descripción completa
-     */
-    private String construirDescripcion(String marca, String etiqueta,
-                                        String unidadMedida, String descripcionOriginal) {
-        List<String> partes = new ArrayList<>();
 
-        if (esValido(marca)) partes.add(marca.trim());
-        if (esValido(etiqueta)) partes.add(etiqueta.trim());
-        if (esValido(unidadMedida)) partes.add(unidadMedida.trim());
-        if (esValido(descripcionOriginal)) partes.add(descripcionOriginal.trim());
-
-        return String.join(", ", partes);
+    private String obtenerDescripcionProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return "";
+        }
+        try {
+            GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+            String resumen = dao.obtenerResumenProducto(idProducto);
+            return resumen != null ? resumen : "";
+        } catch (Exception e) {
+            System.err.println("Error al obtener descripción del producto " + idProducto + ": " + e.getMessage());
+            return "";
+        }
     }
 
-    private boolean esValido(String valor) {
-        return valor != null && !valor.trim().isEmpty();
-    }
 
     /**
      * Obtiene las claves alternas para un producto específico
@@ -561,3 +561,4 @@ public class modelProductoCbox {
                 .orElse("");
     }
 }
+

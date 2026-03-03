@@ -178,6 +178,36 @@
                                 <TableColumn fx:id="colUtilidadPesos" text="Utilidad en pesos" prefWidth="200" />
                             </columns>
                         </TableView>
+
+                        <VBox alignment="CENTER_RIGHT" spacing="10">
+                            <VBox.margin>
+                                <Insets top="8"/>
+                            </VBox.margin>
+                            <HBox alignment="CENTER_RIGHT">
+                                <Label text="Total de compra:" styleClass="labels">
+                                    <HBox.margin>
+                                        <Insets right="10"/>
+                                    </HBox.margin>
+                                </Label>
+                                <TextField fx:id="totalCompraGeneral" editable="false" styleClass="total-field" promptText="Total de compra"/>
+                            </HBox>
+                            <HBox alignment="CENTER_RIGHT">
+                                <Label text="Total de venta:" styleClass="labels">
+                                    <HBox.margin>
+                                        <Insets right="10"/>
+                                    </HBox.margin>
+                                </Label>
+                                <TextField fx:id="totalVentaGeneral" editable="false" styleClass="total-field" promptText="Total de venta"/>
+                            </HBox>
+                            <HBox alignment="CENTER_RIGHT">
+                                <Label text="Total de utilidades:" styleClass="labels">
+                                    <HBox.margin>
+                                        <Insets right="10"/>
+                                    </HBox.margin>
+                                </Label>
+                                <TextField fx:id="totalUtilidadGeneral" editable="false" styleClass="total-field" promptText="Total de utilidades"/>
+                            </HBox>
+                        </VBox>
                     </VBox>
                 </VBox>
             </SplitPane>
