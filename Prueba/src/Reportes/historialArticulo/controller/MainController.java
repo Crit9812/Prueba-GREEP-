@@ -733,8 +733,7 @@ public class MainController implements ControladorVista {
                 + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
                 + "LEFT JOIN proveedores p ON p.id = e.idRemitente "
                 + "LEFT JOIN sucursales s ON s.id = e.idRemitente "
-                + "WHERE de.claveProducto = ? "
-                + "AND LOWER(COALESCE(e.Estado, '')) <> 'cancelado'";
+                + "WHERE de.claveProducto = ?";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
 
@@ -775,8 +774,7 @@ public class MainController implements ControladorVista {
                 + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
                 + "LEFT JOIN clientes c ON c.id = s.idDestinatario "
                 + "LEFT JOIN sucursales su ON su.id = s.idDestinatario "
-                + "WHERE ds.claveProductoSalida = ? "
-                + "AND LOWER(COALESCE(s.Estado, '')) <> 'cancelado'";
+                + "WHERE ds.claveProductoSalida = ?";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
 
