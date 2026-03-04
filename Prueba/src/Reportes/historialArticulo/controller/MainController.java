@@ -684,19 +684,19 @@ public class MainController implements ControladorVista {
             }
 
             nuevos.add(new HistorialArticuloItem(
-                    mov.getFecha(),
-                    mov.getHora(),
-                    mov.getTipoMovimiento(),
+                    textoGuionSiVacio(mov.getFecha()),
+                    textoGuionSiVacio(mov.getHora()),
+                    textoGuionSiVacio(mov.getTipoMovimiento()),
                     String.valueOf(antes),
                     String.valueOf(despues),
                     entradas,
                     salidas,
-                    mov.getProveedor(),
-                    mov.getFacturaEntrada(),
-                    mov.getCliente(),
-                    mov.getFacturaSalida(),
-                    mov.getUsuario(),
-                    mov.getEstado()
+                    textoGuionSiVacio(mov.getProveedor()),
+                    textoGuionSiVacio(mov.getFacturaEntrada()),
+                    textoGuionSiVacio(mov.getCliente()),
+                    textoGuionSiVacio(mov.getFacturaSalida()),
+                    textoGuionSiVacio(mov.getUsuario()),
+                    textoGuionSiVacio(mov.getEstado())
             ));
             existencias = despues;
         }
@@ -818,6 +818,13 @@ public class MainController implements ControladorVista {
 
     private String valorTexto(Object valor) {
         return valor == null ? "" : valor.toString();
+    }
+
+    private String textoGuionSiVacio(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return "-";
+        }
+        return valor;
     }
 
     private LocalDateTime obtenerFechaHora(String fechaTexto, String horaTexto) {
