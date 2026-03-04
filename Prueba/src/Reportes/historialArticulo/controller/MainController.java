@@ -84,6 +84,9 @@ public class MainController implements ControladorVista {
     @FXML private Label lblPresentacion;
     @FXML private Label lblFactor;
     @FXML private Label lblExistencias;
+    @FXML private TextField totalEntradasGeneral;
+    @FXML private TextField totalSalidasGeneral;
+    @FXML private TextField diferenciaGeneral;
 
     private StackPane contentArea;
     private String productoSeleccionadoId;
@@ -130,12 +133,13 @@ public class MainController implements ControladorVista {
             lblDescargar.setMinWidth(Region.USE_PREF_SIZE);
 
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.71));
-            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
+            contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.72));
 
             configurarColumnas();
             configurarBuscadorProducto();
             configurarFiltros();
             configurarFiltroFechas();
+            actualizarTotales();
             RefrescoHelper.setVistaActual("historialArticulo");
             RefrescoHelper.registrarRefresco("historialArticulo", this::refrescarVista);
         });
@@ -170,6 +174,7 @@ public class MainController implements ControladorVista {
                         productoSeleccionadoId = null;
                         limpiarDetalleProducto();
                         historialItems.clear();
+                        actualizarTotales();
                     } else {
                         // Forzar actualización del texto visible (por si cambió nombre/descripción)
                         buscarProducto.getEditor().setText(seleccionado.getTextoVisible());
@@ -417,6 +422,7 @@ public class MainController implements ControladorVista {
         }
         historialItems.setAll(filtrados);
         aplicarOrdenamiento();
+        actualizarTotales();
     }
 
     private String obtenerValorCampo(HistorialArticuloItem item, String campo) {
@@ -441,6 +447,37 @@ public class MainController implements ControladorVista {
                 return item.getEstado();
             default:
                 return "";
+        }
+    }
+
+
+    private void actualizarTotales() {
+        if (totalEntradasGeneral == null || totalSalidasGeneral == null || diferenciaGeneral == null) {
+            return;
+        }
+
+        long totalEntradas = 0;
+        long totalSalidas = 0;
+
+        for (HistorialArticuloItem item : historialItems) {
+            totalEntradas += parseNumeroSeguro(item.getEntradas());
+            totalSalidas += parseNumeroSeguro(item.getSalidas());
+        }
+
+        long diferencia = totalEntradas - totalSalidas;
+        totalEntradasGeneral.setText(String.valueOf(totalEntradas));
+        totalSalidasGeneral.setText(String.valueOf(totalSalidas));
+        diferenciaGeneral.setText(String.valueOf(diferencia));
+    }
+
+    private long parseNumeroSeguro(String valor) {
+        if (valor == null || valor.isBlank() || "-".equals(valor)) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(valor.trim());
+        } catch (NumberFormatException e) {
+            return 0;
         }
     }
 
@@ -645,6 +682,7 @@ public class MainController implements ControladorVista {
         if (idProducto == null || idProducto.isBlank()) {
             historialItems.clear();
             limpiarDetalleProducto();
+            actualizarTotales();
             return;
         }
 
@@ -654,6 +692,7 @@ public class MainController implements ControladorVista {
             if (conn == null) {
                 historialItems.clear();
                 limpiarDetalleProducto();
+                actualizarTotales();
                 return;
             }
 
