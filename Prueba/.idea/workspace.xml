@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios compartido">
-      <change beforePath="$PROJECT_DIR$/src/Compartido/exportar/exportador.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Compartido/exportar/exportador.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/controller/MainController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/style/estilos.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/style/estilos.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/historialArticulo/view/main_view.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/historialArticulo/view/main_view.fxml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reportes/utilidades/controller/MainController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reportes/utilidades/controller/MainController.java" afterDir="false" />
-    </list>
+    <list default="true" id="439aca31-7e86-4629-9a52-42990df57d73" name="Changes" comment="cambios en historial por articulo" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -233,14 +227,6 @@
       <workItem from="1772230813664" duration="628000" />
       <workItem from="1772460550556" duration="17457000" />
       <workItem from="1772546952139" duration="9996000" />
-    </task>
-    <task id="LOCAL-00030" summary="Se agrego API de codigo postal">
-      <option name="closed" value="true" />
-      <created>1768486907906</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1768486907906</updated>
     </task>
     <task id="LOCAL-00031" summary="Conexion a FTP cambiada para adquirir mas archivos">
       <option name="closed" value="true" />
@@ -626,7 +612,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772552569238</updated>
     </task>
-    <option name="localTasksCounter" value="79" />
+    <task id="LOCAL-00079" summary="cambios en historial por articulo">
+      <option name="closed" value="true" />
+      <created>1772660778776</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1772660778776</updated>
+    </task>
+    <option name="localTasksCounter" value="80" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -686,7 +680,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Arreglo de los formularios" />
     <MESSAGE value="Agregado del controller de jess" />
     <MESSAGE value="cambio en formato de pdf al hacer traspaso de entrada." />
     <MESSAGE value="Agregacion del eliminado en cosas activas" />
@@ -711,7 +704,8 @@
     <MESSAGE value="cambios en formularios" />
     <MESSAGE value="cambios" />
     <MESSAGE value="cambios compartido" />
-    <option name="LAST_COMMIT_MESSAGE" value="cambios compartido" />
+    <MESSAGE value="cambios en historial por articulo" />
+    <option name="LAST_COMMIT_MESSAGE" value="cambios en historial por articulo" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
