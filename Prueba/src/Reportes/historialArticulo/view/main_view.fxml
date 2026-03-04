@@ -205,9 +205,9 @@
                                 <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="70" />
                                 <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="70" />
                                 <TableColumn fx:id="colPrecioTotal" text="Precio total" prefWidth="120" />
-                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="140" />
+                                <TableColumn fx:id="colProveedor" text="Origen" prefWidth="140" />
                                 <TableColumn fx:id="colFacturaEntrada" text="Factura de entrada" prefWidth="150" />
-                                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
+                                <TableColumn fx:id="colCliente" text="Destino" prefWidth="170" />
                                 <TableColumn fx:id="colFacturaSalida" text="Factura de salida" prefWidth="140" />
                                 <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="140" />
                                 <TableColumn fx:id="colEstado" text="Estado" prefWidth="110" />

@@ -298,9 +298,9 @@ public class MainController implements ControladorVista {
                 "Hora",
                 "Movimiento",
                 "Tipo de movimiento",
-                "Proveedor",
+                "Origen",
                 "Factura entrada",
-                "Cliente",
+                "Destino",
                 "Factura salida",
                 "Usuario",
                 "Estado"
@@ -440,11 +440,11 @@ public class MainController implements ControladorVista {
                 return item.getTipoMovimiento();
             case "Tipo de movimiento":
                 return item.getTipoMovimientoDetalle();
-            case "Proveedor":
+            case "Origen":
                 return item.getProveedor();
             case "Factura entrada":
                 return item.getFacturaEntrada();
-            case "Cliente":
+            case "Destino":
                 return item.getCliente();
             case "Factura salida":
                 return item.getFacturaSalida();
@@ -806,17 +806,19 @@ public class MainController implements ControladorVista {
             ps.setString(1, idProducto);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String proveedor = valorTexto(rs.getObject("proveedorNombre"));
-                    if (proveedor.isBlank()) {
-                        proveedor = valorTexto(rs.getObject("sucursalNombre"));
-                    }
+                    String tipoEntrada = valorTexto(rs.getObject("tipoEntrada"));
+                    String origen = resolverOrigenEntrada(
+                            tipoEntrada,
+                            valorTexto(rs.getObject("proveedorNombre")),
+                            valorTexto(rs.getObject("sucursalNombre"))
+                    );
                     movimientos.add(new MovimientoArticulo(
                             valorTexto(rs.getObject("fechaEntrada")),
                             valorTexto(rs.getObject("horaEntrada")),
                             "Entrada",
-                            valorTexto(rs.getObject("tipoEntrada")),
+                            tipoEntrada,
                             obtenerCantidad(rs.getObject("cantidad")),
-                            proveedor,
+                            origen,
                             valorTexto(rs.getObject("noFactura")),
                             "",
                             "",
@@ -849,19 +851,21 @@ public class MainController implements ControladorVista {
             ps.setString(1, idProducto);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String cliente = valorTexto(rs.getObject("clienteNombre"));
-                    if (cliente.isBlank()) {
-                        cliente = valorTexto(rs.getObject("sucursalNombre"));
-                    }
+                    String tipoSalida = valorTexto(rs.getObject("tipoSalida"));
+                    String destino = resolverDestinoSalida(
+                            tipoSalida,
+                            valorTexto(rs.getObject("clienteNombre")),
+                            valorTexto(rs.getObject("sucursalNombre"))
+                    );
                     movimientos.add(new MovimientoArticulo(
                             valorTexto(rs.getObject("fechaSalida")),
                             valorTexto(rs.getObject("horaSalida")),
                             "Salida",
-                            valorTexto(rs.getObject("tipoSalida")),
+                            tipoSalida,
                             -obtenerCantidad(rs.getObject("cantidad")),
                             "",
                             "",
-                            cliente,
+                            destino,
                             valorTexto(rs.getObject("noFactura")),
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
@@ -887,6 +891,24 @@ public class MainController implements ControladorVista {
 
     private String valorTexto(Object valor) {
         return valor == null ? "" : valor.toString();
+    }
+
+    private String resolverOrigenEntrada(String tipoEntrada, String proveedorNombre, String sucursalNombre) {
+        if (esTraspaso(tipoEntrada)) {
+            return !sucursalNombre.isBlank() ? sucursalNombre : proveedorNombre;
+        }
+        return !proveedorNombre.isBlank() ? proveedorNombre : sucursalNombre;
+    }
+
+    private String resolverDestinoSalida(String tipoSalida, String clienteNombre, String sucursalNombre) {
+        if (esTraspaso(tipoSalida)) {
+            return !sucursalNombre.isBlank() ? sucursalNombre : clienteNombre;
+        }
+        return !clienteNombre.isBlank() ? clienteNombre : sucursalNombre;
+    }
+
+    private boolean esTraspaso(String tipoMovimiento) {
+        return tipoMovimiento != null && tipoMovimiento.toLowerCase(Locale.ROOT).contains("traspaso");
     }
 
     private String textoGuionSiVacio(String valor) {
