@@ -721,6 +721,7 @@ public class MainController implements ControladorVista {
             cargarDetalleProducto(conn, idProducto);
             movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
             movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
+            movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -869,6 +870,70 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("noFactura")),
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
+                    ));
+                }
+            }
+        }
+
+        return movimientos;
+    }
+
+    private List<MovimientoArticulo> obtenerAjustesArticulo(Connection conn, String idProducto) throws SQLException {
+        List<MovimientoArticulo> movimientos = new ArrayList<>();
+
+        String sqlAjustesEntrada = "SELECT ai.fechaAjuste, ai.horaAjuste, ai.estado, ai.idUsuario, u.userName AS usuarioNombre, "
+                + "de.cantidad, de.precioTotal AS precioTotalMovimiento "
+                + "FROM ajuste_inventario ai "
+                + "JOIN detalle_Entrada de ON de.claveEntrada = ai.idAjuste "
+                + "LEFT JOIN usuarios u ON u.idUsuario = ai.idUsuario "
+                + "WHERE de.claveProducto = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlAjustesEntrada)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    movimientos.add(new MovimientoArticulo(
+                            valorTexto(rs.getObject("fechaAjuste")),
+                            valorTexto(rs.getObject("horaAjuste")),
+                            "Ajuste",
+                            "Entrada",
+                            obtenerCantidad(rs.getObject("cantidad")),
+                            "",
+                            "",
+                            "",
+                            "",
+                            valorTexto(rs.getObject("usuarioNombre")),
+                            valorTexto(rs.getObject("estado")),
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
+                    ));
+                }
+            }
+        }
+
+        String sqlAjustesSalida = "SELECT ai.fechaAjuste, ai.horaAjuste, ai.estado, ai.idUsuario, u.userName AS usuarioNombre, "
+                + "ds.cantidad, ds.precioTotalSalida AS precioTotalMovimiento "
+                + "FROM ajuste_inventario ai "
+                + "JOIN detalle_Salida ds ON ds.claveSalida = ai.idAjuste "
+                + "LEFT JOIN usuarios u ON u.idUsuario = ai.idUsuario "
+                + "WHERE ds.claveProductoSalida = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlAjustesSalida)) {
+            ps.setString(1, idProducto);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    movimientos.add(new MovimientoArticulo(
+                            valorTexto(rs.getObject("fechaAjuste")),
+                            valorTexto(rs.getObject("horaAjuste")),
+                            "Ajuste",
+                            "Salida",
+                            -obtenerCantidad(rs.getObject("cantidad")),
+                            "",
+                            "",
+                            "",
+                            "",
+                            valorTexto(rs.getObject("usuarioNombre")),
+                            valorTexto(rs.getObject("estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
                     ));
                 }
