@@ -471,7 +471,7 @@ public class MainController implements ControladorVista {
             totalSalidas += item.getTotalSalidaMonto();
         }
 
-        double diferencia = totalEntradas - totalSalidas;
+        double diferencia = totalSalidas - totalEntradas;
         totalEntradasGeneral.setText(formatearImporte(totalEntradas));
         totalSalidasGeneral.setText(formatearImporte(totalSalidas));
         diferenciaGeneral.setText(formatearImporte(diferencia));
