@@ -722,6 +722,7 @@ public class MainController implements ControladorVista {
             movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
             movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
             movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
+            movimientos = depurarDuplicadosPorCancelacion(movimientos);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -770,6 +771,39 @@ public class MainController implements ControladorVista {
         historialItemsOriginal.setAll(nuevos);
         reiniciarFiltros();
         aplicarFiltros();
+    }
+
+    private List<MovimientoArticulo> depurarDuplicadosPorCancelacion(List<MovimientoArticulo> movimientos) {
+        Map<String, MovimientoArticulo> unicos = new LinkedHashMap<>();
+        for (MovimientoArticulo movimiento : movimientos) {
+            String llave = construirLlaveMovimiento(movimiento);
+            MovimientoArticulo previo = unicos.get(llave);
+            if (previo == null || (esCancelado(movimiento.getEstado()) && !esCancelado(previo.getEstado()))) {
+                unicos.put(llave, movimiento);
+            }
+        }
+        return new ArrayList<>(unicos.values());
+    }
+
+    private String construirLlaveMovimiento(MovimientoArticulo movimiento) {
+        String comprobante = !valorTexto(movimiento.getFacturaEntrada()).isBlank()
+                ? valorTexto(movimiento.getFacturaEntrada())
+                : valorTexto(movimiento.getFacturaSalida());
+        return String.join("|",
+                valorTexto(movimiento.getFecha()),
+                valorTexto(movimiento.getHora()),
+                valorTexto(movimiento.getTipoMovimiento()),
+                valorTexto(movimiento.getTipoMovimientoDetalle()),
+                comprobante,
+                valorTexto(movimiento.getProveedor()),
+                valorTexto(movimiento.getCliente()),
+                valorTexto(movimiento.getUsuario()),
+                String.valueOf(movimiento.getCantidad()),
+                String.valueOf(valorSeguroPrecio(movimiento.getPrecioTotal())));
+    }
+
+    private boolean esCancelado(String estado) {
+        return estado != null && "cancelado".equalsIgnoreCase(estado.trim());
     }
 
     private void reiniciarFiltros() {
