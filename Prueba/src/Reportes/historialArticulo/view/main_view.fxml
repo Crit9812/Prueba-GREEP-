@@ -198,7 +198,8 @@
                             <columns>
                                 <TableColumn fx:id="colFecha" text="Fecha" prefWidth="100"/>
                                 <TableColumn fx:id="colHora" text="Hora" prefWidth="100" />
-                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="150"  />
+                                <TableColumn fx:id="colTipoMovimiento" text="Movimiento" prefWidth="120"  />
+                                <TableColumn fx:id="colTipoMovimientoDetalle" text="Tipo de movimiento" prefWidth="170"  />
                                 <TableColumn fx:id="colAntes" text="Antes" prefWidth="70" />
                                 <TableColumn fx:id="colDespues" text="Despues" prefWidth="70" />
                                 <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="70" />

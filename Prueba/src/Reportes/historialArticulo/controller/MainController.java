@@ -69,6 +69,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<HistorialArticuloItem, String> colFecha;
     @FXML private TableColumn<HistorialArticuloItem, String> colHora;
     @FXML private TableColumn<HistorialArticuloItem, String> colTipoMovimiento;
+    @FXML private TableColumn<HistorialArticuloItem, String> colTipoMovimientoDetalle;
     @FXML private TableColumn<HistorialArticuloItem, String> colAntes;
     @FXML private TableColumn<HistorialArticuloItem, String> colDespues;
     @FXML private TableColumn<HistorialArticuloItem, String> colEntradas;
@@ -194,6 +195,7 @@ public class MainController implements ControladorVista {
         colFecha.setCellValueFactory(new PropertyValueFactory<>("fecha"));
         colHora.setCellValueFactory(new PropertyValueFactory<>("hora"));
         colTipoMovimiento.setCellValueFactory(new PropertyValueFactory<>("tipoMovimiento"));
+        colTipoMovimientoDetalle.setCellValueFactory(new PropertyValueFactory<>("tipoMovimientoDetalle"));
         colAntes.setCellValueFactory(new PropertyValueFactory<>("antes"));
         colDespues.setCellValueFactory(new PropertyValueFactory<>("despues"));
         colEntradas.setCellValueFactory(new PropertyValueFactory<>("entradas"));
@@ -295,6 +297,7 @@ public class MainController implements ControladorVista {
                 "Fecha",
                 "Hora",
                 "Movimiento",
+                "Tipo de movimiento",
                 "Proveedor",
                 "Factura entrada",
                 "Cliente",
@@ -435,6 +438,8 @@ public class MainController implements ControladorVista {
                 return item.getHora();
             case "Movimiento":
                 return item.getTipoMovimiento();
+            case "Tipo de movimiento":
+                return item.getTipoMovimientoDetalle();
             case "Proveedor":
                 return item.getProveedor();
             case "Factura entrada":
@@ -642,6 +647,7 @@ public class MainController implements ControladorVista {
                 "fecha",
                 "hora",
                 "movimiento",
+                "tipoMovimientoDetalle",
                 "antes",
                 "despues",
                 "entradas",
@@ -679,6 +685,7 @@ public class MainController implements ControladorVista {
         columnas.put("fecha", colFecha);
         columnas.put("hora", colHora);
         columnas.put("movimiento", colTipoMovimiento);
+        columnas.put("tipoMovimientoDetalle", colTipoMovimientoDetalle);
         columnas.put("antes", colAntes);
         columnas.put("despues", colDespues);
         columnas.put("entradas", colEntradas);
@@ -741,6 +748,7 @@ public class MainController implements ControladorVista {
                     textoGuionSiVacio(mov.getFecha()),
                     textoGuionSiVacio(mov.getHora()),
                     textoGuionSiVacio(mov.getTipoMovimiento()),
+                    textoGuionSiVacio(mov.getTipoMovimientoDetalle()),
                     String.valueOf(antes),
                     String.valueOf(despues),
                     entradas,
@@ -806,6 +814,7 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("fechaEntrada")),
                             valorTexto(rs.getObject("horaEntrada")),
                             "Entrada",
+                            valorTexto(rs.getObject("tipoEntrada")),
                             obtenerCantidad(rs.getObject("cantidad")),
                             proveedor,
                             valorTexto(rs.getObject("noFactura")),
@@ -848,6 +857,7 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("fechaSalida")),
                             valorTexto(rs.getObject("horaSalida")),
                             "Salida",
+                            valorTexto(rs.getObject("tipoSalida")),
                             -obtenerCantidad(rs.getObject("cantidad")),
                             "",
                             "",
@@ -1093,6 +1103,7 @@ public class MainController implements ControladorVista {
         private final String fecha;
         private final String hora;
         private final String tipoMovimiento;
+        private final String tipoMovimientoDetalle;
         private final int cantidad;
         private final String proveedor;
         private final String facturaEntrada;
@@ -1102,12 +1113,13 @@ public class MainController implements ControladorVista {
         private final String estado;
         private final Double precioTotal;
 
-        private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, int cantidad,
+        private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, int cantidad,
                                    String proveedor, String facturaEntrada, String cliente,
                                    String facturaSalida, String usuario, String estado, Double precioTotal) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
+            this.tipoMovimientoDetalle = tipoMovimientoDetalle;
             this.cantidad = cantidad;
             this.proveedor = proveedor;
             this.facturaEntrada = facturaEntrada;
@@ -1132,6 +1144,10 @@ public class MainController implements ControladorVista {
 
         private String getTipoMovimiento() {
             return tipoMovimiento;
+        }
+
+        private String getTipoMovimientoDetalle() {
+            return tipoMovimientoDetalle;
         }
 
         private int getCantidad() {
@@ -1171,6 +1187,7 @@ public class MainController implements ControladorVista {
         private final String fecha;
         private final String hora;
         private final String tipoMovimiento;
+        private final String tipoMovimientoDetalle;
         private final String antes;
         private final String despues;
         private final String entradas;
@@ -1185,13 +1202,14 @@ public class MainController implements ControladorVista {
         private final double totalEntradaMonto;
         private final double totalSalidaMonto;
 
-        public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String antes, String despues,
+        public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, String antes, String despues,
                                      String entradas, String salidas, String proveedor, String facturaEntrada,
                                      String cliente, String facturaSalida, String usuario, String estado,
                                      String precioTotal, double totalEntradaMonto, double totalSalidaMonto) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
+            this.tipoMovimientoDetalle = tipoMovimientoDetalle;
             this.antes = antes;
             this.despues = despues;
             this.entradas = entradas;
@@ -1210,6 +1228,7 @@ public class MainController implements ControladorVista {
         public String getFecha() { return fecha; }
         public String getHora() { return hora; }
         public String getTipoMovimiento() { return tipoMovimiento; }
+        public String getTipoMovimientoDetalle() { return tipoMovimientoDetalle; }
         public String getAntes() { return antes; }
         public String getDespues() { return despues; }
         public String getEntradas() { return entradas; }
