@@ -722,7 +722,6 @@ public class MainController implements ControladorVista {
             movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
             movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
             movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
-            movimientos = depurarDuplicadosPorCancelacion(movimientos);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -771,39 +770,6 @@ public class MainController implements ControladorVista {
         historialItemsOriginal.setAll(nuevos);
         reiniciarFiltros();
         aplicarFiltros();
-    }
-
-    private List<MovimientoArticulo> depurarDuplicadosPorCancelacion(List<MovimientoArticulo> movimientos) {
-        Map<String, MovimientoArticulo> unicos = new LinkedHashMap<>();
-        for (MovimientoArticulo movimiento : movimientos) {
-            String llave = construirLlaveMovimiento(movimiento);
-            MovimientoArticulo previo = unicos.get(llave);
-            if (previo == null || (esCancelado(movimiento.getEstado()) && !esCancelado(previo.getEstado()))) {
-                unicos.put(llave, movimiento);
-            }
-        }
-        return new ArrayList<>(unicos.values());
-    }
-
-    private String construirLlaveMovimiento(MovimientoArticulo movimiento) {
-        String comprobante = !valorTexto(movimiento.getFacturaEntrada()).isBlank()
-                ? valorTexto(movimiento.getFacturaEntrada())
-                : valorTexto(movimiento.getFacturaSalida());
-        return String.join("|",
-                valorTexto(movimiento.getFecha()),
-                valorTexto(movimiento.getHora()),
-                valorTexto(movimiento.getTipoMovimiento()),
-                valorTexto(movimiento.getTipoMovimientoDetalle()),
-                comprobante,
-                valorTexto(movimiento.getProveedor()),
-                valorTexto(movimiento.getCliente()),
-                valorTexto(movimiento.getUsuario()),
-                String.valueOf(movimiento.getCantidad()),
-                String.valueOf(valorSeguroPrecio(movimiento.getPrecioTotal())));
-    }
-
-    private boolean esCancelado(String estado) {
-        return estado != null && "cancelado".equalsIgnoreCase(estado.trim());
     }
 
     private void reiniciarFiltros() {
@@ -921,10 +887,11 @@ public class MainController implements ControladorVista {
                 + "FROM ajuste_inventario ai "
                 + "JOIN detalle_Entrada de ON de.claveEntrada = ai.idAjuste "
                 + "LEFT JOIN usuarios u ON u.idUsuario = ai.idUsuario "
-                + "WHERE de.claveProducto = ?";
+                + "WHERE de.claveProducto = ? AND ai.idAjuste LIKE ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sqlAjustesEntrada)) {
             ps.setString(1, idProducto);
+            ps.setString(2, "%A");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     movimientos.add(new MovimientoArticulo(
@@ -950,10 +917,11 @@ public class MainController implements ControladorVista {
                 + "FROM ajuste_inventario ai "
                 + "JOIN detalle_Salida ds ON ds.claveSalida = ai.idAjuste "
                 + "LEFT JOIN usuarios u ON u.idUsuario = ai.idUsuario "
-                + "WHERE ds.claveProductoSalida = ?";
+                + "WHERE ds.claveProductoSalida = ? AND ai.idAjuste LIKE ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sqlAjustesSalida)) {
             ps.setString(1, idProducto);
+            ps.setString(2, "%A");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     movimientos.add(new MovimientoArticulo(
