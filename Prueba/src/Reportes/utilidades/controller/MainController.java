@@ -711,8 +711,19 @@ public class MainController implements ControladorVista {
             mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
             return;
         }
+
+        double totalCompra = parseNumero(totalCompraGeneral.getText());
+        double totalVenta = parseNumero(totalVentaGeneral.getText());
+        double totalUtilidad = parseNumero(totalUtilidadGeneral.getText());
+
+        exportador.TotalesReporte totales = new exportador.TotalesReporte(
+                "Total compra", totalCompra,
+                "Total venta", totalVenta,
+                "Utilidad", totalUtilidad
+        );
+
         exportador.exportarTabla(contenidoTabla, "Utilidades", "pdf",
-                obtenerFiltrosAplicados());
+                obtenerFiltrosAplicados(), totales);
     }
 
     @FXML
@@ -721,8 +732,19 @@ public class MainController implements ControladorVista {
             mostrarAdvertencia("Advertencia", "No hay datos para exportar.");
             return;
         }
+
+        double totalCompra = parseNumero(totalCompraGeneral.getText());
+        double totalVenta = parseNumero(totalVentaGeneral.getText());
+        double totalUtilidad = parseNumero(totalUtilidadGeneral.getText());
+
+        exportador.TotalesReporte totales = new exportador.TotalesReporte(
+                "Total compra", totalCompra,
+                "Total venta", totalVenta,
+                "Utilidad", totalUtilidad
+        );
+
         exportador.previsualizarPDF(contenidoTabla, "Utilidades",
-                obtenerFiltrosAplicados());
+                obtenerFiltrosAplicados(), totales);
     }
 
     private List<String> obtenerFiltrosAplicados() {

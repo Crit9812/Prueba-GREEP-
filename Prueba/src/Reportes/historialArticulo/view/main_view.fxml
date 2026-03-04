@@ -190,7 +190,7 @@
 
 
                     </VBox>
-                        <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
+                    <VBox fx:id="contenedorTabla" styleClass="tabla" alignment="CENTER">
                         <padding>
                             <Insets left="40" right="40"/>
                         </padding>
@@ -198,18 +198,51 @@
                             <columns>
                                 <TableColumn fx:id="colFecha" text="Fecha" prefWidth="100"/>
                                 <TableColumn fx:id="colHora" text="Hora" prefWidth="100" />
-                                <TableColumn fx:id="colTipoMovimiento" text="Tipo de movimiento" prefWidth="150"  />
+                                <TableColumn fx:id="colTipoMovimiento" text="Movimiento" prefWidth="120"  />
+                                <TableColumn fx:id="colTipoMovimientoDetalle" text="Tipo de movimiento" prefWidth="170"  />
                                 <TableColumn fx:id="colAntes" text="Antes" prefWidth="70" />
                                 <TableColumn fx:id="colDespues" text="Despues" prefWidth="70" />
                                 <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="70" />
                                 <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="70" />
-                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="140" />
+                                <TableColumn fx:id="colPrecioTotal" text="Precio total" prefWidth="120" />
+                                <TableColumn fx:id="colProveedor" text="Origen" prefWidth="140" />
                                 <TableColumn fx:id="colFacturaEntrada" text="Factura de entrada" prefWidth="150" />
-                                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
+                                <TableColumn fx:id="colCliente" text="Destino" prefWidth="170" />
                                 <TableColumn fx:id="colFacturaSalida" text="Factura de salida" prefWidth="140" />
                                 <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="140" />
+                                <TableColumn fx:id="colEstado" text="Estado" prefWidth="110" />
                             </columns>
                         </TableView>
+
+                        <VBox alignment="CENTER_RIGHT" spacing="10">
+                            <VBox.margin>
+                                <Insets top="8"/>
+                            </VBox.margin>
+                            <HBox alignment="CENTER_RIGHT">
+                                <Label text="Total de entradas:" styleClass="labels">
+                                    <HBox.margin>
+                                        <Insets right="10"/>
+                                    </HBox.margin>
+                                </Label>
+                                <TextField fx:id="totalEntradasGeneral" editable="false" styleClass="total-field" promptText="Total de entradas"/>
+                            </HBox>
+                            <HBox alignment="CENTER_RIGHT">
+                                <Label text="Total de salidas:" styleClass="labels">
+                                    <HBox.margin>
+                                        <Insets right="10"/>
+                                    </HBox.margin>
+                                </Label>
+                                <TextField fx:id="totalSalidasGeneral" editable="false" styleClass="total-field" promptText="Total de salidas"/>
+                            </HBox>
+                            <HBox alignment="CENTER_RIGHT">
+                                <Label text="Diferencia:" styleClass="labels">
+                                    <HBox.margin>
+                                        <Insets right="10"/>
+                                    </HBox.margin>
+                                </Label>
+                                <TextField fx:id="diferenciaGeneral" editable="false" styleClass="total-field" promptText="Diferencia"/>
+                            </HBox>
+                        </VBox>
                     </VBox>
                 </VBox>
             </SplitPane>

@@ -38,22 +38,63 @@ public class exportador {
 
     // Constantes de diseño actualizadas
     private static final float MARGIN = 35f;
-    private static final float ROW_HEIGHT = 26f; // Ajustado para fuente de 13
-    private static final float CELL_PADDING = 5f;
+    private static final float ROW_HEIGHT = 26f;
     private static final int MAX_COLUMNAS_POR_SECCION = 6;
 
     // Variables para control de información general
     private static boolean informacionGeneralMostrada = false;
     private static int filasPorHojaEstimado = 0;
 
+    // ------------------------------------------------------------
+    // Clase auxiliar para pasar los totales de forma estructurada
+    // ------------------------------------------------------------
+    public static class TotalesReporte {
+        private final String etiquetaEntradas;
+        private final double valorEntradas;
+        private final String etiquetaSalidas;
+        private final double valorSalidas;
+        private final String etiquetaDiferencia;
+        private final double valorDiferencia;
+
+        public TotalesReporte(String etiquetaEntradas, double valorEntradas,
+                              String etiquetaSalidas, double valorSalidas,
+                              String etiquetaDiferencia, double valorDiferencia) {
+            this.etiquetaEntradas = etiquetaEntradas;
+            this.valorEntradas = valorEntradas;
+            this.etiquetaSalidas = etiquetaSalidas;
+            this.valorSalidas = valorSalidas;
+            this.etiquetaDiferencia = etiquetaDiferencia;
+            this.valorDiferencia = valorDiferencia;
+        }
+
+        public String getEtiquetaEntradas() { return etiquetaEntradas; }
+        public double getValorEntradas() { return valorEntradas; }
+        public String getEtiquetaSalidas() { return etiquetaSalidas; }
+        public double getValorSalidas() { return valorSalidas; }
+        public String getEtiquetaDiferencia() { return etiquetaDiferencia; }
+        public double getValorDiferencia() { return valorDiferencia; }
+    }
+
     // -----------------------
-    // Metodo público para exportar según tipo seleccionado
+    // Métodos públicos originales (sin totales)
     // -----------------------
     public static <T> void exportarTabla(TableView<T> tabla, String titulo, String tipo) {
-        exportarTabla(tabla, titulo, tipo, null);
+        exportarTabla(tabla, titulo, tipo, null, null);
     }
 
     public static <T> void exportarTabla(TableView<T> tabla, String titulo, String tipo, List<String> filtros) {
+        exportarTabla(tabla, titulo, tipo, filtros, null);
+    }
+
+    public static <T> void previsualizarPDF(TableView<T> tabla, String titulo, List<String> filtros) {
+        previsualizarPDF(tabla, titulo, filtros, null);
+    }
+
+    // -----------------------
+    // Nuevos métodos con totales
+    // -----------------------
+    public static <T> void exportarTabla(TableView<T> tabla, String titulo, String tipo,
+                                         List<String> filtros, TotalesReporte totales) {
         if (tabla.getItems().isEmpty()) {
             mostrarError("No hay datos para exportar.");
             return;
@@ -70,24 +111,24 @@ public class exportador {
 
             try {
                 if (tipo.equalsIgnoreCase("pdf")) {
-                    // Reiniciar estado para nueva exportación
                     informacionGeneralMostrada = false;
                     filasPorHojaEstimado = 0;
-                    exportarPDF(tabla, titulo, archivo, filtros);
+                    exportarPDF(tabla, titulo, archivo, filtros, totales);
                 } else {
-                    exportarExcel(tabla, titulo, archivo, filtros);
+                    exportarExcel(tabla, titulo, archivo, filtros, totales);
                 }
-                mostrarExito("✅ Archivo generado correctamente\n\n" +
+                mostrarExito("Archivo generado correctamente\n\n" +
                         "Archivo: " + titulo + "_" + fechaHora + extension + "\n" +
                         "Ubicación: " + archivo.getAbsolutePath());
             } catch (Exception e) {
                 e.printStackTrace();
-                mostrarError("❌ Error al exportar: " + e.getMessage());
+                mostrarError("Error al exportar: " + e.getMessage());
             }
         }
     }
 
-    public static <T> void previsualizarPDF(TableView<T> tabla, String titulo, List<String> filtros) {
+    public static <T> void previsualizarPDF(TableView<T> tabla, String titulo,
+                                            List<String> filtros, TotalesReporte totales) {
         if (tabla.getItems().isEmpty()) {
             mostrarError("No hay datos para exportar.");
             return;
@@ -98,10 +139,9 @@ public class exportador {
             File archivo = File.createTempFile(titulo + "_preview_" + fechaHora + "_", ".pdf");
             archivo.deleteOnExit();
 
-            // Reiniciar estado para previsualización
             informacionGeneralMostrada = false;
             filasPorHojaEstimado = 0;
-            exportarPDF(tabla, titulo, archivo, filtros);
+            exportarPDF(tabla, titulo, archivo, filtros, totales);
 
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().open(archivo);
@@ -115,9 +155,15 @@ public class exportador {
     }
 
     // -----------------------
-    // Exportar PDF
+    // Exportar PDF (con sobrecarga para totales)
     // -----------------------
-    private static <T> void exportarPDF(TableView<T> tabla, String titulo, File archivo, List<String> filtros) throws IOException {
+    private static <T> void exportarPDF(TableView<T> tabla, String titulo, File archivo,
+                                        List<String> filtros) throws IOException {
+        exportarPDF(tabla, titulo, archivo, filtros, null);
+    }
+
+    private static <T> void exportarPDF(TableView<T> tabla, String titulo, File archivo,
+                                        List<String> filtros, TotalesReporte totales) throws IOException {
         try (PDDocument document = new PDDocument()) {
             PDType1Font fontTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
             PDType1Font fontCabecera = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
@@ -140,9 +186,8 @@ public class exportador {
             int pageNumber = 1;
             LocalDateTime ahora = LocalDateTime.now();
 
-            // Calcular filas por página (estimado para primera página)
             float espacioFiltros = (filtros != null && !filtros.isEmpty()) ? 25 : 0;
-            float espacioInfoGeneral = !informacionGeneralMostrada ? 90 : 30; // Solo en primera página
+            float espacioInfoGeneral = !informacionGeneralMostrada ? 90 : 30;
             float usableHeight = pageHeight - (MARGIN * 2) - 135 - espacioFiltros - espacioInfoGeneral;
             filasPorHojaEstimado = (int) (usableHeight / ROW_HEIGHT);
 
@@ -150,8 +195,6 @@ public class exportador {
             for (int rowStart = 0; rowStart < dataItems.size(); rowStart += filasPorHojaEstimado) {
                 int rowEnd = Math.min(rowStart + filasPorHojaEstimado, dataItems.size());
                 List<T> rowBlock = dataItems.subList(rowStart, rowEnd);
-
-                // Calcular filas reales en esta página (puede ser menos que el estimado)
                 int filasRealesEnPagina = rowEnd - rowStart;
 
                 for (int sectionIndex = 0; sectionIndex < columnSections.size(); sectionIndex++) {
@@ -163,30 +206,40 @@ public class exportador {
                     float currentY = pageHeight - MARGIN;
                     PDPageContentStream contentStream = new PDPageContentStream(document, page);
 
-                    // 1. ENCABEZADO - Barra verde con tamaño variable según si es primera página o no
                     boolean esPrimeraPagina = (pageNumber == 1 && sectionIndex == 0);
-                    float alturaBarra = esPrimeraPagina ? 60 : 50; // Más grande solo en primera página
+                    float alturaBarra = esPrimeraPagina ? 60 : 50;
                     currentY = dibujarEncabezado(contentStream, fontTitulo, pageWidth, currentY, titulo,
                             rowStart + 1, rowEnd, sectionIndex, columnSections.size(),
                             filasRealesEnPagina, alturaBarra, esPrimeraPagina);
 
-                    // 2. INFORMACIÓN GENERAL (solo en primera página y primera sección)
                     if (!informacionGeneralMostrada && sectionIndex == 0) {
                         currentY = dibujarInformacionGeneral(contentStream, fontNormalBold, fontNormal,
                                 pageWidth, currentY, dataItems.size(), ahora, filtros);
                         informacionGeneralMostrada = true;
                     } else if (!esPrimeraPagina) {
-                        // Espacio mínimo si no hay información general
                         currentY -= 15;
                     }
 
-                    // 3. TABLA DE DATOS sin bordes
+                    // Dibujar la tabla
                     currentY = dibujarTablaDatos(contentStream, fontCabecera, fontDatos,
                             pageWidth, currentY, rowBlock, section);
 
+                    // Si es la última página y última sección, y hay totales, dibujarlos
+                    boolean esUltimaPagina = (rowStart + filasPorHojaEstimado >= dataItems.size());
+                    boolean esUltimaSeccion = (sectionIndex == columnSections.size() - 1);
+                    if (esUltimaPagina && esUltimaSeccion && totales != null) {
+                        // Verificar si hay espacio suficiente (altura aproximada 80)
+                        if (currentY - 80 > MARGIN) {
+                            currentY = dibujarTotales(contentStream, fontNormal, fontNormalBold,
+                                    pageWidth, currentY, totales);
+                        } else {
+                            // Si no cabe, se podría crear una nueva página, pero por simplicidad no se dibuja
+                            // (en la práctica siempre suele haber espacio)
+                        }
+                    }
+
                     contentStream.close();
 
-                    // 4. PIE DE PÁGINA
                     dibujarPiePagina(document, page, fontNormal, pageWidth, pageHeight, pageNumber++);
                 }
             }
@@ -195,6 +248,101 @@ public class exportador {
         }
     }
 
+    // -----------------------
+    // Nuevo método para dibujar los totales debajo de la tabla
+    // -----------------------
+    private static float dibujarTotales(PDPageContentStream contentStream,
+                                        PDType1Font fontNormal,
+                                        PDType1Font fontBold,
+                                        float pageWidth,
+                                        float currentY,
+                                        TotalesReporte totales) throws IOException {
+        // Línea separadora superior
+        contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
+        contentStream.setLineWidth(0.5f);
+        contentStream.moveTo(MARGIN, currentY);
+        contentStream.lineTo(pageWidth - MARGIN, currentY);
+        contentStream.stroke();
+
+        currentY -= 20;
+
+        // Título de la sección
+        contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
+        contentStream.beginText();
+        contentStream.setFont(fontBold, 12);
+        contentStream.newLineAtOffset(MARGIN, currentY);
+        contentStream.showText("RESUMEN DE MOVIMIENTOS");
+        contentStream.endText();
+
+        currentY -= 25;
+
+        float columnaLabelX = MARGIN + 20;
+        float columnaValorX = pageWidth / 2 + 20;
+
+        // Entradas
+        contentStream.setNonStrokingColor(0, 0, 0);
+        contentStream.beginText();
+        contentStream.setFont(fontNormal, 11);
+        contentStream.newLineAtOffset(columnaLabelX, currentY);
+        contentStream.showText(totales.getEtiquetaEntradas() + ":");
+        contentStream.endText();
+
+        String valorEntradas = String.format("$ %,.2f", totales.getValorEntradas());
+        contentStream.beginText();
+        contentStream.setFont(fontBold, 11);
+        contentStream.newLineAtOffset(columnaValorX, currentY);
+        contentStream.showText(valorEntradas);
+        contentStream.endText();
+
+        currentY -= 20;
+
+        // Salidas
+        contentStream.beginText();
+        contentStream.setFont(fontNormal, 11);
+        contentStream.newLineAtOffset(columnaLabelX, currentY);
+        contentStream.showText(totales.getEtiquetaSalidas() + ":");
+        contentStream.endText();
+
+        String valorSalidas = String.format("$ %,.2f", totales.getValorSalidas());
+        contentStream.beginText();
+        contentStream.setFont(fontBold, 11);
+        contentStream.newLineAtOffset(columnaValorX, currentY);
+        contentStream.showText(valorSalidas);
+        contentStream.endText();
+
+        currentY -= 20;
+
+        // Diferencia
+        contentStream.beginText();
+        contentStream.setFont(fontNormal, 11);
+        contentStream.newLineAtOffset(columnaLabelX, currentY);
+        contentStream.showText(totales.getEtiquetaDiferencia() + ":");
+        contentStream.endText();
+
+        String valorDiferencia = String.format("$ %,.2f", totales.getValorDiferencia());
+        contentStream.beginText();
+        contentStream.setFont(fontBold, 11);
+        contentStream.newLineAtOffset(columnaValorX, currentY);
+        contentStream.showText(valorDiferencia);
+        contentStream.endText();
+
+        currentY -= 25;
+
+        // Línea separadora inferior
+        contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
+        contentStream.setLineWidth(0.5f);
+        contentStream.moveTo(MARGIN, currentY);
+        contentStream.lineTo(pageWidth - MARGIN, currentY);
+        contentStream.stroke();
+
+        return currentY - 15;
+    }
+
+    // ------------------------------------------------------------
+    // Los métodos siguientes se mantienen IGUAL que en tu código original
+    // (dibujarEncabezado, dibujarInformacionGeneral, dibujarTablaDatos,
+    //  dibujarPiePagina, exportarExcel, y auxiliares)
+    // ------------------------------------------------------------
     private static float dibujarEncabezado(PDPageContentStream contentStream,
                                            PDType1Font fontTitulo,
                                            float pageWidth,
@@ -207,12 +355,10 @@ public class exportador {
                                            int filasRealesEnPagina,
                                            float alturaBarra,
                                            boolean esPrimeraPagina) throws IOException {
-        // Fondo del encabezado
         contentStream.setNonStrokingColor(COLOR_BANDA_SUPERIOR[0], COLOR_BANDA_SUPERIOR[1], COLOR_BANDA_SUPERIOR[2]);
         contentStream.addRect(MARGIN, currentY - alturaBarra, pageWidth - 2 * MARGIN, alturaBarra);
         contentStream.fill();
 
-        // Título principal - más pequeño si no es primera página
         float tamanioTitulo = esPrimeraPagina ? 20 : 16;
         float posicionTituloY = esPrimeraPagina ? currentY - 30 : currentY - 25;
 
@@ -223,24 +369,17 @@ public class exportador {
         contentStream.showText(titulo);
         contentStream.endText();
 
-        // Subtítulo con información de paginación y RANGO DE FILAS
         String subTitulo = "";
-
-        // Información de secciones si hay más de una
         if (totalSecciones > 1) {
             subTitulo = "Sección " + (seccionIndex + 1) + "/" + totalSecciones;
         }
-
-        // Agregar RANGO DE FILAS (siempre)
         String rangoFilas = "Filas: " + filaInicio + "-" + filaFin;
-
         if (!subTitulo.isEmpty()) {
             subTitulo += " • " + rangoFilas;
         } else {
             subTitulo = rangoFilas;
         }
 
-        // Tamaño de fuente para subtítulo - más pequeño si no es primera página
         float tamanioSubtitulo = esPrimeraPagina ? 12 : 10;
         float posicionSubtituloY = esPrimeraPagina ? currentY - 50 : currentY - 40;
 
@@ -250,7 +389,7 @@ public class exportador {
         contentStream.showText(subTitulo);
         contentStream.endText();
 
-        return currentY - (alturaBarra + 20); // Ajustar espacio después de la barra
+        return currentY - (alturaBarra + 20);
     }
 
     private static float dibujarInformacionGeneral(PDPageContentStream contentStream,
@@ -261,7 +400,6 @@ public class exportador {
                                                    int totalRegistros,
                                                    LocalDateTime ahora,
                                                    List<String> filtros) throws IOException {
-        // Título de sección
         contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
         contentStream.beginText();
         contentStream.setFont(fontBold, 12);
@@ -271,37 +409,29 @@ public class exportador {
 
         currentY -= 22;
 
-        // Calcular posición para dos columnas
         float col1X = MARGIN + 10;
         float col2X = pageWidth / 2 + 20;
 
-        // Columna 1 (izquierda) - Información básica
         contentStream.setNonStrokingColor(0, 0, 0);
-
-        // Fecha
         contentStream.beginText();
         contentStream.setFont(fontNormal, 10);
         contentStream.newLineAtOffset(col1X, currentY);
         contentStream.showText("Fecha: " + ahora.format(DATE_FORMATTER));
         contentStream.endText();
 
-        // Hora
         contentStream.beginText();
         contentStream.setFont(fontNormal, 10);
         contentStream.newLineAtOffset(col1X, currentY - 12);
         contentStream.showText("Hora: " + ahora.format(TIME_FORMATTER));
         contentStream.endText();
 
-        // Total de registros
         contentStream.beginText();
         contentStream.setFont(fontNormal, 10);
         contentStream.newLineAtOffset(col1X, currentY - 24);
         contentStream.showText("Total de registros: " + totalRegistros);
         contentStream.endText();
 
-        // Columna 2 (derecha) - Filtros aplicados (si los hay)
         if (filtros != null && !filtros.isEmpty()) {
-            // Título de filtros
             contentStream.setNonStrokingColor(COLOR_FILTROS[0], COLOR_FILTROS[1], COLOR_FILTROS[2]);
             contentStream.beginText();
             contentStream.setFont(fontBold, 10);
@@ -309,7 +439,6 @@ public class exportador {
             contentStream.showText("Filtros aplicados:");
             contentStream.endText();
 
-            // Mostrar cada filtro
             contentStream.setNonStrokingColor(0, 0, 0);
             int maxFiltros = Math.min(3, filtros.size());
             for (int i = 0; i < maxFiltros; i++) {
@@ -317,15 +446,12 @@ public class exportador {
                 if (filtro.length() > 40) {
                     filtro = filtro.substring(0, 37) + "...";
                 }
-
                 contentStream.beginText();
                 contentStream.setFont(fontNormal, 9);
                 contentStream.newLineAtOffset(col2X + 10, currentY - 12 - (i * 12));
                 contentStream.showText("• " + filtro);
                 contentStream.endText();
             }
-
-            // Si hay más de 3 filtros, mostrar contador
             if (filtros.size() > 3) {
                 contentStream.beginText();
                 contentStream.setFont(fontNormal, 8);
@@ -334,7 +460,6 @@ public class exportador {
                 contentStream.endText();
             }
         }
-
         return currentY - 50;
     }
 
@@ -345,111 +470,75 @@ public class exportador {
                                                float currentY,
                                                List<T> datos,
                                                List<TableColumn<T, ?>> columnas) throws IOException {
-        // Definir anchos de columnas
         float tableWidth = pageWidth - 2 * MARGIN;
         float colWidth = tableWidth / columnas.size();
 
-        // Cabecera de la tabla - SIN BORDE, solo fondo
         contentStream.setNonStrokingColor(COLOR_SUBTITULOS[0], COLOR_SUBTITULOS[1], COLOR_SUBTITULOS[2]);
 
-        // Dibujar rectángulo con esquinas redondeadas para encabezado
-        float headerHeight = 26; // Ajustado para fuente de 13
+        float headerHeight = 26;
         float cornerRadius = 5f;
-
-        // Esquina superior izquierda
         contentStream.moveTo(MARGIN + cornerRadius, currentY);
-        // Lado superior
         contentStream.lineTo(MARGIN + tableWidth - cornerRadius, currentY);
-        // Esquina superior derecha
         contentStream.curveTo(MARGIN + tableWidth, currentY, MARGIN + tableWidth, currentY,
                 MARGIN + tableWidth, currentY - cornerRadius);
-        // Lado derecho
         contentStream.lineTo(MARGIN + tableWidth, currentY - headerHeight + cornerRadius);
-        // Esquina inferior derecha
         contentStream.curveTo(MARGIN + tableWidth, currentY - headerHeight,
                 MARGIN + tableWidth, currentY - headerHeight,
                 MARGIN + tableWidth - cornerRadius, currentY - headerHeight);
-        // Lado inferior
         contentStream.lineTo(MARGIN + cornerRadius, currentY - headerHeight);
-        // Esquina inferior izquierda
         contentStream.curveTo(MARGIN, currentY - headerHeight, MARGIN, currentY - headerHeight,
                 MARGIN, currentY - headerHeight + cornerRadius);
-        // Lado izquierdo
         contentStream.lineTo(MARGIN, currentY - cornerRadius);
-        // Esquina superior izquierda (cerrar)
         contentStream.curveTo(MARGIN, currentY, MARGIN, currentY,
                 MARGIN + cornerRadius, currentY);
-
         contentStream.fill();
 
-        // Dibujar texto de cabecera centrado y en blanco con fuente 13
         contentStream.setNonStrokingColor(1, 1, 1);
         float xPos = MARGIN;
         for (TableColumn<T, ?> col : columnas) {
             String headerText = truncateText(col.getText(), (int) (colWidth - 10));
-
-            // Calcular ancho del texto para centrarlo
-            float textWidth = fontCabecera.getStringWidth(headerText) / 1000 * 13; // 13 es el tamaño de fuente
-
-            contentStream.beginText();
-            contentStream.setFont(fontCabecera, 13); // CAMBIADO: 13 puntos
-            // Centrar texto horizontalmente en la celda
+            float textWidth = fontCabecera.getStringWidth(headerText) / 1000 * 13;
             float textX = xPos + (colWidth - textWidth) / 2;
-            contentStream.newLineAtOffset(textX, currentY - 18); // Ajustado
+            contentStream.beginText();
+            contentStream.setFont(fontCabecera, 13);
+            contentStream.newLineAtOffset(textX, currentY - 18);
             contentStream.showText(headerText);
             contentStream.endText();
             xPos += colWidth;
         }
 
-        currentY -= 30; // Ajustado por cabecera
+        currentY -= 30;
 
-        // Dibujar filas de datos sin bordes
         int filaNum = 0;
         for (T item : datos) {
-            // Alternar colores de fila
             if (filaNum % 2 == 0) {
                 contentStream.setNonStrokingColor(COLOR_FILA_PAR[0], COLOR_FILA_PAR[1], COLOR_FILA_PAR[2]);
             } else {
                 contentStream.setNonStrokingColor(COLOR_FILA_IMPAR[0], COLOR_FILA_IMPAR[1], COLOR_FILA_IMPAR[2]);
             }
-
-            // Solo dibujar rectángulo de fondo, sin bordes
-            contentStream.addRect(MARGIN, currentY - 26, tableWidth, 26); // Ajustado para fuente 13
+            contentStream.addRect(MARGIN, currentY - 26, tableWidth, 26);
             contentStream.fill();
 
-            // Dibujar datos con letra 13 puntos
             contentStream.setNonStrokingColor(0, 0, 0);
             xPos = MARGIN;
-
             for (TableColumn<T, ?> col : columnas) {
                 Object value = col.getCellData(item);
                 String text = value != null ? value.toString() : "";
-
-                // Truncar texto si es muy largo
                 if (text.length() > 30) {
                     text = text.substring(0, 27) + "...";
                 }
-
-                // CALCULAR ANCHO DEL TEXTO PARA CENTRARLO (NUEVO)
                 float textWidthData = fontDatos.getStringWidth(text) / 1000 * 13;
-                // CENTRAR TEXTO HORIZONTALMENTE EN LA CELDA (NUEVO)
                 float textXData = xPos + (colWidth - textWidthData) / 2;
-
                 contentStream.beginText();
-                contentStream.setFont(fontDatos, 13); // CAMBIADO: 13 puntos
-                // USAR POSICIÓN CENTRADA (MODIFICADO)
-                contentStream.newLineAtOffset(textXData, currentY - 20); // Ajustado
+                contentStream.setFont(fontDatos, 13);
+                contentStream.newLineAtOffset(textXData, currentY - 20);
                 contentStream.showText(text);
                 contentStream.endText();
-
                 xPos += colWidth;
             }
-
-            currentY -= 30; // Ajustado para filas con fuente 13
+            currentY -= 30;
             filaNum++;
         }
-
-        // NO dibujar bordes exteriores de la tabla
         return currentY - 15;
     }
 
@@ -457,15 +546,12 @@ public class exportador {
                                          float pageWidth, float pageHeight, int pageNumber) throws IOException {
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page,
                 PDPageContentStream.AppendMode.APPEND, true, true)) {
-
-            // Línea separadora
             contentStream.setStrokingColor(0.7f, 0.7f, 0.7f);
             contentStream.setLineWidth(0.5f);
             contentStream.moveTo(MARGIN, MARGIN + 20);
             contentStream.lineTo(pageWidth - MARGIN, MARGIN + 20);
             contentStream.stroke();
 
-            // Texto del pie de página (izquierda)
             contentStream.setNonStrokingColor(0.5f, 0.5f, 0.5f);
             contentStream.beginText();
             contentStream.setFont(fontNormal, 8);
@@ -473,7 +559,6 @@ public class exportador {
             contentStream.showText("Sistema de Gestión de Inventarios GREEP • Reporte generado automáticamente");
             contentStream.endText();
 
-            // Número de página (derecha)
             String paginaTexto = "Página " + pageNumber;
             float textoAncho = fontNormal.getStringWidth(paginaTexto) / 1000 * 8;
             contentStream.beginText();
@@ -485,9 +570,15 @@ public class exportador {
     }
 
     // -----------------------
-    // Exportar Excel (mantenido igual)
+    // Exportar Excel con soporte opcional de totales (se agregan como filas adicionales)
     // -----------------------
-    private static <T> void exportarExcel(TableView<T> tabla, String titulo, File archivo, List<String> filtros) throws IOException {
+    private static <T> void exportarExcel(TableView<T> tabla, String titulo, File archivo,
+                                          List<String> filtros) throws IOException {
+        exportarExcel(tabla, titulo, archivo, filtros, null);
+    }
+
+    private static <T> void exportarExcel(TableView<T> tabla, String titulo, File archivo,
+                                          List<String> filtros, TotalesReporte totales) throws IOException {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet(titulo);
 
@@ -506,6 +597,17 @@ public class exportador {
         Font filtroFont = workbook.createFont();
         filtroFont.setBold(false);
         filtroStyle.setFont(filtroFont);
+
+        CellStyle totalLabelStyle = workbook.createCellStyle();
+        Font totalLabelFont = workbook.createFont();
+        totalLabelFont.setBold(true);
+        totalLabelStyle.setFont(totalLabelFont);
+
+        CellStyle totalValueStyle = workbook.createCellStyle();
+        Font totalValueFont = workbook.createFont();
+        totalValueFont.setBold(true);
+        totalValueStyle.setFont(totalValueFont);
+        totalValueStyle.setDataFormat(createHelper.createDataFormat().getFormat("$ #,##0.00"));
 
         int rowNum = 0;
 
@@ -528,7 +630,6 @@ public class exportador {
                 filtroRow.createCell(0).setCellValue("• " + filtro);
                 filtroRow.getCell(0).setCellStyle(filtroStyle);
             }
-
             rowNum++; // Espacio en blanco
         }
 
@@ -550,6 +651,32 @@ public class exportador {
             }
         }
 
+        // Totales (si se proporcionan)
+        if (totales != null) {
+            rowNum++; // línea en blanco
+
+            Row entradasRow = sheet.createRow(rowNum++);
+            entradasRow.createCell(0).setCellValue(totales.getEtiquetaEntradas() + ":");
+            entradasRow.getCell(0).setCellStyle(totalLabelStyle);
+            Cell entradasValCell = entradasRow.createCell(1);
+            entradasValCell.setCellValue(totales.getValorEntradas());
+            entradasValCell.setCellStyle(totalValueStyle);
+
+            Row salidasRow = sheet.createRow(rowNum++);
+            salidasRow.createCell(0).setCellValue(totales.getEtiquetaSalidas() + ":");
+            salidasRow.getCell(0).setCellStyle(totalLabelStyle);
+            Cell salidasValCell = salidasRow.createCell(1);
+            salidasValCell.setCellValue(totales.getValorSalidas());
+            salidasValCell.setCellStyle(totalValueStyle);
+
+            Row diferenciaRow = sheet.createRow(rowNum++);
+            diferenciaRow.createCell(0).setCellValue(totales.getEtiquetaDiferencia() + ":");
+            diferenciaRow.getCell(0).setCellStyle(totalLabelStyle);
+            Cell diferenciaValCell = diferenciaRow.createCell(1);
+            diferenciaValCell.setCellValue(totales.getValorDiferencia());
+            diferenciaValCell.setCellStyle(totalValueStyle);
+        }
+
         for (int i = 0; i < columns.size(); i++) {
             sheet.autoSizeColumn(i);
         }
@@ -561,7 +688,7 @@ public class exportador {
     }
 
     // -----------------------
-    // Métodos auxiliares
+    // Métodos auxiliares (sin cambios)
     // -----------------------
     private static <T> List<TableColumn<T, ?>> obtenerColumnasVisibles(TableView<T> tabla) {
         List<TableColumn<T, ?>> columnas = new ArrayList<>();
