@@ -147,21 +147,21 @@ public class controllerNuevoProveedor {
 
         if (modoEdicion) p.setId(idProveedorEdicion);
 
-        p.setNombre(txtNombre.getText());
-        p.setRepresentante(txtRepresentante.getText());
-        p.setRfc(txtRFC.getText());
-        p.setCurp(txtCURP.getText());
-        p.setRazonSocial(txtRazonSocial.getText());
-        p.setDomicilio(txtDomicilio.getText());
-        p.setCp(Integer.parseInt(txtCP.getText().trim()));
+        p.setNombre(txtNombre.getText().trim());
+        p.setRepresentante(textoOpcional(txtRepresentante));
+        p.setRfc(textoOpcional(txtRFC));
+        p.setCurp(textoOpcional(txtCURP));
+        p.setRazonSocial(textoOpcional(txtRazonSocial));
+        p.setDomicilio(textoOpcional(txtDomicilio));
+        p.setCp(obtenerNumeroOpcional(txtCP));
         p.setColonia(obtenerColoniaSeleccionada());
         p.setNumeroInt(obtenerNumeroOpcional(txtNoInt));
-        p.setNumeroExt(Integer.parseInt(txtNoExt.getText().trim()));
-        p.setCiudad(txtCiudad.getText());
-        p.setEstado(txtEstado.getText());
-        p.setLocalidad(txtLocalidad.getText());
-        p.setPais(txtPais.getText());
-        p.setCorreo(txtCorreo.getText());
+        p.setNumeroExt(obtenerNumeroOpcional(txtNoExt));
+        p.setCiudad(textoOpcional(txtCiudad));
+        p.setEstado(textoOpcional(txtEstado));
+        p.setLocalidad(textoOpcional(txtLocalidad));
+        p.setPais(textoOpcional(txtPais));
+        p.setCorreo(textoOpcional(txtCorreo));
         p.setTelefono(txtTelefono.getText().trim());
         p.setStatus("activo");
 
@@ -273,19 +273,14 @@ public class controllerNuevoProveedor {
 
     private boolean validarFormulario() {
         if (!validarCampoObligatorio(txtNombre, "Nombre")) return false;
-        if (!validarCampoObligatorio(txtRFC, "RFC")) return false;
-        if (!validarCampoObligatorio(txtCP, "Código Postal")) return false;
-        if (!validarCampoObligatorio(txtDomicilio, "Domicilio")) return false;
-        if (!validarCampoObligatorio(txtNoExt, "Número Exterior")) return false;
-        if (!validarCampoObligatorio(txtTelefono, "Teléfono")) return false;
 
-        if (!validarCampoNumerico(txtCP, "Código Postal")) return false;
-        if (!validarCampoNumerico(txtNoExt, "Número Exterior")) return false;
+        if (!validarCampoNumericoOpcional(txtCP, "Código Postal")) return false;
+        if (!validarCampoNumericoOpcional(txtNoExt, "Número Exterior")) return false;
         if (!validarCampoNumericoOpcional(txtNoInt, "Número Interior")) return false;
-        if (!validarCampoNumerico(txtTelefono, "Teléfono")) return false;
+        if (!validarCampoNumericoOpcional(txtTelefono, "Teléfono")) return false;
 
         String rfc = txtRFC.getText().trim().toUpperCase(Locale.ROOT);
-        if (!RFC_PATTERN.matcher(rfc).matches()) {
+        if (!rfc.isBlank() && !RFC_PATTERN.matcher(rfc).matches()) {
             mostrarAlerta(Alert.AlertType.ERROR, "El RFC no tiene un formato válido.");
             return false;
         }
@@ -297,7 +292,7 @@ public class controllerNuevoProveedor {
         }
 
         String cp = txtCP.getText().trim();
-        if (cp.length() != CP_LONGITUD) {
+        if (!cp.isBlank() && cp.length() != CP_LONGITUD) {
             mostrarAlerta(Alert.AlertType.ERROR, "El código postal debe tener 5 dígitos.");
             return false;
         }
@@ -348,10 +343,15 @@ public class controllerNuevoProveedor {
     }
 
     private Integer obtenerNumeroOpcional(TextField campo) {
-        if (campo == null) return 0;
+        if (campo == null) return null;
         String valor = campo.getText();
-        if (valor == null || valor.trim().isEmpty()) return 0;
+        if (valor == null || valor.trim().isEmpty()) return null;
         return Integer.parseInt(valor.trim());
+    }
+
+    private String textoOpcional(TextField campo) {
+        if (campo == null || campo.getText() == null) return "";
+        return campo.getText().trim();
     }
 
     private void configurarCamposAutocompletado() {
