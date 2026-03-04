@@ -79,6 +79,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<HistorialArticuloItem, String> colFacturaSalida;
     @FXML private TableColumn<HistorialArticuloItem, String> colUsuario;
     @FXML private TableColumn<HistorialArticuloItem, String> colEstado;
+    @FXML private TableColumn<HistorialArticuloItem, String> colPrecioTotal;
     @FXML private Label lblClave;
     @FXML private Label lblDescripcion;
     @FXML private Label lblPresentacion;
@@ -203,6 +204,7 @@ public class MainController implements ControladorVista {
         colFacturaSalida.setCellValueFactory(new PropertyValueFactory<>("facturaSalida"));
         colUsuario.setCellValueFactory(new PropertyValueFactory<>("usuario"));
         colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+        colPrecioTotal.setCellValueFactory(new PropertyValueFactory<>("precioTotal"));
 
         contenidoTabla.setItems(historialItems);
     }
@@ -456,28 +458,39 @@ public class MainController implements ControladorVista {
             return;
         }
 
-        long totalEntradas = 0;
-        long totalSalidas = 0;
+        double totalEntradas = 0;
+        double totalSalidas = 0;
 
         for (HistorialArticuloItem item : historialItems) {
-            totalEntradas += parseNumeroSeguro(item.getEntradas());
-            totalSalidas += parseNumeroSeguro(item.getSalidas());
+            totalEntradas += item.getTotalEntradaMonto();
+            totalSalidas += item.getTotalSalidaMonto();
         }
 
-        long diferencia = totalEntradas - totalSalidas;
-        totalEntradasGeneral.setText(String.valueOf(totalEntradas));
-        totalSalidasGeneral.setText(String.valueOf(totalSalidas));
-        diferenciaGeneral.setText(String.valueOf(diferencia));
+        double diferencia = totalEntradas - totalSalidas;
+        totalEntradasGeneral.setText(formatearImporte(totalEntradas));
+        totalSalidasGeneral.setText(formatearImporte(totalSalidas));
+        diferenciaGeneral.setText(formatearImporte(diferencia));
     }
 
-    private long parseNumeroSeguro(String valor) {
-        if (valor == null || valor.isBlank() || "-".equals(valor)) {
-            return 0;
+    private String formatearImporte(Double valor) {
+        if (valor == null) {
+            return "";
+        }
+        return String.format(Locale.US, "%.2f", valor);
+    }
+
+    private double valorSeguroPrecio(Double valor) {
+        return valor == null ? 0d : valor;
+    }
+
+    private Double obtenerNumeroDecimal(Object valor) {
+        if (valor == null) {
+            return null;
         }
         try {
-            return Long.parseLong(valor.trim());
+            return Double.parseDouble(valor.toString());
         } catch (NumberFormatException e) {
-            return 0;
+            return null;
         }
     }
 
@@ -638,7 +651,8 @@ public class MainController implements ControladorVista {
                 "cliente",
                 "facturaSalida",
                 "usuario",
-                "estado"
+                "estado",
+                "precioTotal"
         );
         SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
                 criterios, criterioOrden, direccionOrden, seleccion -> {
@@ -675,6 +689,7 @@ public class MainController implements ControladorVista {
         columnas.put("facturaSalida", colFacturaSalida);
         columnas.put("usuario", colUsuario);
         columnas.put("estado", colEstado);
+        columnas.put("precioTotal", colPrecioTotal);
         return columnas.get(criterioOrden);
     }
 
@@ -735,7 +750,10 @@ public class MainController implements ControladorVista {
                     textoGuionSiVacio(mov.getCliente()),
                     textoGuionSiVacio(mov.getFacturaSalida()),
                     textoGuionSiVacio(mov.getUsuario()),
-                    textoGuionSiVacio(mov.getEstado())
+                    textoGuionSiVacio(mov.getEstado()),
+                    textoGuionSiVacio(formatearImporte(mov.getPrecioTotal())),
+                    mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d,
+                    mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d
             ));
             existencias = despues;
         }
@@ -766,7 +784,7 @@ public class MainController implements ControladorVista {
         String sql = "SELECT e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
                 + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
                 + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
-                + "de.cantidad, e.Estado "
+                + "de.cantidad, e.Estado, de.precioTotal AS precioTotalMovimiento "
                 + "FROM detalle_Entrada de "
                 + "JOIN entradas e ON e.idEntrada = de.claveEntrada "
                 + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
@@ -794,7 +812,8 @@ public class MainController implements ControladorVista {
                             "",
                             "",
                             valorTexto(rs.getObject("usuarioNombre")),
-                            valorTexto(rs.getObject("Estado"))
+                            valorTexto(rs.getObject("Estado")),
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
                     ));
                 }
             }
@@ -807,7 +826,7 @@ public class MainController implements ControladorVista {
         String sql = "SELECT s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
                 + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
                 + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
-                + "ds.cantidad, s.Estado "
+                + "ds.cantidad, s.Estado, ds.precioTotalSalida AS precioTotalMovimiento "
                 + "FROM detalle_Salida ds "
                 + "JOIN salidas s ON s.idSalida = ds.claveSalida "
                 + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
@@ -835,7 +854,8 @@ public class MainController implements ControladorVista {
                             cliente,
                             valorTexto(rs.getObject("noFactura")),
                             valorTexto(rs.getObject("usuarioNombre")),
-                            valorTexto(rs.getObject("Estado"))
+                            valorTexto(rs.getObject("Estado")),
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
                     ));
                 }
             }
@@ -1080,10 +1100,11 @@ public class MainController implements ControladorVista {
         private final String facturaSalida;
         private final String usuario;
         private final String estado;
+        private final Double precioTotal;
 
         private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, int cantidad,
                                    String proveedor, String facturaEntrada, String cliente,
-                                   String facturaSalida, String usuario, String estado) {
+                                   String facturaSalida, String usuario, String estado, Double precioTotal) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1094,6 +1115,7 @@ public class MainController implements ControladorVista {
             this.facturaSalida = facturaSalida;
             this.usuario = usuario;
             this.estado = estado;
+            this.precioTotal = precioTotal;
         }
 
         private LocalDateTime getFechaHora() {
@@ -1139,6 +1161,10 @@ public class MainController implements ControladorVista {
         private String getEstado() {
             return estado;
         }
+
+        private Double getPrecioTotal() {
+            return precioTotal;
+        }
     }
 
     public static class HistorialArticuloItem {
@@ -1155,10 +1181,14 @@ public class MainController implements ControladorVista {
         private final String facturaSalida;
         private final String usuario;
         private final String estado;
+        private final String precioTotal;
+        private final double totalEntradaMonto;
+        private final double totalSalidaMonto;
 
         public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String antes, String despues,
                                      String entradas, String salidas, String proveedor, String facturaEntrada,
-                                     String cliente, String facturaSalida, String usuario, String estado) {
+                                     String cliente, String facturaSalida, String usuario, String estado,
+                                     String precioTotal, double totalEntradaMonto, double totalSalidaMonto) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1172,6 +1202,9 @@ public class MainController implements ControladorVista {
             this.facturaSalida = facturaSalida;
             this.usuario = usuario;
             this.estado = estado;
+            this.precioTotal = precioTotal;
+            this.totalEntradaMonto = totalEntradaMonto;
+            this.totalSalidaMonto = totalSalidaMonto;
         }
 
         public String getFecha() { return fecha; }
@@ -1187,6 +1220,9 @@ public class MainController implements ControladorVista {
         public String getFacturaSalida() { return facturaSalida; }
         public String getUsuario() { return usuario; }
         public String getEstado() { return estado; }
+        public String getPrecioTotal() { return precioTotal; }
+        public double getTotalEntradaMonto() { return totalEntradaMonto; }
+        public double getTotalSalidaMonto() { return totalSalidaMonto; }
     }
 
     private static class Filtro {

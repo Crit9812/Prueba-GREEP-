@@ -203,6 +203,7 @@
                                 <TableColumn fx:id="colDespues" text="Despues" prefWidth="70" />
                                 <TableColumn fx:id="colEntradas" text="Entradas" prefWidth="70" />
                                 <TableColumn fx:id="colSalidas" text="Salidas" prefWidth="70" />
+                                <TableColumn fx:id="colPrecioTotal" text="Precio total" prefWidth="120" />
                                 <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="140" />
                                 <TableColumn fx:id="colFacturaEntrada" text="Factura de entrada" prefWidth="150" />
                                 <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
