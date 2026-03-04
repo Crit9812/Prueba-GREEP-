@@ -130,20 +130,20 @@ public class controllerNuevoCliente {
             cliente c = new cliente();
             if (modoEdicion) c.setId(idClienteEdicion);
 
-            c.setNombre(txtNombre.getText());
-            c.setRfc(txtRFC.getText());
-            c.setCurp(txtCURP.getText());
-            c.setRazonSocial(txtRazonSocial.getText());
-            c.setCp(Integer.parseInt(txtCP.getText()));
-            c.setPais(txtPais.getText());
-            c.setEstado(txtEstado.getText());
-            c.setLocalidad(txtLocalidad.getText());
-            c.setCiudad(txtCiudad.getText());
+            c.setNombre(txtNombre.getText().trim());
+            c.setRfc(textoOpcional(txtRFC));
+            c.setCurp(textoOpcional(txtCURP));
+            c.setRazonSocial(textoOpcional(txtRazonSocial));
+            c.setCp(obtenerNumeroOpcional(txtCP));
+            c.setPais(textoOpcional(txtPais));
+            c.setEstado(textoOpcional(txtEstado));
+            c.setLocalidad(textoOpcional(txtLocalidad));
+            c.setCiudad(textoOpcional(txtCiudad));
             c.setColonia(obtenerColoniaSeleccionada());
-            c.setDomicilio(txtDomicilio.getText());
-            c.setNumeroExt(Integer.parseInt(txtNoExt.getText()));
-            c.setNumeroInt(Integer.parseInt(txtNoInt.getText()));
-            c.setCorreo(txtCorreoElectronico.getText());
+            c.setDomicilio(textoOpcional(txtDomicilio));
+            c.setNumeroExt(obtenerNumeroOpcional(txtNoExt));
+            c.setNumeroInt(obtenerNumeroOpcional(txtNoInt));
+            c.setCorreo(textoOpcional(txtCorreoElectronico));
             c.setTelefono(txtTelefono.getText().trim());
             c.setStatus("activo");
 
@@ -239,25 +239,16 @@ public class controllerNuevoCliente {
         };
     }
 
-    private boolean validarNumericos() {
-        return validarCampoNumerico(txtCP, "Código Postal") &&
-                validarCampoNumerico(txtNoExt, "Número Exterior") &&
-                validarCampoNumerico(txtNoInt, "Número Interior") &&
-                validarCampoNumerico(txtTelefono, "Teléfono");
-    }
-
     private boolean validarFormulario() {
         if (!validarCampoObligatorio(txtNombre, "Nombre")) return false;
-        if (!validarCampoObligatorio(txtRFC, "RFC")) return false;
-        if (!validarCampoObligatorio(txtCP, "Código Postal")) return false;
-        if (!validarCampoObligatorio(txtDomicilio, "Domicilio")) return false;
-        if (!validarCampoObligatorio(txtNoExt, "Número Exterior")) return false;
-        if (!validarCampoObligatorio(txtTelefono, "Teléfono")) return false;
 
-        if (!validarNumericos()) return false;
+        if (!validarCampoNumericoOpcional(txtCP, "Código Postal")) return false;
+        if (!validarCampoNumericoOpcional(txtNoExt, "Número Exterior")) return false;
+        if (!validarCampoNumericoOpcional(txtNoInt, "Número Interior")) return false;
+        if (!validarCampoNumericoOpcional(txtTelefono, "Teléfono")) return false;
 
         String rfc = txtRFC.getText().trim().toUpperCase(Locale.ROOT);
-        if (!RFC_PATTERN.matcher(rfc).matches()) {
+        if (!rfc.isBlank() && !RFC_PATTERN.matcher(rfc).matches()) {
             mostrarAlerta(Alert.AlertType.ERROR, "El RFC no tiene un formato válido.");
             return false;
         }
@@ -269,7 +260,7 @@ public class controllerNuevoCliente {
         }
 
         String cp = txtCP.getText().trim();
-        if (cp.length() != CP_LONGITUD) {
+        if (!cp.isBlank() && cp.length() != CP_LONGITUD) {
             mostrarAlerta(Alert.AlertType.ERROR, "El código postal debe tener 5 dígitos.");
             return false;
         }
@@ -310,6 +301,26 @@ public class controllerNuevoCliente {
             return false;
         }
         return true;
+    }
+
+
+    private boolean validarCampoNumericoOpcional(TextField campo, String nombreCampo) {
+        if (campo == null) return false;
+        String valor = campo.getText();
+        if (valor == null || valor.trim().isEmpty()) return true;
+        return validarCampoNumerico(campo, nombreCampo);
+    }
+
+    private Integer obtenerNumeroOpcional(TextField campo) {
+        if (campo == null) return null;
+        String valor = campo.getText();
+        if (valor == null || valor.trim().isEmpty()) return null;
+        return Integer.parseInt(valor.trim());
+    }
+
+    private String textoOpcional(TextField campo) {
+        if (campo == null || campo.getText() == null) return "";
+        return campo.getText().trim();
     }
 
     // Añade este método a la clase controllerNuevoCliente (después de setOnSaved)
