@@ -672,8 +672,8 @@ public class MainController implements ControladorVista {
         for (MovimientoArticulo mov : movimientos) {
             int antes = existencias;
             int despues;
-            String entradas = "";
-            String salidas = "";
+            String entradas = "0";
+            String salidas = "0";
 
             if (mov.getCantidad() >= 0) {
                 despues = existencias + mov.getCantidad();
