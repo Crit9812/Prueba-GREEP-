@@ -1,5 +1,7 @@
 package Reportes.historialArticulo.controller;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import VentanaPrincipal.controller.ControladorVista;
 import Compartido.helper.RefrescoHelper;
 import VentanaPrincipal.controller.EnumVistas;
@@ -483,13 +485,8 @@ public class MainController implements ControladorVista {
             if (conn == null) {
                 return List.of();
             }
-            String sql = "SELECT p.id AS pid, p.nombre AS pname, p.categoria AS categoria, "
-                    + "p.unidadMedida AS unidad, p.material AS material, "
-                    + "p.marca AS raw_marca, p.etiqueta AS raw_etiqueta, "
-                    + "m.nombre AS marca_name, e.nombre AS etiqueta_name "
+            String sql = "SELECT p.id AS pid, p.nombre AS pname "
                     + "FROM productos p "
-                    + "LEFT JOIN marcas m ON m.id = p.marca "
-                    + "LEFT JOIN etiquetas e ON e.id = p.etiqueta "
                     + "WHERE p.estado = 'activo' "
                     + "ORDER BY p.nombre";
 
@@ -501,23 +498,10 @@ public class MainController implements ControladorVista {
                         continue;
                     }
                     String nombre = rs.getString("pname");
-                    String categoria = rs.getString("categoria");
-                    String unidad = rs.getString("unidad");
-                    String material = rs.getString("material");
-                    String marca = rs.getString("marca_name");
-                    String etiqueta = rs.getString("etiqueta_name");
 
-                    String rawMarca = rs.getString("raw_marca");
-                    String rawEtiqueta = rs.getString("raw_etiqueta");
+                    // Obtener descripción usando GenericDAO
+                    String descripcion = obtenerDescripcionProducto(id);
 
-                    if ((marca == null || marca.isBlank()) && rawMarca != null && !rawMarca.isBlank()) {
-                        marca = rawMarca;
-                    }
-                    if ((etiqueta == null || etiqueta.isBlank()) && rawEtiqueta != null && !rawEtiqueta.isBlank()) {
-                        etiqueta = rawEtiqueta;
-                    }
-
-                    String descripcion = construirDescripcion(marca, etiqueta, categoria, unidad, material);
                     productos.put(id, new ProductoOpcion(id, nombre, descripcion));
                 }
             }
@@ -541,6 +525,20 @@ public class MainController implements ControladorVista {
             e.printStackTrace();
         }
         return new ArrayList<>(productos.values());
+    }
+
+    private String obtenerDescripcionProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return "";
+        }
+        try {
+            GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+            String resumen = dao.obtenerResumenProducto(idProducto);
+            return resumen != null ? resumen : "";
+        } catch (Exception e) {
+            System.err.println("Error al obtener descripción del producto " + idProducto + ": " + e.getMessage());
+            return "";
+        }
     }
 
     private String construirDescripcion(String marca, String etiqueta, String clasificacion,
@@ -854,14 +852,7 @@ public class MainController implements ControladorVista {
             ps.setString(1, idProducto);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    String descripcion = construirDescripcion(
-                            valorTexto(rs.getObject("marca")),
-                            valorTexto(rs.getObject("etiqueta")),
-                            valorTexto(rs.getObject("categoria")),
-                            valorTexto(rs.getObject("unidadMedida")),
-                            valorTexto(rs.getObject("material")),
-                            valorTexto(rs.getObject("descripcion"))
-                    );
+                    String descripcion = obtenerDescripcionProducto(idProducto);
                     lblClave.setText("Clave: " + idProducto);
                     lblDescripcion.setText("Descripción: " + descripcion);
                 }
