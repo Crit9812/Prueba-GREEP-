@@ -208,6 +208,7 @@
                                 <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
                                 <TableColumn fx:id="colFacturaSalida" text="Factura de salida" prefWidth="140" />
                                 <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="140" />
+                                <TableColumn fx:id="colEstado" text="Estado" prefWidth="110" />
                             </columns>
                         </TableView>
                     </VBox>

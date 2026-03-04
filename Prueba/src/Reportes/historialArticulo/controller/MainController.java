@@ -78,6 +78,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<HistorialArticuloItem, String> colCliente;
     @FXML private TableColumn<HistorialArticuloItem, String> colFacturaSalida;
     @FXML private TableColumn<HistorialArticuloItem, String> colUsuario;
+    @FXML private TableColumn<HistorialArticuloItem, String> colEstado;
     @FXML private Label lblClave;
     @FXML private Label lblDescripcion;
     @FXML private Label lblPresentacion;
@@ -196,6 +197,7 @@ public class MainController implements ControladorVista {
         colCliente.setCellValueFactory(new PropertyValueFactory<>("cliente"));
         colFacturaSalida.setCellValueFactory(new PropertyValueFactory<>("facturaSalida"));
         colUsuario.setCellValueFactory(new PropertyValueFactory<>("usuario"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
 
         contenidoTabla.setItems(historialItems);
     }
@@ -290,7 +292,8 @@ public class MainController implements ControladorVista {
                 "Factura entrada",
                 "Cliente",
                 "Factura salida",
-                "Usuario"
+                "Usuario",
+                "Estado"
         );
         comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (restaurandoFiltros) {
@@ -434,6 +437,8 @@ public class MainController implements ControladorVista {
                 return item.getFacturaSalida();
             case "Usuario":
                 return item.getUsuario();
+            case "Estado":
+                return item.getEstado();
             default:
                 return "";
         }
@@ -595,7 +600,8 @@ public class MainController implements ControladorVista {
                 "facturaEntrada",
                 "cliente",
                 "facturaSalida",
-                "usuario"
+                "usuario",
+                "estado"
         );
         SelectorOrdenPopup.mostrar((Node) event.getSource(), event.getScreenX(), event.getScreenY(),
                 criterios, criterioOrden, direccionOrden, seleccion -> {
@@ -631,6 +637,7 @@ public class MainController implements ControladorVista {
         columnas.put("cliente", colCliente);
         columnas.put("facturaSalida", colFacturaSalida);
         columnas.put("usuario", colUsuario);
+        columnas.put("estado", colEstado);
         return columnas.get(criterioOrden);
     }
 
@@ -688,7 +695,8 @@ public class MainController implements ControladorVista {
                     mov.getFacturaEntrada(),
                     mov.getCliente(),
                     mov.getFacturaSalida(),
-                    mov.getUsuario()
+                    mov.getUsuario(),
+                    mov.getEstado()
             ));
             existencias = despues;
         }
@@ -719,13 +727,14 @@ public class MainController implements ControladorVista {
         String sql = "SELECT e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
                 + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
                 + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
-                + "de.cantidad "
+                + "de.cantidad, e.Estado "
                 + "FROM detalle_Entrada de "
                 + "JOIN entradas e ON e.idEntrada = de.claveEntrada "
                 + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
                 + "LEFT JOIN proveedores p ON p.id = e.idRemitente "
                 + "LEFT JOIN sucursales s ON s.id = e.idRemitente "
-                + "WHERE de.claveProducto = ?";
+                + "WHERE de.claveProducto = ? "
+                + "AND LOWER(COALESCE(e.Estado, '')) <> 'cancelado'";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
 
@@ -746,7 +755,8 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("noFactura")),
                             "",
                             "",
-                            valorTexto(rs.getObject("usuarioNombre"))
+                            valorTexto(rs.getObject("usuarioNombre")),
+                            valorTexto(rs.getObject("Estado"))
                     ));
                 }
             }
@@ -759,13 +769,14 @@ public class MainController implements ControladorVista {
         String sql = "SELECT s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
                 + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
                 + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
-                + "ds.cantidad "
+                + "ds.cantidad, s.Estado "
                 + "FROM detalle_Salida ds "
                 + "JOIN salidas s ON s.idSalida = ds.claveSalida "
                 + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
                 + "LEFT JOIN clientes c ON c.id = s.idDestinatario "
                 + "LEFT JOIN sucursales su ON su.id = s.idDestinatario "
-                + "WHERE ds.claveProductoSalida = ?";
+                + "WHERE ds.claveProductoSalida = ? "
+                + "AND LOWER(COALESCE(s.Estado, '')) <> 'cancelado'";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
 
@@ -786,7 +797,8 @@ public class MainController implements ControladorVista {
                             "",
                             cliente,
                             valorTexto(rs.getObject("noFactura")),
-                            valorTexto(rs.getObject("usuarioNombre"))
+                            valorTexto(rs.getObject("usuarioNombre")),
+                            valorTexto(rs.getObject("Estado"))
                     ));
                 }
             }
@@ -1023,10 +1035,11 @@ public class MainController implements ControladorVista {
         private final String cliente;
         private final String facturaSalida;
         private final String usuario;
+        private final String estado;
 
         private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, int cantidad,
                                    String proveedor, String facturaEntrada, String cliente,
-                                   String facturaSalida, String usuario) {
+                                   String facturaSalida, String usuario, String estado) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1036,6 +1049,7 @@ public class MainController implements ControladorVista {
             this.cliente = cliente;
             this.facturaSalida = facturaSalida;
             this.usuario = usuario;
+            this.estado = estado;
         }
 
         private LocalDateTime getFechaHora() {
@@ -1077,6 +1091,10 @@ public class MainController implements ControladorVista {
         private String getUsuario() {
             return usuario;
         }
+
+        private String getEstado() {
+            return estado;
+        }
     }
 
     public static class HistorialArticuloItem {
@@ -1092,10 +1110,11 @@ public class MainController implements ControladorVista {
         private final String cliente;
         private final String facturaSalida;
         private final String usuario;
+        private final String estado;
 
         public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String antes, String despues,
                                      String entradas, String salidas, String proveedor, String facturaEntrada,
-                                     String cliente, String facturaSalida, String usuario) {
+                                     String cliente, String facturaSalida, String usuario, String estado) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1108,6 +1127,7 @@ public class MainController implements ControladorVista {
             this.cliente = cliente;
             this.facturaSalida = facturaSalida;
             this.usuario = usuario;
+            this.estado = estado;
         }
 
         public String getFecha() { return fecha; }
@@ -1122,6 +1142,7 @@ public class MainController implements ControladorVista {
         public String getCliente() { return cliente; }
         public String getFacturaSalida() { return facturaSalida; }
         public String getUsuario() { return usuario; }
+        public String getEstado() { return estado; }
     }
 
     private static class Filtro {
