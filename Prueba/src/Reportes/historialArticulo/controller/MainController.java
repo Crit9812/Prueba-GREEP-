@@ -481,7 +481,7 @@ public class MainController implements ControladorVista {
         if (valor == null) {
             return "";
         }
-        return String.format(Locale.US, "%.2f", valor);
+        return "$" + String.format(Locale.US, "%.2f", valor);
     }
 
     private double valorSeguroPrecio(Double valor) {
@@ -843,7 +843,7 @@ public class MainController implements ControladorVista {
         String sql = "SELECT e.idEntrada, e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
                 + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
                 + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
-                + "de.cantidad, e.Estado, de.precioTotal AS precioTotalMovimiento "
+                + "de.cantidad, e.Estado, CASE WHEN LOWER(e.Estado) = 'cancelado' THEN e.precioTotalEntrada ELSE de.precioTotal END AS precioTotalMovimiento "
                 + "FROM detalle_Entrada de "
                 + "JOIN entradas e ON e.idEntrada = de.claveEntrada "
                 + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
@@ -889,7 +889,7 @@ public class MainController implements ControladorVista {
         String sql = "SELECT s.idSalida, s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
                 + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
                 + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
-                + "ds.cantidad, s.Estado, ds.precioTotalSalida AS precioTotalMovimiento "
+                + "ds.cantidad, s.Estado, CASE WHEN LOWER(s.Estado) = 'cancelado' THEN s.precioTotalSalida ELSE ds.precioTotalSalida END AS precioTotalMovimiento "
                 + "FROM detalle_Salida ds "
                 + "JOIN salidas s ON s.idSalida = ds.claveSalida "
                 + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
@@ -1145,9 +1145,9 @@ public class MainController implements ControladorVista {
             return;
         }
 
-        double entradas = Double.parseDouble(totalEntradasGeneral.getText().replace(",", ""));
-        double salidas = Double.parseDouble(totalSalidasGeneral.getText().replace(",", ""));
-        double diferencia = Double.parseDouble(diferenciaGeneral.getText().replace(",", ""));
+        double entradas = parseImporteTexto(totalEntradasGeneral.getText());
+        double salidas = parseImporteTexto(totalSalidasGeneral.getText());
+        double diferencia = parseImporteTexto(diferenciaGeneral.getText());
 
         exportador.TotalesReporte totales = new exportador.TotalesReporte(
                 "Total entradas", entradas,
@@ -1166,9 +1166,9 @@ public class MainController implements ControladorVista {
             return;
         }
 
-        double entradas = Double.parseDouble(totalEntradasGeneral.getText().replace(",", ""));
-        double salidas = Double.parseDouble(totalSalidasGeneral.getText().replace(",", ""));
-        double diferencia = Double.parseDouble(diferenciaGeneral.getText().replace(",", ""));
+        double entradas = parseImporteTexto(totalEntradasGeneral.getText());
+        double salidas = parseImporteTexto(totalSalidasGeneral.getText());
+        double diferencia = parseImporteTexto(diferenciaGeneral.getText());
 
         exportador.TotalesReporte totales = new exportador.TotalesReporte(
                 "Total entradas", entradas,
@@ -1178,6 +1178,22 @@ public class MainController implements ControladorVista {
 
         exportador.previsualizarPDF(contenidoTabla, "Historial por artículo",
                 obtenerFiltrosAplicados(), totales);
+    }
+
+
+    private double parseImporteTexto(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return 0d;
+        }
+        String normalizado = texto.replace("$", "").replace(",", "").trim();
+        if (normalizado.isBlank()) {
+            return 0d;
+        }
+        try {
+            return Double.parseDouble(normalizado);
+        } catch (NumberFormatException e) {
+            return 0d;
+        }
     }
 
     private List<String> obtenerFiltrosAplicados() {
