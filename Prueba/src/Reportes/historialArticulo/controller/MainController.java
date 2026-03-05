@@ -329,10 +329,34 @@ public class MainController implements ControladorVista {
         if (campo == null || campo.isBlank()) {
             return;
         }
+
+        if ("Factor".equals(campo) && obtenerValorFiltroActivo("Presentación") == null) {
+            return;
+        }
+
         List<String> valores = new ArrayList<>();
         for (HistorialArticuloItem item : historialCacheCompleto) {
+            if ("Factor".equals(campo)) {
+                String presentacionActiva = obtenerValorFiltroActivo("Presentación");
+                if (presentacionActiva != null
+                        && contieneValor(item.getPresentacion(), presentacionActiva)) {
+                    for (String factor : separarValores(item.getFactor())) {
+                        if (!valores.contains(factor)) {
+                            valores.add(factor);
+                        }
+                    }
+                }
+                continue;
+            }
+
             String valor = obtenerValorCampo(item, campo);
-            if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
+            if ("Presentación".equals(campo)) {
+                for (String presentacion : separarValores(valor)) {
+                    if (!valores.contains(presentacion)) {
+                        valores.add(presentacion);
+                    }
+                }
+            } else if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
                 valores.add(valor);
             }
         }
@@ -343,6 +367,15 @@ public class MainController implements ControladorVista {
     private void agregarFiltro() {
         String campo = comboFiltro.getValue();
         String valor = comboValor.getValue();
+
+        if ("Factor".equals(campo) && obtenerValorFiltroActivo("Presentación") == null) {
+            mostrarAdvertencia(
+                    "Filtro incompleto",
+                    "Debes seleccionar primero una Presentación para poder filtrar por Factor."
+            );
+            return;
+        }
+
         if (campo == null || valor == null) {
             mostrarAdvertencia(
                     "Filtro incompleto",
@@ -387,7 +420,12 @@ public class MainController implements ControladorVista {
 
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
-            contenedorFiltros.getChildren().remove(chip);
+            if ("Presentación".equals(filtro.campo)) {
+                filtrosActivos.removeIf(f -> "Factor".equals(f.campo));
+                reconstruirChipsFiltros();
+            } else {
+                contenedorFiltros.getChildren().remove(chip);
+            }
             aplicarFiltros();
         });
 
@@ -400,6 +438,16 @@ public class MainController implements ControladorVista {
         return chip;
     }
 
+    private void reconstruirChipsFiltros() {
+        if (contenedorFiltros == null) {
+            return;
+        }
+        contenedorFiltros.getChildren().clear();
+        for (Filtro filtroActivo : filtrosActivos) {
+            contenedorFiltros.getChildren().add(crearChipFiltro(filtroActivo));
+        }
+    }
+
     private void aplicarFiltros() {
         LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
         LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
@@ -409,8 +457,7 @@ public class MainController implements ControladorVista {
         for (HistorialArticuloItem item : historialCacheCompleto) {
             boolean coincide = true;
             for (Filtro filtro : filtrosActivos) {
-                String valor = obtenerValorCampo(item, filtro.campo);
-                if (valor == null || !valor.equals(filtro.valor)) {
+                if (!coincideFiltro(item, filtro)) {
                     coincide = false;
                     break;
                 }
@@ -451,6 +498,50 @@ public class MainController implements ControladorVista {
         actualizarExistenciasSegunTabla(resultado);
         actualizarTotales();
         actualizarPresentacionFactorDesdeFiltros();
+    }
+
+    private boolean coincideFiltro(HistorialArticuloItem item, Filtro filtro) {
+        String valor = obtenerValorCampo(item, filtro.campo);
+        if ("Presentación".equals(filtro.campo) || "Factor".equals(filtro.campo)) {
+            return contieneValor(valor, filtro.valor);
+        }
+        return valor != null && valor.equals(filtro.valor);
+    }
+
+    private String obtenerValorFiltroActivo(String campo) {
+        for (Filtro filtro : filtrosActivos) {
+            if (campo.equals(filtro.campo)) {
+                return filtro.valor;
+            }
+        }
+        return null;
+    }
+
+    private boolean contieneValor(String texto, String buscado) {
+        if (buscado == null || buscado.isBlank()) {
+            return false;
+        }
+        for (String valor : separarValores(texto)) {
+            if (valor.equalsIgnoreCase(buscado.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> separarValores(String texto) {
+        List<String> valores = new ArrayList<>();
+        if (texto == null || texto.isBlank()) {
+            return valores;
+        }
+        String[] partes = texto.split(",");
+        for (String parte : partes) {
+            String limpio = parte == null ? "" : parte.trim();
+            if (!limpio.isBlank() && !valores.contains(limpio)) {
+                valores.add(limpio);
+            }
+        }
+        return valores;
     }
 
 
