@@ -304,7 +304,9 @@ public class MainController implements ControladorVista {
                 "Destino",
                 "Factura salida",
                 "Usuario",
-                "Estado"
+                "Estado",
+                "Presentación",
+                "Factor"
         );
         comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (restaurandoFiltros) {
@@ -426,9 +428,14 @@ public class MainController implements ControladorVista {
                 filtrados.add(item);
             }
         }
-        historialItems.setAll(filtrados);
+        List<HistorialArticuloItem> resultado = filtrados;
+        if (tieneFiltroPresentacionFactor()) {
+            resultado = recalcularExistencias(filtrados);
+        }
+        historialItems.setAll(resultado);
         aplicarOrdenamiento();
         actualizarTotales();
+        actualizarPresentacionFactorDesdeFiltros();
     }
 
     private String obtenerValorCampo(HistorialArticuloItem item, String campo) {
@@ -453,11 +460,87 @@ public class MainController implements ControladorVista {
                 return item.getUsuario();
             case "Estado":
                 return item.getEstado();
+            case "Presentación":
+                return item.getPresentacion();
+            case "Factor":
+                return item.getFactor();
             default:
                 return "";
         }
     }
 
+
+    private boolean tieneFiltroPresentacionFactor() {
+        for (Filtro filtro : filtrosActivos) {
+            if ("Presentación".equals(filtro.campo) || "Factor".equals(filtro.campo)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<HistorialArticuloItem> recalcularExistencias(List<HistorialArticuloItem> items) {
+        List<HistorialArticuloItem> recalculados = new ArrayList<>();
+        int existencias = 0;
+        for (HistorialArticuloItem item : items) {
+            int entradas = obtenerEnteroSeguro(item.getEntradas());
+            int salidas = obtenerEnteroSeguro(item.getSalidas());
+            int antes = existencias;
+            int despues = existencias + entradas - salidas;
+
+            recalculados.add(new HistorialArticuloItem(
+                    item.getFecha(),
+                    item.getHora(),
+                    item.getTipoMovimiento(),
+                    item.getTipoMovimientoDetalle(),
+                    String.valueOf(antes),
+                    String.valueOf(despues),
+                    item.getEntradas(),
+                    item.getSalidas(),
+                    item.getProveedor(),
+                    item.getFacturaEntrada(),
+                    item.getCliente(),
+                    item.getFacturaSalida(),
+                    item.getUsuario(),
+                    item.getEstado(),
+                    item.getPrecioTotal(),
+                    item.getTotalEntradaMonto(),
+                    item.getTotalSalidaMonto(),
+                    item.getPresentacion(),
+                    item.getFactor()
+            ));
+            existencias = despues;
+        }
+        return recalculados;
+    }
+
+    private int obtenerEnteroSeguro(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(valor.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void actualizarPresentacionFactorDesdeFiltros() {
+        if (lblPresentacion == null || lblFactor == null) {
+            return;
+        }
+        String presentacion = "";
+        String factor = "";
+        for (Filtro filtro : filtrosActivos) {
+            if ("Presentación".equals(filtro.campo)) {
+                presentacion = filtro.valor;
+            } else if ("Factor".equals(filtro.campo)) {
+                factor = filtro.valor;
+            }
+        }
+        lblPresentacion.setText(presentacion.isBlank() ? "Presentación:" : "Presentación: " + presentacion);
+        lblFactor.setText(factor.isBlank() ? "Factor:" : "Factor: " + factor);
+    }
 
     private void actualizarTotales() {
         if (totalEntradasGeneral == null || totalSalidasGeneral == null || diferenciaGeneral == null) {
@@ -767,7 +850,9 @@ public class MainController implements ControladorVista {
                     textoGuionSiVacio(mov.getEstado()),
                     textoGuionSiVacio(formatearImporte(mov.getPrecioTotal())),
                     esCancelado ? 0d : (mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
-                    esCancelado ? 0d : (mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d)
+                    esCancelado ? 0d : (mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
+                    textoGuionSiVacio(mov.getPresentacion()),
+                    textoGuionSiVacio(mov.getFactor())
             ));
             existencias = despues;
         }
@@ -814,7 +899,9 @@ public class MainController implements ControladorVista {
                     previo.getUsuario(),
                     estado,
                     total,
-                    previo.getReferenciaMovimiento()
+                    previo.getReferenciaMovimiento(),
+                    !valorTexto(previo.getPresentacion()).isBlank() ? previo.getPresentacion() : actual.getPresentacion(),
+                    !valorTexto(previo.getFactor()).isBlank() ? previo.getFactor() : actual.getFactor()
             ));
         }
 
@@ -849,12 +936,16 @@ public class MainController implements ControladorVista {
         String sql = "SELECT e.idEntrada, e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
                 + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
                 + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
-                + "de.cantidad, e.Estado, CASE WHEN LOWER(e.Estado) = 'cancelado' THEN e.precioTotalEntrada ELSE de.precioTotal END AS precioTotalMovimiento "
+                + "de.cantidad, e.Estado, CASE WHEN LOWER(e.Estado) = 'cancelado' THEN e.precioTotalEntrada ELSE de.precioTotal END AS precioTotalMovimiento, "
+                + "pa.presentaciones AS presentacionMovimiento, pa.factores AS factorMovimiento "
                 + "FROM detalle_Entrada de "
                 + "JOIN entradas e ON e.idEntrada = de.claveEntrada "
                 + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
                 + "LEFT JOIN proveedores p ON p.id = e.idRemitente "
                 + "LEFT JOIN sucursales s ON s.id = e.idRemitente "
+                + "LEFT JOIN (SELECT idDetalleEntrada, GROUP_CONCAT(DISTINCT presentacion ORDER BY presentacion SEPARATOR \", \") AS presentaciones, "
+                + "GROUP_CONCAT(DISTINCT factor ORDER BY factor SEPARATOR \", \") AS factores FROM articulo GROUP BY idDetalleEntrada) pa "
+                + "ON pa.idDetalleEntrada = de.idDetalleEntrada "
                 + "WHERE de.claveProducto = ?";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
@@ -882,7 +973,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idEntrada"))
+                            valorTexto(rs.getObject("idEntrada")),
+                            valorTexto(rs.getObject("presentacionMovimiento")),
+                            valorTexto(rs.getObject("factorMovimiento"))
                     ));
                 }
             }
@@ -895,12 +988,16 @@ public class MainController implements ControladorVista {
         String sql = "SELECT s.idSalida, s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
                 + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
                 + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
-                + "ds.cantidad, s.Estado, CASE WHEN LOWER(s.Estado) = 'cancelado' THEN s.precioTotalSalida ELSE ds.precioTotalSalida END AS precioTotalMovimiento "
+                + "ds.cantidad, s.Estado, CASE WHEN LOWER(s.Estado) = 'cancelado' THEN s.precioTotalSalida ELSE ds.precioTotalSalida END AS precioTotalMovimiento, "
+                + "pa.presentaciones AS presentacionMovimiento, pa.factores AS factorMovimiento "
                 + "FROM detalle_Salida ds "
                 + "JOIN salidas s ON s.idSalida = ds.claveSalida "
                 + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
                 + "LEFT JOIN clientes c ON c.id = s.idDestinatario "
                 + "LEFT JOIN sucursales su ON su.id = s.idDestinatario "
+                + "LEFT JOIN (SELECT idDetalleSalida, GROUP_CONCAT(DISTINCT presentacion ORDER BY presentacion SEPARATOR \", \") AS presentaciones, "
+                + "GROUP_CONCAT(DISTINCT factor ORDER BY factor SEPARATOR \", \") AS factores FROM articulo WHERE idDetalleSalida IS NOT NULL GROUP BY idDetalleSalida) pa "
+                + "ON pa.idDetalleSalida = ds.idDetalleSalida "
                 + "WHERE ds.claveProductoSalida = ?";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
@@ -928,7 +1025,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idSalida"))
+                            valorTexto(rs.getObject("idSalida")),
+                            valorTexto(rs.getObject("presentacionMovimiento")),
+                            valorTexto(rs.getObject("factorMovimiento"))
                     ));
                 }
             }
@@ -965,7 +1064,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idAjuste"))
+                            valorTexto(rs.getObject("idAjuste")),
+                            "",
+                            ""
                     ));
                 }
             }
@@ -996,7 +1097,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idAjuste"))
+                            valorTexto(rs.getObject("idAjuste")),
+                            "",
+                            ""
                     ));
                 }
             }
@@ -1094,23 +1197,8 @@ public class MainController implements ControladorVista {
             }
         }
 
-        String sqlPresentacion = "SELECT a.presentacion, a.factor "
-                + "FROM articulo a "
-                + "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada "
-                + "WHERE de.claveProducto = ? "
-                + "ORDER BY a.idArticulo DESC "
-                + "LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(sqlPresentacion)) {
-            ps.setString(1, idProducto);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String presentacion = valorTexto(rs.getObject("presentacion"));
-                    String factor = valorTexto(rs.getObject("factor"));
-                    lblPresentacion.setText("Presentación: " + presentacion);
-                    lblFactor.setText("Factor: " + factor);
-                }
-            }
-        }
+        lblPresentacion.setText("Presentación:");
+        lblFactor.setText("Factor:");
 
         String sqlExistencias = "SELECT COUNT(*) AS total "
                 + "FROM articulo a "
@@ -1300,10 +1388,13 @@ public class MainController implements ControladorVista {
         private final String estado;
         private final Double precioTotal;
         private final String referenciaMovimiento;
+        private final String presentacion;
+        private final String factor;
 
         private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, int cantidad,
                                    String proveedor, String facturaEntrada, String cliente,
-                                   String facturaSalida, String usuario, String estado, Double precioTotal, String referenciaMovimiento) {
+                                   String facturaSalida, String usuario, String estado, Double precioTotal, String referenciaMovimiento,
+                                   String presentacion, String factor) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1317,6 +1408,8 @@ public class MainController implements ControladorVista {
             this.estado = estado;
             this.precioTotal = precioTotal;
             this.referenciaMovimiento = referenciaMovimiento;
+            this.presentacion = presentacion;
+            this.factor = factor;
         }
 
         private LocalDateTime getFechaHora() {
@@ -1374,6 +1467,14 @@ public class MainController implements ControladorVista {
         private String getReferenciaMovimiento() {
             return referenciaMovimiento;
         }
+
+        private String getPresentacion() {
+            return presentacion;
+        }
+
+        private String getFactor() {
+            return factor;
+        }
     }
 
     public static class HistorialArticuloItem {
@@ -1394,11 +1495,14 @@ public class MainController implements ControladorVista {
         private final String precioTotal;
         private final double totalEntradaMonto;
         private final double totalSalidaMonto;
+        private final String presentacion;
+        private final String factor;
 
         public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, String antes, String despues,
                                      String entradas, String salidas, String proveedor, String facturaEntrada,
                                      String cliente, String facturaSalida, String usuario, String estado,
-                                     String precioTotal, double totalEntradaMonto, double totalSalidaMonto) {
+                                     String precioTotal, double totalEntradaMonto, double totalSalidaMonto,
+                                     String presentacion, String factor) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1416,6 +1520,8 @@ public class MainController implements ControladorVista {
             this.precioTotal = precioTotal;
             this.totalEntradaMonto = totalEntradaMonto;
             this.totalSalidaMonto = totalSalidaMonto;
+            this.presentacion = presentacion;
+            this.factor = factor;
         }
 
         public String getFecha() { return fecha; }
@@ -1435,6 +1541,8 @@ public class MainController implements ControladorVista {
         public String getPrecioTotal() { return precioTotal; }
         public double getTotalEntradaMonto() { return totalEntradaMonto; }
         public double getTotalSalidaMonto() { return totalSalidaMonto; }
+        public String getPresentacion() { return presentacion; }
+        public String getFactor() { return factor; }
     }
 
     private static class Filtro {
