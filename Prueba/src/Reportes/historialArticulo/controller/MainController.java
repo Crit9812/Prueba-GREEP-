@@ -101,6 +101,8 @@ public class MainController implements ControladorVista {
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
     private boolean actualizandoBusqueda = false;
+    private boolean filtroPresentacionFactorActivoPrevio = false;
+    private boolean forzarOrdenFechaHora = false;
     private String criterioOrden = "fecha";
     private String direccionOrden = "desc";
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -401,6 +403,8 @@ public class MainController implements ControladorVista {
     private void aplicarFiltros() {
         LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
         LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
+        boolean filtroPresentacionFactorActivo = tieneFiltroPresentacionFactor();
+        boolean cambioFiltroPresentacionFactor = filtroPresentacionFactorActivoPrevio != filtroPresentacionFactorActivo;
         List<HistorialArticuloItem> filtrados = new ArrayList<>();
         for (HistorialArticuloItem item : historialCacheCompleto) {
             boolean coincide = true;
@@ -429,11 +433,21 @@ public class MainController implements ControladorVista {
             }
         }
         List<HistorialArticuloItem> resultado = filtrados;
-        if (tieneFiltroPresentacionFactor()) {
+        if (filtroPresentacionFactorActivo) {
             resultado = recalcularExistencias(filtrados);
         }
-        historialItems.setAll(resultado);
-        aplicarOrdenamiento();
+
+        if (forzarOrdenFechaHora || filtroPresentacionFactorActivo || cambioFiltroPresentacionFactor) {
+            resultado = ordenarPorFechaHora(resultado);
+            historialItems.setAll(resultado);
+            contenidoTabla.getSortOrder().clear();
+        } else {
+            historialItems.setAll(resultado);
+            aplicarOrdenamiento();
+        }
+
+        filtroPresentacionFactorActivoPrevio = filtroPresentacionFactorActivo;
+        forzarOrdenFechaHora = false;
         actualizarTotales();
         actualizarPresentacionFactorDesdeFiltros();
     }
@@ -469,6 +483,16 @@ public class MainController implements ControladorVista {
         }
     }
 
+
+
+    private List<HistorialArticuloItem> ordenarPorFechaHora(List<HistorialArticuloItem> items) {
+        List<HistorialArticuloItem> ordenados = new ArrayList<>(items);
+        ordenados.sort(Comparator.comparing(
+                item -> obtenerFechaHora(item.getFecha(), item.getHora()),
+                Comparator.nullsLast(Comparator.naturalOrder())
+        ));
+        return ordenados;
+    }
 
     private boolean tieneFiltroPresentacionFactor() {
         for (Filtro filtro : filtrosActivos) {
@@ -788,6 +812,8 @@ public class MainController implements ControladorVista {
         if (idProducto == null || idProducto.isBlank()) {
             historialItems.clear();
             limpiarDetalleProducto();
+            filtroPresentacionFactorActivoPrevio = false;
+            forzarOrdenFechaHora = false;
             actualizarTotales();
             return;
         }
@@ -860,6 +886,8 @@ public class MainController implements ControladorVista {
         historialCacheCompleto.clear();
         historialCacheCompleto.addAll(nuevos);
         historialItemsOriginal.setAll(historialCacheCompleto);
+        filtroPresentacionFactorActivoPrevio = false;
+        forzarOrdenFechaHora = true;
         reiniciarFiltros();
         aplicarFiltros();
     }
