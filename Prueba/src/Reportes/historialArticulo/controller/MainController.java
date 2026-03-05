@@ -734,16 +734,19 @@ public class MainController implements ControladorVista {
         int existencias = 0;
         for (MovimientoArticulo mov : movimientos) {
             int antes = existencias;
-            int despues;
+            int despues = existencias;
             String entradas = "0";
             String salidas = "0";
+            boolean esCancelado = "cancelado".equalsIgnoreCase(valorTexto(mov.getEstado()).trim());
 
-            if (mov.getCantidad() >= 0) {
-                despues = existencias + mov.getCantidad();
-                entradas = String.valueOf(mov.getCantidad());
-            } else {
-                despues = existencias - Math.abs(mov.getCantidad());
-                salidas = String.valueOf(Math.abs(mov.getCantidad()));
+            if (!esCancelado) {
+                if (mov.getCantidad() >= 0) {
+                    despues = existencias + mov.getCantidad();
+                    entradas = String.valueOf(mov.getCantidad());
+                } else {
+                    despues = existencias - Math.abs(mov.getCantidad());
+                    salidas = String.valueOf(Math.abs(mov.getCantidad()));
+                }
             }
 
             nuevos.add(new HistorialArticuloItem(
@@ -762,8 +765,8 @@ public class MainController implements ControladorVista {
                     textoGuionSiVacio(mov.getUsuario()),
                     textoGuionSiVacio(mov.getEstado()),
                     textoGuionSiVacio(formatearImporte(mov.getPrecioTotal())),
-                    mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d,
-                    mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d
+                    esCancelado ? 0d : (mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
+                    esCancelado ? 0d : (mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d)
             ));
             existencias = despues;
         }
