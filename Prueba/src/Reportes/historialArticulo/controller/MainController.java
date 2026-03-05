@@ -448,8 +448,45 @@ public class MainController implements ControladorVista {
 
         filtroPresentacionFactorActivoPrevio = filtroPresentacionFactorActivo;
         forzarOrdenFechaHora = false;
+        actualizarExistenciasSegunTabla(resultado);
         actualizarTotales();
         actualizarPresentacionFactorDesdeFiltros();
+    }
+
+
+    private void actualizarExistenciasSegunTabla(List<HistorialArticuloItem> items) {
+        if (lblExistencias == null) {
+            return;
+        }
+        if (items == null || items.isEmpty()) {
+            lblExistencias.setText("Existencias: 0");
+            return;
+        }
+
+        HistorialArticuloItem ultimo = null;
+        LocalDateTime ultimaFechaHora = null;
+        for (HistorialArticuloItem item : items) {
+            LocalDateTime fechaHora = obtenerFechaHora(item.getFecha(), item.getHora());
+            if (ultimo == null) {
+                ultimo = item;
+                ultimaFechaHora = fechaHora;
+                continue;
+            }
+            if (ultimaFechaHora == null) {
+                if (fechaHora != null) {
+                    ultimo = item;
+                    ultimaFechaHora = fechaHora;
+                }
+                continue;
+            }
+            if (fechaHora != null && fechaHora.isAfter(ultimaFechaHora)) {
+                ultimo = item;
+                ultimaFechaHora = fechaHora;
+            }
+        }
+
+        int existencias = ultimo != null ? obtenerEnteroSeguro(ultimo.getDespues()) : 0;
+        lblExistencias.setText("Existencias: " + existencias);
     }
 
     private String obtenerValorCampo(HistorialArticuloItem item, String campo) {
