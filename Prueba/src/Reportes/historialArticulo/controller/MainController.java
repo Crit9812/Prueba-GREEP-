@@ -97,9 +97,12 @@ public class MainController implements ControladorVista {
     private final ObservableList<ProductoOpcion> productosFiltrados = FXCollections.observableArrayList();
     private final ObservableList<HistorialArticuloItem> historialItems = FXCollections.observableArrayList();
     private final ObservableList<HistorialArticuloItem> historialItemsOriginal = FXCollections.observableArrayList();
+    private final List<HistorialArticuloItem> historialCacheCompleto = new ArrayList<>();
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
     private boolean actualizandoBusqueda = false;
+    private boolean filtroPresentacionFactorActivoPrevio = false;
+    private boolean forzarOrdenFechaHora = false;
     private String criterioOrden = "fecha";
     private String direccionOrden = "desc";
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -303,7 +306,9 @@ public class MainController implements ControladorVista {
                 "Destino",
                 "Factura salida",
                 "Usuario",
-                "Estado"
+                "Estado",
+                "Presentación",
+                "Factor"
         );
         comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (restaurandoFiltros) {
@@ -324,10 +329,34 @@ public class MainController implements ControladorVista {
         if (campo == null || campo.isBlank()) {
             return;
         }
+
+        if ("Factor".equals(campo) && obtenerValorFiltroActivo("Presentación") == null) {
+            return;
+        }
+
         List<String> valores = new ArrayList<>();
-        for (HistorialArticuloItem item : historialItemsOriginal) {
+        for (HistorialArticuloItem item : historialCacheCompleto) {
+            if ("Factor".equals(campo)) {
+                String presentacionActiva = obtenerValorFiltroActivo("Presentación");
+                if (presentacionActiva != null
+                        && contieneValor(item.getPresentacion(), presentacionActiva)) {
+                    for (String factor : separarValores(item.getFactor())) {
+                        if (!valores.contains(factor)) {
+                            valores.add(factor);
+                        }
+                    }
+                }
+                continue;
+            }
+
             String valor = obtenerValorCampo(item, campo);
-            if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
+            if ("Presentación".equals(campo)) {
+                for (String presentacion : separarValores(valor)) {
+                    if (!valores.contains(presentacion)) {
+                        valores.add(presentacion);
+                    }
+                }
+            } else if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
                 valores.add(valor);
             }
         }
@@ -338,6 +367,15 @@ public class MainController implements ControladorVista {
     private void agregarFiltro() {
         String campo = comboFiltro.getValue();
         String valor = comboValor.getValue();
+
+        if ("Factor".equals(campo) && obtenerValorFiltroActivo("Presentación") == null) {
+            mostrarAdvertencia(
+                    "Filtro incompleto",
+                    "Debes seleccionar primero una Presentación para poder filtrar por Factor."
+            );
+            return;
+        }
+
         if (campo == null || valor == null) {
             mostrarAdvertencia(
                     "Filtro incompleto",
@@ -382,7 +420,12 @@ public class MainController implements ControladorVista {
 
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
-            contenedorFiltros.getChildren().remove(chip);
+            if ("Presentación".equals(filtro.campo)) {
+                filtrosActivos.removeIf(f -> "Factor".equals(f.campo));
+                reconstruirChipsFiltros();
+            } else {
+                contenedorFiltros.getChildren().remove(chip);
+            }
             aplicarFiltros();
         });
 
@@ -395,15 +438,26 @@ public class MainController implements ControladorVista {
         return chip;
     }
 
+    private void reconstruirChipsFiltros() {
+        if (contenedorFiltros == null) {
+            return;
+        }
+        contenedorFiltros.getChildren().clear();
+        for (Filtro filtroActivo : filtrosActivos) {
+            contenedorFiltros.getChildren().add(crearChipFiltro(filtroActivo));
+        }
+    }
+
     private void aplicarFiltros() {
         LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
         LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
+        boolean filtroPresentacionFactorActivo = tieneFiltroPresentacionFactor();
+        boolean cambioFiltroPresentacionFactor = filtroPresentacionFactorActivoPrevio != filtroPresentacionFactorActivo;
         List<HistorialArticuloItem> filtrados = new ArrayList<>();
-        for (HistorialArticuloItem item : historialItemsOriginal) {
+        for (HistorialArticuloItem item : historialCacheCompleto) {
             boolean coincide = true;
             for (Filtro filtro : filtrosActivos) {
-                String valor = obtenerValorCampo(item, filtro.campo);
-                if (valor == null || !valor.equals(filtro.valor)) {
+                if (!coincideFiltro(item, filtro)) {
                     coincide = false;
                     break;
                 }
@@ -425,9 +479,105 @@ public class MainController implements ControladorVista {
                 filtrados.add(item);
             }
         }
-        historialItems.setAll(filtrados);
-        aplicarOrdenamiento();
+        List<HistorialArticuloItem> resultado = filtrados;
+        if (filtroPresentacionFactorActivo) {
+            resultado = recalcularExistencias(filtrados);
+        }
+
+        if (forzarOrdenFechaHora || filtroPresentacionFactorActivo || cambioFiltroPresentacionFactor) {
+            resultado = ordenarPorFechaHora(resultado);
+            historialItems.setAll(resultado);
+            contenidoTabla.getSortOrder().clear();
+        } else {
+            historialItems.setAll(resultado);
+            aplicarOrdenamiento();
+        }
+
+        filtroPresentacionFactorActivoPrevio = filtroPresentacionFactorActivo;
+        forzarOrdenFechaHora = false;
+        actualizarExistenciasSegunTabla(resultado);
         actualizarTotales();
+        actualizarPresentacionFactorDesdeFiltros();
+    }
+
+    private boolean coincideFiltro(HistorialArticuloItem item, Filtro filtro) {
+        String valor = obtenerValorCampo(item, filtro.campo);
+        if ("Presentación".equals(filtro.campo) || "Factor".equals(filtro.campo)) {
+            return contieneValor(valor, filtro.valor);
+        }
+        return valor != null && valor.equals(filtro.valor);
+    }
+
+    private String obtenerValorFiltroActivo(String campo) {
+        for (Filtro filtro : filtrosActivos) {
+            if (campo.equals(filtro.campo)) {
+                return filtro.valor;
+            }
+        }
+        return null;
+    }
+
+    private boolean contieneValor(String texto, String buscado) {
+        if (buscado == null || buscado.isBlank()) {
+            return false;
+        }
+        for (String valor : separarValores(texto)) {
+            if (valor.equalsIgnoreCase(buscado.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> separarValores(String texto) {
+        List<String> valores = new ArrayList<>();
+        if (texto == null || texto.isBlank()) {
+            return valores;
+        }
+        String[] partes = texto.split(",");
+        for (String parte : partes) {
+            String limpio = parte == null ? "" : parte.trim();
+            if (!limpio.isBlank() && !valores.contains(limpio)) {
+                valores.add(limpio);
+            }
+        }
+        return valores;
+    }
+
+
+    private void actualizarExistenciasSegunTabla(List<HistorialArticuloItem> items) {
+        if (lblExistencias == null) {
+            return;
+        }
+        if (items == null || items.isEmpty()) {
+            lblExistencias.setText("Existencias: 0");
+            return;
+        }
+
+        HistorialArticuloItem ultimo = null;
+        LocalDateTime ultimaFechaHora = null;
+        for (HistorialArticuloItem item : items) {
+            LocalDateTime fechaHora = obtenerFechaHora(item.getFecha(), item.getHora());
+            if (ultimo == null) {
+                ultimo = item;
+                ultimaFechaHora = fechaHora;
+                continue;
+            }
+            if (ultimaFechaHora == null) {
+                if (fechaHora != null) {
+                    ultimo = item;
+                    ultimaFechaHora = fechaHora;
+                }
+                continue;
+            }
+            if (fechaHora != null && fechaHora.isAfter(ultimaFechaHora)) {
+                ultimo = item;
+                ultimaFechaHora = fechaHora;
+            }
+        }
+
+        int existencias = ultimo != null ? obtenerEnteroSeguro(ultimo.getDespues()) : 0;
+        lblExistencias.setText("Existencias: " + existencias);
     }
 
     private String obtenerValorCampo(HistorialArticuloItem item, String campo) {
@@ -452,11 +602,97 @@ public class MainController implements ControladorVista {
                 return item.getUsuario();
             case "Estado":
                 return item.getEstado();
+            case "Presentación":
+                return item.getPresentacion();
+            case "Factor":
+                return item.getFactor();
             default:
                 return "";
         }
     }
 
+
+
+    private List<HistorialArticuloItem> ordenarPorFechaHora(List<HistorialArticuloItem> items) {
+        List<HistorialArticuloItem> ordenados = new ArrayList<>(items);
+        ordenados.sort(Comparator.comparing(
+                item -> obtenerFechaHora(item.getFecha(), item.getHora()),
+                Comparator.nullsLast(Comparator.naturalOrder())
+        ));
+        return ordenados;
+    }
+
+    private boolean tieneFiltroPresentacionFactor() {
+        for (Filtro filtro : filtrosActivos) {
+            if ("Presentación".equals(filtro.campo) || "Factor".equals(filtro.campo)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<HistorialArticuloItem> recalcularExistencias(List<HistorialArticuloItem> items) {
+        List<HistorialArticuloItem> recalculados = new ArrayList<>();
+        int existencias = 0;
+        for (HistorialArticuloItem item : items) {
+            int entradas = obtenerEnteroSeguro(item.getEntradas());
+            int salidas = obtenerEnteroSeguro(item.getSalidas());
+            int antes = existencias;
+            int despues = existencias + entradas - salidas;
+
+            recalculados.add(new HistorialArticuloItem(
+                    item.getFecha(),
+                    item.getHora(),
+                    item.getTipoMovimiento(),
+                    item.getTipoMovimientoDetalle(),
+                    String.valueOf(antes),
+                    String.valueOf(despues),
+                    item.getEntradas(),
+                    item.getSalidas(),
+                    item.getProveedor(),
+                    item.getFacturaEntrada(),
+                    item.getCliente(),
+                    item.getFacturaSalida(),
+                    item.getUsuario(),
+                    item.getEstado(),
+                    item.getPrecioTotal(),
+                    item.getTotalEntradaMonto(),
+                    item.getTotalSalidaMonto(),
+                    item.getPresentacion(),
+                    item.getFactor()
+            ));
+            existencias = despues;
+        }
+        return recalculados;
+    }
+
+    private int obtenerEnteroSeguro(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(valor.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void actualizarPresentacionFactorDesdeFiltros() {
+        if (lblPresentacion == null || lblFactor == null) {
+            return;
+        }
+        String presentacion = "";
+        String factor = "";
+        for (Filtro filtro : filtrosActivos) {
+            if ("Presentación".equals(filtro.campo)) {
+                presentacion = filtro.valor;
+            } else if ("Factor".equals(filtro.campo)) {
+                factor = filtro.valor;
+            }
+        }
+        lblPresentacion.setText(presentacion.isBlank() ? "Presentación:" : "Presentación: " + presentacion);
+        lblFactor.setText(factor.isBlank() ? "Factor:" : "Factor: " + factor);
+    }
 
     private void actualizarTotales() {
         if (totalEntradasGeneral == null || totalSalidasGeneral == null || diferenciaGeneral == null) {
@@ -481,7 +717,7 @@ public class MainController implements ControladorVista {
         if (valor == null) {
             return "";
         }
-        return String.format(Locale.US, "%.2f", valor);
+        return "$" + String.format(Locale.US, "%.2f", valor);
     }
 
     private double valorSeguroPrecio(Double valor) {
@@ -704,6 +940,8 @@ public class MainController implements ControladorVista {
         if (idProducto == null || idProducto.isBlank()) {
             historialItems.clear();
             limpiarDetalleProducto();
+            filtroPresentacionFactorActivoPrevio = false;
+            forzarOrdenFechaHora = false;
             actualizarTotales();
             return;
         }
@@ -734,16 +972,19 @@ public class MainController implements ControladorVista {
         int existencias = 0;
         for (MovimientoArticulo mov : movimientos) {
             int antes = existencias;
-            int despues;
+            int despues = existencias;
             String entradas = "0";
             String salidas = "0";
+            boolean esCancelado = "cancelado".equalsIgnoreCase(valorTexto(mov.getEstado()).trim());
 
-            if (mov.getCantidad() >= 0) {
-                despues = existencias + mov.getCantidad();
-                entradas = String.valueOf(mov.getCantidad());
-            } else {
-                despues = existencias - Math.abs(mov.getCantidad());
-                salidas = String.valueOf(Math.abs(mov.getCantidad()));
+            if (!esCancelado) {
+                if (mov.getCantidad() >= 0) {
+                    despues = existencias + mov.getCantidad();
+                    entradas = String.valueOf(mov.getCantidad());
+                } else {
+                    despues = existencias - Math.abs(mov.getCantidad());
+                    salidas = String.valueOf(Math.abs(mov.getCantidad()));
+                }
             }
 
             nuevos.add(new HistorialArticuloItem(
@@ -762,13 +1003,19 @@ public class MainController implements ControladorVista {
                     textoGuionSiVacio(mov.getUsuario()),
                     textoGuionSiVacio(mov.getEstado()),
                     textoGuionSiVacio(formatearImporte(mov.getPrecioTotal())),
-                    mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d,
-                    mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d
+                    esCancelado ? 0d : (mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
+                    esCancelado ? 0d : (mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
+                    textoGuionSiVacio(mov.getPresentacion()),
+                    textoGuionSiVacio(mov.getFactor())
             ));
             existencias = despues;
         }
 
-        historialItemsOriginal.setAll(nuevos);
+        historialCacheCompleto.clear();
+        historialCacheCompleto.addAll(nuevos);
+        historialItemsOriginal.setAll(historialCacheCompleto);
+        filtroPresentacionFactorActivoPrevio = false;
+        forzarOrdenFechaHora = true;
         reiniciarFiltros();
         aplicarFiltros();
     }
@@ -808,7 +1055,9 @@ public class MainController implements ControladorVista {
                     previo.getUsuario(),
                     estado,
                     total,
-                    previo.getReferenciaMovimiento()
+                    previo.getReferenciaMovimiento(),
+                    !valorTexto(previo.getPresentacion()).isBlank() ? previo.getPresentacion() : actual.getPresentacion(),
+                    !valorTexto(previo.getFactor()).isBlank() ? previo.getFactor() : actual.getFactor()
             ));
         }
 
@@ -843,12 +1092,16 @@ public class MainController implements ControladorVista {
         String sql = "SELECT e.idEntrada, e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
                 + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
                 + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
-                + "de.cantidad, e.Estado, de.precioTotal AS precioTotalMovimiento "
+                + "de.cantidad, e.Estado, CASE WHEN LOWER(e.Estado) = 'cancelado' THEN e.precioTotalEntrada ELSE de.precioTotal END AS precioTotalMovimiento, "
+                + "pa.presentaciones AS presentacionMovimiento, pa.factores AS factorMovimiento "
                 + "FROM detalle_Entrada de "
                 + "JOIN entradas e ON e.idEntrada = de.claveEntrada "
                 + "LEFT JOIN usuarios u ON u.idUsuario = e.claveUsuarioEntrada "
                 + "LEFT JOIN proveedores p ON p.id = e.idRemitente "
                 + "LEFT JOIN sucursales s ON s.id = e.idRemitente "
+                + "LEFT JOIN (SELECT idDetalleEntrada, GROUP_CONCAT(DISTINCT presentacion ORDER BY presentacion SEPARATOR \", \") AS presentaciones, "
+                + "GROUP_CONCAT(DISTINCT factor ORDER BY factor SEPARATOR \", \") AS factores FROM articulo GROUP BY idDetalleEntrada) pa "
+                + "ON pa.idDetalleEntrada = de.idDetalleEntrada "
                 + "WHERE de.claveProducto = ?";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
@@ -876,7 +1129,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idEntrada"))
+                            valorTexto(rs.getObject("idEntrada")),
+                            valorTexto(rs.getObject("presentacionMovimiento")),
+                            valorTexto(rs.getObject("factorMovimiento"))
                     ));
                 }
             }
@@ -889,12 +1144,16 @@ public class MainController implements ControladorVista {
         String sql = "SELECT s.idSalida, s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
                 + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
                 + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
-                + "ds.cantidad, s.Estado, ds.precioTotalSalida AS precioTotalMovimiento "
+                + "ds.cantidad, s.Estado, CASE WHEN LOWER(s.Estado) = 'cancelado' THEN s.precioTotalSalida ELSE ds.precioTotalSalida END AS precioTotalMovimiento, "
+                + "pa.presentaciones AS presentacionMovimiento, pa.factores AS factorMovimiento "
                 + "FROM detalle_Salida ds "
                 + "JOIN salidas s ON s.idSalida = ds.claveSalida "
                 + "LEFT JOIN usuarios u ON u.idUsuario = s.claveUsuarioSalida "
                 + "LEFT JOIN clientes c ON c.id = s.idDestinatario "
                 + "LEFT JOIN sucursales su ON su.id = s.idDestinatario "
+                + "LEFT JOIN (SELECT idDetalleSalida, GROUP_CONCAT(DISTINCT presentacion ORDER BY presentacion SEPARATOR \", \") AS presentaciones, "
+                + "GROUP_CONCAT(DISTINCT factor ORDER BY factor SEPARATOR \", \") AS factores FROM articulo WHERE idDetalleSalida IS NOT NULL GROUP BY idDetalleSalida) pa "
+                + "ON pa.idDetalleSalida = ds.idDetalleSalida "
                 + "WHERE ds.claveProductoSalida = ?";
 
         List<MovimientoArticulo> movimientos = new ArrayList<>();
@@ -922,7 +1181,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idSalida"))
+                            valorTexto(rs.getObject("idSalida")),
+                            valorTexto(rs.getObject("presentacionMovimiento")),
+                            valorTexto(rs.getObject("factorMovimiento"))
                     ));
                 }
             }
@@ -959,7 +1220,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idAjuste"))
+                            valorTexto(rs.getObject("idAjuste")),
+                            "",
+                            ""
                     ));
                 }
             }
@@ -990,7 +1253,9 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("estado")),
                             obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
-                            valorTexto(rs.getObject("idAjuste"))
+                            valorTexto(rs.getObject("idAjuste")),
+                            "",
+                            ""
                     ));
                 }
             }
@@ -1088,23 +1353,8 @@ public class MainController implements ControladorVista {
             }
         }
 
-        String sqlPresentacion = "SELECT a.presentacion, a.factor "
-                + "FROM articulo a "
-                + "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada "
-                + "WHERE de.claveProducto = ? "
-                + "ORDER BY a.idArticulo DESC "
-                + "LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(sqlPresentacion)) {
-            ps.setString(1, idProducto);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String presentacion = valorTexto(rs.getObject("presentacion"));
-                    String factor = valorTexto(rs.getObject("factor"));
-                    lblPresentacion.setText("Presentación: " + presentacion);
-                    lblFactor.setText("Factor: " + factor);
-                }
-            }
-        }
+        lblPresentacion.setText("Presentación:");
+        lblFactor.setText("Factor:");
 
         String sqlExistencias = "SELECT COUNT(*) AS total "
                 + "FROM articulo a "
@@ -1145,9 +1395,9 @@ public class MainController implements ControladorVista {
             return;
         }
 
-        double entradas = Double.parseDouble(totalEntradasGeneral.getText().replace(",", ""));
-        double salidas = Double.parseDouble(totalSalidasGeneral.getText().replace(",", ""));
-        double diferencia = Double.parseDouble(diferenciaGeneral.getText().replace(",", ""));
+        double entradas = parseImporteTexto(totalEntradasGeneral.getText());
+        double salidas = parseImporteTexto(totalSalidasGeneral.getText());
+        double diferencia = parseImporteTexto(diferenciaGeneral.getText());
 
         exportador.TotalesReporte totales = new exportador.TotalesReporte(
                 "Total entradas", entradas,
@@ -1166,9 +1416,9 @@ public class MainController implements ControladorVista {
             return;
         }
 
-        double entradas = Double.parseDouble(totalEntradasGeneral.getText().replace(",", ""));
-        double salidas = Double.parseDouble(totalSalidasGeneral.getText().replace(",", ""));
-        double diferencia = Double.parseDouble(diferenciaGeneral.getText().replace(",", ""));
+        double entradas = parseImporteTexto(totalEntradasGeneral.getText());
+        double salidas = parseImporteTexto(totalSalidasGeneral.getText());
+        double diferencia = parseImporteTexto(diferenciaGeneral.getText());
 
         exportador.TotalesReporte totales = new exportador.TotalesReporte(
                 "Total entradas", entradas,
@@ -1178,6 +1428,22 @@ public class MainController implements ControladorVista {
 
         exportador.previsualizarPDF(contenidoTabla, "Historial por artículo",
                 obtenerFiltrosAplicados(), totales);
+    }
+
+
+    private double parseImporteTexto(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return 0d;
+        }
+        String normalizado = texto.replace("$", "").replace(",", "").trim();
+        if (normalizado.isBlank()) {
+            return 0d;
+        }
+        try {
+            return Double.parseDouble(normalizado);
+        } catch (NumberFormatException e) {
+            return 0d;
+        }
     }
 
     private List<String> obtenerFiltrosAplicados() {
@@ -1278,10 +1544,13 @@ public class MainController implements ControladorVista {
         private final String estado;
         private final Double precioTotal;
         private final String referenciaMovimiento;
+        private final String presentacion;
+        private final String factor;
 
         private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, int cantidad,
                                    String proveedor, String facturaEntrada, String cliente,
-                                   String facturaSalida, String usuario, String estado, Double precioTotal, String referenciaMovimiento) {
+                                   String facturaSalida, String usuario, String estado, Double precioTotal, String referenciaMovimiento,
+                                   String presentacion, String factor) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1295,6 +1564,8 @@ public class MainController implements ControladorVista {
             this.estado = estado;
             this.precioTotal = precioTotal;
             this.referenciaMovimiento = referenciaMovimiento;
+            this.presentacion = presentacion;
+            this.factor = factor;
         }
 
         private LocalDateTime getFechaHora() {
@@ -1352,6 +1623,14 @@ public class MainController implements ControladorVista {
         private String getReferenciaMovimiento() {
             return referenciaMovimiento;
         }
+
+        private String getPresentacion() {
+            return presentacion;
+        }
+
+        private String getFactor() {
+            return factor;
+        }
     }
 
     public static class HistorialArticuloItem {
@@ -1372,11 +1651,14 @@ public class MainController implements ControladorVista {
         private final String precioTotal;
         private final double totalEntradaMonto;
         private final double totalSalidaMonto;
+        private final String presentacion;
+        private final String factor;
 
         public HistorialArticuloItem(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, String antes, String despues,
                                      String entradas, String salidas, String proveedor, String facturaEntrada,
                                      String cliente, String facturaSalida, String usuario, String estado,
-                                     String precioTotal, double totalEntradaMonto, double totalSalidaMonto) {
+                                     String precioTotal, double totalEntradaMonto, double totalSalidaMonto,
+                                     String presentacion, String factor) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1394,6 +1676,8 @@ public class MainController implements ControladorVista {
             this.precioTotal = precioTotal;
             this.totalEntradaMonto = totalEntradaMonto;
             this.totalSalidaMonto = totalSalidaMonto;
+            this.presentacion = presentacion;
+            this.factor = factor;
         }
 
         public String getFecha() { return fecha; }
@@ -1413,6 +1697,8 @@ public class MainController implements ControladorVista {
         public String getPrecioTotal() { return precioTotal; }
         public double getTotalEntradaMonto() { return totalEntradaMonto; }
         public double getTotalSalidaMonto() { return totalSalidaMonto; }
+        public String getPresentacion() { return presentacion; }
+        public String getFactor() { return factor; }
     }
 
     private static class Filtro {
