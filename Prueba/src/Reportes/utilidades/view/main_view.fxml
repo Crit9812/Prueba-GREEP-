@@ -161,20 +161,20 @@
                         </padding>
                         <TableView fx:id="contenidoTabla"  styleClass="contenidoTable">
                             <columns>
-                                <TableColumn fx:id="colClaveProducto" text="Clave de producto" />
-                                <TableColumn fx:id="colNombreProducto" text="Nombre de producto" prefWidth="200" />
-                                <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="200"  />
+                                <TableColumn fx:id="colClaveProducto" text="ID producto" prefWidth="100"/>
+                                <TableColumn fx:id="colNombreProducto" text="Nombre de producto" prefWidth="170" />
+                                <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="150"/>
                                 <TableColumn fx:id="colDescripcionProducto" text="Descripción del producto" prefWidth="280" />
-                                <TableColumn fx:id="colPresentacion" text="Presentación" prefWidth="170" />
-                                <TableColumn fx:id="colFactor" text="Factor" prefWidth="140" />
-                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="140" />
+                                <TableColumn fx:id="colPresentacion" text="Presentación" prefWidth="140" />
+                                <TableColumn fx:id="colFactor" text="Factor" prefWidth="80" />
+                                <TableColumn fx:id="colCantidad" text="Cantidad" prefWidth="100" />
                                 <TableColumn fx:id="colTotalCompra" text="Total de compra" prefWidth="200" />
-                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="200" />
-                                <TableColumn fx:id="colFacturaCompra" text="Factura de compra" prefWidth="180" />
-                                <TableColumn fx:id="colTotalVenta" text="Total de venta" prefWidth="170" />
-                                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="170" />
-                                <TableColumn fx:id="colFacturaVenta" text="Factura de venta" prefWidth="180" />
-                                <TableColumn fx:id="colPorcentajeUtilidad" text="Porcentaje de utilidad" prefWidth="190" />
+                                <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="280" />
+                                <TableColumn fx:id="colFacturaCompra" text="Factura de compra" prefWidth="150" />
+                                <TableColumn fx:id="colTotalVenta" text="Total de venta" prefWidth="200" />
+                                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="280" />
+                                <TableColumn fx:id="colFacturaVenta" text="Factura de venta" prefWidth="150" />
+                                <TableColumn fx:id="colPorcentajeUtilidad" text="Porcentaje de utilidad" prefWidth="170" />
                                 <TableColumn fx:id="colUtilidadPesos" text="Utilidad en pesos" prefWidth="200" />
                             </columns>
                         </TableView>

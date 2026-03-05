@@ -1,5 +1,7 @@
 package Reportes.utilidades.controller;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import Compartido.helper.RefrescoHelper;
 import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
@@ -12,14 +14,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.KeyCode;
@@ -28,7 +25,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.control.SplitPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import java.io.IOException;
@@ -128,74 +124,74 @@ public class MainController implements ControladorVista {
             configurarColumnas();
             configurarFiltros();
             configurarFiltroFechas();
-            agregarListenersRedimension();
+            //agregarListenersRedimension();
             cargarUtilidades();
             Platform.runLater(() -> {
-                Platform.runLater(() -> {
+                /*Platform.runLater(() -> {
                     actualizarPoliticaRedimensionamiento();
-                });
+                })*/;
             });
             RefrescoHelper.setVistaActual("utilidades");
             RefrescoHelper.registrarRefresco("utilidades", this::cargarUtilidades);
         });
     }
 
-    private void actualizarPoliticaRedimensionamiento() {
-        List<TableColumn<UtilidadItem, ?>> columnasVisibles = contenidoTabla.getColumns().stream()
-                .filter(TableColumn::isVisible)
-                .collect(Collectors.toList());
+//    private void actualizarPoliticaRedimensionamiento() {
+//        List<TableColumn<UtilidadItem, ?>> columnasVisibles = contenidoTabla.getColumns().stream()
+//                .filter(TableColumn::isVisible)
+//                .collect(Collectors.toList());
+//
+//        Platform.runLater(() -> {
+//            double anchoDisponible = contenidoTabla.getWidth();
+//            if (anchoDisponible <= 0) {
+//                anchoDisponible = Math.max(100, contenedorTabla.getWidth());
+//            }
+//
+//            double minWidthTotal = columnasVisibles.stream()
+//                    .mapToDouble(TableColumn::getMinWidth)
+//                    .sum();
+//
+//            // Margen del 5% para evitar problemas de redondeo
+//            boolean columnasCaben = minWidthTotal <= (anchoDisponible * 1.05);
+//
+//            if (columnasCaben) {
+//                contenidoTabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+//                // Resetear prefWidth para distribución equitativa
+//                for (TableColumn<UtilidadItem, ?> col : columnasVisibles) {
+//                    col.setPrefWidth(-1);
+//                }
+//            } else {
+//                contenidoTabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+//                // Si excede en más del 20%, ajustar proporcionalmente
+//                if (minWidthTotal > anchoDisponible * 1.2) {
+//                    double factor = (anchoDisponible * 0.9) / minWidthTotal;
+//                    for (TableColumn<UtilidadItem, ?> col : columnasVisibles) {
+//                        col.setPrefWidth(col.getMinWidth() * factor);
+//                    }
+//                }
+//            }
+//
+//            contenidoTabla.requestLayout();
+//        });
+//    }
 
-        Platform.runLater(() -> {
-            double anchoDisponible = contenidoTabla.getWidth();
-            if (anchoDisponible <= 0) {
-                anchoDisponible = Math.max(100, contenedorTabla.getWidth());
-            }
-
-            double minWidthTotal = columnasVisibles.stream()
-                    .mapToDouble(TableColumn::getMinWidth)
-                    .sum();
-
-            // Margen del 5% para evitar problemas de redondeo
-            boolean columnasCaben = minWidthTotal <= (anchoDisponible * 1.05);
-
-            if (columnasCaben) {
-                contenidoTabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-                // Resetear prefWidth para distribución equitativa
-                for (TableColumn<UtilidadItem, ?> col : columnasVisibles) {
-                    col.setPrefWidth(-1);
-                }
-            } else {
-                contenidoTabla.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-                // Si excede en más del 20%, ajustar proporcionalmente
-                if (minWidthTotal > anchoDisponible * 1.2) {
-                    double factor = (anchoDisponible * 0.9) / minWidthTotal;
-                    for (TableColumn<UtilidadItem, ?> col : columnasVisibles) {
-                        col.setPrefWidth(col.getMinWidth() * factor);
-                    }
-                }
-            }
-
-            contenidoTabla.requestLayout();
-        });
-    }
-
-    private void agregarListenersRedimension() {
-        // Listener del contenedor de la tabla (doble runLater, igual que Inventario)
-        contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal.doubleValue() > 0) {
-                Platform.runLater(() -> {
-                    Platform.runLater(this::actualizarPoliticaRedimensionamiento);
-                });
-            }
-        });
-
-        // Listener de la tabla misma
-        contenidoTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal.doubleValue() > 0 && newVal.doubleValue() != oldVal.doubleValue()) {
-                Platform.runLater(this::actualizarPoliticaRedimensionamiento);
-            }
-        });
-    }
+//    private void agregarListenersRedimension() {
+//        // Listener del contenedor de la tabla (doble runLater, igual que Inventario)
+//        contenedorTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
+//            if (newVal.doubleValue() > 0) {
+//                Platform.runLater(() -> {
+//                    Platform.runLater(this::actualizarPoliticaRedimensionamiento);
+//                });
+//            }
+//        });
+//
+//        // Listener de la tabla misma
+//        contenidoTabla.widthProperty().addListener((obs, oldVal, newVal) -> {
+//            if (newVal.doubleValue() > 0 && newVal.doubleValue() != oldVal.doubleValue()) {
+//                Platform.runLater(this::actualizarPoliticaRedimensionamiento);
+//            }
+//        });
+//    }
 
     private void configurarColumnas() {
         colClaveProducto.setCellValueFactory(new PropertyValueFactory<>("claveProducto"));
@@ -273,6 +269,20 @@ public class MainController implements ControladorVista {
         aplicarFiltrosYBusqueda();
     }
 
+    private String obtenerDescripcionProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return "";
+        }
+        try {
+            GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+            String resumen = dao.obtenerResumenProducto(idProducto);
+            return resumen != null ? resumen : "";
+        } catch (Exception e) {
+            System.err.println("Error al obtener descripción del producto " + idProducto + ": " + e.getMessage());
+            return "";
+        }
+    }
+
     private List<UtilidadItem> obtenerUtilidades(Connection conn) throws SQLException {
         String query = "SELECT s.idSalida, s.noFactura AS facturaVenta, s.fechaSalida AS fechaSalida, s.idDestinatario, "
                 + "c.Nombre AS cliente, ds.idDetalleSalida, ds.claveProductoSalida AS claveProducto, "
@@ -315,7 +325,7 @@ public class MainController implements ControladorVista {
                 String unidad = valorTexto(rs.getObject("unidadMedida"));
                 String etiqueta = valorTexto(rs.getObject("etiquetaNombre"));
                 String descripcionProducto = valorTexto(rs.getObject("descripcionProducto"));
-                String descripcion = construirDescripcionProducto(material, unidad, etiqueta, descripcionProducto);
+                String descripcion = obtenerDescripcionProducto(claveProducto);
 
                 double costoUnitario = obtenerCostoUnitario(rs);
                 double ventaUnitario = obtenerVentaUnitario(rs);
@@ -396,21 +406,6 @@ public class MainController implements ControladorVista {
         return 0;
     }
 
-    private String construirDescripcionProducto(String material, String unidad, String etiqueta, String descripcion) {
-        List<String> partes = new ArrayList<>();
-        agregarParte(partes, material);
-        agregarParte(partes, unidad);
-        agregarParte(partes, etiqueta);
-        agregarParte(partes, descripcion);
-        return String.join(", ", partes);
-    }
-
-    private void agregarParte(List<String> partes, String valor) {
-        if (valor != null && !valor.isBlank()) {
-            partes.add(valor.trim());
-        }
-    }
-
     private void configurarFiltros() {
         comboFiltro.getItems().setAll(
                 "Clave",
@@ -423,10 +418,7 @@ public class MainController implements ControladorVista {
                 "Factura compra",
                 "Factura venta",
                 "Cantidad",
-                "Total compra",
-                "Total venta",
-                "Porcentaje utilidad",
-                "Utilidad"
+                "Porcentaje utilidad"
         );
         comboFiltro.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (restaurandoFiltros) {
@@ -447,14 +439,25 @@ public class MainController implements ControladorVista {
         if (campo == null || campo.isBlank()) {
             return;
         }
-        List<String> valores = new ArrayList<>();
-        for (UtilidadItem item : utilidadesOriginal) {
-            String valor = obtenerValorCampo(item, campo);
-            if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
-                valores.add(valor);
+        if ("Porcentaje utilidad".equals(campo)) {
+            comboValor.getItems().setAll(
+                    "0 - 5%",
+                    "5 - 10%",
+                    "10 - 15%",
+                    "15 - 20%",
+                    "20 - 25%",
+                    "25% +"
+            );
+        } else {
+            List<String> valores = new ArrayList<>();
+            for (UtilidadItem item : utilidadesOriginal) {
+                String valor = obtenerValorCampo(item, campo);
+                if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
+                    valores.add(valor);
+                }
             }
+            comboValor.getItems().setAll(valores);
         }
-        comboValor.getItems().setAll(valores);
     }
 
     @FXML
@@ -493,19 +496,28 @@ public class MainController implements ControladorVista {
     }
 
     private Node crearChipFiltro(Filtro filtro) {
-        HBox chip = new HBox(6);
+        HBox chip = new HBox(5); // Mismo spacing que en Inventario
         chip.setAlignment(javafx.geometry.Pos.CENTER);
-        chip.setStyle("-fx-background-color: #000000; -fx-background-radius: 12; -fx-padding: 4 8;");
+        chip.getStyleClass().add("chip"); // ← Usa la clase CSS .chip
+
         Label texto = new Label(filtro.campo + ": " + filtro.valor);
-        texto.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 10pt;");
-        javafx.scene.control.Button quitar = new javafx.scene.control.Button("x");
-        quitar.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16pt;");
+        texto.getStyleClass().add("chip-text"); // ← Agrega clase para texto
+
+        Button quitar = new Button("✕"); // Usa el mismo símbolo que Inventario (✕ en lugar de x)
+        quitar.getStyleClass().add("chip-close"); // ← Usa la clase CSS .chip-close
+
         quitar.setOnAction(event -> {
             filtrosActivos.remove(filtro);
             contenedorFiltros.getChildren().remove(chip);
             aplicarFiltrosYBusqueda();
         });
+
         chip.getChildren().addAll(texto, quitar);
+
+        if (contenedorFiltros.getChildren().isEmpty()) {
+            HBox.setMargin(chip, new Insets(0, 0, 0, 25));
+        }
+
         return chip;
     }
 
@@ -516,13 +528,25 @@ public class MainController implements ControladorVista {
         List<UtilidadItem> filtrados = new ArrayList<>();
         for (UtilidadItem item : utilidadesOriginal) {
             boolean coincide = true;
+
             for (Filtro filtro : filtrosActivos) {
                 String valor = obtenerValorCampo(item, filtro.campo);
-                if (valor == null || !valor.equals(filtro.valor)) {
-                    coincide = false;
-                    break;
+
+                if ("Porcentaje utilidad".equals(filtro.campo)) {
+                    double porcentajeItem = parseNumero(valor);
+                    if (!estaEnRango(porcentajeItem, filtro.valor)) {
+                        coincide = false;
+                        break;
+                    }
+                } else {
+                    if (valor == null || !valor.equals(filtro.valor)) {
+                        coincide = false;
+                        break;
+                    }
                 }
             }
+
+            // Filtro de fechas
             if (coincide && (fechaInicioSeleccionada != null || fechaFinSeleccionada != null)) {
                 LocalDate fechaItem = parseFecha(item.getFechaSalida());
                 if (fechaItem == null) {
@@ -536,6 +560,7 @@ public class MainController implements ControladorVista {
                     }
                 }
             }
+
             if (coincide) {
                 filtrados.add(item);
             }
@@ -545,6 +570,37 @@ public class MainController implements ControladorVista {
         actualizarTotalesGenerales();
     }
 
+    private boolean estaEnRango(double valor, String rango) {
+        System.out.println("Valor a filtrar: " + valor + ", Rango original: '" + rango + "'");
+
+        if (rango == null) return false;
+
+        // Limpiar el rango: eliminar % y espacios
+        String rangoLimpio = rango.replace("%", "").replace(" ", "").trim();
+        System.out.println("Rango limpio: '" + rangoLimpio + "'");
+
+        if (rangoLimpio.endsWith("+")) {
+            double min = Double.parseDouble(rangoLimpio.replace("+", ""));
+            boolean resultado = valor >= min;
+            System.out.println("Comparación 25+: " + valor + " >= " + min + " = " + resultado);
+            return resultado;
+        } else {
+            String[] partes = rangoLimpio.split("-");
+            if (partes.length == 2) {
+                try {
+                    double min = Double.parseDouble(partes[0]);
+                    double max = Double.parseDouble(partes[1]);
+                    boolean resultado = valor >= min && valor < max;
+                    System.out.println("Comparación rango: " + valor + " entre " + min + " y " + max + " = " + resultado);
+                    return resultado;
+                } catch (NumberFormatException e) {
+                    System.out.println("Error parseando rango: " + rangoLimpio);
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
 
     private void actualizarTotalesGenerales() {
         if (totalCompraGeneral == null || totalVentaGeneral == null || totalUtilidadGeneral == null) {
@@ -813,10 +869,12 @@ public class MainController implements ControladorVista {
         if (valor == null || valor.isBlank()) {
             return 0;
         }
-        String limpio = valor.replace("%", "").replace(",", "").trim();
+        // Elimina %, espacios, comas y cualquier otro carácter no numérico excepto el punto decimal
+        String limpio = valor.replaceAll("[^0-9.]", "").trim();
         try {
             return Double.parseDouble(limpio);
         } catch (NumberFormatException e) {
+            System.out.println("Error parseando: '" + valor + "' -> '" + limpio + "'");
             return 0;
         }
     }

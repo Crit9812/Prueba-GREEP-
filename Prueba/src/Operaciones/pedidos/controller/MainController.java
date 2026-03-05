@@ -208,17 +208,22 @@ public class MainController implements ControladorVista, Pausable{
             @Override
             protected Void call() {
                 try {
-                    // La exportación debe ejecutarse en el hilo de JavaFX porque usa DirectoryChooser
                     Platform.runLater(() -> {
                         try {
+                            boolean columnaVisible = colSelect.isVisible();
+
+                            // Ocultar temporalmente la columna del checkbox
+                            colSelect.setVisible(false);
                             exportador.exportarTabla(contenidoTabla, "pedidos", "pdf");
+
+                            // Restaurar visibilidad de la columna
+                            colSelect.setVisible(columnaVisible);
 
                             Platform.runLater(() -> {
                                 if (overlayCarga != null) {
                                     overlayCarga.ocultar();
                                 }
                                 BorradorService.getInstance().eliminar(MovimientoType.PEDIDO);
-                                mostrarAlerta("Éxito", "El pedido se exportó correctamente.");
                             });
 
                         } catch (Exception e) {
@@ -226,6 +231,8 @@ public class MainController implements ControladorVista, Pausable{
                                 if (overlayCarga != null) {
                                     overlayCarga.ocultar();
                                 }
+                                // Asegurar que la columna se restaure incluso si hay error
+                                colSelect.setVisible(true);
                                 mostrarError("Error al exportar: " + e.getMessage());
                             });
                             e.printStackTrace();
@@ -247,6 +254,8 @@ public class MainController implements ControladorVista, Pausable{
                     if (overlayCarga != null) {
                         overlayCarga.ocultar();
                     }
+                    // Restaurar columna en caso de error
+                    colSelect.setVisible(true);
                     mostrarError("Error en exportación: " + exception.getMessage());
                 });
             }

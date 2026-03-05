@@ -958,8 +958,6 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
-        mostrarAlerta("Aviso", "Revisión de ubicaciones confirmada.");
-
         // Construir items de venta
         List<traspasoSalida> itemsGenerados = construirItemsRapidosVenta(
                 clave, nombre, descripcion, asignaciones, presentacionRapida, factorRapido);

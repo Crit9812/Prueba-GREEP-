@@ -722,6 +722,7 @@ public class MainController implements ControladorVista {
             movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
             movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
             movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
+            movimientos = consolidarMovimientosPorReferencia(movimientos);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -772,6 +773,55 @@ public class MainController implements ControladorVista {
         aplicarFiltros();
     }
 
+    private List<MovimientoArticulo> consolidarMovimientosPorReferencia(List<MovimientoArticulo> movimientos) {
+        Map<String, MovimientoArticulo> consolidados = new LinkedHashMap<>();
+
+        for (MovimientoArticulo actual : movimientos) {
+            String llave = String.join("|",
+                    valorTexto(actual.getTipoMovimiento()),
+                    valorTexto(actual.getReferenciaMovimiento()),
+                    valorTexto(actual.getTipoMovimientoDetalle()));
+
+            MovimientoArticulo previo = consolidados.get(llave);
+            if (previo == null) {
+                consolidados.put(llave, actual);
+                continue;
+            }
+
+            int cantidad = previo.getCantidad() + actual.getCantidad();
+            Double totalPrevio = valorSeguroPrecio(previo.getPrecioTotal());
+            Double totalActual = valorSeguroPrecio(actual.getPrecioTotal());
+            Double total = totalPrevio + totalActual;
+
+            String estado = estadoPrioritario(previo.getEstado(), actual.getEstado());
+
+            consolidados.put(llave, new MovimientoArticulo(
+                    previo.getFecha(),
+                    previo.getHora(),
+                    previo.getTipoMovimiento(),
+                    previo.getTipoMovimientoDetalle(),
+                    cantidad,
+                    previo.getProveedor(),
+                    previo.getFacturaEntrada(),
+                    previo.getCliente(),
+                    previo.getFacturaSalida(),
+                    previo.getUsuario(),
+                    estado,
+                    total,
+                    previo.getReferenciaMovimiento()
+            ));
+        }
+
+        return new ArrayList<>(consolidados.values());
+    }
+
+    private String estadoPrioritario(String estadoA, String estadoB) {
+        if ("cancelado".equalsIgnoreCase(valorTexto(estadoA).trim()) || "cancelado".equalsIgnoreCase(valorTexto(estadoB).trim())) {
+            return "cancelado";
+        }
+        return !valorTexto(estadoA).isBlank() ? estadoA : estadoB;
+    }
+
     private void reiniciarFiltros() {
         restaurandoFiltros = true;
         filtrosActivos.clear();
@@ -790,7 +840,7 @@ public class MainController implements ControladorVista {
     }
 
     private List<MovimientoArticulo> obtenerEntradasArticulo(Connection conn, String idProducto) throws SQLException {
-        String sql = "SELECT e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
+        String sql = "SELECT e.idEntrada, e.fechaEntrada, e.horaEntrada, e.tipoEntrada, e.noFactura, "
                 + "e.claveUsuarioEntrada, u.userName AS usuarioNombre, "
                 + "e.idRemitente, p.Nombre AS proveedorNombre, s.nombre AS sucursalNombre, "
                 + "de.cantidad, e.Estado, de.precioTotal AS precioTotalMovimiento "
@@ -825,7 +875,8 @@ public class MainController implements ControladorVista {
                             "",
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
-                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
+                            valorTexto(rs.getObject("idEntrada"))
                     ));
                 }
             }
@@ -835,7 +886,7 @@ public class MainController implements ControladorVista {
     }
 
     private List<MovimientoArticulo> obtenerSalidasArticulo(Connection conn, String idProducto) throws SQLException {
-        String sql = "SELECT s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
+        String sql = "SELECT s.idSalida, s.fechaSalida, s.horaSalida, s.tipoSalida, s.noFactura, "
                 + "s.claveUsuarioSalida, u.userName AS usuarioNombre, "
                 + "s.idDestinatario, c.Nombre AS clienteNombre, su.nombre AS sucursalNombre, "
                 + "ds.cantidad, s.Estado, ds.precioTotalSalida AS precioTotalMovimiento "
@@ -870,7 +921,8 @@ public class MainController implements ControladorVista {
                             valorTexto(rs.getObject("noFactura")),
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("Estado")),
-                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
+                            valorTexto(rs.getObject("idSalida"))
                     ));
                 }
             }
@@ -882,15 +934,16 @@ public class MainController implements ControladorVista {
     private List<MovimientoArticulo> obtenerAjustesArticulo(Connection conn, String idProducto) throws SQLException {
         List<MovimientoArticulo> movimientos = new ArrayList<>();
 
-        String sqlAjustesEntrada = "SELECT ai.fechaAjuste, ai.horaAjuste, ai.estado, ai.idUsuario, u.userName AS usuarioNombre, "
+        String sqlAjustesEntrada = "SELECT ai.idAjuste, ai.fechaAjuste, ai.horaAjuste, ai.estado, ai.idUsuario, u.userName AS usuarioNombre, "
                 + "de.cantidad, de.precioTotal AS precioTotalMovimiento "
                 + "FROM ajuste_inventario ai "
                 + "JOIN detalle_Entrada de ON de.claveEntrada = ai.idAjuste "
                 + "LEFT JOIN usuarios u ON u.idUsuario = ai.idUsuario "
-                + "WHERE de.claveProducto = ?";
+                + "WHERE de.claveProducto = ? AND ai.idAjuste LIKE ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sqlAjustesEntrada)) {
             ps.setString(1, idProducto);
+            ps.setString(2, "%A");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     movimientos.add(new MovimientoArticulo(
@@ -905,21 +958,23 @@ public class MainController implements ControladorVista {
                             "",
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("estado")),
-                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
+                            valorTexto(rs.getObject("idAjuste"))
                     ));
                 }
             }
         }
 
-        String sqlAjustesSalida = "SELECT ai.fechaAjuste, ai.horaAjuste, ai.estado, ai.idUsuario, u.userName AS usuarioNombre, "
+        String sqlAjustesSalida = "SELECT ai.idAjuste, ai.fechaAjuste, ai.horaAjuste, ai.estado, ai.idUsuario, u.userName AS usuarioNombre, "
                 + "ds.cantidad, ds.precioTotalSalida AS precioTotalMovimiento "
                 + "FROM ajuste_inventario ai "
                 + "JOIN detalle_Salida ds ON ds.claveSalida = ai.idAjuste "
                 + "LEFT JOIN usuarios u ON u.idUsuario = ai.idUsuario "
-                + "WHERE ds.claveProductoSalida = ?";
+                + "WHERE ds.claveProductoSalida = ? AND ai.idAjuste LIKE ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sqlAjustesSalida)) {
             ps.setString(1, idProducto);
+            ps.setString(2, "%A");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     movimientos.add(new MovimientoArticulo(
@@ -934,7 +989,8 @@ public class MainController implements ControladorVista {
                             "",
                             valorTexto(rs.getObject("usuarioNombre")),
                             valorTexto(rs.getObject("estado")),
-                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento"))
+                            obtenerNumeroDecimal(rs.getObject("precioTotalMovimiento")),
+                            valorTexto(rs.getObject("idAjuste"))
                     ));
                 }
             }
@@ -1221,10 +1277,11 @@ public class MainController implements ControladorVista {
         private final String usuario;
         private final String estado;
         private final Double precioTotal;
+        private final String referenciaMovimiento;
 
         private MovimientoArticulo(String fecha, String hora, String tipoMovimiento, String tipoMovimientoDetalle, int cantidad,
                                    String proveedor, String facturaEntrada, String cliente,
-                                   String facturaSalida, String usuario, String estado, Double precioTotal) {
+                                   String facturaSalida, String usuario, String estado, Double precioTotal, String referenciaMovimiento) {
             this.fecha = fecha;
             this.hora = hora;
             this.tipoMovimiento = tipoMovimiento;
@@ -1237,6 +1294,7 @@ public class MainController implements ControladorVista {
             this.usuario = usuario;
             this.estado = estado;
             this.precioTotal = precioTotal;
+            this.referenciaMovimiento = referenciaMovimiento;
         }
 
         private LocalDateTime getFechaHora() {
@@ -1289,6 +1347,10 @@ public class MainController implements ControladorVista {
 
         private Double getPrecioTotal() {
             return precioTotal;
+        }
+
+        private String getReferenciaMovimiento() {
+            return referenciaMovimiento;
         }
     }
 

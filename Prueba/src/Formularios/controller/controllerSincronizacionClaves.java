@@ -1,5 +1,7 @@
 package Formularios.controller;
 
+import Compartido.model.DAO.GenericDAO;
+import Consultas.producto.model.producto;
 import Formularios.model.modelSincronizacionClaves;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -28,10 +30,7 @@ public class controllerSincronizacionClaves {
 
     private final Map<String, String> productoIdToName = new HashMap<>();
     private final Map<String, String> productoNameToId = new HashMap<>();
-    private final Map<String, Map<String, String>> productoMeta = new HashMap<>();
 
-    // Guardamos el idAlterno original cuando estamos editando para poder detectar
-    // cambios en la PK y ejecutar la lógica apropiada en el model.
     private String originalIdAlterno = null;
     private boolean modoEdicion = false;
     private String claveAlternaCreada = "";
@@ -41,13 +40,9 @@ public class controllerSincronizacionClaves {
     @FXML
     public void initialize() {
         try {
-            // IMPORTANT: cargamos sin Platform.runLater para garantizar que
-            // los datos estén disponibles inmediatamente después de loader.load()
             cargarProveedores();
             cargarProductos();
             configurarListeners();
-
-            // Configurar ENTER para todos los campos de texto
             configurarEnterAction();
 
         } catch (Exception e) {
@@ -194,13 +189,6 @@ public class controllerSincronizacionClaves {
             productoIdToName.put(id, nombre);
             productoNameToId.put(nombre, id);
 
-            Map<String, String> meta = new HashMap<>();
-            meta.put("marca", Objects.toString(m.get("marca"), ""));
-            meta.put("material", Objects.toString(m.get("material"), ""));
-            meta.put("unidad", Objects.toString(m.get("unidad"), ""));
-            meta.put("descripcion", Objects.toString(m.get("descripcion"), ""));
-            productoMeta.put(id, meta);
-
             nombres.add(nombre);
             ids.add(id);
         }
@@ -258,6 +246,20 @@ public class controllerSincronizacionClaves {
             }
             sincronizarProductoPorId(id);
         });
+    }
+
+    private String obtenerDescripcionProducto(String idProducto) {
+        if (idProducto == null || idProducto.isBlank()) {
+            return "";
+        }
+        try {
+            GenericDAO<producto> dao = new GenericDAO<>(producto.class);
+            String resumen = dao.obtenerResumenProducto(idProducto);
+            return resumen != null ? resumen : "";
+        } catch (Exception e) {
+            System.err.println("Error al obtener descripción del producto " + idProducto + ": " + e.getMessage());
+            return "";
+        }
     }
 
     private void sincronizarProveedorPorNombre(String nombre) {
@@ -335,30 +337,13 @@ public class controllerSincronizacionClaves {
     }
 
     private void rellenarDescripcionProducto(String id) {
-        Map<String, String> meta = productoMeta.get(id);
-        if (meta == null) {
+        if (id == null || id.isBlank()) {
             txtDescripcion.clear();
             return;
         }
-        String marca = meta.getOrDefault("marca", "");
-        String material = meta.getOrDefault("material", "");
-        String unidad = meta.getOrDefault("unidad", "");
-        String desc = meta.getOrDefault("descripcion", "");
-        StringBuilder sb = new StringBuilder();
-        if (!marca.isEmpty()) sb.append(marca);
-        if (!material.isEmpty()) {
-            if (sb.length() > 0) sb.append(" | ");
-            sb.append(material);
-        }
-        if (!unidad.isEmpty()) {
-            if (sb.length() > 0) sb.append(" | ");
-            sb.append(unidad);
-        }
-        if (!desc.isEmpty()) {
-            if (sb.length() > 0) sb.append(" | ");
-            sb.append(desc);
-        }
-        txtDescripcion.setText(sb.toString());
+
+        String descripcion = obtenerDescripcionProducto(id);
+        txtDescripcion.setText(descripcion);
     }
 
     @FXML
