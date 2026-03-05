@@ -284,13 +284,6 @@ public class encabezadoController {
         List<SugerenciaProducto> resultados = new ArrayList<>();
         String sql = "SELECT p.id, p.nombre, " +
                 "COALESCE(m.nombre, 'Sin marca') AS marca, " +
-                "COALESCE(( " +
-                "   SELECT GROUP_CONCAT(DISTINCT prov.Nombre ORDER BY prov.Nombre SEPARATOR ', ') " +
-                "   FROM detalle_Entrada deProv " +
-                "   JOIN entradas eProv ON eProv.idEntrada = deProv.claveEntrada " +
-                "   JOIN proveedores prov ON prov.id = eProv.idRemitente " +
-                "   WHERE deProv.claveProducto = p.id " +
-                "), 'Sin proveedor') AS proveedor, " +
                 "COALESCE(p.material, 'Sin material') AS material, " +
                 "COALESCE(p.unidadMedida, 'Sin unidad') AS unidad, " +
                 "presentacionData.presentacion AS presentacion, " +
@@ -343,7 +336,6 @@ public class encabezadoController {
                             rs.getString("id"),
                             rs.getString("nombre"),
                             rs.getString("marca"),
-                            rs.getString("proveedor"),
                             rs.getString("material"),
                             rs.getString("unidad"),
                             rs.getString("presentacion"),
@@ -399,19 +391,17 @@ public class encabezadoController {
         private final String id;
         private final String nombre;
         private final String marca;
-        private final String proveedor;
         private final String material;
         private final String unidad;
         private final String presentacion;
         private final int factor;
         private final int existencia;
 
-        private SugerenciaProducto(String id, String nombre, String marca, String proveedor, String material,
+        private SugerenciaProducto(String id, String nombre, String marca, String material,
                                    String unidad, String presentacion, int factor, int existencia) {
             this.id = id;
             this.nombre = nombre;
             this.marca = marca;
-            this.proveedor = proveedor;
             this.material = material;
             this.unidad = unidad;
             this.presentacion = presentacion;
@@ -421,10 +411,8 @@ public class encabezadoController {
 
         private String textoSugerencia() {
             return id + " - " + nombre + "\n" +
-                    "Marca: " + marca + " | Proveedor: " + proveedor + "\n" +
-                    "Material: " + material + " | Unidad: " + unidad +
-                    " | Presentación: " + presentacion + " | Factor: " + factor +
-                    " | Existencia: " + existencia;
+                    "Marca: " + marca + " | Material: " + material + " | Unidad: " + unidad + "\n" +
+                    "Presentación: " + presentacion + " | Factor: " + factor + " | Existencias: " + existencia;
         }
     }
 
