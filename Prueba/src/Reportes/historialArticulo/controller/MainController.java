@@ -97,6 +97,7 @@ public class MainController implements ControladorVista {
     private final ObservableList<ProductoOpcion> productosFiltrados = FXCollections.observableArrayList();
     private final ObservableList<HistorialArticuloItem> historialItems = FXCollections.observableArrayList();
     private final ObservableList<HistorialArticuloItem> historialItemsOriginal = FXCollections.observableArrayList();
+    private final List<HistorialArticuloItem> historialCacheCompleto = new ArrayList<>();
     private final List<Filtro> filtrosActivos = new ArrayList<>();
     private boolean restaurandoFiltros = false;
     private boolean actualizandoBusqueda = false;
@@ -325,7 +326,7 @@ public class MainController implements ControladorVista {
             return;
         }
         List<String> valores = new ArrayList<>();
-        for (HistorialArticuloItem item : historialItemsOriginal) {
+        for (HistorialArticuloItem item : historialCacheCompleto) {
             String valor = obtenerValorCampo(item, campo);
             if (valor != null && !valor.isBlank() && !valores.contains(valor)) {
                 valores.add(valor);
@@ -399,7 +400,7 @@ public class MainController implements ControladorVista {
         LocalDate fechaInicioSeleccionada = fechaInicio != null ? fechaInicio.getValue() : null;
         LocalDate fechaFinSeleccionada = fechaFin != null ? fechaFin.getValue() : null;
         List<HistorialArticuloItem> filtrados = new ArrayList<>();
-        for (HistorialArticuloItem item : historialItemsOriginal) {
+        for (HistorialArticuloItem item : historialCacheCompleto) {
             boolean coincide = true;
             for (Filtro filtro : filtrosActivos) {
                 String valor = obtenerValorCampo(item, filtro.campo);
@@ -771,7 +772,9 @@ public class MainController implements ControladorVista {
             existencias = despues;
         }
 
-        historialItemsOriginal.setAll(nuevos);
+        historialCacheCompleto.clear();
+        historialCacheCompleto.addAll(nuevos);
+        historialItemsOriginal.setAll(historialCacheCompleto);
         reiniciarFiltros();
         aplicarFiltros();
     }
