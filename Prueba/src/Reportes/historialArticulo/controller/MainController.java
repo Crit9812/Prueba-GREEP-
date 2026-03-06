@@ -823,7 +823,7 @@ public class MainController implements ControladorVista {
         } catch (SQLException e) {
             e.printStackTrace();
             ocultarOverlayCarga();
-            return;
+            return new ArrayList<>();
         }
         return new ArrayList<>(productos.values());
     }
