@@ -7,6 +7,7 @@ import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Reportes.utilidades.model.UtilidadItem;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -86,6 +87,7 @@ public class MainController implements ControladorVista {
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private final ObservableList<UtilidadItem> utilidades = FXCollections.observableArrayList();
     private final ObservableList<UtilidadItem> utilidadesOriginal = FXCollections.observableArrayList();
     private final List<Filtro> filtrosActivos = new ArrayList<>();
@@ -98,6 +100,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         configurarAtajosTeclado();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
@@ -252,6 +255,7 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarUtilidades() {
+        mostrarOverlayCarga();
         utilidades.clear();
         List<UtilidadItem> registros = new ArrayList<>();
 
@@ -262,11 +266,13 @@ public class MainController implements ControladorVista {
             registros.addAll(obtenerUtilidades(conn));
         } catch (SQLException e) {
             e.printStackTrace();
+            ocultarOverlayCarga();
         }
 
         utilidadesOriginal.setAll(registros);
         actualizarValoresFiltro(comboFiltro.getValue());
         aplicarFiltrosYBusqueda();
+        ocultarOverlayCarga();
     }
 
     private String obtenerDescripcionProducto(String idProducto) {
@@ -976,6 +982,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

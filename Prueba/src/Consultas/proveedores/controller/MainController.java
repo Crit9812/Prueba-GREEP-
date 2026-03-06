@@ -25,6 +25,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import javafx.scene.input.KeyCode;
 
@@ -58,6 +59,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<proveedores, String> colNumeroInt;
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private model proveedorModel;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
 
@@ -65,6 +67,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         proveedorModel = new model();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -166,6 +169,7 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarProveedoresEnTabla() {
+        mostrarOverlayCarga();
         Task<ObservableList<proveedores>> task = new Task<>() {
             @Override
             protected ObservableList<proveedores> call() {
@@ -178,6 +182,12 @@ public class MainController implements ControladorVista {
             protected void succeeded() {
                 ObservableList<proveedores> proveedores = getValue();
                 contenidoTabla.setItems(proveedores);
+                ocultarOverlayCarga();
+            }
+
+            @Override
+            protected void failed() {
+                ocultarOverlayCarga();
             }
         };
         new Thread(task).start();
@@ -374,6 +384,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

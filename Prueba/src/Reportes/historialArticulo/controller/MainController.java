@@ -9,6 +9,7 @@ import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import conexion.Conexion;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -93,6 +94,7 @@ public class MainController implements ControladorVista {
     private StackPane contentArea;
     private String productoSeleccionadoId;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private final ObservableList<ProductoOpcion> productosCache = FXCollections.observableArrayList();
     private final ObservableList<ProductoOpcion> productosFiltrados = FXCollections.observableArrayList();
     private final ObservableList<HistorialArticuloItem> historialItems = FXCollections.observableArrayList();
@@ -112,6 +114,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         configurarAtajosTeclado();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
@@ -819,6 +822,8 @@ public class MainController implements ControladorVista {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            ocultarOverlayCarga();
+            return;
         }
         return new ArrayList<>(productos.values());
     }
@@ -937,40 +942,43 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarHistorialArticulo(String idProducto) {
-        if (idProducto == null || idProducto.isBlank()) {
-            historialItems.clear();
-            limpiarDetalleProducto();
-            filtroPresentacionFactorActivoPrevio = false;
-            forzarOrdenFechaHora = false;
-            actualizarTotales();
-            return;
-        }
-
-        List<MovimientoArticulo> movimientos = new ArrayList<>();
-
-        try (Connection conn = new Conexion().conectar()) {
-            if (conn == null) {
+        mostrarOverlayCarga();
+        try {
+            if (idProducto == null || idProducto.isBlank()) {
                 historialItems.clear();
                 limpiarDetalleProducto();
+                filtroPresentacionFactorActivoPrevio = false;
+                forzarOrdenFechaHora = false;
                 actualizarTotales();
                 return;
             }
 
-            cargarDetalleProducto(conn, idProducto);
-            movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
-            movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
-            movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
-            movimientos = consolidarMovimientosPorReferencia(movimientos);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+            List<MovimientoArticulo> movimientos = new ArrayList<>();
 
-        movimientos.sort(Comparator.comparing(MovimientoArticulo::getFechaHora,
-                Comparator.nullsLast(Comparator.naturalOrder())));
+            try (Connection conn = new Conexion().conectar()) {
+                if (conn == null) {
+                    historialItems.clear();
+                    limpiarDetalleProducto();
+                    actualizarTotales();
+                    return;
+                }
 
-        List<HistorialArticuloItem> nuevos = new ArrayList<>();
-        int existencias = 0;
-        for (MovimientoArticulo mov : movimientos) {
+                cargarDetalleProducto(conn, idProducto);
+                movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
+                movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
+                movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
+                movimientos = consolidarMovimientosPorReferencia(movimientos);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            movimientos.sort(Comparator.comparing(MovimientoArticulo::getFechaHora,
+                    Comparator.nullsLast(Comparator.naturalOrder())));
+
+            List<HistorialArticuloItem> nuevos = new ArrayList<>();
+            int existencias = 0;
+            for (MovimientoArticulo mov : movimientos) {
             int antes = existencias;
             int despues = existencias;
             String entradas = "0";
@@ -1014,10 +1022,13 @@ public class MainController implements ControladorVista {
         historialCacheCompleto.clear();
         historialCacheCompleto.addAll(nuevos);
         historialItemsOriginal.setAll(historialCacheCompleto);
-        filtroPresentacionFactorActivoPrevio = false;
-        forzarOrdenFechaHora = true;
-        reiniciarFiltros();
-        aplicarFiltros();
+            filtroPresentacionFactorActivoPrevio = false;
+            forzarOrdenFechaHora = true;
+            reiniciarFiltros();
+            aplicarFiltros();
+        } finally {
+            ocultarOverlayCarga();
+        }
     }
 
     private List<MovimientoArticulo> consolidarMovimientosPorReferencia(List<MovimientoArticulo> movimientos) {
@@ -1728,6 +1739,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

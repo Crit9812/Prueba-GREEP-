@@ -21,6 +21,7 @@ import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -57,6 +58,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<cliente, String> colNumeroInt;
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private model clienteModel;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
 
@@ -64,6 +66,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         clienteModel = new model();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
@@ -190,6 +193,7 @@ public class MainController implements ControladorVista {
 
     // MetODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
     private void cargarClientesEnTabla() {
+        mostrarOverlayCarga();
         Task<ObservableList<cliente>> task = new Task<>() {
             @Override
             protected ObservableList<cliente> call() {
@@ -200,6 +204,12 @@ public class MainController implements ControladorVista {
             protected void succeeded() {
                 ObservableList<cliente> clientes = getValue();
                 contenidoTabla.setItems(clientes);
+                ocultarOverlayCarga();
+            }
+
+            @Override
+            protected void failed() {
+                ocultarOverlayCarga();
             }
         };
         new Thread(task).start();
@@ -362,6 +372,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

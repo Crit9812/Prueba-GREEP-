@@ -4,6 +4,7 @@ import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
@@ -42,6 +43,7 @@ public class MainController implements ControladorVista {
     @FXML private Region expansor;
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private model modeloClaves;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
 
@@ -49,6 +51,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         modeloClaves = new model();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -150,6 +153,7 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarTabla() {
+        mostrarOverlayCarga();
         try {
             // Crear tarea asíncrona para cargar datos
             javafx.concurrent.Task<javafx.collections.ObservableList<String[]>> task =
@@ -165,6 +169,7 @@ public class MainController implements ControladorVista {
                             javafx.collections.ObservableList<String[]> datos = getValue();
                             Platform.runLater(() -> {
                                 contenidoTabla.setItems(datos);
+                                ocultarOverlayCarga();
                             });
                         }
 
@@ -174,6 +179,7 @@ public class MainController implements ControladorVista {
                             getException().printStackTrace();
                             Platform.runLater(() -> {
                                 mostrarAlertaError("Error", "No se pudieron cargar los datos: " + getException().getMessage());
+                                ocultarOverlayCarga();
                             });
                         }
                     };
@@ -183,6 +189,7 @@ public class MainController implements ControladorVista {
         } catch (Exception e) {
             System.err.println("✗ Error en cargarTabla: " + e.getMessage());
             e.printStackTrace();
+            ocultarOverlayCarga();
         }
     }
 
@@ -355,6 +362,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

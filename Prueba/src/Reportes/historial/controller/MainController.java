@@ -76,6 +76,7 @@ public class MainController implements ControladorVista {
 
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private final ObservableList<HistorialFactura> itemsHistorial = FXCollections.observableArrayList();
     private final ObservableList<HistorialFactura> itemsHistorialOriginal = FXCollections.observableArrayList();
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -90,6 +91,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         configurarAtajosTeclado();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
 
             lblQuitar.setMinWidth(Region.USE_PREF_SIZE);
@@ -160,6 +162,7 @@ public class MainController implements ControladorVista {
             stage.showAndWait();
         } catch (IOException e) {
             e.printStackTrace();
+            ocultarOverlayCarga();
         }
     }
 
@@ -200,6 +203,7 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarHistorial() {
+        mostrarOverlayCarga();
         itemsHistorial.clear();
         List<HistorialFactura> registros = new ArrayList<>();
 
@@ -211,15 +215,17 @@ public class MainController implements ControladorVista {
             registros.addAll(obtenerEntradas(conn));
             registros.addAll(obtenerSalidas(conn));
             registros.addAll(obtenerAjustes(conn));
+
+            registros.sort(Comparator.comparing(this::obtenerFechaHoraOrden,
+                    Comparator.nullsLast(Comparator.reverseOrder())));
+            itemsHistorialOriginal.setAll(registros);
+            actualizarValoresFiltro(comboFiltro.getValue());
+            aplicarFiltrosYBusqueda();
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            ocultarOverlayCarga();
         }
-
-        registros.sort(Comparator.comparing(this::obtenerFechaHoraOrden,
-                Comparator.nullsLast(Comparator.reverseOrder())));
-        itemsHistorialOriginal.setAll(registros);
-        actualizarValoresFiltro(comboFiltro.getValue());
-        aplicarFiltrosYBusqueda();
     }
 
     private List<HistorialFactura> obtenerEntradas(Connection conn) throws SQLException {
@@ -705,6 +711,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

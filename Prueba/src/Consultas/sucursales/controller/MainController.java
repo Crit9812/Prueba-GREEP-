@@ -4,6 +4,7 @@ import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
@@ -52,6 +53,7 @@ public class MainController implements ControladorVista {
     @FXML private TableColumn<sucursal, String> colPais;
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
+    private OverlayCarga overlayCarga;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
     private  model sucursalModel;
 
@@ -59,6 +61,7 @@ public class MainController implements ControladorVista {
     public void initialize() {
         sucursalModel = new model();
         Platform.runLater(() -> {
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             HBox.setHgrow(expansor, Priority.ALWAYS);
             expansor.setMinWidth(10);
@@ -166,6 +169,7 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarSucursalesEnTabla() {
+        mostrarOverlayCarga();
         Task<ObservableList<sucursal>> task = new Task<>() {
             @Override
             protected ObservableList<sucursal> call() {
@@ -175,6 +179,12 @@ public class MainController implements ControladorVista {
             protected void succeeded() {
                 ObservableList<sucursal> sucursales = getValue();
                 contenidoTabla.setItems(sucursales);
+                ocultarOverlayCarga();
+            }
+
+            @Override
+            protected void failed() {
+                ocultarOverlayCarga();
             }
         };
         new Thread(task).start();
@@ -322,6 +332,18 @@ public class MainController implements ControladorVista {
         this.contentArea = contentArea;
     }
 
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
+    }
     @Override
     public void setControladorPrincipal(VentanaPrincipal.controller.MainController controladorPrincipal) {
         this.controladorPrincipal = controladorPrincipal;

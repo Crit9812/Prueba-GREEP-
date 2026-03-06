@@ -6,6 +6,7 @@ import Compartido.helper.AtajosTecladoHelper;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
+import Compartido.helper.OverlayCarga;
 import Consultas.producto.model.producto;
 import Consultas.producto.model.model;
 import Formularios.controller.controllerNuevoProducto;
@@ -55,6 +56,7 @@ public class MainController implements ControladorVista {
     private StackPane contentArea;
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model productoModel;
+    private OverlayCarga overlayCarga;
 
     // Mapas concurrentes para alta velocidad y cache
     private Map<String, String> mapEtiquetas = new ConcurrentHashMap<>();
@@ -65,6 +67,7 @@ public class MainController implements ControladorVista {
     @FXML
     public void initialize() {
         productoModel = new model();
+        overlayCarga = new OverlayCarga(root, new Pane());
 
         HBox.setHgrow(expansor, Priority.ALWAYS);
         expansor.setMinWidth(10);
@@ -187,6 +190,7 @@ public class MainController implements ControladorVista {
     }
 
     private void preloadDatosUltraRapido() {
+        mostrarOverlayCarga();
         Task<Void> preloadTask = new Task<>() {
             @Override
             protected Void call() {
@@ -204,11 +208,29 @@ public class MainController implements ControladorVista {
                     // Cargamos productos
                     cargarProductosEnTabla();
                     configurarColumnasConMapas();
+                    ocultarOverlayCarga();
                 });
                 return null;
             }
+
+            @Override
+            protected void failed() {
+                ocultarOverlayCarga();
+            }
         };
         new Thread(preloadTask).start();
+    }
+
+    private void mostrarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.mostrar();
+        }
+    }
+
+    private void ocultarOverlayCarga() {
+        if (overlayCarga != null) {
+            overlayCarga.ocultar();
+        }
     }
 
     private void cargarProductosEnTabla() {
