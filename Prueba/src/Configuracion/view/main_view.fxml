@@ -149,76 +149,83 @@
                             <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
                         </columnConstraints>
 
-                        <!-- Columna izquierda -->
-                        <VBox spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                            <Label text="GENERAL:" styleClass="seccion-atajo" />
-                            <VBox spacing="4">
-                                <Label text="• F1: Cerrar Sesión" styleClass="texto-atajo" />
-                                <Label text="• F2: Actualizar" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + B: Seleccionar barra de búsqueda" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + Space: Guardar un borrador" styleClass="texto-atajo" />
-                                <Label text="• Alt + F4: Cerrar el programa" styleClass="texto-atajo" />
-                            </VBox>
-                        </VBox>
+                        <!-- IZQUIERDA -->
+                        <VBox spacing="12" GridPane.columnIndex="0" GridPane.rowIndex="0">
 
-                        <!-- Columna derecha -->
-                        <VBox spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                            <Label text="ACCIONES EN VENTANAS:" styleClass="seccion-atajo" />
-                            <VBox spacing="4">
-                                <Label text="• Ctrl + A: Seleccionar todo" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + E: Eliminar seleccionado" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + N: Abrir formulario de Agregar" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + G: Confirmar o Guardar" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + I: Importar" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + R: Exportar" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + D: Descargar plantilla" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + P: Vista Previa" styleClass="texto-atajo" />
-                            </VBox>
-                        </VBox>
-
-                        <!-- Fila 2, Columna izquierda -->
-                        <VBox spacing="8" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                            <Label text="NAVEGACIÓN ENTRE VENTANAS:" styleClass="seccion-atajo" />
-                            <VBox spacing="4">
-                                <Label text="• Shift + O: Menú de operaciones" styleClass="texto-atajo" />
-                                <Label text="• Shift + R: Menú de reportes" styleClass="texto-atajo" />
-                                <Label text="• Shift + CO: Menú de consultas" styleClass="texto-atajo" />
-                                <Label text="• Shift + A: Ajustes" styleClass="texto-atajo" />
-                                <Label text="• Shift + E: Traspaso Entrada" styleClass="texto-atajo" />
-                                <Label text="• Shift + S: Traspaso Salida" styleClass="texto-atajo" />
-                                <Label text="• Shift + CM: Compra" styleClass="texto-atajo" />
-                                <Label text="• Shift + V: Venta" styleClass="texto-atajo" />
-                                <Label text="• Shift + PE: Pedidos" styleClass="texto-atajo" />
-                                <Label text="• Shift + AI: Ajuste Inventario" styleClass="texto-atajo" />
-                                <Label text="• Shift + RU: Registrar Usuario" styleClass="texto-atajo" />
-                                <Label text="• Shift + I: Inventario" styleClass="texto-atajo" />
-                                <Label text="• Shift + H: Historial por Artículo" styleClass="texto-atajo" />
-                            </VBox>
-                        </VBox>
-
-                        <!-- Fila 2, Columna derecha -->
-                        <VBox spacing="8" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                            <Label text="CONTINUACIÓN NAVEGACIÓN:" styleClass="seccion-atajo" />
-                            <VBox spacing="4">
-                                <Label text="• Shift + F: Historial por Factura" styleClass="texto-atajo" />
-                                <Label text="• Shift + U: Utilidades" styleClass="texto-atajo" />
-                                <Label text="• Shift + P: Productos" styleClass="texto-atajo" />
-                                <Label text="• Shift + PR: Proveedores" styleClass="texto-atajo" />
-                                <Label text="• Shift + SU: Sucursales" styleClass="texto-atajo" />
-                                <Label text="• Shift + C: Clientes" styleClass="texto-atajo" />
-                                <Label text="• Shift + CL: Claves" styleClass="texto-atajo" />
-                                <Label text="• Shift + CS: Clasificación" styleClass="texto-atajo" />
+                            <!-- GENERAL -->
+                            <VBox spacing="8">
+                                <Label text="GENERAL:" styleClass="seccion-atajo" />
+                                <VBox spacing="4">
+                                    <Label text="• F1: Cerrar Sesión" styleClass="texto-atajo" />
+                                    <Label text="• F2: Actualizar" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + B: Seleccionar barra de búsqueda" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + Space: Guardar un borrador" styleClass="texto-atajo" />
+                                    <Label text="• Alt + F4: Cerrar el programa" styleClass="texto-atajo" />
+                                </VBox>
                             </VBox>
 
-                            <Label text="ACCIONES ESPECÍFICAS:" styleClass="seccion-atajo" />
-                            <VBox spacing="4">
-                                <Label text="• Ctrl + N + M: Nueva Marca" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + N + E: Nueva Etiqueta" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + N + B: Nueva Ubicación" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + N + U: Nueva Unidad" styleClass="texto-atajo" />
-                                <Label text="• Ctrl + Q: Quitar Producto" styleClass="texto-atajo" />
+                            <!-- ACCIONES EN VENTANAS -->
+                            <VBox spacing="8">
+                                <Label text="ACCIONES EN VENTANAS:" styleClass="seccion-atajo" />
+                                <VBox spacing="4">
+                                    <Label text="• Ctrl + A: Seleccionar todo" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + E: Eliminar seleccionado" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + N: Abrir formulario de Agregar" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + G: Confirmar o Guardar" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + I: Importar" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + R: Exportar" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + D: Descargar plantilla" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + P: Vista Previa" styleClass="texto-atajo" />
+                                </VBox>
                             </VBox>
+
+                            <!-- ACCIONES ESPECÍFICAS -->
+                            <VBox spacing="8">
+                                <Label text="ACCIONES ESPECÍFICAS:" styleClass="seccion-atajo" />
+                                <VBox spacing="4">
+                                    <Label text="• Ctrl + N + M: Nueva Marca" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + N + E: Nueva Etiqueta" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + N + B: Nueva Ubicación" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + N + U: Nueva Unidad" styleClass="texto-atajo" />
+                                    <Label text="• Ctrl + Q: Quitar Producto" styleClass="texto-atajo" />
+                                </VBox>
+                            </VBox>
+
                         </VBox>
+
+                        <!-- DERECHA -->
+                        <VBox spacing="12" GridPane.columnIndex="1" GridPane.rowIndex="0">
+
+                            <!-- NAVEGACIÓN -->
+                            <VBox spacing="8">
+                                <Label text="NAVEGACIÓN ENTRE VENTANAS:" styleClass="seccion-atajo" />
+                                <VBox spacing="4">
+                                    <Label text="• Shift + O: Menú de operaciones" styleClass="texto-atajo" />
+                                    <Label text="• Shift + R: Menú de reportes" styleClass="texto-atajo" />
+                                    <Label text="• Shift + CO: Menú de consultas" styleClass="texto-atajo" />
+                                    <Label text="• Shift + A: Ajustes" styleClass="texto-atajo" />
+                                    <Label text="• Shift + E: Traspaso Entrada" styleClass="texto-atajo" />
+                                    <Label text="• Shift + S: Traspaso Salida" styleClass="texto-atajo" />
+                                    <Label text="• Shift + CM: Compra" styleClass="texto-atajo" />
+                                    <Label text="• Shift + V: Venta" styleClass="texto-atajo" />
+                                    <Label text="• Shift + PE: Pedidos" styleClass="texto-atajo" />
+                                    <Label text="• Shift + AI: Ajuste Inventario" styleClass="texto-atajo" />
+                                    <Label text="• Shift + RU: Registrar Usuario" styleClass="texto-atajo" />
+                                    <Label text="• Shift + I: Inventario" styleClass="texto-atajo" />
+                                    <Label text="• Shift + H: Historial por Artículo" styleClass="texto-atajo" />
+                                    <Label text="• Shift + F: Historial por Factura" styleClass="texto-atajo" />
+                                    <Label text="• Shift + U: Utilidades" styleClass="texto-atajo" />
+                                    <Label text="• Shift + P: Productos" styleClass="texto-atajo" />
+                                    <Label text="• Shift + PR: Proveedores" styleClass="texto-atajo" />
+                                    <Label text="• Shift + SU: Sucursales" styleClass="texto-atajo" />
+                                    <Label text="• Shift + C: Clientes" styleClass="texto-atajo" />
+                                    <Label text="• Shift + CL: Claves" styleClass="texto-atajo" />
+                                    <Label text="• Shift + CS: Clasificación" styleClass="texto-atajo" />
+                                </VBox>
+                            </VBox>
+
+                        </VBox>
+
                     </GridPane>
                 </VBox>
             </VBox>

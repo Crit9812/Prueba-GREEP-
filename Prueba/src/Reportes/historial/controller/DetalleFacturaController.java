@@ -1,5 +1,6 @@
 package Reportes.historial.controller;
 
+import javafx.scene.Node;
 import Consultas.producto.model.producto;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,7 +14,6 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import Compartido.exportar.ReporteAjusteExporter;
 import Compartido.model.DAO.GenericDAO;
 import Compartido.model.IvaConfigService;
@@ -1435,12 +1435,6 @@ public class DetalleFacturaController {
         return listaArticulos;
     }
 
-    /**
-     * Crea la tarjeta visual para un artículo.
-     * @param art       El artículo a mostrar
-     * @param index     Número de orden
-     * @param esEntrada true si la línea pertenece a una entrada (movimiento Entrada o parte de Ajuste)
-     */
     private HBox crearCardArticulo(DetalleArticulo art, int index, boolean esEntrada, DetalleLinea linea) {
         if (art == null) return null;
 
@@ -1491,12 +1485,19 @@ public class DetalleFacturaController {
 
         VBox info = new VBox(6);
         info.setStyle("-fx-padding: 0 0 0 10;");
-        info.getChildren().addAll(
-                new HBox(15, crearEtiquetaDetalleElegante("Lote:", valorTexto(art.lote))),
-                new HBox(15, crearEtiquetaDetalleElegante("Presentación:", valorTexto(art.presentacion)),
-                        crearEtiquetaDetalleElegante("Factor:", valorTexto(art.factor))),
-                new HBox(15, crearEtiquetaDetalleElegante("Caducidad:", valorTexto(art.caducidad))),
-                new HBox(15, crearLabelEstado(art.estado)));
+
+        List<Node> elementosInfo = new ArrayList<>();
+
+        elementosInfo.add(new HBox(15, crearEtiquetaDetalleElegante("Lote:", valorTexto(art.lote))));
+        elementosInfo.add(new HBox(15, crearEtiquetaDetalleElegante("Presentación:", valorTexto(art.presentacion)),
+                crearEtiquetaDetalleElegante("Factor:", valorTexto(art.factor))));
+        elementosInfo.add(new HBox(15, crearEtiquetaDetalleElegante("Caducidad:", valorTexto(art.caducidad))));
+
+        if (art.esDisponible()) {
+            elementosInfo.add(new HBox(15, crearEtiquetaDetalleElegante("Ubicación:", valorTexto(art.ubicacion))));
+        }
+        elementosInfo.add(new HBox(15, crearLabelEstado(art.estado)));
+        info.getChildren().addAll(elementosInfo);
 
         if (art.esSegmentado() && art.tieneDetallesSegmentados()) {
             CheckBox chk = new CheckBox("Mostrar detalles segmentados");

@@ -84,7 +84,7 @@
 
     <HBox styleClass="navbar-hbox">
         <VBox.margin>
-            <Insets bottom="15"/>
+            <Insets bottom="25"/>
         </VBox.margin>
         <Button fx:id="botonPausa"
                 onMouseClicked="#enEspera"
