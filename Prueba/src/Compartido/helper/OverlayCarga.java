@@ -28,6 +28,37 @@ public class OverlayCarga {
         configurarOverlayCarga();
     }
 
+    private void asegurarOverlayPaneEnRoot() {
+        if (overlayPane == null || root == null) {
+            return;
+        }
+
+        Runnable asegurar = () -> {
+            if (overlayPane.getParent() != root) {
+                if (overlayPane.getParent() instanceof Pane) {
+                    Pane parentPane = (Pane) overlayPane.getParent();
+                    parentPane.getChildren().remove(overlayPane);
+                }
+                root.getChildren().add(overlayPane);
+            }
+
+            if (!overlayPane.prefWidthProperty().isBound()) {
+                overlayPane.prefWidthProperty().bind(root.widthProperty());
+            }
+            if (!overlayPane.prefHeightProperty().isBound()) {
+                overlayPane.prefHeightProperty().bind(root.heightProperty());
+            }
+            overlayPane.setMinWidth(Region.USE_PREF_SIZE);
+            overlayPane.setMinHeight(Region.USE_PREF_SIZE);
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            asegurar.run();
+        } else {
+            Platform.runLater(asegurar);
+        }
+    }
+
     private void configurarOverlayCarga() {
         if (overlayPane == null || root == null || overlayCarga != null) {
             return;
@@ -51,7 +82,11 @@ public class OverlayCarga {
 
         overlayPane.setPickOnBounds(false);
         overlayPane.setMouseTransparent(true);
-        overlayPane.getChildren().add(overlayCarga);
+        if (!overlayPane.getChildren().contains(overlayCarga)) {
+            overlayPane.getChildren().add(overlayCarga);
+        }
+
+        asegurarOverlayPaneEnRoot();
     }
 
     public void setMensaje(String mensaje) {
@@ -80,6 +115,7 @@ public class OverlayCarga {
         }
 
         Runnable mostrarOverlay = () -> {
+            asegurarOverlayPaneEnRoot();
             overlayCarga.setManaged(true);
             overlayCarga.setVisible(true);
             overlayPane.setPickOnBounds(true);
