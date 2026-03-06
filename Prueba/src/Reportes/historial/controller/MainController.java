@@ -200,26 +200,50 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarHistorial() {
-        itemsHistorial.clear();
-        List<HistorialFactura> registros = new ArrayList<>();
-
-        try (Connection conn = new Conexion().conectar()) {
-            if (conn == null) {
-                return;
-            }
-
-            registros.addAll(obtenerEntradas(conn));
-            registros.addAll(obtenerSalidas(conn));
-            registros.addAll(obtenerAjustes(conn));
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (overlayCargaGlobal != null) {
+            overlayCargaGlobal.setMensaje("Cargando...");
+            overlayCargaGlobal.mostrar();
         }
 
-        registros.sort(Comparator.comparing(this::obtenerFechaHoraOrden,
-                Comparator.nullsLast(Comparator.reverseOrder())));
-        itemsHistorialOriginal.setAll(registros);
-        actualizarValoresFiltro(comboFiltro.getValue());
-        aplicarFiltrosYBusqueda();
+        javafx.concurrent.Task<List<HistorialFactura>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<HistorialFactura> call() {
+                List<HistorialFactura> registros = new ArrayList<>();
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return registros;
+                    }
+                    registros.addAll(obtenerEntradas(conn));
+                    registros.addAll(obtenerSalidas(conn));
+                    registros.addAll(obtenerAjustes(conn));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                registros.sort(Comparator.comparing(MainController.this::obtenerFechaHoraOrden,
+                        Comparator.nullsLast(Comparator.reverseOrder())));
+                return registros;
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            itemsHistorial.clear();
+            itemsHistorialOriginal.setAll(task.getValue());
+            actualizarValoresFiltro(comboFiltro.getValue());
+            aplicarFiltrosYBusqueda();
+            if (overlayCargaGlobal != null) {
+                overlayCargaGlobal.ocultar();
+            }
+        });
+
+        task.setOnFailed(event -> {
+            if (overlayCargaGlobal != null) {
+                overlayCargaGlobal.ocultar();
+            }
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private List<HistorialFactura> obtenerEntradas(Connection conn) throws SQLException {

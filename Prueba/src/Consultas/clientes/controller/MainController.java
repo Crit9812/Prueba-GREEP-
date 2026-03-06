@@ -21,6 +21,7 @@ import javafx.scene.layout.*;
 import Compartido.exportar.exportador;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -59,6 +60,7 @@ public class MainController implements ControladorVista {
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model clienteModel;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -74,6 +76,8 @@ public class MainController implements ControladorVista {
 
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
             buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
+
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             // Cell Value Factories - EXACTO igual estructura
             colID.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().getId())));
@@ -190,6 +194,11 @@ public class MainController implements ControladorVista {
 
     // MetODO EXACTAMENTE IGUAL que cargarProductosEnTabla() en productos
     private void cargarClientesEnTabla() {
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
+        }
+
         Task<ObservableList<cliente>> task = new Task<>() {
             @Override
             protected ObservableList<cliente> call() {
@@ -200,9 +209,21 @@ public class MainController implements ControladorVista {
             protected void succeeded() {
                 ObservableList<cliente> clientes = getValue();
                 contenidoTabla.setItems(clientes);
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
             }
         };
-        new Thread(task).start();
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     // MeTODO EXACTAMENTE IGUAL que buscarProductos() en productos

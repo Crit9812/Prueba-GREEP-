@@ -4,6 +4,7 @@ import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.sucursales.model.sucursal;
@@ -54,6 +55,7 @@ public class MainController implements ControladorVista {
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
     private  model sucursalModel;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -67,6 +69,8 @@ public class MainController implements ControladorVista {
             buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
 
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
+
+            overlayCarga = new OverlayCarga(root, new Pane());
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
@@ -166,6 +170,11 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarSucursalesEnTabla() {
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
+        }
+
         Task<ObservableList<sucursal>> task = new Task<>() {
             @Override
             protected ObservableList<sucursal> call() {
@@ -175,9 +184,21 @@ public class MainController implements ControladorVista {
             protected void succeeded() {
                 ObservableList<sucursal> sucursales = getValue();
                 contenidoTabla.setItems(sucursales);
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
             }
         };
-        new Thread(task).start();
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void buscarSucursales(String texto) {

@@ -7,6 +7,7 @@ import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Reportes.utilidades.model.UtilidadItem;
 import conexion.Conexion;
 import javafx.application.Platform;
@@ -92,6 +93,7 @@ public class MainController implements ControladorVista {
     private boolean restaurandoFiltros = false;
     private String criterioOrden = "producto";
     private String direccionOrden = "asc";
+    private OverlayCarga overlayCarga;
     private static final DateTimeFormatter FORMATO_FECHA_ALT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @FXML
@@ -120,6 +122,8 @@ public class MainController implements ControladorVista {
 
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.78));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.72));
+
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             configurarColumnas();
             configurarFiltros();
@@ -252,21 +256,46 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarUtilidades() {
-        utilidades.clear();
-        List<UtilidadItem> registros = new ArrayList<>();
-
-        try (Connection conn = new Conexion().conectar()) {
-            if (conn == null) {
-                return;
-            }
-            registros.addAll(obtenerUtilidades(conn));
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
         }
 
-        utilidadesOriginal.setAll(registros);
-        actualizarValoresFiltro(comboFiltro.getValue());
-        aplicarFiltrosYBusqueda();
+        javafx.concurrent.Task<List<UtilidadItem>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<UtilidadItem> call() {
+                List<UtilidadItem> registros = new ArrayList<>();
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return registros;
+                    }
+                    registros.addAll(obtenerUtilidades(conn));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                return registros;
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            utilidades.clear();
+            utilidadesOriginal.setAll(task.getValue());
+            actualizarValoresFiltro(comboFiltro.getValue());
+            aplicarFiltrosYBusqueda();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
+
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private String obtenerDescripcionProducto(String idProducto) {

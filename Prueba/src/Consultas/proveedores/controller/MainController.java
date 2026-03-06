@@ -25,6 +25,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import javafx.scene.input.KeyCode;
 
@@ -60,6 +61,7 @@ public class MainController implements ControladorVista {
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model proveedorModel;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -73,6 +75,8 @@ public class MainController implements ControladorVista {
             buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.05));
 
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.9));
+
+            overlayCarga = new OverlayCarga(root, new Pane());
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.87));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
@@ -166,11 +170,14 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarProveedoresEnTabla() {
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
+        }
+
         Task<ObservableList<proveedores>> task = new Task<>() {
             @Override
             protected ObservableList<proveedores> call() {
-                // En productos es: productoModel.obtenerProductos()
-                // Aquí es exactamente igual pero con proveedorModel
                 return FXCollections.observableArrayList(proveedorModel.obtener());
             }
 
@@ -178,9 +185,21 @@ public class MainController implements ControladorVista {
             protected void succeeded() {
                 ObservableList<proveedores> proveedores = getValue();
                 contenidoTabla.setItems(proveedores);
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
+            }
+
+            @Override
+            protected void failed() {
+                if (overlayCarga != null) {
+                    overlayCarga.ocultar();
+                }
             }
         };
-        new Thread(task).start();
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void buscarProveedores(String texto) {

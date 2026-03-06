@@ -4,6 +4,7 @@ import Compartido.exportar.exportador;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Consultas.claves.model.model;
@@ -44,6 +45,7 @@ public class MainController implements ControladorVista {
     private VentanaPrincipal.controller.MainController controladorPrincipal;
     private model modeloClaves;
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -55,6 +57,7 @@ public class MainController implements ControladorVista {
             buscador.prefWidthProperty().bind(root.widthProperty().multiply(0.22));
             buscador.maxHeightProperty().bind(root.heightProperty().multiply(0.04));
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
+            overlayCarga = new OverlayCarga(root, new Pane());
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.9));
 
@@ -151,6 +154,11 @@ public class MainController implements ControladorVista {
 
     private void cargarTabla() {
         try {
+            if (overlayCarga != null) {
+                overlayCarga.setMensaje("Cargando...");
+                overlayCarga.mostrar();
+            }
+
             // Crear tarea asíncrona para cargar datos
             javafx.concurrent.Task<javafx.collections.ObservableList<String[]>> task =
                     new javafx.concurrent.Task<>() {
@@ -165,6 +173,9 @@ public class MainController implements ControladorVista {
                             javafx.collections.ObservableList<String[]> datos = getValue();
                             Platform.runLater(() -> {
                                 contenidoTabla.setItems(datos);
+                                if (overlayCarga != null) {
+                                    overlayCarga.ocultar();
+                                }
                             });
                         }
 
@@ -173,14 +184,22 @@ public class MainController implements ControladorVista {
                             System.err.println("✗ Error al cargar tabla: " + getException().getMessage());
                             getException().printStackTrace();
                             Platform.runLater(() -> {
+                                if (overlayCarga != null) {
+                                    overlayCarga.ocultar();
+                                }
                                 mostrarAlertaError("Error", "No se pudieron cargar los datos: " + getException().getMessage());
                             });
                         }
                     };
 
-            new Thread(task).start();
+            Thread hilo = new Thread(task);
+            hilo.setDaemon(true);
+            hilo.start();
 
         } catch (Exception e) {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
             System.err.println("✗ Error en cargarTabla: " + e.getMessage());
             e.printStackTrace();
         }

@@ -2,6 +2,7 @@ package Consultas.clasificacion.controller;
 
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Consultas.clasificacion.model.*;
 import javafx.application.Platform;
@@ -66,6 +67,7 @@ public class MainController implements ControladorVista {
     private ObservableList<ubicaciones> cacheUbicaciones = FXCollections.observableArrayList();
     private ObservableList<unidades_Medida> cacheUM = FXCollections.observableArrayList();
     private boolean esperandoSubAtajoAgregar = false;
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -77,6 +79,8 @@ public class MainController implements ControladorVista {
 
             contenedor.prefHeightProperty().bind(root.heightProperty().multiply(0.75));
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.9));
+
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             RefrescoHelper.setVistaActual("clasificacion");
             RefrescoHelper.registrarRefresco("clasificacion", this::cargarDatos);
@@ -169,6 +173,9 @@ public class MainController implements ControladorVista {
 
     private void configurarDataLoadService() {
         dataLoadService.setOnSucceeded(e -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
             // Actualizar cache con los resultados
             if (dataLoadService.marcasResult != null) {
                 cacheMarcas = dataLoadService.marcasResult;
@@ -192,6 +199,9 @@ public class MainController implements ControladorVista {
         });
 
         dataLoadService.setOnFailed(e -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
             Platform.runLater(() -> {
                 mostrarError("Error al cargar datos: " + dataLoadService.getException().getMessage());
                 // Cargar datos vacíos para evitar excepciones
@@ -204,6 +214,10 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarDatos() {
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
+        }
         if (dataLoadService != null && dataLoadService.isRunning()) {
             dataLoadService.cancel();
         }

@@ -2193,49 +2193,70 @@ public class MainController implements ControladorVista{
         String campoActual = comboFiltro.getValue();
         String valorActual = comboValor.getValue();
 
-        itemsInventarioOriginal.clear();
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
+        }
 
-        try (Connection conn = new Conexion().conectar();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        javafx.concurrent.Task<List<ItemInventario>> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected List<ItemInventario> call() {
+                List<ItemInventario> registros = new ArrayList<>();
+                try (Connection conn = new Conexion().conectar();
+                     PreparedStatement ps = conn.prepareStatement(sql);
+                     ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
-                itemsInventarioOriginal.add(new ItemInventario(
-                        rs.getString("idArticulo"),
-                        rs.getString("claveProducto"),
-                        detallado ? "" : rs.getString("cantidad"),
-                        rs.getString("producto"),
-                        rs.getString("marca"),
-                        rs.getString("categoria"),
-                        rs.getString("material"),
-                        rs.getString("unidadMedida"),
-                        rs.getString("presentacion"),
-                        rs.getString("factor"),
-                        detallado ? rs.getString("lote") : "",
-                        detallado ? rs.getString("caducidad") : "",
-                        detallado ? rs.getString("ubicacion") : "",
-                        rs.getString("descripcion"),
-                        formatearMoneda(rs.getBigDecimal("precioTotal")),
-                        formatearMoneda(rs.getBigDecimal("precioTotalIva")),
-                        rs.getString("inventarioMinimo")
-                ));
+                    while (rs.next()) {
+                        registros.add(new ItemInventario(
+                                rs.getString("idArticulo"),
+                                rs.getString("claveProducto"),
+                                detallado ? "" : rs.getString("cantidad"),
+                                rs.getString("producto"),
+                                rs.getString("marca"),
+                                rs.getString("categoria"),
+                                rs.getString("material"),
+                                rs.getString("unidadMedida"),
+                                rs.getString("presentacion"),
+                                rs.getString("factor"),
+                                detallado ? rs.getString("lote") : "",
+                                detallado ? rs.getString("caducidad") : "",
+                                detallado ? rs.getString("ubicacion") : "",
+                                rs.getString("descripcion"),
+                                formatearMoneda(rs.getBigDecimal("precioTotal")),
+                                formatearMoneda(rs.getBigDecimal("precioTotalIva")),
+                                rs.getString("inventarioMinimo")
+                        ));
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                return registros;
             }
+        };
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        restaurandoFiltros = true;
+        task.setOnSucceeded(event -> {
+            itemsInventarioOriginal.setAll(task.getValue());
+            restaurandoFiltros = true;
+            actualizarValoresFiltro(campoActual);
+            if (valorActual != null && comboValor.getItems().contains(valorActual)) {
+                comboValor.setValue(valorActual);
+            }
+            restaurandoFiltros = false;
+            aplicarFiltros();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
 
-        actualizarValoresFiltro(campoActual);
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
 
-        if (valorActual != null &&
-                comboValor.getItems().contains(valorActual)) {
-            comboValor.setValue(valorActual);
-        }
-
-        restaurandoFiltros = false;
-
-        aplicarFiltros();
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private List<String> obtenerUbicacionesActivas() {

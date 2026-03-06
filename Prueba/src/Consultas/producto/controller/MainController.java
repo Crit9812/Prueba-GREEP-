@@ -3,6 +3,7 @@ package Consultas.producto.controller;
 import Compartido.exportar.exportarPlantilla;
 import Compartido.helper.RefrescoHelper;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import Compartido.sesion.PermisosRol;
 import Compartido.importar.importador;
 import Compartido.exportar.exportador;
@@ -61,6 +62,7 @@ public class MainController implements ControladorVista {
     private Map<String, String> mapMarcas = new ConcurrentHashMap<>();
     private final Map<String, Image> cacheImagenes = new ConcurrentHashMap<>();
     private final boolean soloLectura = PermisosRol.esSupervisorOUsuario();
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -79,6 +81,8 @@ public class MainController implements ControladorVista {
         previewImage.fitWidthProperty().bind(root.widthProperty().multiply(0.07));
         previewImage.fitHeightProperty().bind(root.heightProperty().multiply(0.15));
         previewImage.setPreserveRatio(false);
+
+        overlayCarga = new OverlayCarga(root, new Pane());
 
         // Configuración columnas
         colIdProducto.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getIdProducto())));
@@ -212,8 +216,34 @@ public class MainController implements ControladorVista {
     }
 
     private void cargarProductosEnTabla() {
-        ObservableList<producto> productos = productoModel.obtenerProductos();
-        contenidoTabla.setItems(productos);
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
+        }
+
+        Task<ObservableList<producto>> task = new Task<>() {
+            @Override
+            protected ObservableList<producto> call() {
+                return productoModel.obtenerProductos();
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            contenidoTabla.setItems(task.getValue());
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
+
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private void configurarColumnasConMapas() {

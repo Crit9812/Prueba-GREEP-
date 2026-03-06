@@ -9,6 +9,7 @@ import Compartido.exportar.exportador;
 import Compartido.helper.SelectorColumnasPopup;
 import Compartido.helper.SelectorOrdenPopup;
 import Compartido.helper.AtajosTecladoHelper;
+import Compartido.helper.OverlayCarga;
 import conexion.Conexion;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -107,6 +108,7 @@ public class MainController implements ControladorVista {
     private String direccionOrden = "desc";
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private OverlayCarga overlayCarga;
 
     @FXML
     public void initialize() {
@@ -139,6 +141,8 @@ public class MainController implements ControladorVista {
 
             contenedorTabla.prefHeightProperty().bind(contenedor.heightProperty().multiply(0.71));
             contenidoTabla.prefHeightProperty().bind(contenedorTabla.heightProperty().multiply(0.72));
+
+            overlayCarga = new OverlayCarga(root, new Pane());
 
             configurarColumnas();
             configurarBuscadorProducto();
@@ -946,78 +950,103 @@ public class MainController implements ControladorVista {
             return;
         }
 
-        List<MovimientoArticulo> movimientos = new ArrayList<>();
-
-        try (Connection conn = new Conexion().conectar()) {
-            if (conn == null) {
-                historialItems.clear();
-                limpiarDetalleProducto();
-                actualizarTotales();
-                return;
-            }
-
-            cargarDetalleProducto(conn, idProducto);
-            movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
-            movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
-            movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
-            movimientos = consolidarMovimientosPorReferencia(movimientos);
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (overlayCarga != null) {
+            overlayCarga.setMensaje("Cargando...");
+            overlayCarga.mostrar();
         }
 
-        movimientos.sort(Comparator.comparing(MovimientoArticulo::getFechaHora,
-                Comparator.nullsLast(Comparator.naturalOrder())));
+        Task<List<HistorialArticuloItem>> task = new Task<>() {
+            @Override
+            protected List<HistorialArticuloItem> call() {
+                List<MovimientoArticulo> movimientos = new ArrayList<>();
 
-        List<HistorialArticuloItem> nuevos = new ArrayList<>();
-        int existencias = 0;
-        for (MovimientoArticulo mov : movimientos) {
-            int antes = existencias;
-            int despues = existencias;
-            String entradas = "0";
-            String salidas = "0";
-            boolean esCancelado = "cancelado".equalsIgnoreCase(valorTexto(mov.getEstado()).trim());
+                try (Connection conn = new Conexion().conectar()) {
+                    if (conn == null) {
+                        return new ArrayList<>();
+                    }
 
-            if (!esCancelado) {
-                if (mov.getCantidad() >= 0) {
-                    despues = existencias + mov.getCantidad();
-                    entradas = String.valueOf(mov.getCantidad());
-                } else {
-                    despues = existencias - Math.abs(mov.getCantidad());
-                    salidas = String.valueOf(Math.abs(mov.getCantidad()));
+                    cargarDetalleProducto(conn, idProducto);
+                    movimientos.addAll(obtenerEntradasArticulo(conn, idProducto));
+                    movimientos.addAll(obtenerSalidasArticulo(conn, idProducto));
+                    movimientos.addAll(obtenerAjustesArticulo(conn, idProducto));
+                    movimientos = consolidarMovimientosPorReferencia(movimientos);
+                } catch (SQLException e) {
+                    e.printStackTrace();
                 }
+
+                movimientos.sort(Comparator.comparing(MovimientoArticulo::getFechaHora,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+                List<HistorialArticuloItem> nuevos = new ArrayList<>();
+                int existencias = 0;
+                for (MovimientoArticulo mov : movimientos) {
+                    int antes = existencias;
+                    int despues = existencias;
+                    String entradas = "0";
+                    String salidas = "0";
+                    boolean esCancelado = "cancelado".equalsIgnoreCase(valorTexto(mov.getEstado()).trim());
+
+                    if (!esCancelado) {
+                        if (mov.getCantidad() >= 0) {
+                            despues = existencias + mov.getCantidad();
+                            entradas = String.valueOf(mov.getCantidad());
+                        } else {
+                            despues = existencias - Math.abs(mov.getCantidad());
+                            salidas = String.valueOf(Math.abs(mov.getCantidad()));
+                        }
+                    }
+
+                    nuevos.add(new HistorialArticuloItem(
+                            textoGuionSiVacio(mov.getFecha()),
+                            textoGuionSiVacio(mov.getHora()),
+                            textoGuionSiVacio(mov.getTipoMovimiento()),
+                            textoGuionSiVacio(mov.getTipoMovimientoDetalle()),
+                            String.valueOf(antes),
+                            String.valueOf(despues),
+                            entradas,
+                            salidas,
+                            textoGuionSiVacio(mov.getProveedor()),
+                            textoGuionSiVacio(mov.getFacturaEntrada()),
+                            textoGuionSiVacio(mov.getCliente()),
+                            textoGuionSiVacio(mov.getFacturaSalida()),
+                            textoGuionSiVacio(mov.getUsuario()),
+                            textoGuionSiVacio(mov.getEstado()),
+                            textoGuionSiVacio(formatearImporte(mov.getPrecioTotal())),
+                            esCancelado ? 0d : (mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
+                            esCancelado ? 0d : (mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
+                            textoGuionSiVacio(mov.getPresentacion()),
+                            textoGuionSiVacio(mov.getFactor())
+                    ));
+                    existencias = despues;
+                }
+
+                return nuevos;
             }
+        };
 
-            nuevos.add(new HistorialArticuloItem(
-                    textoGuionSiVacio(mov.getFecha()),
-                    textoGuionSiVacio(mov.getHora()),
-                    textoGuionSiVacio(mov.getTipoMovimiento()),
-                    textoGuionSiVacio(mov.getTipoMovimientoDetalle()),
-                    String.valueOf(antes),
-                    String.valueOf(despues),
-                    entradas,
-                    salidas,
-                    textoGuionSiVacio(mov.getProveedor()),
-                    textoGuionSiVacio(mov.getFacturaEntrada()),
-                    textoGuionSiVacio(mov.getCliente()),
-                    textoGuionSiVacio(mov.getFacturaSalida()),
-                    textoGuionSiVacio(mov.getUsuario()),
-                    textoGuionSiVacio(mov.getEstado()),
-                    textoGuionSiVacio(formatearImporte(mov.getPrecioTotal())),
-                    esCancelado ? 0d : (mov.getCantidad() >= 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
-                    esCancelado ? 0d : (mov.getCantidad() < 0 ? valorSeguroPrecio(mov.getPrecioTotal()) : 0d),
-                    textoGuionSiVacio(mov.getPresentacion()),
-                    textoGuionSiVacio(mov.getFactor())
-            ));
-            existencias = despues;
-        }
+        task.setOnSucceeded(event -> {
+            List<HistorialArticuloItem> nuevos = task.getValue();
+            historialCacheCompleto.clear();
+            historialCacheCompleto.addAll(nuevos);
+            historialItemsOriginal.setAll(historialCacheCompleto);
+            filtroPresentacionFactorActivoPrevio = false;
+            forzarOrdenFechaHora = true;
+            reiniciarFiltros();
+            aplicarFiltros();
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
 
-        historialCacheCompleto.clear();
-        historialCacheCompleto.addAll(nuevos);
-        historialItemsOriginal.setAll(historialCacheCompleto);
-        filtroPresentacionFactorActivoPrevio = false;
-        forzarOrdenFechaHora = true;
-        reiniciarFiltros();
-        aplicarFiltros();
+        task.setOnFailed(event -> {
+            if (overlayCarga != null) {
+                overlayCarga.ocultar();
+            }
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     private List<MovimientoArticulo> consolidarMovimientosPorReferencia(List<MovimientoArticulo> movimientos) {
@@ -1342,20 +1371,17 @@ public class MainController implements ControladorVista {
                 + "LEFT JOIN etiquetas e ON e.id = p.etiqueta "
                 + "WHERE p.id = ?";
 
+        String descripcion = "";
         try (PreparedStatement ps = conn.prepareStatement(sqlProducto)) {
             ps.setString(1, idProducto);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    String descripcion = obtenerDescripcionProducto(idProducto);
-                    lblClave.setText("Clave: " + idProducto);
-                    lblDescripcion.setText("Descripción: " + descripcion);
+                    descripcion = obtenerDescripcionProducto(idProducto);
                 }
             }
         }
 
-        lblPresentacion.setText("Presentación:");
-        lblFactor.setText("Factor:");
-
+        int existencias = 0;
         String sqlExistencias = "SELECT COUNT(*) AS total "
                 + "FROM articulo a "
                 + "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada "
@@ -1364,10 +1390,20 @@ public class MainController implements ControladorVista {
             ps.setString(1, idProducto);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    lblExistencias.setText("Existencias: " + rs.getInt("total"));
+                    existencias = rs.getInt("total");
                 }
             }
         }
+
+        String descripcionFinal = descripcion;
+        int existenciasFinal = existencias;
+        Platform.runLater(() -> {
+            lblClave.setText("Clave: " + idProducto);
+            lblDescripcion.setText("Descripción: " + descripcionFinal);
+            lblPresentacion.setText("Presentación:");
+            lblFactor.setText("Factor:");
+            lblExistencias.setText("Existencias: " + existenciasFinal);
+        });
     }
 
     private void limpiarDetalleProducto() {
