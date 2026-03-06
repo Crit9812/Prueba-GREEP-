@@ -2,6 +2,7 @@ package Compartido.helper;
 
 import javafx.application.Platform;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -28,28 +29,58 @@ public class OverlayCarga {
         configurarOverlayCarga();
     }
 
+    private StackPane obtenerContenedorGlobal() {
+        StackPane objetivo = root;
+        Parent actual = root;
+
+        while (actual != null) {
+            if (actual instanceof StackPane) {
+                objetivo = (StackPane) actual;
+            }
+            actual = actual.getParent();
+        }
+
+        return objetivo;
+    }
+
+    private void bindearDimensionAContenedor(Region region, Region contenedor) {
+        if (region == null || contenedor == null) {
+            return;
+        }
+
+        if (region.prefWidthProperty().isBound()) {
+            region.prefWidthProperty().unbind();
+        }
+        if (region.prefHeightProperty().isBound()) {
+            region.prefHeightProperty().unbind();
+        }
+
+        region.prefWidthProperty().bind(contenedor.widthProperty());
+        region.prefHeightProperty().bind(contenedor.heightProperty());
+        region.setMinWidth(Region.USE_PREF_SIZE);
+        region.setMinHeight(Region.USE_PREF_SIZE);
+    }
+
     private void asegurarOverlayPaneEnRoot() {
         if (overlayPane == null || root == null) {
             return;
         }
 
         Runnable asegurar = () -> {
-            if (overlayPane.getParent() != root) {
+            StackPane contenedorGlobal = obtenerContenedorGlobal();
+
+            if (overlayPane.getParent() != contenedorGlobal) {
                 if (overlayPane.getParent() instanceof Pane) {
                     Pane parentPane = (Pane) overlayPane.getParent();
                     parentPane.getChildren().remove(overlayPane);
                 }
-                root.getChildren().add(overlayPane);
+                contenedorGlobal.getChildren().add(overlayPane);
             }
 
-            if (!overlayPane.prefWidthProperty().isBound()) {
-                overlayPane.prefWidthProperty().bind(root.widthProperty());
+            bindearDimensionAContenedor(overlayPane, contenedorGlobal);
+            if (overlayCarga != null) {
+                bindearDimensionAContenedor(overlayCarga, contenedorGlobal);
             }
-            if (!overlayPane.prefHeightProperty().isBound()) {
-                overlayPane.prefHeightProperty().bind(root.heightProperty());
-            }
-            overlayPane.setMinWidth(Region.USE_PREF_SIZE);
-            overlayPane.setMinHeight(Region.USE_PREF_SIZE);
         };
 
         if (Platform.isFxApplicationThread()) {
@@ -74,11 +105,6 @@ public class OverlayCarga {
         overlayCarga.setPickOnBounds(true);
         overlayCarga.setStyle("-fx-background-color: rgba(0, 0, 0, 0.55);");
         overlayCarga.setAlignment(Pos.CENTER);
-
-        overlayCarga.prefWidthProperty().bind(root.widthProperty());
-        overlayCarga.prefHeightProperty().bind(root.heightProperty());
-        overlayCarga.setMinWidth(Region.USE_PREF_SIZE);
-        overlayCarga.setMinHeight(Region.USE_PREF_SIZE);
 
         overlayPane.setPickOnBounds(false);
         overlayPane.setMouseTransparent(true);
@@ -116,16 +142,18 @@ public class OverlayCarga {
 
         Runnable mostrarOverlay = () -> {
             asegurarOverlayPaneEnRoot();
+            StackPane contenedorGlobal = obtenerContenedorGlobal();
+
             overlayCarga.setManaged(true);
             overlayCarga.setVisible(true);
             overlayPane.setPickOnBounds(true);
             overlayPane.setMouseTransparent(false);
             overlayCarga.setMouseTransparent(false);
-            if (overlayPane.getParent() == root) {
-                int ultimoIndice = root.getChildren().size() - 1;
-                if (ultimoIndice >= 0 && root.getChildren().get(ultimoIndice) != overlayPane) {
-                    root.getChildren().remove(overlayPane);
-                    root.getChildren().add(overlayPane);
+            if (overlayPane.getParent() == contenedorGlobal) {
+                int ultimoIndice = contenedorGlobal.getChildren().size() - 1;
+                if (ultimoIndice >= 0 && contenedorGlobal.getChildren().get(ultimoIndice) != overlayPane) {
+                    contenedorGlobal.getChildren().remove(overlayPane);
+                    contenedorGlobal.getChildren().add(overlayPane);
                 }
             }
             if (overlayCarga.getParent() == overlayPane) {
