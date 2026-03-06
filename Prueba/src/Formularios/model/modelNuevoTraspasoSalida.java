@@ -705,6 +705,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
                   AND a.lote = ?
+                  AND a.presentacion = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                   AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
@@ -714,6 +715,7 @@ public class modelNuevoTraspasoSalida {
             try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                 psDetalle.setString(1, idProducto);
                 psDetalle.setString(2, lote);
+                psDetalle.setString(3, presentacion);
                 try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                     return rsDetalle.next();
                 }
@@ -759,6 +761,8 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
                   AND a.lote = ?
+                  AND a.presentacion = ?
+                  AND a.factor = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                   AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
@@ -768,6 +772,8 @@ public class modelNuevoTraspasoSalida {
             try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                 psDetalle.setString(1, idProducto);
                 psDetalle.setString(2, lote);
+                psDetalle.setString(3, presentacion);
+                psDetalle.setInt(4, factor);
                 try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                     return rsDetalle.next();
                 }
@@ -807,12 +813,16 @@ public class modelNuevoTraspasoSalida {
                         JOIN articulo a ON a.idArticulo = da.idArticulo
                         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                         WHERE de.claveProducto = ?
+                          AND a.presentacion = ?
+                          AND a.factor = ?
                           AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                           AND LOWER(da.estado) = 'disponible'
                           AND LOWER(a.Estado) = 'segmentado'
                     """;
                     try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                         psDetalle.setString(1, idProducto);
+                        psDetalle.setString(2, presentacion);
+                        psDetalle.setInt(3, factor);
                         try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                             if (rsDetalle.next()) {
                                 total += rsDetalle.getInt("total");
@@ -861,6 +871,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 JOIN ubicaciones u ON u.id = da.idUbicacion
                 WHERE de.claveProducto = ?
+                  AND a.presentacion = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                   AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
@@ -876,7 +887,9 @@ public class modelNuevoTraspasoSalida {
             ps.setInt(index++, factor);
             index = agregarParametroEstado(ps, conn, index);
             if (incluirDetalle) {
-                ps.setString(index, idProducto);
+                ps.setString(index++, idProducto);
+                ps.setString(index++, presentacion);
+                ps.setInt(index, factor);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -936,15 +949,11 @@ public class modelNuevoTraspasoSalida {
     }
 
     private boolean esPresentacionDetalle(String presentacion) {
-        if (presentacion == null) {
-            return false;
-        }
-        String normalizada = presentacion.trim().toLowerCase();
-        return "pz".equals(normalizada) || "pieza".equals(normalizada);
+        return presentacion != null && !presentacion.trim().isEmpty();
     }
 
     private boolean esPresentacionDetalle(String presentacion, int factor) {
-        return esPresentacionDetalle(presentacion) && factor == 1;
+        return esPresentacionDetalle(presentacion);
     }
 
     public static class PreciosProducto {
@@ -1092,6 +1101,7 @@ public class modelNuevoTraspasoSalida {
                 JOIN articulo a ON a.idArticulo = da.idArticulo
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
+                  AND a.presentacion = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                   AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
@@ -1099,6 +1109,7 @@ public class modelNuevoTraspasoSalida {
             """;
             try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                 psDetalle.setString(1, idProducto);
+                psDetalle.setString(2, presentacion);
                 try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                     return rsDetalle.next();
                 }
@@ -1145,6 +1156,8 @@ public class modelNuevoTraspasoSalida {
                 JOIN articulo a ON a.idArticulo = da.idArticulo
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
+                  AND a.presentacion = ?
+                  AND a.factor = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                   AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
@@ -1152,6 +1165,8 @@ public class modelNuevoTraspasoSalida {
             """;
             try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                 psDetalle.setString(1, idProducto);
+                psDetalle.setString(2, presentacion);
+                psDetalle.setInt(3, factor);
                 try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                     return rsDetalle.next();
                 }
@@ -1198,6 +1213,8 @@ public class modelNuevoTraspasoSalida {
                 JOIN articulo a ON a.idArticulo = da.idArticulo
                 JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                 WHERE de.claveProducto = ?
+                  AND a.presentacion = ?
+                  AND a.factor = ?
                   AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                   AND LOWER(da.estado) = 'disponible'
                   AND LOWER(a.Estado) = 'segmentado'
@@ -1205,6 +1222,8 @@ public class modelNuevoTraspasoSalida {
             """;
             try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                 psDetalle.setString(1, idProducto);
+                psDetalle.setString(2, presentacion);
+                psDetalle.setInt(3, factor);
                 try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                     return rsDetalle.next();
                 }
@@ -1322,12 +1341,16 @@ public class modelNuevoTraspasoSalida {
                         JOIN articulo a ON a.idArticulo = da.idArticulo
                         JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada
                         WHERE de.claveProducto = ?
+                          AND a.presentacion = ?
+                          AND a.factor = ?
                           AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)
                           AND LOWER(da.estado) = 'disponible'
                           AND LOWER(a.Estado) = 'segmentado'
                     """;
                     try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
                         psDetalle.setString(1, idProducto);
+                        psDetalle.setString(2, presentacion);
+                        psDetalle.setInt(3, factor);
                         try (ResultSet rsDetalle = psDetalle.executeQuery()) {
                             if (rsDetalle.next()) {
                                 total += rsDetalle.getInt("total");
@@ -1404,7 +1427,9 @@ public class modelNuevoTraspasoSalida {
             ps.setInt(index++, factor);
             index = agregarParametroEstado(ps, conn, index);
             if (incluirDetalle) {
-                ps.setString(index, idProducto);
+                ps.setString(index++, idProducto);
+                ps.setString(index++, presentacion);
+                ps.setInt(index, factor);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -1494,7 +1519,9 @@ public class modelNuevoTraspasoSalida {
             ps.setInt(index++, factor);
             index = agregarParametroEstado(ps, conn, index);
             if (incluirDetalle) {
-                ps.setString(index, idProducto);
+                ps.setString(index++, idProducto);
+                ps.setString(index++, presentacion);
+                ps.setInt(index, factor);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

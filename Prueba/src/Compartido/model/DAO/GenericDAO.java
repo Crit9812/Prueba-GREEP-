@@ -918,14 +918,6 @@ public class GenericDAO<T> {
         return 0;
     }
 
-    private static boolean esPresentacionDetalleValida(String presentacion, Integer factor) {
-        if (presentacion == null || factor == null) {
-            return false;
-        }
-        String normalizada = presentacion.trim().toLowerCase();
-        return ("pz".equals(normalizada) || "pieza".equals(normalizada)) && factor == 1;
-    }
-
     private static int contarDetalleArticuloDisponible(Connection conn,
                                                        String idProducto,
                                                        String lote,
@@ -936,12 +928,6 @@ public class GenericDAO<T> {
                                                        Integer factor) {
         if (conn == null) {
             return 0;
-        }
-
-        if (presentacion != null || factor != null) {
-            if (!esPresentacionDetalleValida(presentacion, factor)) {
-                return 0;
-            }
         }
 
         try {
@@ -964,6 +950,8 @@ public class GenericDAO<T> {
                     "id_detalle_entrada", "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
             String colArticuloLote = resolverColumna(columnasArticulo, "lote");
             String colArticuloCaducidad = resolverColumna(columnasArticulo, "caducidad");
+            String colArticuloPresentacion = resolverColumna(columnasArticulo, "presentacion");
+            String colArticuloFactor = resolverColumna(columnasArticulo, "factor");
             String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
 
             String colDetalleEntradaId = resolverColumna(columnasDetalleEntrada, "idDetalleEntrada", "id",
@@ -1017,6 +1005,12 @@ public class GenericDAO<T> {
                     sql.append(" AND a.`").append(colArticuloCaducidad).append("` = ?");
                 }
             }
+            if (presentacion != null && colArticuloPresentacion != null) {
+                sql.append(" AND a.`").append(colArticuloPresentacion).append("` = ?");
+            }
+            if (factor != null && colArticuloFactor != null) {
+                sql.append(" AND a.`").append(colArticuloFactor).append("` = ?");
+            }
             if (ubicacionNombre != null && colUbicacionNombre != null) {
                 sql.append(" AND u.`").append(colUbicacionNombre).append("` = ?");
             }
@@ -1038,6 +1032,12 @@ public class GenericDAO<T> {
                 }
                 if (filtrarCaducidad && colArticuloCaducidad != null && caducidad != null) {
                     ps.setDate(index++, java.sql.Date.valueOf(caducidad));
+                }
+                if (presentacion != null && colArticuloPresentacion != null) {
+                    ps.setString(index++, presentacion);
+                }
+                if (factor != null && colArticuloFactor != null) {
+                    ps.setInt(index++, factor);
                 }
                 if (ubicacionNombre != null && colUbicacionNombre != null) {
                     ps.setString(index++, ubicacionNombre);
