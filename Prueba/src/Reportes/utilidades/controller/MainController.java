@@ -286,10 +286,10 @@ public class MainController implements ControladorVista {
     private List<UtilidadItem> obtenerUtilidades(Connection conn) throws SQLException {
         String query = "SELECT s.idSalida, s.noFactura AS facturaVenta, s.fechaSalida AS fechaSalida, s.idDestinatario, "
                 + "c.Nombre AS cliente, ds.idDetalleSalida, ds.claveProductoSalida AS claveProducto, "
-                + "ds.precioUnitarioSalida, ds.precioTotalSalida, ds.cantidad AS cantidadSalida, "
+                + "ds.precioUnitarioSalida, ds.precioIVASalida, ds.precioTotalSalida, ds.cantidad AS cantidadSalida, "
                 + "a.idDetalleEntrada, a.presentacion, a.factor, "
                 + "de.idDetalleEntrada AS detalleEntradaId, de.claveEntrada, de.precioUnitario AS precioUnitarioEntrada, "
-                + "de.precioTotal AS precioTotalEntrada, de.cantidad AS cantidadEntrada, "
+                + "de.precioIVA AS precioIVAEntrada, de.precioTotal AS precioTotalEntrada, de.cantidad AS cantidadEntrada, "
                 + "e.noFactura AS facturaCompra, e.idRemitente, p.Nombre AS proveedor, "
                 + "pr.nombre AS nombreProducto, pr.categoria AS categoria, pr.material AS material, "
                 + "pr.unidadMedida AS unidadMedida, pr.descripcion AS descripcionProducto, et.nombre AS etiquetaNombre "
@@ -381,27 +381,35 @@ public class MainController implements ControladorVista {
     }
 
     private double obtenerCostoUnitario(ResultSet rs) throws SQLException {
+        Double precioIVA = obtenerNumero(rs.getObject("precioIVAEntrada"));
         Double precioUnitario = obtenerNumero(rs.getObject("precioUnitarioEntrada"));
         Double precioTotal = obtenerNumero(rs.getObject("precioTotalEntrada"));
         Double cantidad = obtenerNumero(rs.getObject("cantidadEntrada"));
-        if (precioUnitario != null) {
-            return precioUnitario;
+        if (precioIVA != null) {
+            return precioIVA;
         }
         if (precioTotal != null && cantidad != null && cantidad != 0) {
             return precioTotal / cantidad;
+        }
+        if (precioUnitario != null) {
+            return precioUnitario;
         }
         return 0;
     }
 
     private double obtenerVentaUnitario(ResultSet rs) throws SQLException {
+        Double precioIVA = obtenerNumero(rs.getObject("precioIVASalida"));
         Double precioUnitario = obtenerNumero(rs.getObject("precioUnitarioSalida"));
         Double precioTotal = obtenerNumero(rs.getObject("precioTotalSalida"));
         Double cantidad = obtenerNumero(rs.getObject("cantidadSalida"));
-        if (precioUnitario != null) {
-            return precioUnitario;
+        if (precioIVA != null) {
+            return precioIVA;
         }
         if (precioTotal != null && cantidad != null && cantidad != 0) {
             return precioTotal / cantidad;
+        }
+        if (precioUnitario != null) {
+            return precioUnitario;
         }
         return 0;
     }
