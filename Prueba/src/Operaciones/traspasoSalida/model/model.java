@@ -325,7 +325,7 @@ public class model {
                             FROM detalleArticulo da
                             JOIN articulo a ON a.%s = da.%s
                             JOIN detalle_Entrada de ON de.%s = a.%s
-                            WHERE (da.%s IS NULL OR da.%s = 0)
+                            WHERE (da.%s IS NULL OR TRIM(CAST(da.%s AS CHAR)) = '' OR TRIM(CAST(da.%s AS CHAR)) = '0')
                               AND LOWER(da.%s) = ?
                               AND LOWER(a.%s) = ?
                         """.formatted(
@@ -335,6 +335,7 @@ public class model {
                                 colDetalleArticuloArticulo,
                                 colDetalleEntradaId,
                                 colArticuloDetalleEntrada,
+                                colDetalleArticuloSalida,
                                 colDetalleArticuloSalida,
                                 colDetalleArticuloSalida,
                                 colDetalleArticuloEstado,

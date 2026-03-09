@@ -300,7 +300,7 @@ public class model {
                 "AND da.idUbicacion = ? " +
                 "AND LOWER(da.estado) = ? " +
                 "AND LOWER(a.Estado) = ? " +
-                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0') " +
                 "LIMIT 1";
 
         try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
@@ -382,7 +382,7 @@ public class model {
             sqlDetalle.append(" JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada");
         }
         sqlDetalle.append(" WHERE 1=1");
-        sqlDetalle.append(" AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)");
+        sqlDetalle.append(" AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0')");
         sqlDetalle.append(" AND da.idUbicacion = ?");
         sqlDetalle.append(" AND a.lote = ?");
         sqlDetalle.append(" AND LOWER(da.estado) = ?");

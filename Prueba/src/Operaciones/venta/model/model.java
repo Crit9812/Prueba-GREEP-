@@ -272,7 +272,7 @@ public class model {
                 "AND da.idUbicacion = ? " +
                 "AND LOWER(da.estado) = ? " +
                 "AND LOWER(a.Estado) = ? " +
-                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) ";
+                "AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0') ";
 
         if (caducidad != null) {
             sqlDetalle += "AND a.caducidad = ? ";
@@ -353,7 +353,7 @@ public class model {
                 "FROM detalleArticulo da " +
                 "JOIN articulo a ON a.idArticulo = da.idArticulo " +
                 "WHERE a.idDetalleEntrada = ? " +
-                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0') " +
                 "AND da.idUbicacion = ? " +
                 "AND a.lote = ? " +
                 "AND LOWER(da.estado) = ? " +
