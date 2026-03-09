@@ -298,9 +298,9 @@ public class model {
                 "WHERE de.claveProducto = ? " +
                 "AND a.lote = ? " +
                 "AND da.idUbicacion = ? " +
-                "AND LOWER(da.estado) = ? " +
+                "AND LOWER(da.estado) IN (?, ?) " +
                 "AND LOWER(a.Estado) = ? " +
-                "AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0) " +
+                "AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0') " +
                 "LIMIT 1";
 
         try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle)) {
@@ -309,6 +309,7 @@ public class model {
             psDetalle.setString(index++, item.getLote());
             psDetalle.setInt(index++, ubicacionId);
             psDetalle.setString(index++, "activo");
+            psDetalle.setString(index++, "disponible");
             psDetalle.setString(index++, "segmentado");
             try (ResultSet rs = psDetalle.executeQuery()) {
                 if (rs.next()) {
@@ -382,10 +383,10 @@ public class model {
             sqlDetalle.append(" JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada");
         }
         sqlDetalle.append(" WHERE 1=1");
-        sqlDetalle.append(" AND (da.idDetalleSalida IS NULL OR da.idDetalleSalida = 0)");
+        sqlDetalle.append(" AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0')");
         sqlDetalle.append(" AND da.idUbicacion = ?");
         sqlDetalle.append(" AND a.lote = ?");
-        sqlDetalle.append(" AND LOWER(da.estado) = ?");
+        sqlDetalle.append(" AND LOWER(da.estado) IN (?, ?)");
         sqlDetalle.append(" AND LOWER(a.Estado) = ?");
         if (detalleEntradaId != null) {
             sqlDetalle.append(" AND de.claveProducto = ?");
@@ -397,6 +398,7 @@ public class model {
             ps.setInt(index++, ubicacionId);
             ps.setString(index++, item.getLote());
             ps.setString(index++, "activo");
+            ps.setString(index++, "disponible");
             ps.setString(index++, "segmentado");
             if (detalleEntradaId != null) {
                 ps.setString(index++, item.getClaveProducto());
@@ -515,12 +517,19 @@ public class model {
         // 2. Determinar si es ajuste (tiene "A") o compra (numérico)
         boolean esAjuste = claveEntradaStr.toUpperCase().endsWith("A");
 
-        // 3. Contar artículos (esta parte funciona igual para ambos)
+        // 3. Contar artículos y detalles segmentados por estado de toda la entrada
         String sqlConteo = "SELECT LOWER(a.Estado) AS estado, COUNT(*) AS total " +
                 "FROM articulo a " +
                 "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
                 "WHERE de.claveEntrada = ? " +
                 "GROUP BY LOWER(a.Estado)";
+
+        String sqlConteoDetalle = "SELECT LOWER(da.estado) AS estado, COUNT(*) AS total " +
+                "FROM detalleArticulo da " +
+                "JOIN articulo a ON a.idArticulo = da.idArticulo " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE de.claveEntrada = ? " +
+                "GROUP BY LOWER(da.estado)";
 
         int disponibles = 0;
         int pendientes = 0;
@@ -540,6 +549,25 @@ public class model {
                     } else if ("vendido".equalsIgnoreCase(estado)) {
                         vendidos += total;
                     } else if ("ajustado".equalsIgnoreCase(estado)) {
+                        ajustados += total;
+                    }
+                }
+            }
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlConteoDetalle)) {
+            ps.setString(1, claveEntradaStr);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String estado = rs.getString("estado");
+                    int total = rs.getInt("total");
+                    if ("activo".equalsIgnoreCase(estado) || "disponible".equalsIgnoreCase(estado)) {
+                        disponibles += total;
+                    } else if ("pendiente".equalsIgnoreCase(estado)) {
+                        pendientes += total;
+                    } else if ("vendido".equalsIgnoreCase(estado)) {
+                        vendidos += total;
+                    } else if ("ajustado".equalsIgnoreCase(estado) || "eliminado".equalsIgnoreCase(estado)) {
                         ajustados += total;
                     }
                 }
