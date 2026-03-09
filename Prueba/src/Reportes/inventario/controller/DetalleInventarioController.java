@@ -866,6 +866,13 @@ public class DetalleInventarioController {
                         ps.executeBatch();
                     }
 
+                    // Refuerzo: garantizar estado disponible para los detalles recién segmentados
+                    try (PreparedStatement psEstado = conn.prepareStatement(
+                            "UPDATE detalleArticulo SET estado = 'disponible' WHERE idArticulo = ? AND estado = 'activo'")) {
+                        psEstado.setInt(1, articulo.idArticulo);
+                        psEstado.executeUpdate();
+                    }
+
                     conn.commit();
                     return construirMensajeSegmentacion(articulo, factor, ubicaciones);
                 }
