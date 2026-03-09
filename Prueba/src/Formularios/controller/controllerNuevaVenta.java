@@ -163,6 +163,10 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
+        if (!validarCantidadPorUbicacion(clave, lote, caducidad, presentacion, factor, ubicacionesSeleccionadas)) {
+            return;
+        }
+
 
         BigDecimal precioEntradaDecimal = parseDecimal(precioEntrada);
         BigDecimal precioSalidaDecimal = parseDecimal(precioSalida);
@@ -228,6 +232,41 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             mostrarAlertaSinEspera("Éxito", "Producto agregado a la venta.");
             limpiarFormularioParaNuevo();
         }
+    }
+
+    private boolean validarCantidadPorUbicacion(String clave, String lote, java.time.LocalDate caducidad,
+                                                String presentacion, int factor,
+                                                List<UbicacionCompra> ubicacionesSeleccionadas) {
+        for (UbicacionCompra ubicacion : ubicacionesSeleccionadas) {
+            if (ubicacion == null || ubicacion.getUbicacion() == null || ubicacion.getUbicacion().isBlank()) {
+                mostrarAlerta("Advertencia", "Debe seleccionar una ubicación válida.");
+                return false;
+            }
+
+            int cantidadSolicitada = Math.max(0, ubicacion.getCantidad());
+            if (cantidadSolicitada == 0) {
+                continue;
+            }
+
+            int disponibleUbicacion = modelo.obtenerCantidadDisponibleDetalle(
+                    clave,
+                    lote,
+                    caducidad,
+                    presentacion,
+                    factor,
+                    ubicacion.getUbicacion().trim()
+            );
+
+            if (cantidadSolicitada > disponibleUbicacion) {
+                mostrarAlerta(
+                        "Advertencia",
+                        "La cantidad solicitada para la ubicación '" + ubicacion.getUbicacion()
+                                + "' excede la disponibilidad actual (" + disponibleUbicacion + ")."
+                );
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -323,6 +362,21 @@ public class controllerNuevaVenta extends FormularioSalidaController {
 
         // VALIDACIÓN 6: Confirmar pérdida si aplica
         if (!confirmarPerdidaRapidaSiAplica(cantidad)) {
+            return;
+        }
+
+        int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(
+                clave, presentacionRapida, factorRapido);
+        if (cantidad > disponible) {
+            mostrarAlerta("Advertencia",
+                    "La cantidad supera la disponible para la presentación " + presentacionRapida
+                            + " con factor " + factorRapido + ".");
+            return;
+        }
+
+        if (!modelo.existeCombinacionProductoPresentacionFactor(clave, presentacionRapida, factorRapido)) {
+            mostrarAlerta("Error",
+                    "La combinación de producto, presentación y factor no existe en inventario disponible.");
             return;
         }
 
