@@ -1,5 +1,6 @@
 package Consultas.controller;
 
+import Compartido.sesion.PermisosRol;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
@@ -18,6 +19,7 @@ public class MainController implements ControladorVista {
     @FXML private StackPane root;
     @FXML private GridPane buttonGrid;
     @FXML private VBox contenedor;
+    @FXML private Button btnSucursales;
 
     private StackPane contentArea; // Inyectado desde el MainController principal
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -53,6 +55,11 @@ public class MainController implements ControladorVista {
                 }
             }
         }
+
+        if (!PermisosRol.esAdministrador() && btnSucursales != null) {
+            btnSucursales.setVisible(false);
+            btnSucursales.setManaged(false);
+        }
     }
 
     // Métodos de navegación
@@ -86,7 +93,7 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void ventanaSucursales() {
-        if (controladorPrincipal != null) {
+        if (controladorPrincipal != null && PermisosRol.esAdministrador()) {
             controladorPrincipal.cargarVista(EnumVistas.SUCURSALES);
         }
     }

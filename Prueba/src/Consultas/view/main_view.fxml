@@ -62,7 +62,7 @@
                 </graphic>
             </Button>
 
-            <Button styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3"
+            <Button fx:id="btnSucursales" styleClass="grid-button" GridPane.rowIndex="0" GridPane.columnIndex="3"
                     text="Sucursales" onAction="#ventanaSucursales"
                     maxWidth="Infinity" maxHeight="Infinity">
                 <graphic>
