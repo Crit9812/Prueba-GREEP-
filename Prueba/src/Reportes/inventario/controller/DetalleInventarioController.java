@@ -853,7 +853,7 @@ public class DetalleInventarioController {
 
                     int consecutivoDetalle = obtenerSiguienteConsecutivoDetalle(conn);
                     try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'activo')")) {
+                            "INSERT INTO detalleArticulo (idDetalle, idArticulo, idUbicacion, estado) VALUES (?, ?, ?, 'disponible')")) {
                         for (Reportes.inventario.util.Segmentacion.UbicacionCantidad ubicacion : ubicaciones) {
                             Integer ubicacionId = ubicacionIds.get(ubicacion.getNombre());
                             for (int i = 0; i < ubicacion.getCantidad(); i++) {
