@@ -1,5 +1,6 @@
 package Consultas.controller;
 
+import Compartido.sesion.PermisosRol;
 import VentanaPrincipal.controller.ControladorVista;
 import VentanaPrincipal.controller.EnumVistas;
 import javafx.application.Platform;
@@ -13,11 +14,16 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 public class MainController implements ControladorVista {
 
     @FXML private StackPane root;
     @FXML private GridPane buttonGrid;
     @FXML private VBox contenedor;
+    @FXML private Button btnSucursales;
 
     private StackPane contentArea; // Inyectado desde el MainController principal
     private VentanaPrincipal.controller.MainController controladorPrincipal;
@@ -53,6 +59,36 @@ public class MainController implements ControladorVista {
                 }
             }
         }
+
+        if (!PermisosRol.esAdministrador() && btnSucursales != null) {
+            btnSucursales.setVisible(false);
+            btnSucursales.setManaged(false);
+        }
+
+        reacomodarBotonesVisibles(4);
+    }
+
+    private void reacomodarBotonesVisibles(int columnasMaximas) {
+        if (columnasMaximas <= 0) {
+            return;
+        }
+
+        List<Button> botonesVisibles = new ArrayList<>();
+        for (Node node : buttonGrid.getChildren()) {
+            if (node instanceof Button btn && btn.isManaged()) {
+                botonesVisibles.add(btn);
+            }
+        }
+
+        botonesVisibles.sort(Comparator
+                .comparingInt((Button btn) -> GridPane.getRowIndex(btn) == null ? 0 : GridPane.getRowIndex(btn))
+                .thenComparingInt(btn -> GridPane.getColumnIndex(btn) == null ? 0 : GridPane.getColumnIndex(btn)));
+
+        for (int i = 0; i < botonesVisibles.size(); i++) {
+            Button btn = botonesVisibles.get(i);
+            GridPane.setRowIndex(btn, i / columnasMaximas);
+            GridPane.setColumnIndex(btn, i % columnasMaximas);
+        }
     }
 
     // Métodos de navegación
@@ -86,7 +122,7 @@ public class MainController implements ControladorVista {
 
     @FXML
     public void ventanaSucursales() {
-        if (controladorPrincipal != null) {
+        if (controladorPrincipal != null && PermisosRol.esAdministrador()) {
             controladorPrincipal.cargarVista(EnumVistas.SUCURSALES);
         }
     }
