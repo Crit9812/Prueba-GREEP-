@@ -326,7 +326,7 @@ public class model {
                             JOIN articulo a ON a.%s = da.%s
                             JOIN detalle_Entrada de ON de.%s = a.%s
                             WHERE (da.%s IS NULL OR TRIM(CAST(da.%s AS CHAR)) = '' OR TRIM(CAST(da.%s AS CHAR)) = '0')
-                              AND LOWER(da.%s) = ?
+                              AND LOWER(da.%s) IN (?, ?)
                               AND LOWER(a.%s) = ?
                         """.formatted(
                                 colDetalleArticuloId,
@@ -365,6 +365,7 @@ public class model {
                         try (PreparedStatement psDetalle = conn.prepareStatement(sqlDetalleBuilder.toString())) {
                             int indexDetalle = 1;
                             psDetalle.setString(indexDetalle++, "activo");
+                            psDetalle.setString(indexDetalle++, "disponible");
                             psDetalle.setString(indexDetalle++, "segmentado");
                             if (colArticuloLote != null) {
                                 psDetalle.setString(indexDetalle++, item.getLote());

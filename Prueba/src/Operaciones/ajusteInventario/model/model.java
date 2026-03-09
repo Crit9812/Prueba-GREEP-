@@ -298,7 +298,7 @@ public class model {
                 "WHERE de.claveProducto = ? " +
                 "AND a.lote = ? " +
                 "AND da.idUbicacion = ? " +
-                "AND LOWER(da.estado) = ? " +
+                "AND LOWER(da.estado) IN (?, ?) " +
                 "AND LOWER(a.Estado) = ? " +
                 "AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0') " +
                 "LIMIT 1";
@@ -309,6 +309,7 @@ public class model {
             psDetalle.setString(index++, item.getLote());
             psDetalle.setInt(index++, ubicacionId);
             psDetalle.setString(index++, "activo");
+            psDetalle.setString(index++, "disponible");
             psDetalle.setString(index++, "segmentado");
             try (ResultSet rs = psDetalle.executeQuery()) {
                 if (rs.next()) {
@@ -385,7 +386,7 @@ public class model {
         sqlDetalle.append(" AND (da.idDetalleSalida IS NULL OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '' OR TRIM(CAST(da.idDetalleSalida AS CHAR)) = '0')");
         sqlDetalle.append(" AND da.idUbicacion = ?");
         sqlDetalle.append(" AND a.lote = ?");
-        sqlDetalle.append(" AND LOWER(da.estado) = ?");
+        sqlDetalle.append(" AND LOWER(da.estado) IN (?, ?)");
         sqlDetalle.append(" AND LOWER(a.Estado) = ?");
         if (detalleEntradaId != null) {
             sqlDetalle.append(" AND de.claveProducto = ?");
@@ -397,6 +398,7 @@ public class model {
             ps.setInt(index++, ubicacionId);
             ps.setString(index++, item.getLote());
             ps.setString(index++, "activo");
+            ps.setString(index++, "disponible");
             ps.setString(index++, "segmentado");
             if (detalleEntradaId != null) {
                 ps.setString(index++, item.getClaveProducto());
