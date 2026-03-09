@@ -194,10 +194,10 @@ public class DetalleFacturaController {
                             detallesSalida);
                 }
 
-                if (!detallesSalida.isEmpty() && colDetalleArticuloSalida != null && colDetalleArticuloIdArticulo != null
-                        && colArticuloId != null && colArticuloDetalleEntrada != null) {
-                    detalleEntradaIds.addAll(consultarDetalleEntradaPorDetalleArticulo(conn, colArticuloId,
-                            colArticuloDetalleEntrada, colDetalleArticuloIdArticulo, colDetalleArticuloSalida, detallesSalida));
+                if (!detallesSalida.isEmpty() && colDetalleArticuloSalida != null) {
+                    detalleEntradaIds.addAll(consultarDetalleEntradaPorDetalleArticulo(conn, colsDetalleArticulo,
+                            colDetalleArticuloSalida, detallesSalida, colArticuloId, colArticuloDetalleEntrada,
+                            colDetalleArticuloIdArticulo));
                 }
 
                 if (!detalleEntradaIds.isEmpty() && colDetalleEntradaId != null && colDetalleEntradaEstado != null) {
@@ -437,10 +437,9 @@ public class DetalleFacturaController {
                     if (colDetArtSal != null && colDetArtEstado != null) {
                         actualizarDetalleArticuloSalida(conn, colDetArtSal, colDetArtEstado, detallesSalida);
                     }
-                    if (!detallesSalida.isEmpty() && colDetArtSal != null && colDetArtIdArticulo != null
-                            && colArtId != null && colArtDetEnt != null) {
-                        detalleEntradaIds.addAll(consultarDetalleEntradaPorDetalleArticulo(conn, colArtId,
-                                colArtDetEnt, colDetArtIdArticulo, colDetArtSal, detallesSalida));
+                    if (!detallesSalida.isEmpty() && colDetArtSal != null) {
+                        detalleEntradaIds.addAll(consultarDetalleEntradaPorDetalleArticulo(conn, colsDetArt,
+                                colDetArtSal, detallesSalida, colArtId, colArtDetEnt, colDetArtIdArticulo));
                     }
                     actualizarDetallesSalida(conn, colDetSalId, colDetSalCant, colDetSalPrecioBruto,
                             colDetSalPrecioTotal, colDetSalEstado, detallesSalida);
@@ -596,18 +595,41 @@ public class DetalleFacturaController {
         return result;
     }
 
-    private Set<Integer> consultarDetalleEntradaPorDetalleArticulo(Connection conn, String colArtId,
-                                                                   String colArtDetEnt, String colDetArtIdArticulo,
-                                                                   String colDetArtSal, List<Integer> ids) throws SQLException {
+    private Set<Integer> consultarDetalleEntradaPorDetalleArticulo(Connection conn, Map<String, String> colsDetArt,
+                                                                   String colDetArtSal, List<Integer> ids,
+                                                                   String colArtId, String colArtDetEnt,
+                                                                   String colDetArtIdArticulo) throws SQLException {
         Set<Integer> result = new HashSet<>();
         if (ids.isEmpty()) return result;
+        String colDetArtDetEnt = resolverColumna(colsDetArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+
+        if (colDetArtDetEnt != null) {
+            String sqlDirecto = "SELECT DISTINCT da.`" + colDetArtDetEnt + "` AS idDetalleEntrada FROM detalleArticulo da " +
+                    "WHERE da.`" + colDetArtSal + "` IN (" + placeholders(ids.size()) + ")";
+            try (PreparedStatement ps = conn.prepareStatement(sqlDirecto)) {
+                for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Integer idDetalleEntrada = parseInteger(rs.getObject("idDetalleEntrada"));
+                        if (idDetalleEntrada != null && idDetalleEntrada > 0) result.add(idDetalleEntrada);
+                    }
+                }
+            }
+        }
+
+        if (colArtId == null || colArtDetEnt == null || colDetArtIdArticulo == null) return result;
+
         String sql = "SELECT DISTINCT a.`" + colArtDetEnt + "` AS idDetalleEntrada FROM detalleArticulo da " +
                 "JOIN articulo a ON a.`" + colArtId + "` = da.`" + colDetArtIdArticulo + "` " +
                 "WHERE da.`" + colDetArtSal + "` IN (" + placeholders(ids.size()) + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(rs.getInt("idDetalleEntrada"));
+                while (rs.next()) {
+                    Integer idDetalleEntrada = parseInteger(rs.getObject("idDetalleEntrada"));
+                    if (idDetalleEntrada != null && idDetalleEntrada > 0) result.add(idDetalleEntrada);
+                }
             }
         }
         return result;
