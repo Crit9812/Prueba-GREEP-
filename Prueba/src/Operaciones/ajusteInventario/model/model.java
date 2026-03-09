@@ -515,12 +515,19 @@ public class model {
         // 2. Determinar si es ajuste (tiene "A") o compra (numérico)
         boolean esAjuste = claveEntradaStr.toUpperCase().endsWith("A");
 
-        // 3. Contar artículos (esta parte funciona igual para ambos)
+        // 3. Contar artículos y detalles segmentados por estado de toda la entrada
         String sqlConteo = "SELECT LOWER(a.Estado) AS estado, COUNT(*) AS total " +
                 "FROM articulo a " +
                 "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
                 "WHERE de.claveEntrada = ? " +
                 "GROUP BY LOWER(a.Estado)";
+
+        String sqlConteoDetalle = "SELECT LOWER(da.estado) AS estado, COUNT(*) AS total " +
+                "FROM detalleArticulo da " +
+                "JOIN articulo a ON a.idArticulo = da.idArticulo " +
+                "JOIN detalle_Entrada de ON de.idDetalleEntrada = a.idDetalleEntrada " +
+                "WHERE de.claveEntrada = ? " +
+                "GROUP BY LOWER(da.estado)";
 
         int disponibles = 0;
         int pendientes = 0;
@@ -540,6 +547,25 @@ public class model {
                     } else if ("vendido".equalsIgnoreCase(estado)) {
                         vendidos += total;
                     } else if ("ajustado".equalsIgnoreCase(estado)) {
+                        ajustados += total;
+                    }
+                }
+            }
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlConteoDetalle)) {
+            ps.setString(1, claveEntradaStr);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String estado = rs.getString("estado");
+                    int total = rs.getInt("total");
+                    if ("activo".equalsIgnoreCase(estado) || "disponible".equalsIgnoreCase(estado)) {
+                        disponibles += total;
+                    } else if ("pendiente".equalsIgnoreCase(estado)) {
+                        pendientes += total;
+                    } else if ("vendido".equalsIgnoreCase(estado)) {
+                        vendidos += total;
+                    } else if ("ajustado".equalsIgnoreCase(estado) || "eliminado".equalsIgnoreCase(estado)) {
                         ajustados += total;
                     }
                 }

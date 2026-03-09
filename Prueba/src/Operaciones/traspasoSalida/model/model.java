@@ -463,7 +463,10 @@ public class model {
                         colArticuloDetalleEntrada,
                         colArticuloEstado,
                         colAjusteId,
-                        colAjusteEstado
+                        colAjusteEstado,
+                        colArticuloId,
+                        colDetalleArticuloArticulo,
+                        colDetalleArticuloEstado
                 );
             }
 
@@ -623,7 +626,10 @@ public class model {
                                                    String colArticuloDetalleEntrada,
                                                    String colArticuloEstado,
                                                    String colAjusteId,
-                                                   String colAjusteEstado) throws SQLException {
+                                                   String colAjusteEstado,
+                                                   String colArticuloId,
+                                                   String colDetalleArticuloArticulo,
+                                                   String colDetalleArticuloEstado) throws SQLException {
         if (colDetalleEntradaId == null || colDetalleEntradaClaveEntrada == null || colArticuloDetalleEntrada == null
                 || colArticuloEstado == null) {
             return;
@@ -642,8 +648,16 @@ public class model {
                 colArticuloDetalleEntrada + " WHERE " + filtroClaveEntrada +
                 "GROUP BY LOWER(a." + colArticuloEstado + ")";
 
+        String sqlConteoDetalle = "SELECT LOWER(da." + colDetalleArticuloEstado + ") AS estado, COUNT(*) AS total " +
+                "FROM detalleArticulo da " +
+                "JOIN articulo a ON a." + colArticuloId + " = da." + colDetalleArticuloArticulo + " " +
+                "JOIN detalle_Entrada de ON de." + colDetalleEntradaId + " = a." + colArticuloDetalleEntrada + " " +
+                "WHERE " + filtroClaveEntrada +
+                "GROUP BY LOWER(da." + colDetalleArticuloEstado + ")";
+
         int disponibles = 0;
         int pendientes = 0;
+        int finalizados = 0;
         try (PreparedStatement ps = conn.prepareStatement(sqlConteo)) {
             setClaveEntradaParametro(ps, 1, claveEntrada);
             try (ResultSet rs = ps.executeQuery()) {
@@ -659,6 +673,26 @@ public class model {
             }
         }
 
+        if (colDetalleArticuloEstado != null && colArticuloId != null && colDetalleArticuloArticulo != null) {
+            try (PreparedStatement ps = conn.prepareStatement(sqlConteoDetalle)) {
+                setClaveEntradaParametro(ps, 1, claveEntrada);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String estado = rs.getString("estado");
+                        int total = rs.getInt("total");
+                        if ("activo".equalsIgnoreCase(estado) || "disponible".equalsIgnoreCase(estado)) {
+                            disponibles += total;
+                        } else if ("pendiente".equalsIgnoreCase(estado)) {
+                            pendientes += total;
+                        } else if ("vendido".equalsIgnoreCase(estado) || "ajustado".equalsIgnoreCase(estado)
+                                || "eliminado".equalsIgnoreCase(estado)) {
+                            finalizados += total;
+                        }
+                    }
+                }
+            }
+        }
+
         String nuevoEstado;
         if (disponibles > 0) {
             nuevoEstado = "disponible";
@@ -668,7 +702,7 @@ public class model {
             nuevoEstado = "finalizado";
         }
 
-        if (disponibles == 0 && colDetalleEntradaEstado != null) {
+        if (disponibles == 0 && pendientes == 0 && finalizados > 0 && colDetalleEntradaEstado != null) {
             String sqlUpdateDetalle = "UPDATE detalle_Entrada SET " + colDetalleEntradaEstado + " = ? WHERE "
                     + colDetalleEntradaId + " = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlUpdateDetalle)) {
