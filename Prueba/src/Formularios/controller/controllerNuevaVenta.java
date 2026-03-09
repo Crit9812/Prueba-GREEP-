@@ -7,6 +7,7 @@ import Operaciones.traspasoSalida.model.traspasoSalida;
 import Operaciones.compra.model.UbicacionCompra;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -14,7 +15,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
-import javafx.concurrent.Task;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -163,9 +163,6 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
-        if (!validarCantidadPorUbicacion(clave, lote, caducidad, presentacion, factor, ubicacionesSeleccionadas)) {
-            return;
-        }
 
         BigDecimal precioEntradaDecimal = parseDecimal(precioEntrada);
         BigDecimal precioSalidaDecimal = parseDecimal(precioSalida);
@@ -231,42 +228,6 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             mostrarAlertaSinEspera("Éxito", "Producto agregado a la venta.");
             limpiarFormularioParaNuevo();
         }
-    }
-
-
-    private boolean validarCantidadPorUbicacion(String clave, String lote, java.time.LocalDate caducidad,
-                                                String presentacion, int factor,
-                                                List<UbicacionCompra> ubicacionesSeleccionadas) {
-        for (UbicacionCompra ubicacion : ubicacionesSeleccionadas) {
-            if (ubicacion == null || ubicacion.getUbicacion() == null || ubicacion.getUbicacion().isBlank()) {
-                mostrarAlerta("Advertencia", "Debe seleccionar una ubicación válida.");
-                return false;
-            }
-
-            int cantidadSolicitada = Math.max(0, ubicacion.getCantidad());
-            if (cantidadSolicitada == 0) {
-                continue;
-            }
-
-            int disponibleUbicacion = modelo.obtenerCantidadDisponibleDetalle(
-                    clave,
-                    lote,
-                    caducidad,
-                    presentacion,
-                    factor,
-                    ubicacion.getUbicacion().trim()
-            );
-
-            if (cantidadSolicitada > disponibleUbicacion) {
-                mostrarAlerta(
-                        "Advertencia",
-                        "La cantidad solicitada para la ubicación '" + ubicacion.getUbicacion()
-                                + "' excede la disponibilidad actual (" + disponibleUbicacion + ")."
-                );
-                return false;
-            }
-        }
-        return true;
     }
 
     @Override
@@ -365,67 +326,18 @@ public class controllerNuevaVenta extends FormularioSalidaController {
             return;
         }
 
-        // VALIDACIÓN 7: Verificar disponibilidad del producto con presentación y factor específicos
-        int disponible = modelo.obtenerCantidadDisponibleProductoPresentacionFactor(
-                clave, presentacionRapida, factorRapido);
-        if (cantidad > disponible) {
-            mostrarAlerta("Advertencia",
-                    "La cantidad supera la disponible para la presentación " + presentacionRapida
-                            + " con factor " + factorRapido + ".");
-            return;
-        }
-
-        // VALIDACIÓN 8: Verificar que la combinación producto-presentación-factor exista en inventario
-        String claveSnapshot = clave;
-        String presentacionSnapshot = presentacionRapida;
-        int factorSnapshot = factorRapido;
-        int cantidadSnapshot = cantidad;
-
-        Task<Boolean> validacionTask = new Task<>() {
-            @Override
-            protected Boolean call() {
-                // Primero verificar si la combinación existe
-                boolean combinacionExiste = modelo.existeCombinacionProductoPresentacionFactor(
-                        claveSnapshot, presentacionSnapshot, factorSnapshot);
-
-                if (!combinacionExiste) {
-                    return false;
-                }
-
-                // Luego verificar disponibilidad específica
-                return modelo.obtenerCantidadDisponibleProductoPresentacionFactor(
-                        claveSnapshot, presentacionSnapshot, factorSnapshot) >= cantidadSnapshot;
-            }
-
-            @Override
-            protected void succeeded() {
-                boolean validacionExitosa = getValue();
-                if (!validacionExitosa) {
-                    Platform.runLater(() -> {
-                        mostrarAlerta("Error",
-                                "La combinación de producto, presentación y factor no existe en inventario " +
-                                        "o no hay suficiente cantidad disponible.");
-                    });
-                } else {
-                    // Si la validación es exitosa, continuar con el resto del proceso
-                    Platform.runLater(() -> continuarGuardadoRapido(claveSnapshot, nombre, descripcion,
-                            presentacionSnapshot, factorSnapshot, cantidadSnapshot,
-                            precioSalida, precioIva, precioBruto, precioTotal));
-                }
-            }
-
-            @Override
-            protected void failed() {
-                Platform.runLater(() -> {
-                    mostrarAlerta("Error", "Error al validar la disponibilidad del producto.");
-                });
-            }
-        };
-
-        // Ejecutar la validación en segundo plano
-        Thread hiloValidacion = new Thread(validacionTask);
-        hiloValidacion.setDaemon(true);
-        hiloValidacion.start();
+        continuarGuardadoRapido(
+                clave,
+                nombre,
+                descripcion,
+                presentacionRapida,
+                factorRapido,
+                cantidad,
+                precioSalida,
+                precioIva,
+                precioBruto,
+                precioTotal
+        );
     }
 
     @Override
