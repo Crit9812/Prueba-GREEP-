@@ -52,6 +52,7 @@ public class modelProductoCbox {
             Map<String, String> columnasProductos = obtenerColumnas(conn, "productos");
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
 
             String colUrlImagen = resolverColumna(columnasProductos, "urlImagen");
             String urlImagenSelect = colUrlImagen != null
@@ -66,9 +67,16 @@ public class modelProductoCbox {
                     "id_detalle_entrada");
             String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
                     "id_producto", "producto_id");
+            String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado");
+            String colDetalleArticuloIdArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo",
+                    "id_articulo", "articulo_id");
+            String colDetalleArticuloDetalleSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                    "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
 
             if (colArticuloEstado == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
-                    || colDetalleEntradaProducto == null || colArticuloDetalleSalida == null) {
+                    || colDetalleEntradaProducto == null || colArticuloDetalleSalida == null
+                    || colDetalleArticuloEstado == null || colDetalleArticuloIdArticulo == null
+                    || colDetalleArticuloDetalleSalida == null) {
                 return obtenerTodosProductos();
             }
 
@@ -79,18 +87,34 @@ public class modelProductoCbox {
                     .append("FROM productos p ")
                     .append("LEFT JOIN marcas m ON m.id = p.marca ")
                     .append("LEFT JOIN etiquetas e ON e.id = p.etiqueta ")
-                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaProducto)
-                    .append("` = p.id ")
+                    .append("WHERE (p.estado = 'activo' OR p.estado IS NULL OR p.estado = '') ")
+                    .append("AND ( ")
+                    .append("EXISTS ( ")
+                    .append("SELECT 1 FROM detalle_Entrada de ")
                     .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
                     .append("` = de.`").append(colDetalleEntradaId).append("` ")
-                    .append("WHERE (p.estado = 'activo' OR p.estado IS NULL OR p.estado = '') ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = p.id ")
                     .append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
                     .append("AND (a.`").append(colArticuloDetalleSalida)
                     .append("` IS NULL OR a.`").append(colArticuloDetalleSalida).append("` = 0) ")
+                    .append(") ")
+                    .append("OR EXISTS ( ")
+                    .append("SELECT 1 FROM detalle_Entrada de2 ")
+                    .append("JOIN articulo a2 ON a2.`").append(colArticuloDetalleEntrada)
+                    .append("` = de2.`").append(colDetalleEntradaId).append("` ")
+                    .append("JOIN detalleArticulo da ON da.`").append(colDetalleArticuloIdArticulo)
+                    .append("` = a2.idArticulo ")
+                    .append("WHERE de2.`").append(colDetalleEntradaProducto).append("` = p.id ")
+                    .append("AND LOWER(da.`").append(colDetalleArticuloEstado).append("`) = ? ")
+                    .append("AND (da.`").append(colDetalleArticuloDetalleSalida)
+                    .append("` IS NULL OR da.`").append(colDetalleArticuloDetalleSalida).append("` = 0) ")
+                    .append(") ")
+                    .append(") ")
                     .append("ORDER BY p.nombre");
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 ps.setString(1, "disponible");
+                ps.setString(2, "disponible");
                 try (ResultSet rs = ps.executeQuery()) {
                     return procesarResultSetProductos(rs);
                 }
@@ -240,6 +264,7 @@ public class modelProductoCbox {
         try (Connection conn = new Conexion().conectar()) {
             Map<String, String> columnasArticulo = obtenerColumnas(conn, "articulo");
             Map<String, String> columnasDetalleEntrada = obtenerColumnas(conn, "detalle_Entrada");
+            Map<String, String> columnasDetalleArticulo = obtenerColumnas(conn, "detalleArticulo");
 
             String colArticuloEstado = resolverColumna(columnasArticulo, "Estado", "estado");
             String colArticuloDetalleEntrada = resolverColumna(columnasArticulo, "idDetalleEntrada",
@@ -250,9 +275,16 @@ public class modelProductoCbox {
                     "id_detalle_entrada");
             String colDetalleEntradaProducto = resolverColumna(columnasDetalleEntrada, "claveProducto", "idProducto",
                     "id_producto", "producto_id");
+            String colDetalleArticuloEstado = resolverColumna(columnasDetalleArticulo, "estado");
+            String colDetalleArticuloIdArticulo = resolverColumna(columnasDetalleArticulo, "idArticulo",
+                    "id_articulo", "articulo_id");
+            String colDetalleArticuloDetalleSalida = resolverColumna(columnasDetalleArticulo, "idDetalleSalida",
+                    "id_detalle_salida", "detalleSalida", "detalle_salida", "detalle_salida_id");
 
             if (colArticuloEstado == null || colArticuloDetalleEntrada == null || colDetalleEntradaId == null
-                    || colDetalleEntradaProducto == null || colArticuloDetalleSalida == null) {
+                    || colDetalleEntradaProducto == null || colArticuloDetalleSalida == null
+                    || colDetalleArticuloEstado == null || colDetalleArticuloIdArticulo == null
+                    || colDetalleArticuloDetalleSalida == null) {
                 return obtenerTodasClavesAlternas();
             }
 
@@ -262,19 +294,35 @@ public class modelProductoCbox {
                     .append("FROM claves ca ")
                     .append("LEFT JOIN proveedores pv ON pv.id = ca.idProveedor ")
                     .append("LEFT JOIN productos pr ON pr.id = ca.idProducto ")
-                    .append("JOIN detalle_Entrada de ON de.`").append(colDetalleEntradaProducto)
-                    .append("` = pr.id ")
-                    .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
-                    .append("` = de.`").append(colDetalleEntradaId).append("` ")
                     .append("WHERE ca.estado = 'activo' ")
                     .append("AND (pr.estado = 'activo' OR pr.estado IS NULL OR pr.estado = '') ")
+                    .append("AND ( ")
+                    .append("EXISTS ( ")
+                    .append("SELECT 1 FROM detalle_Entrada de ")
+                    .append("JOIN articulo a ON a.`").append(colArticuloDetalleEntrada)
+                    .append("` = de.`").append(colDetalleEntradaId).append("` ")
+                    .append("WHERE de.`").append(colDetalleEntradaProducto).append("` = pr.id ")
                     .append("AND LOWER(a.`").append(colArticuloEstado).append("`) = ? ")
                     .append("AND (a.`").append(colArticuloDetalleSalida)
                     .append("` IS NULL OR a.`").append(colArticuloDetalleSalida).append("` = 0) ")
+                    .append(") ")
+                    .append("OR EXISTS ( ")
+                    .append("SELECT 1 FROM detalle_Entrada de2 ")
+                    .append("JOIN articulo a2 ON a2.`").append(colArticuloDetalleEntrada)
+                    .append("` = de2.`").append(colDetalleEntradaId).append("` ")
+                    .append("JOIN detalleArticulo da ON da.`").append(colDetalleArticuloIdArticulo)
+                    .append("` = a2.idArticulo ")
+                    .append("WHERE de2.`").append(colDetalleEntradaProducto).append("` = pr.id ")
+                    .append("AND LOWER(da.`").append(colDetalleArticuloEstado).append("`) = ? ")
+                    .append("AND (da.`").append(colDetalleArticuloDetalleSalida)
+                    .append("` IS NULL OR da.`").append(colDetalleArticuloDetalleSalida).append("` = 0) ")
+                    .append(") ")
+                    .append(") ")
                     .append("ORDER BY pv.nombre");
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 ps.setString(1, "disponible");
+                ps.setString(2, "disponible");
                 try (ResultSet rs = ps.executeQuery()) {
                     return procesarResultSetClaves(rs);
                 }
@@ -561,4 +609,3 @@ public class modelProductoCbox {
                 .orElse("");
     }
 }
-
