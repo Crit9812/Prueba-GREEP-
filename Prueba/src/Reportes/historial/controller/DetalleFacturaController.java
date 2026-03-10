@@ -2617,13 +2617,13 @@ public class DetalleFacturaController {
         String nuevoEstado;
         if (disponibles > 0) {
             nuevoEstado = "disponible";
-        } else if (totalConsiderado > 0 && vendidos == totalConsiderado) {
+        } else if (totalConsiderado > 0 && vendidos > 0 && (vendidos + eliminados) == totalConsiderado) {
             nuevoEstado = "finalizado";
         } else if (pendientes > 0) {
             nuevoEstado = "pendiente";
         } else if (totalConsiderado > 0 && finalizados == totalConsiderado) {
             nuevoEstado = "finalizado";
-        } else if (totalConsiderado == 0 || eliminados == totalConsiderado) {
+        } else if (totalConsiderado > 0 && eliminados == totalConsiderado) {
             nuevoEstado = "cancelado";
         } else if (finalizados > 0) {
             nuevoEstado = "finalizado";
