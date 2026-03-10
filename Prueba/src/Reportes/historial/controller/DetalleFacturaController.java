@@ -2323,7 +2323,7 @@ public class DetalleFacturaController {
             ps.setInt(1, art.detalleSalidaId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    claveId = textoSeguro(rs.getObject("clave"));
+                    claveId = Objects.toString(rs.getObject("clave"), "").trim();
                     cant = parseDecimal(rs.getObject("cant"));
                     pUnit = parseDecimal(rs.getObject("pUnit"));
                     pIva = parseDecimal(rs.getObject("pIva"));
@@ -2462,7 +2462,7 @@ public class DetalleFacturaController {
             try (PreparedStatement ps = conn.prepareStatement(sqlSalida)) {
                 ps.setInt(1, detSalId);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) claveSalida = textoSeguro(rs.getObject(1));
+                    if (rs.next()) claveSalida = Objects.toString(rs.getObject(1), "").trim();
                 }
             }
 
@@ -3024,7 +3024,7 @@ public class DetalleFacturaController {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, detalleSalidaId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return textoSeguro(rs.getObject(1));
+                if (rs.next()) return Objects.toString(rs.getObject(1), "").trim();
             }
         }
         return null;
