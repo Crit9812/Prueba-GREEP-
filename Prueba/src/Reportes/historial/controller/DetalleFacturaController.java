@@ -3084,11 +3084,17 @@ public class DetalleFacturaController {
                 Integer articuloId = obtenerArticuloDesdeDetalleArticulo(conn, detalle.idDetalle, colId,
                         resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id"));
 
-                String sql = esEntrada || colDetSal == null
+                // Determinar tipo real por relación en BD para evitar inconsistencias del contexto de UI.
+                // Si detalleArticulo está ligado a detalleSalida => salida (disponible).
+                // Si no tiene detalleSalida => entrada (eliminado).
+                boolean esSalida = detalleSalidaId != null && detalleSalidaId > 0;
+                String nuevoEstado = esSalida ? "disponible" : "eliminado";
+
+                String sql = !esSalida || colDetSal == null
                         ? "UPDATE detalleArticulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?"
                         : "UPDATE detalleArticulo SET `" + colEstado + "` = ?, `" + colDetSal + "` = NULL WHERE `" + colId + "` = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setString(1, esEntrada ? "eliminado" : "disponible");
+                    ps.setString(1, nuevoEstado);
                     ps.setString(2, detalle.idDetalle);
                     ps.executeUpdate();
                 }
