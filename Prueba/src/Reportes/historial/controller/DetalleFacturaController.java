@@ -1822,6 +1822,55 @@ public class DetalleFacturaController {
         actualizarTotalesAjuste(conn, ajusteId, deltaNeto, deltaTotal);
     }
 
+    private void actualizarTotalesAjustePorClave(Connection conn, String claveAjuste,
+                                                BigDecimal deltaNeto, BigDecimal deltaTotal) throws SQLException {
+        if (claveAjuste == null || claveAjuste.isBlank()) return;
+
+        Integer ajusteNumerico = parseInteger(claveAjuste);
+        if (ajusteNumerico != null && ajusteNumerico > 0) {
+            actualizarTotalesAjuste(conn, ajusteNumerico, deltaNeto, deltaTotal);
+            return;
+        }
+
+        Map<String, String> cols = obtenerColumnasCached(conn, "ajuste_inventario");
+        String colId = resolverColumna(cols, "idAjuste", "id", "id_ajuste");
+        String colNeto = resolverColumna(cols, "precioNeto", "precio_neto");
+        String colTotal = resolverColumna(cols, "precioTotal", "precio_total");
+        if (colId == null) return;
+
+        BigDecimal netoAct = null, totalAct = null;
+        String sql = "SELECT " + (colNeto != null ? "`" + colNeto + "`" : "NULL") + " AS neto, " +
+                (colTotal != null ? "`" + colTotal + "`" : "NULL") + " AS total FROM ajuste_inventario WHERE `" + colId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, claveAjuste);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    netoAct = parseDecimal(rs.getObject("neto"));
+                    totalAct = parseDecimal(rs.getObject("total"));
+                }
+            }
+        }
+
+        StringBuilder up = new StringBuilder("UPDATE ajuste_inventario SET ");
+        List<Object> vals = new ArrayList<>();
+        if (colNeto != null && deltaNeto != null) {
+            BigDecimal base = netoAct != null ? netoAct : BigDecimal.ZERO;
+            agregarCampo(up, vals, colNeto, base.add(deltaNeto).setScale(2, RoundingMode.HALF_UP));
+        }
+        if (colTotal != null && deltaTotal != null) {
+            BigDecimal base = totalAct != null ? totalAct : BigDecimal.ZERO;
+            agregarCampo(up, vals, colTotal, base.add(deltaTotal).setScale(2, RoundingMode.HALF_UP));
+        }
+        if (vals.isEmpty()) return;
+        up.append(" WHERE `").append(colId).append("` = ?");
+        vals.add(claveAjuste);
+
+        try (PreparedStatement ps = conn.prepareStatement(up.toString())) {
+            for (int i = 0; i < vals.size(); i++) ps.setObject(i + 1, vals.get(i));
+            ps.executeUpdate();
+        }
+    }
+
     private void actualizarTotalesAjuste(Connection conn, Integer ajusteId, BigDecimal deltaNeto, BigDecimal deltaTotal) throws SQLException {
         if (ajusteId == null || ajusteId <= 0) return;
         Map<String, String> cols = obtenerColumnasCached(conn, "ajuste_inventario");
@@ -2201,20 +2250,21 @@ public class DetalleFacturaController {
                     }
 
                     // Ajustar totales de la salida
-                    Integer ajusteId = ajustarTotalesSalida(conn, articulo, esAjuste);
+                    String claveAjuste = ajustarTotalesSalida(conn, articulo, esAjuste);
 
                     // Si el artículo es segmentado, también debemos marcar sus detalles como disponibles
                     if (articulo.esSegmentado() && !articulo.detallesSegmentados.isEmpty()) {
                         marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "disponible", true);
-                    } else {
-                        // Reactivar el origen (detalle_Entrada asociado)
-                        reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
                     }
+
+                    // Reactivar el origen (detalle_Entrada asociado) tanto para artículos normales
+                    // como segmentados en salidas individuales.
+                    reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
 
                     actualizarEstadoDetalleSalidaSiVacio(conn, articulo.detalleSalidaId, !esAjuste);
 
                     if (esAjuste) {
-                        actualizarEstadoAjusteSiVacio(conn, ajusteId);
+                        actualizarEstadoAjusteSiVacio(conn, claveAjuste);
                     }
                 } else {
                     // Es una entrada (no tiene detalleSalidaId)
@@ -2249,7 +2299,7 @@ public class DetalleFacturaController {
         });
     }
 
-    private Integer ajustarTotalesSalida(Connection conn, DetalleArticulo art, boolean esAjuste) throws SQLException {
+    private String ajustarTotalesSalida(Connection conn, DetalleArticulo art, boolean esAjuste) throws SQLException {
         if (art == null || art.detalleSalidaId == null) return null;
 
         Map<String, String> colsDet = obtenerColumnasCached(conn, "detalle_Salida");
@@ -2266,14 +2316,14 @@ public class DetalleFacturaController {
         String sql = "SELECT `" + colClave + "` AS clave, `" + colCant + "` AS cant, `" + colPUnit + "` AS pUnit, `" +
                 colPIva + "` AS pIva FROM detalle_Salida WHERE `" + colDetId + "` = ?";
 
-        Integer claveId = null;
+        String claveId = null;
         BigDecimal cant = null, pUnit = null, pIva = null;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, art.detalleSalidaId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    claveId = rs.getInt("clave");
+                    claveId = Objects.toString(rs.getObject("clave"), "").trim();
                     cant = parseDecimal(rs.getObject("cant"));
                     pUnit = parseDecimal(rs.getObject("pUnit"));
                     pIva = parseDecimal(rs.getObject("pIva"));
@@ -2300,10 +2350,10 @@ public class DetalleFacturaController {
             ps.executeUpdate();
         }
 
-        if (claveId == null || claveId <= 0) return null;
+        if (claveId == null || claveId.isBlank()) return null;
 
         if (esAjuste) {
-            actualizarTotalesAjuste(conn, claveId, pUnit.negate(), pIva.negate());
+            actualizarTotalesAjustePorClave(conn, claveId, pUnit.negate(), pIva.negate());
         }
 
         return claveId;
@@ -2333,7 +2383,7 @@ public class DetalleFacturaController {
             ps.setInt(1, art.detalleEntradaId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    claveId = rs.getInt("clave");
+                    claveId = parseInteger(rs.getObject("clave"));
                     cant = parseDecimal(rs.getObject("cant"));
                     pUnit = parseDecimal(rs.getObject("pUnit"));
                     pIva = parseDecimal(rs.getObject("pIva"));
@@ -2407,16 +2457,17 @@ public class DetalleFacturaController {
             String colClave = resolverColumna(colsDet, "claveSalida", "idSalida", "id_salida", "salida_id");
             if (colClave == null) return;
 
-            Integer salidaId = null;
+            String claveSalida = null;
             String sqlSalida = "SELECT `" + colClave + "` FROM detalle_Salida WHERE `" + colDetId + "` = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlSalida)) {
                 ps.setInt(1, detSalId);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) salidaId = rs.getInt(1);
+                    if (rs.next()) claveSalida = Objects.toString(rs.getObject(1), "").trim();
                 }
             }
 
-            if (salidaId == null) return;
+            Integer salidaId = parseInteger(claveSalida);
+            if (salidaId == null || salidaId <= 0) return;
 
             Map<String, String> colsSal = obtenerColumnasCached(conn, "salidas");
             String colSalId = resolverColumna(colsSal, "idSalida", "id", "id_salida");
@@ -2493,6 +2544,11 @@ public class DetalleFacturaController {
 
     private void actualizarEstadoAjusteSiVacio(Connection conn, Integer ajusteId) throws SQLException {
         if (ajusteId == null || ajusteId <= 0) return;
+        actualizarEstadoAjusteSiVacio(conn, String.valueOf(ajusteId));
+    }
+
+    private void actualizarEstadoAjusteSiVacio(Connection conn, String ajusteId) throws SQLException {
+        if (ajusteId == null || ajusteId.isBlank()) return;
 
         Map<String, String> colsAjuste = obtenerColumnasCached(conn, "ajuste_inventario");
         String colId = resolverColumna(colsAjuste, "idAjuste", "id", "id_ajuste");
@@ -2502,7 +2558,7 @@ public class DetalleFacturaController {
 
         try (PreparedStatement ps = conn.prepareStatement("UPDATE ajuste_inventario SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
             ps.setString(1, "cancelado");
-            ps.setInt(2, ajusteId);
+            ps.setString(2, ajusteId);
             ps.executeUpdate();
         }
     }
@@ -2919,7 +2975,12 @@ public class DetalleFacturaController {
                 }
 
                 if (!esEntrada && detalleSalidaId != null) {
-                    actualizarEstadoDetalleSalidaSiVacio(conn, detalleSalidaId, true);
+                    boolean esAjusteSalida = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
+                    actualizarEstadoDetalleSalidaSiVacio(conn, detalleSalidaId, !esAjusteSalida);
+                    if (esAjusteSalida) {
+                        String claveAjuste = obtenerClaveSalidaDesdeDetalleSalida(conn, detalleSalidaId);
+                        actualizarEstadoAjusteSiVacio(conn, claveAjuste);
+                    }
                 }
 
                 notificarActualizacion();
@@ -2950,6 +3011,23 @@ public class DetalleFacturaController {
             ps.setInt(2, idArticulo);
             ps.executeUpdate();
         }
+    }
+
+    private String obtenerClaveSalidaDesdeDetalleSalida(Connection conn, Integer detalleSalidaId) throws SQLException {
+        if (detalleSalidaId == null || detalleSalidaId <= 0) return null;
+        Map<String, String> colsDet = obtenerColumnasCached(conn, "detalle_Salida");
+        String colDetId = resolverColumna(colsDet, "idDetalleSalida", "id", "id_detalle_salida");
+        String colClave = resolverColumna(colsDet, "claveSalida", "idSalida", "id_salida", "salida_id");
+        if (colDetId == null || colClave == null) return null;
+
+        String sql = "SELECT `" + colClave + "` FROM detalle_Salida WHERE `" + colDetId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, detalleSalidaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Objects.toString(rs.getObject(1), "").trim();
+            }
+        }
+        return null;
     }
 
     private Integer obtenerDetalleSalidaDesdeDetalleArticulo(Connection conn, String idDetalle,
