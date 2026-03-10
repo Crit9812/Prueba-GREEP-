@@ -1021,7 +1021,7 @@ public class GenericDAO<T> {
                 sql.append(" AND u.`").append(colUbicacionNombre).append("` = ?");
             }
             if (colArticuloEstado != null) {
-                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) = ?");
+                sql.append(" AND LOWER(a.`").append(colArticuloEstado).append("`) IN (?, ?)");
             }
             if (ubicacionNombre != null && colUbicacionEstado != null) {
                 sql.append(" AND LOWER(u.`").append(colUbicacionEstado).append("`) = ?");
@@ -1044,6 +1044,7 @@ public class GenericDAO<T> {
                 }
                 if (colArticuloEstado != null) {
                     ps.setString(index++, "segmentado");
+                    ps.setString(index++, "disponible");
                 }
                 if (ubicacionNombre != null && colUbicacionEstado != null) {
                     ps.setString(index, "activo");
