@@ -2116,7 +2116,7 @@ public class MainController implements ControladorVista{
             INNER JOIN productos p ON de.claveProducto = p.id
             LEFT JOIN marcas m ON p.marca = m.id
             LEFT JOIN ubicaciones u ON da.idUbicacion = u.id
-            WHERE da.estado = 'activo'
+            WHERE da.estado = 'disponible'
               AND a.Estado = 'segmentado'
             """ : """
             SELECT
@@ -2174,7 +2174,7 @@ public class MainController implements ControladorVista{
                 INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
                 INNER JOIN productos p ON de.claveProducto = p.id
                 LEFT JOIN marcas m ON p.marca = m.id
-                WHERE da.estado = 'activo'
+                WHERE da.estado = 'disponible'
                   AND a.Estado = 'segmentado'
             ) AS inventario
             GROUP BY

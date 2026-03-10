@@ -2272,6 +2272,7 @@ public class DetalleFacturaController {
                         // En entradas segmentadas, eliminar en el artículo principal marca como eliminado
                         // a sus detalleArticulo sincronizados.
                         marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "eliminado", false);
+                        actualizarEstadoEntradaPorJerarquia(conn, obtenerEntradaDesdeArticulo(conn, articulo.idArticulo));
                     } else {
                         // Es una entrada no segmentada.
                         try (PreparedStatement ps = conn.prepareStatement(
@@ -2283,6 +2284,9 @@ public class DetalleFacturaController {
 
                         Integer ajusteId = ajustarTotalesEntrada(conn, articulo, esAjuste);
                         actualizarEstadoDetalleEntradaSiVacio(conn, articulo.detalleEntradaId, !esAjuste);
+                        if (!esAjuste) {
+                            actualizarEstadoEntradaPorJerarquia(conn, obtenerEntradaDesdeArticulo(conn, articulo.idArticulo));
+                        }
 
                         if (esAjuste) {
                             actualizarEstadoAjusteSiVacio(conn, ajusteId);
@@ -2532,14 +2536,133 @@ public class DetalleFacturaController {
             String colEntEstado = resolverColumna(colsEnt, "Estado", "estado");
 
             if (colEntId != null && colEntEstado != null) {
-                String sqlUpdEnt = "UPDATE entradas SET `" + colEntEstado + "` = ? WHERE `" + colEntId + "` = ?";
-                try (PreparedStatement ps = conn.prepareStatement(sqlUpdEnt)) {
-                    ps.setString(1, "cancelado");
-                    ps.setInt(2, entradaId);
-                    ps.executeUpdate();
+                actualizarEstadoEntradaPorJerarquia(conn, entradaId);
+            }
+        }
+    }
+
+    private void actualizarEstadoEntradaPorJerarquia(Connection conn, Integer entradaId) throws SQLException {
+        if (entradaId == null || entradaId <= 0) return;
+
+        Map<String, String> colsEnt = obtenerColumnasCached(conn, "entradas");
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+
+        String colEntId = resolverColumna(colsEnt, "idEntrada", "id", "id_entrada");
+        String colEntEstado = resolverColumna(colsEnt, "Estado", "estado");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colDetArtIdArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colDetArtEstado = resolverColumna(colsDetArt, "estado", "Estado");
+
+        if (colEntId == null || colEntEstado == null || colDetEntId == null || colDetEntClave == null
+                || colArtDetEnt == null || colArtEstado == null) {
+            return;
+        }
+
+        String sqlConteoArticulo = """
+                SELECT LOWER(a.`%s`) AS estado, COUNT(*) AS total
+                FROM articulo a
+                INNER JOIN detalle_Entrada de ON a.`%s` = de.`%s`
+                WHERE de.`%s` = ?
+                  AND LOWER(a.`%s`) <> 'segmentado'
+                GROUP BY LOWER(a.`%s`)
+                """.formatted(colArtEstado, colArtDetEnt, colDetEntId, colDetEntClave, colArtEstado, colArtEstado);
+
+        Map<String, Integer> conteos = new HashMap<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sqlConteoArticulo)) {
+            ps.setInt(1, entradaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    conteos.merge(textoSeguro(rs.getString("estado")).toLowerCase(Locale.ROOT), rs.getInt("total"), Integer::sum);
                 }
             }
         }
+
+        if (colArtId != null && colDetArtIdArticulo != null && colDetArtEstado != null) {
+            String sqlConteoDetalle = """
+                    SELECT LOWER(da.`%s`) AS estado, COUNT(*) AS total
+                    FROM detalleArticulo da
+                    INNER JOIN articulo a ON da.`%s` = a.`%s`
+                    INNER JOIN detalle_Entrada de ON a.`%s` = de.`%s`
+                    WHERE de.`%s` = ?
+                      AND LOWER(a.`%s`) = 'segmentado'
+                    GROUP BY LOWER(da.`%s`)
+                    """.formatted(colDetArtEstado, colDetArtIdArticulo, colArtId, colArtDetEnt, colDetEntId,
+                    colDetEntClave, colArtEstado, colDetArtEstado);
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlConteoDetalle)) {
+                ps.setInt(1, entradaId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        conteos.merge(textoSeguro(rs.getString("estado")).toLowerCase(Locale.ROOT), rs.getInt("total"), Integer::sum);
+                    }
+                }
+            }
+        }
+
+        int disponibles = conteos.getOrDefault("disponible", 0);
+        int pendientes = conteos.getOrDefault("pendiente", 0);
+        int vendidos = conteos.getOrDefault("vendido", 0);
+        int finalizados = conteos.getOrDefault("finalizado", 0) + conteos.getOrDefault("finalizada", 0);
+        int eliminados = conteos.getOrDefault("eliminado", 0);
+        int totalConsiderado = conteos.values().stream().mapToInt(Integer::intValue).sum();
+
+        String nuevoEstado;
+        if (disponibles > 0) {
+            nuevoEstado = "disponible";
+        } else if (totalConsiderado > 0 && vendidos > 0 && (vendidos + eliminados) == totalConsiderado) {
+            nuevoEstado = "finalizado";
+        } else if (pendientes > 0) {
+            nuevoEstado = "pendiente";
+        } else if (totalConsiderado > 0 && finalizados == totalConsiderado) {
+            nuevoEstado = "finalizado";
+        } else if (totalConsiderado > 0 && eliminados == totalConsiderado) {
+            nuevoEstado = "cancelado";
+        } else if (finalizados > 0) {
+            nuevoEstado = "finalizado";
+        } else {
+            nuevoEstado = "cancelado";
+        }
+
+        String sqlUpd = "UPDATE entradas SET `" + colEntEstado + "` = ? WHERE `" + colEntId + "` = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlUpd)) {
+            ps.setString(1, nuevoEstado);
+            ps.setInt(2, entradaId);
+            ps.executeUpdate();
+        }
+    }
+
+    private Integer obtenerEntradaDesdeArticulo(Connection conn, Integer articuloId) throws SQLException {
+        if (articuloId == null || articuloId <= 0) return null;
+
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+
+        if (colArtId == null || colArtDetEnt == null || colDetEntId == null || colDetEntClave == null) return null;
+
+        String sql = "SELECT de.`" + colDetEntClave + "` FROM articulo a "
+                + "INNER JOIN detalle_Entrada de ON a.`" + colArtDetEnt + "` = de.`" + colDetEntId + "` "
+                + "WHERE a.`" + colArtId + "` = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, articuloId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return parseInteger(rs.getObject(1));
+            }
+        }
+        return null;
     }
 
     private void actualizarEstadoAjusteSiVacio(Connection conn, Integer ajusteId) throws SQLException {
@@ -2972,6 +3095,11 @@ public class DetalleFacturaController {
 
                 if (!esEntrada && articuloId != null && articuloId > 0) {
                     reactivarOrigenDesdeArticulo(conn, articuloId);
+                }
+
+                if (esEntrada && articuloId != null && articuloId > 0) {
+                    Integer entradaId = obtenerEntradaDesdeArticulo(conn, articuloId);
+                    actualizarEstadoEntradaPorJerarquia(conn, entradaId);
                 }
 
                 if (!esEntrada && detalleSalidaId != null) {
