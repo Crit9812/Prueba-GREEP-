@@ -302,10 +302,10 @@ public class DetalleFacturaController {
                 List<Integer> detallesEntrada = consultarIds(conn, "detalle_Entrada", colDetalleId, colDetalleClave, entradaId);
 
                 if (!detallesEntrada.isEmpty()) {
-                    actualizarEstadoArticulos(conn, colArticuloDetalle, colArticuloEstado, "eliminado", false, detallesEntrada);
+                    actualizarEstadoArticulosPorEntrada(conn, colArticuloDetalle, colArticuloEstado, detallesEntrada);
 
                     if (colDetalleArticuloIdArticulo != null && colDetalleArticuloEstado != null && colArticuloId != null) {
-                        actualizarDetalleArticuloPorEntrada(conn, colArticuloId, colArticuloDetalle,
+                        actualizarDetalleArticuloPorEntrada(conn, colArticuloId, colArticuloDetalle, colArticuloEstado,
                                 colDetalleArticuloIdArticulo, colDetalleArticuloEstado, detallesEntrada);
                     }
 
@@ -416,7 +416,7 @@ public class DetalleFacturaController {
                         actualizarEstadoArticulos(conn, colArtDetEnt, colArtEstado, "eliminado", false, detallesEntrada);
                     }
                     if (colArtId != null && colDetArtIdArticulo != null && colDetArtEstado != null) {
-                        actualizarDetalleArticuloPorEntrada(conn, colArtId, colArtDetEnt,
+                        actualizarDetalleArticuloPorEntrada(conn, colArtId, colArtDetEnt, colArtEstado,
                                 colDetArtIdArticulo, colDetArtEstado, detallesEntrada);
                     }
                     actualizarDetallesEntrada(conn, colDetEntId, colDetEntCant, colDetEntPrecioBruto,
@@ -550,6 +550,20 @@ public class DetalleFacturaController {
         }
     }
 
+    private void actualizarEstadoArticulosPorEntrada(Connection conn, String colDetalle, String colEstado,
+                                                     List<Integer> ids) throws SQLException {
+        if (ids.isEmpty()) return;
+        String sql = "UPDATE articulo SET `" + colEstado + "` = 'eliminado' WHERE `" + colDetalle +
+                "` = ? AND LOWER(`" + colEstado + "`) <> 'segmentado'";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (Integer id : ids) {
+                ps.setInt(1, id);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
     private void actualizarDetalleArticuloSalida(Connection conn, String colDetalleSalida,
                                                  String colEstado, List<Integer> ids) throws SQLException {
         if (ids.isEmpty()) return;
@@ -566,14 +580,26 @@ public class DetalleFacturaController {
     }
 
     private void actualizarDetalleArticuloPorEntrada(Connection conn, String colArtId, String colArtDetEnt,
+                                                     String colArtEstado,
                                                      String colDetArtIdArticulo, String colDetArtEstado,
                                                      List<Integer> detallesEntrada) throws SQLException {
         if (detallesEntrada.isEmpty()) return;
-        String sql = "UPDATE detalleArticulo da JOIN articulo a ON a.`" + colArtId + "` = da.`" + colDetArtIdArticulo +
-                "` SET da.`" + colDetArtEstado + "` = ? WHERE a.`" + colArtDetEnt + "` = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sqlNoSegmentado = "UPDATE detalleArticulo da JOIN articulo a ON a.`" + colArtId + "` = da.`" + colDetArtIdArticulo +
+                "` SET da.`" + colDetArtEstado + "` = ? WHERE a.`" + colArtDetEnt + "` = ? AND LOWER(a.`" + colArtEstado + "`) <> 'segmentado'";
+        try (PreparedStatement ps = conn.prepareStatement(sqlNoSegmentado)) {
             for (Integer detalleId : detallesEntrada) {
                 ps.setString(1, "eliminado");
+                ps.setInt(2, detalleId);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
+        String sqlSegmentado = "UPDATE detalleArticulo da JOIN articulo a ON a.`" + colArtId + "` = da.`" + colDetArtIdArticulo +
+                "` SET da.`" + colDetArtEstado + "` = ? WHERE a.`" + colArtDetEnt + "` = ? AND LOWER(a.`" + colArtEstado + "`) = 'segmentado'";
+        try (PreparedStatement ps = conn.prepareStatement(sqlSegmentado)) {
+            for (Integer detalleId : detallesEntrada) {
+                ps.setString(1, "cancelado");
                 ps.setInt(2, detalleId);
                 ps.addBatch();
             }
@@ -771,11 +797,15 @@ public class DetalleFacturaController {
     private boolean entradaSoloTieneEstadosCancelables(Connection conn, Integer entradaId) throws SQLException {
         Map<String, String> colsDet = obtenerColumnasCached(conn, "detalle_Entrada");
         Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
         String colDetId = resolverColumna(colsDet, "idDetalleEntrada", "id", "id_detalle_entrada");
         String colDetClave = resolverColumna(colsDet, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
         String colArtDet = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
+        String colDetArtIdArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colDetArtEstado = resolverColumna(colsDetArt, "estado", "Estado");
         if (colDetId == null || colDetClave == null || colArtDet == null || colArtEstado == null) return false;
 
         String sqlArt = "SELECT COUNT(*) FROM articulo a JOIN detalle_Entrada d ON a.`" + colArtDet + "` = d.`" +
@@ -783,9 +813,22 @@ public class DetalleFacturaController {
         int totalArt = ejecutarConteo(conn, sqlArt, entradaId);
         String sqlArtNoPerm = "SELECT COUNT(*) FROM articulo a JOIN detalle_Entrada d ON a.`" + colArtDet + "` = d.`" +
                 colDetId + "` WHERE d.`" + colDetClave + "` = ? AND LOWER(a.`" + colArtEstado +
-                "`) NOT IN ('eliminado', 'disponible')";
+                "`) NOT IN ('eliminado', 'disponible', 'segmentado')";
         int artNoPerm = ejecutarConteo(conn, sqlArtNoPerm, entradaId);
-        return artNoPerm == 0 && totalArt > 0;
+
+        int segmentadosNoDisponibles = 0;
+        if (colArtId != null && colDetArtIdArticulo != null && colDetArtEstado != null) {
+            String sqlSegmentadosNoDisponibles = "SELECT COUNT(*) FROM articulo a " +
+                    "JOIN detalle_Entrada d ON a.`" + colArtDet + "` = d.`" + colDetId + "` " +
+                    "WHERE d.`" + colDetClave + "` = ? AND LOWER(a.`" + colArtEstado + "`) = 'segmentado' " +
+                    "AND (NOT EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`" + colDetArtIdArticulo + "` = a.`" + colArtId +
+                    "` AND LOWER(da.`" + colDetArtEstado + "`) = 'disponible') " +
+                    "OR EXISTS (SELECT 1 FROM detalleArticulo da WHERE da.`" + colDetArtIdArticulo + "` = a.`" + colArtId +
+                    "` AND LOWER(da.`" + colDetArtEstado + "`) <> 'disponible'))";
+            segmentadosNoDisponibles = ejecutarConteo(conn, sqlSegmentadosNoDisponibles, entradaId);
+        }
+
+        return artNoPerm == 0 && totalArt > 0 && segmentadosNoDisponibles == 0;
     }
 
     private boolean puedeCancelarSalida(Connection conn, Integer salidaId) throws SQLException {
