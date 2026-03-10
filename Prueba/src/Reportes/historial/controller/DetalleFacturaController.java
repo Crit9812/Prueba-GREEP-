@@ -189,15 +189,15 @@ public class DetalleFacturaController {
                             "disponible", true, detallesSalida);
                 }
 
-                if (colDetalleArticuloSalida != null && colDetalleArticuloEstado != null) {
-                    actualizarDetalleArticuloSalida(conn, colDetalleArticuloSalida, colDetalleArticuloEstado,
-                            detallesSalida);
-                }
-
                 if (!detallesSalida.isEmpty() && colDetalleArticuloSalida != null && colDetalleArticuloIdArticulo != null
                         && colArticuloId != null && colArticuloDetalleEntrada != null) {
                     detalleEntradaIds.addAll(consultarDetalleEntradaPorDetalleArticulo(conn, colArticuloId,
                             colArticuloDetalleEntrada, colDetalleArticuloIdArticulo, colDetalleArticuloSalida, detallesSalida));
+                }
+
+                if (colDetalleArticuloSalida != null && colDetalleArticuloEstado != null) {
+                    actualizarDetalleArticuloSalida(conn, colDetalleArticuloSalida, colDetalleArticuloEstado,
+                            detallesSalida);
                 }
 
                 if (!detalleEntradaIds.isEmpty() && colDetalleEntradaId != null && colDetalleEntradaEstado != null) {
@@ -434,13 +434,13 @@ public class DetalleFacturaController {
                     if (colArtDetSal != null && colArtEstado != null) {
                         actualizarEstadoArticulos(conn, colArtDetSal, colArtEstado, "disponible", true, detallesSalida);
                     }
-                    if (colDetArtSal != null && colDetArtEstado != null) {
-                        actualizarDetalleArticuloSalida(conn, colDetArtSal, colDetArtEstado, detallesSalida);
-                    }
                     if (!detallesSalida.isEmpty() && colDetArtSal != null && colDetArtIdArticulo != null
                             && colArtId != null && colArtDetEnt != null) {
                         detalleEntradaIds.addAll(consultarDetalleEntradaPorDetalleArticulo(conn, colArtId,
                                 colArtDetEnt, colDetArtIdArticulo, colDetArtSal, detallesSalida));
+                    }
+                    if (colDetArtSal != null && colDetArtEstado != null) {
+                        actualizarDetalleArticuloSalida(conn, colDetArtSal, colDetArtEstado, detallesSalida);
                     }
                     actualizarDetallesSalida(conn, colDetSalId, colDetSalCant, colDetSalPrecioBruto,
                             colDetSalPrecioTotal, colDetSalEstado, detallesSalida);
