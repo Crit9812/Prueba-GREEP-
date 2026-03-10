@@ -2619,7 +2619,7 @@ public class DetalleFacturaController {
             nuevoEstado = "disponible";
         } else if (totalConsiderado > 0 && vendidos == totalConsiderado) {
             nuevoEstado = "finalizado";
-        } else if (pendientes > 0 || vendidos > 0) {
+        } else if (pendientes > 0) {
             nuevoEstado = "pendiente";
         } else if (totalConsiderado > 0 && finalizados == totalConsiderado) {
             nuevoEstado = "finalizado";
