@@ -2608,7 +2608,8 @@ public class DetalleFacturaController {
         }
 
         int disponibles = conteos.getOrDefault("disponible", 0);
-        int pendientes = conteos.getOrDefault("pendiente", 0) + conteos.getOrDefault("vendido", 0);
+        int pendientes = conteos.getOrDefault("pendiente", 0);
+        int vendidos = conteos.getOrDefault("vendido", 0);
         int finalizados = conteos.getOrDefault("finalizado", 0) + conteos.getOrDefault("finalizada", 0);
         int eliminados = conteos.getOrDefault("eliminado", 0);
         int totalConsiderado = conteos.values().stream().mapToInt(Integer::intValue).sum();
@@ -2616,7 +2617,9 @@ public class DetalleFacturaController {
         String nuevoEstado;
         if (disponibles > 0) {
             nuevoEstado = "disponible";
-        } else if (pendientes > 0) {
+        } else if (totalConsiderado > 0 && vendidos == totalConsiderado) {
+            nuevoEstado = "finalizado";
+        } else if (pendientes > 0 || vendidos > 0) {
             nuevoEstado = "pendiente";
         } else if (totalConsiderado > 0 && finalizados == totalConsiderado) {
             nuevoEstado = "finalizado";
