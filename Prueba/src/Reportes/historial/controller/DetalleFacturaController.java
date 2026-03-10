@@ -2206,10 +2206,11 @@ public class DetalleFacturaController {
                     // Si el artículo es segmentado, también debemos marcar sus detalles como disponibles
                     if (articulo.esSegmentado() && !articulo.detallesSegmentados.isEmpty()) {
                         marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "disponible", true);
-                    } else {
-                        // Reactivar el origen (detalle_Entrada asociado)
-                        reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
                     }
+
+                    // Reactivar el origen (detalle_Entrada asociado) tanto para artículos normales
+                    // como segmentados en salidas individuales.
+                    reactivarOrigenDesdeArticulo(conn, articulo.idArticulo);
 
                     actualizarEstadoDetalleSalidaSiVacio(conn, articulo.detalleSalidaId, !esAjuste);
 
