@@ -599,7 +599,7 @@ public class DetalleFacturaController {
                 "` SET da.`" + colDetArtEstado + "` = ? WHERE a.`" + colArtDetEnt + "` = ? AND LOWER(a.`" + colArtEstado + "`) = 'segmentado'";
         try (PreparedStatement ps = conn.prepareStatement(sqlSegmentado)) {
             for (Integer detalleId : detallesEntrada) {
-                ps.setString(1, "cancelado");
+                ps.setString(1, "eliminado");
                 ps.setInt(2, detalleId);
                 ps.addBatch();
             }
