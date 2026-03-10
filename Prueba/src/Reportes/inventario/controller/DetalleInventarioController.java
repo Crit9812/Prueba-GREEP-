@@ -266,7 +266,7 @@ public class DetalleInventarioController {
                 INNER JOIN detalle_Entrada de ON a.idDetalleEntrada = de.idDetalleEntrada
                 INNER JOIN productos p ON de.claveProducto = p.id
                 LEFT JOIN ubicaciones u ON da.idUbicacion = u.id
-                WHERE da.estado = 'activo'
+                WHERE da.estado = 'disponible'
                   AND a.Estado = 'segmentado'
                   AND p.id = ?
                 ORDER BY u.nombre, da.idDetalle
