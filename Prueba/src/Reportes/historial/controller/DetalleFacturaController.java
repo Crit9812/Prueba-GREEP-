@@ -2676,11 +2676,29 @@ public class DetalleFacturaController {
         Map<String, String> colsAjuste = obtenerColumnasCached(conn, "ajuste_inventario");
         String colId = resolverColumna(colsAjuste, "idAjuste", "id", "id_ajuste");
         String colEstado = resolverColumna(colsAjuste, "estado", "Estado");
-
         if (colId == null || colEstado == null) return;
 
+        int detallesActivos = 0;
+
+        Map<String, String> colsDetSal = obtenerColumnasCached(conn, "detalle_Salida");
+        String colDetSalClave = resolverColumna(colsDetSal, "claveSalida", "idSalida", "id_salida", "salida_id");
+        String colDetSalEstado = resolverColumna(colsDetSal, "estado", "Estado");
+        if (colDetSalClave != null && colDetSalEstado != null) {
+            String sql = "SELECT COUNT(*) FROM detalle_Salida WHERE `" + colDetSalClave + "` = ? AND LOWER(`" + colDetSalEstado + "`) <> 'desactivado'";
+            detallesActivos += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+        String colDetEntEstado = resolverColumna(colsDetEnt, "estado", "Estado");
+        if (colDetEntClave != null && colDetEntEstado != null) {
+            String sql = "SELECT COUNT(*) FROM detalle_Entrada WHERE `" + colDetEntClave + "` = ? AND LOWER(`" + colDetEntEstado + "`) <> 'desactivado'";
+            detallesActivos += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        String nuevoEstado = detallesActivos > 0 ? "disponible" : "cancelado";
         try (PreparedStatement ps = conn.prepareStatement("UPDATE ajuste_inventario SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
-            ps.setString(1, "cancelado");
+            ps.setString(1, nuevoEstado);
             ps.setString(2, ajusteId);
             ps.executeUpdate();
         }
@@ -3084,25 +3102,31 @@ public class DetalleFacturaController {
                 Integer articuloId = obtenerArticuloDesdeDetalleArticulo(conn, detalle.idDetalle, colId,
                         resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id"));
 
-                String sql = esEntrada || colDetSal == null
+                // Determinar tipo real por relación en BD para evitar inconsistencias del contexto de UI.
+                // Si detalleArticulo está ligado a detalleSalida => salida (disponible).
+                // Si no tiene detalleSalida => entrada (eliminado).
+                boolean esSalida = detalleSalidaId != null && detalleSalidaId > 0;
+                String nuevoEstado = esSalida ? "disponible" : "eliminado";
+
+                String sql = !esSalida || colDetSal == null
                         ? "UPDATE detalleArticulo SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?"
                         : "UPDATE detalleArticulo SET `" + colEstado + "` = ?, `" + colDetSal + "` = NULL WHERE `" + colId + "` = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setString(1, esEntrada ? "eliminado" : "disponible");
+                    ps.setString(1, nuevoEstado);
                     ps.setString(2, detalle.idDetalle);
                     ps.executeUpdate();
                 }
 
-                if (!esEntrada && articuloId != null && articuloId > 0) {
+                if (esSalida && articuloId != null && articuloId > 0) {
                     reactivarOrigenDesdeArticulo(conn, articuloId);
                 }
 
-                if (esEntrada && articuloId != null && articuloId > 0) {
+                if (!esSalida && articuloId != null && articuloId > 0) {
                     Integer entradaId = obtenerEntradaDesdeArticulo(conn, articuloId);
                     actualizarEstadoEntradaPorJerarquia(conn, entradaId);
                 }
 
-                if (!esEntrada && detalleSalidaId != null) {
+                if (esSalida && detalleSalidaId != null) {
                     boolean esAjusteSalida = historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento());
                     actualizarEstadoDetalleSalidaSiVacio(conn, detalleSalidaId, !esAjusteSalida);
                     if (esAjusteSalida) {
