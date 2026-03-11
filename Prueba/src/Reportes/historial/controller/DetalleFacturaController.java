@@ -390,7 +390,8 @@ public class DetalleFacturaController {
                         "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
                 String colArtDetSal = resolverColumna(colsArt, "idDetalleSalida", "id_detalle_salida",
                         "detalleSalida", "detalle_salida", "detalle_salida_id");
-                String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
+                String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
 
                 String colDetArtIdArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
                 String colDetArtSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
@@ -803,6 +804,7 @@ public class DetalleFacturaController {
         String colArtDet = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
         String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
         String colDetArtIdArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
         String colDetArtEstado = resolverColumna(colsDetArt, "estado", "Estado");
@@ -1058,6 +1060,7 @@ public class DetalleFacturaController {
         String colArtUbi = resolverColumna(colsArt, "ubicacion", "idUbicacion", "id_ubicacion");
         String colArtPres = resolverColumna(colsArt, "presentacion");
         String colArtFact = resolverColumna(colsArt, "factor");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
         String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
@@ -1148,6 +1151,7 @@ public class DetalleFacturaController {
         String colArtUbi = resolverColumna(colsArt, "ubicacion", "idUbicacion", "id_ubicacion");
         String colArtPres = resolverColumna(colsArt, "presentacion");
         String colArtFact = resolverColumna(colsArt, "factor");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
         String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
@@ -1245,6 +1249,7 @@ public class DetalleFacturaController {
         String colArtCad = resolverColumna(colsArt, "caducidad");
         String colArtPres = resolverColumna(colsArt, "presentacion");
         String colArtFact = resolverColumna(colsArt, "factor");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
 
         String colUbiId = resolverColumna(colsUbi, "id", "idUbicacion", "ubicacion_id");
@@ -2555,6 +2560,7 @@ public class DetalleFacturaController {
         String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
         String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
                 "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
         String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
         String colDetArtIdArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
@@ -2678,25 +2684,63 @@ public class DetalleFacturaController {
         String colEstado = resolverColumna(colsAjuste, "estado", "Estado");
         if (colId == null || colEstado == null) return;
 
-        int detallesActivos = 0;
+        int elementosNoEliminados = 0;
+
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArtDetSal = resolverColumna(colsArt, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
+
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colDetArtArt = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+        String colDetArtEstado = resolverColumna(colsDetArt, "estado", "Estado");
 
         Map<String, String> colsDetSal = obtenerColumnasCached(conn, "detalle_Salida");
+        String colDetSalId = resolverColumna(colsDetSal, "idDetalleSalida", "id", "id_detalle_salida");
         String colDetSalClave = resolverColumna(colsDetSal, "claveSalida", "idSalida", "id_salida", "salida_id");
-        String colDetSalEstado = resolverColumna(colsDetSal, "estado", "Estado");
-        if (colDetSalClave != null && colDetSalEstado != null) {
-            String sql = "SELECT COUNT(*) FROM detalle_Salida WHERE `" + colDetSalClave + "` = ? AND LOWER(`" + colDetSalEstado + "`) <> 'desactivado'";
-            detallesActivos += ejecutarConteo(conn, sql, ajusteId);
-        }
 
         Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
         String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
-        String colDetEntEstado = resolverColumna(colsDetEnt, "estado", "Estado");
-        if (colDetEntClave != null && colDetEntEstado != null) {
-            String sql = "SELECT COUNT(*) FROM detalle_Entrada WHERE `" + colDetEntClave + "` = ? AND LOWER(`" + colDetEntEstado + "`) <> 'desactivado'";
-            detallesActivos += ejecutarConteo(conn, sql, ajusteId);
+
+        if (colArtEstado != null && colArtDetSal != null && colDetSalId != null && colDetSalClave != null) {
+            String sql = "SELECT COUNT(*) FROM articulo a "
+                    + "JOIN detalle_Salida ds ON a.`" + colArtDetSal + "` = ds.`" + colDetSalId + "` "
+                    + "WHERE ds.`" + colDetSalClave + "` = ? "
+                    + "AND LOWER(COALESCE(a.`" + colArtEstado + "`, '')) <> 'eliminado'";
+            elementosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
         }
 
-        String nuevoEstado = detallesActivos > 0 ? "disponible" : "cancelado";
+        if (colArtEstado != null && colArtDetEnt != null && colDetEntId != null && colDetEntClave != null) {
+            String sql = "SELECT COUNT(*) FROM articulo a "
+                    + "JOIN detalle_Entrada de ON a.`" + colArtDetEnt + "` = de.`" + colDetEntId + "` "
+                    + "WHERE de.`" + colDetEntClave + "` = ? "
+                    + "AND LOWER(COALESCE(a.`" + colArtEstado + "`, '')) <> 'eliminado'";
+            elementosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        if (colDetArtEstado != null && colDetArtArt != null && colArtId != null && colArtDetSal != null && colDetSalId != null && colDetSalClave != null) {
+            String sql = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetArtArt + "` = a.`" + colArtId + "` "
+                    + "JOIN detalle_Salida ds ON a.`" + colArtDetSal + "` = ds.`" + colDetSalId + "` "
+                    + "WHERE ds.`" + colDetSalClave + "` = ? "
+                    + "AND LOWER(COALESCE(da.`" + colDetArtEstado + "`, '')) <> 'eliminado'";
+            elementosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        if (colDetArtEstado != null && colDetArtArt != null && colArtId != null && colArtDetEnt != null && colDetEntId != null && colDetEntClave != null) {
+            String sql = "SELECT COUNT(*) FROM detalleArticulo da "
+                    + "JOIN articulo a ON da.`" + colDetArtArt + "` = a.`" + colArtId + "` "
+                    + "JOIN detalle_Entrada de ON a.`" + colArtDetEnt + "` = de.`" + colDetEntId + "` "
+                    + "WHERE de.`" + colDetEntClave + "` = ? "
+                    + "AND LOWER(COALESCE(da.`" + colDetArtEstado + "`, '')) <> 'eliminado'";
+            elementosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        String nuevoEstado = elementosNoEliminados > 0 ? "activo" : "desactivado";
         try (PreparedStatement ps = conn.prepareStatement("UPDATE ajuste_inventario SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
             ps.setString(1, nuevoEstado);
             ps.setString(2, ajusteId);
