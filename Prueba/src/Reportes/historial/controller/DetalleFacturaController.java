@@ -390,8 +390,7 @@ public class DetalleFacturaController {
                         "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
                 String colArtDetSal = resolverColumna(colsArt, "idDetalleSalida", "id_detalle_salida",
                         "detalleSalida", "detalle_salida", "detalle_salida_id");
-                String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
-        String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
+                String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
 
                 String colDetArtIdArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
                 String colDetArtSal = resolverColumna(colsDetArt, "idDetalleSalida", "id_detalle_salida",
