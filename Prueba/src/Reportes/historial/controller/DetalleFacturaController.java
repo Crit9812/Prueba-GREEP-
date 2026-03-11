@@ -2273,6 +2273,9 @@ public class DetalleFacturaController {
                         // a sus detalleArticulo sincronizados.
                         marcarDetallesSincronizadosDeArticulo(conn, articulo.idArticulo, "eliminado", false);
                         actualizarEstadoEntradaPorJerarquia(conn, obtenerEntradaDesdeArticulo(conn, articulo.idArticulo));
+                        if (esAjuste) {
+                            actualizarEstadoAjusteSiVacio(conn, obtenerClaveAjusteDesdeArticulo(conn, articulo.idArticulo));
+                        }
                     } else {
                         // Es una entrada no segmentada.
                         try (PreparedStatement ps = conn.prepareStatement(
@@ -2665,6 +2668,31 @@ public class DetalleFacturaController {
         return null;
     }
 
+    private String obtenerClaveAjusteDesdeArticulo(Connection conn, Integer articuloId) throws SQLException {
+        if (articuloId == null || articuloId <= 0) return null;
+
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
+        String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
+
+        if (colArtId == null || colArtDetEnt == null || colDetEntId == null || colDetEntClave == null) return null;
+
+        String sql = "SELECT de.`" + colDetEntClave + "` FROM articulo a "
+                + "INNER JOIN detalle_Entrada de ON a.`" + colArtDetEnt + "` = de.`" + colDetEntId + "` "
+                + "WHERE a.`" + colArtId + "` = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, articuloId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Objects.toString(rs.getObject(1), null) : null;
+            }
+        }
+    }
+
     private void actualizarEstadoAjusteSiVacio(Connection conn, Integer ajusteId) throws SQLException {
         if (ajusteId == null || ajusteId <= 0) return;
         actualizarEstadoAjusteSiVacio(conn, String.valueOf(ajusteId));
@@ -2678,25 +2706,73 @@ public class DetalleFacturaController {
         String colEstado = resolverColumna(colsAjuste, "estado", "Estado");
         if (colId == null || colEstado == null) return;
 
-        int detallesActivos = 0;
+        int registrosNoEliminados = 0;
 
         Map<String, String> colsDetSal = obtenerColumnasCached(conn, "detalle_Salida");
+        String colDetSalId = resolverColumna(colsDetSal, "idDetalleSalida", "id", "id_detalle_salida");
         String colDetSalClave = resolverColumna(colsDetSal, "claveSalida", "idSalida", "id_salida", "salida_id");
         String colDetSalEstado = resolverColumna(colsDetSal, "estado", "Estado");
         if (colDetSalClave != null && colDetSalEstado != null) {
-            String sql = "SELECT COUNT(*) FROM detalle_Salida WHERE `" + colDetSalClave + "` = ? AND LOWER(`" + colDetSalEstado + "`) <> 'desactivado'";
-            detallesActivos += ejecutarConteo(conn, sql, ajusteId);
+            String sql = "SELECT COUNT(*) FROM detalle_Salida WHERE `" + colDetSalClave + "` = ? " +
+                    "AND LOWER(COALESCE(`" + colDetSalEstado + "`, '')) <> 'eliminado'";
+            registrosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
         }
 
         Map<String, String> colsDetEnt = obtenerColumnasCached(conn, "detalle_Entrada");
+        String colDetEntId = resolverColumna(colsDetEnt, "idDetalleEntrada", "id", "id_detalle_entrada");
         String colDetEntClave = resolverColumna(colsDetEnt, "claveEntrada", "idEntrada", "id_entrada", "entrada_id");
         String colDetEntEstado = resolverColumna(colsDetEnt, "estado", "Estado");
         if (colDetEntClave != null && colDetEntEstado != null) {
-            String sql = "SELECT COUNT(*) FROM detalle_Entrada WHERE `" + colDetEntClave + "` = ? AND LOWER(`" + colDetEntEstado + "`) <> 'desactivado'";
-            detallesActivos += ejecutarConteo(conn, sql, ajusteId);
+            String sql = "SELECT COUNT(*) FROM detalle_Entrada WHERE `" + colDetEntClave + "` = ? " +
+                    "AND LOWER(COALESCE(`" + colDetEntEstado + "`, '')) <> 'eliminado'";
+            registrosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
         }
 
-        String nuevoEstado = detallesActivos > 0 ? "disponible" : "cancelado";
+        Map<String, String> colsArt = obtenerColumnasCached(conn, "articulo");
+        String colArtId = resolverColumna(colsArt, "idArticulo", "id", "id_articulo");
+        String colArtEstado = resolverColumna(colsArt, "Estado", "estado");
+        String colArtDetEnt = resolverColumna(colsArt, "idDetalleEntrada", "id_detalle_entrada",
+                "detalleEntrada", "detalle_entrada", "detalle_entrada_id");
+        String colArtDetSal = resolverColumna(colsArt, "idDetalleSalida", "id_detalle_salida",
+                "detalleSalida", "detalle_salida", "detalle_salida_id");
+
+        if (colArtEstado != null && colArtDetEnt != null && colDetEntId != null && colDetEntClave != null) {
+            String sql = "SELECT COUNT(*) FROM articulo a " +
+                    "INNER JOIN detalle_Entrada de ON a.`" + colArtDetEnt + "` = de.`" + colDetEntId + "` " +
+                    "WHERE de.`" + colDetEntClave + "` = ? AND LOWER(COALESCE(a.`" + colArtEstado + "`, '')) <> 'eliminado'";
+            registrosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        if (colArtEstado != null && colArtDetSal != null && colDetSalId != null && colDetSalClave != null) {
+            String sql = "SELECT COUNT(*) FROM articulo a " +
+                    "INNER JOIN detalle_Salida ds ON a.`" + colArtDetSal + "` = ds.`" + colDetSalId + "` " +
+                    "WHERE ds.`" + colDetSalClave + "` = ? AND LOWER(COALESCE(a.`" + colArtEstado + "`, '')) <> 'eliminado'";
+            registrosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        Map<String, String> colsDetArt = obtenerColumnasCached(conn, "detalleArticulo");
+        String colDetArtEstado = resolverColumna(colsDetArt, "estado", "Estado");
+        String colDetArtArticulo = resolverColumna(colsDetArt, "idArticulo", "id_articulo", "articulo_id");
+
+        if (colDetArtEstado != null && colDetArtArticulo != null && colArtId != null &&
+                colArtDetEnt != null && colDetEntId != null && colDetEntClave != null) {
+            String sql = "SELECT COUNT(*) FROM detalleArticulo da " +
+                    "INNER JOIN articulo a ON da.`" + colDetArtArticulo + "` = a.`" + colArtId + "` " +
+                    "INNER JOIN detalle_Entrada de ON a.`" + colArtDetEnt + "` = de.`" + colDetEntId + "` " +
+                    "WHERE de.`" + colDetEntClave + "` = ? AND LOWER(COALESCE(da.`" + colDetArtEstado + "`, '')) <> 'eliminado'";
+            registrosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        if (colDetArtEstado != null && colDetArtArticulo != null && colArtId != null &&
+                colArtDetSal != null && colDetSalId != null && colDetSalClave != null) {
+            String sql = "SELECT COUNT(*) FROM detalleArticulo da " +
+                    "INNER JOIN articulo a ON da.`" + colDetArtArticulo + "` = a.`" + colArtId + "` " +
+                    "INNER JOIN detalle_Salida ds ON a.`" + colArtDetSal + "` = ds.`" + colDetSalId + "` " +
+                    "WHERE ds.`" + colDetSalClave + "` = ? AND LOWER(COALESCE(da.`" + colDetArtEstado + "`, '')) <> 'eliminado'";
+            registrosNoEliminados += ejecutarConteo(conn, sql, ajusteId);
+        }
+
+        String nuevoEstado = registrosNoEliminados > 0 ? "activo" : "desactivado";
         try (PreparedStatement ps = conn.prepareStatement("UPDATE ajuste_inventario SET `" + colEstado + "` = ? WHERE `" + colId + "` = ?")) {
             ps.setString(1, nuevoEstado);
             ps.setString(2, ajusteId);
@@ -3124,6 +3200,9 @@ public class DetalleFacturaController {
                 if (!esSalida && articuloId != null && articuloId > 0) {
                     Integer entradaId = obtenerEntradaDesdeArticulo(conn, articuloId);
                     actualizarEstadoEntradaPorJerarquia(conn, entradaId);
+                    if (historial != null && "Ajuste".equalsIgnoreCase(historial.getMovimiento())) {
+                        actualizarEstadoAjusteSiVacio(conn, obtenerClaveAjusteDesdeArticulo(conn, articuloId));
+                    }
                 }
 
                 if (esSalida && detalleSalidaId != null) {
